@@ -35,7 +35,11 @@
 	(else (inexact->string (* num 100.0) prec))))
 
 (defexport (show% num (den #f) (prec 2))
-  (cond ((not den) (printout (inexact->string (* num 100.0) prec) "%"))
+  (cond ((not (number? num)) 
+	 (printout "NotANumber:" num (when den (printout"%/" den)) ))
+	((not den) (printout (inexact->string (* num 100.0) prec) "%"))
+	((not (number? den)) 
+	 (printout "NotANumber:" den (printout"%under" num) ))
 	((zero? den)
 	 (if (zero? num)
 	     (printout "0%")

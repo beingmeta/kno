@@ -290,7 +290,7 @@
 				 partsize partopts open-opts
 				 basemap pools
 				 front zero last))
-	   (flex-opts `#[adjunct #t
+	   (flex-opts `#[adjunct #t virtual #t
 			 register (getopt opts 'register)
 			 type flexpool
 			 source ,filename

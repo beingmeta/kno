@@ -132,6 +132,8 @@ KNO_EXPORT int kno_fast_exit;
 /* Whether to report an error conditions on exit */
 KNO_EXPORT int kno_report_errors_atexit;
 
+KNO_EXPORT u8_string kno_exe_name;
+
 KNO_EXPORT void kno_doexit(lispval);
 KNO_EXPORT void kno_signal_doexit(int);
 

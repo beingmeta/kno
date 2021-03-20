@@ -105,7 +105,7 @@ typedef struct KNO_ARGINFO {
   lispval fcn_moduleid;							\
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
-  lispval *fcn_schema;							\
+  lispval *fcn_argnames;							\
   lispval *fcn_typeinfo;						\
   lispval fcnid;							\
   lispval fcn_attribs;							\
@@ -172,9 +172,9 @@ struct KNO_FUNCTION {
 #define KNO_FCN_MIN_ARITY(x) (((kno_function)x)->fcn_min_arity)
 #define KNO_FCN_CALL_WIDTH(x) (((kno_function)x)->fcn_call_width)
 #define KNO_FCN_ARGINFO_LEN(x) (((kno_function)x)->fcn_arginfo_len)
-#define KNO_FCN_SCHEMA(x) (((kno_function)x)->fcn_schema)
+#define KNO_FCN_ARGNAMES(x) (((kno_function)x)->fcn_argnames)
 #define KNO_FCN_ATTRIBS(x) (((kno_function)x)->fcn_attribs)
-#define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_schema)
+#define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_fcnid)
 #define KNO_FCN_PROFILE(x) (((kno_function)x)->fcn_profile)
 #define KNO_FCN_PROFILEP(x) ((((kno_function)x)->fcn_profile)!=NULL)
 

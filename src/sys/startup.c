@@ -68,6 +68,8 @@ int kno_exited    = 0;
 /* This determines whether to memory should be freed while exiting */
 int kno_fast_exit = 0;
 
+u8_string kno_exe_name = NULL;
+
 static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
 
 int kno_be_vewy_quiet = 0;
@@ -107,6 +109,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
 {
   if (argc>0) {
     exe_name = u8_fromlibc(argv[0]);
+    if (exe_name[0]=='/') kno_exe_name = u8_strdup(exe_name);
+    else kno_exe_name = u8_abspath(exe_name,NULL);
     lispval interp = knostring(exe_name);
     u8_string exec_path = NULL;
     kno_set_config("INTERPRETER",interp);
@@ -1261,6 +1265,27 @@ void kno_init_startup_c()
   kno_register_config
     ("HEAPLIMIT",_("Set total heap (DATA segment) limit"),
      rlimit_get,rlimit_set,(void *)RLIMIT_DATA);
+#ifdef RLIMIT_FSIZE
+  kno_register_config
+    ("FILESIZE",_("max file size (in bytes)"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_FSIZE);
+#endif
+#ifdef RLIMIT_NOFILE
+  kno_register_config
+    ("NOFILE",_("the number of open files allowed"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_NOFILE);
+  kno_register_config
+    ("NFILES",_("the number of open files allowed"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_NOFILE);
+#endif
+#ifdef RLIMIT_NPROC
+  kno_register_config
+    ("NPROCS",_("the number of live processes allowed"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_NPROC);
+  kno_register_config
+    ("PROC",_("the number of live processes allowed"),
+     rlimit_get,rlimit_set,(void *)RLIMIT_NPROC);
+#endif
 
 }
 

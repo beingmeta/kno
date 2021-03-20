@@ -811,6 +811,10 @@ int main(int argc,char **argv)
      kno_intconfig_get,kno_intconfig_set,
      &console_oid_display_level);
   kno_register_config
+    ("KNOC:OID:DISPLAY",_("OID display level for the KNO console app"),
+     kno_intconfig_get,kno_intconfig_set,
+     &console_oid_display_level);
+  kno_register_config
     ("DBGMAXCHARS",
      _("Max number of string characters to display in debug message"),
      kno_intconfig_get,kno_intconfig_set,&debug_maxchars);

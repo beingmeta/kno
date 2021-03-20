@@ -189,6 +189,8 @@ static lispval *aggregate_fetchkeys(kno_index ix,int *n)
   }
 }
 
+DEF_KNOSYM(canonical);
+
 KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
 (lispval opts,int n_allocd,int n,kno_index *indexes)
 {
@@ -196,9 +198,11 @@ KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
   lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   kno_storage_flags flags =
     kno_get_dbflags(opts,KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY);
+  lispval idval = kno_getopt(opts,KNOSYM_LABEL,KNO_VOID);
+  u8_string id = (KNO_STRINGP(idval)) ? (KNO_CSTRING(idval)) :
+    (U8S("aggregate+0"));
   kno_init_index((kno_index)aix,&aggregate_index_handler,
-                "new-aggregate",NULL,NULL,
-                flags,metadata,opts);
+		 id,NULL,NULL,flags,metadata,opts);
   if (n_allocd < n) n_allocd = n;
   u8_init_mutex(&(aix->index_lock));
   aix->ax_n_allocd = n_allocd;
@@ -209,7 +213,21 @@ KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
     kno_index add = indexes[i++];
     if (add) kno_add_to_aggregate_index(aix,add);}
   kno_register_index((kno_index)aix);
+  kno_decref(idval);
   return aix;
+}
+
+static int aggregateidp(u8_string id)
+{
+  if (id==NULL) return 1;
+  u8_string plus = strrchr(id,'+');
+  if (plus==NULL) return 0;
+  else if (plus[1]=='\0') return 0;
+  else {
+    u8_string scan = plus+1;
+    while (isdigit(*scan)) scan++;
+    if (*scan=='\0') return 1;
+    else return 0;}
 }
 
 KNO_EXPORT int kno_add_to_aggregate_index(kno_aggregate_index aix,kno_index add)
@@ -273,11 +291,12 @@ KNO_EXPORT int kno_add_to_aggregate_index(kno_aggregate_index aix,kno_index add)
     u8_string old_source = aix->index_source;
 
     u8_string old_id = aix->indexid;
-    aix->indexid = u8_mkstring("%s+%d",
-			       aix->ax_indexes[0]->indexid,
-			       (aix->ax_n_indexes-1));
-    if (old_id) u8_free(old_id);
-    
+    if (aggregateidp(old_id)) {
+      aix->indexid = u8_mkstring("%s+%d",
+				 aix->ax_indexes[0]->indexid,
+				 (aix->ax_n_indexes-1));
+      if (old_id) u8_free(old_id);}
+
     struct U8_OUTPUT sourceout;
     U8_INIT_OUTPUT(&sourceout,128);
     int j = 0; while (j < aix->ax_n_indexes) {

@@ -607,62 +607,81 @@ KNO_EXPORT lispval _kno_dbg(lispval x)
     return result;}
 }
 
-
 int (*kno_dump_exception)(lispval ex);
 
 DEFC_EVALFN("dbg",dbg_evalfn,KNO_EVALFN_DEFAULTS,
-	    "evaluates *expr* and returns its value. "
-	    "Unless the value of *etc* is false (#f), This logs the value "
-	    "returned, any non-void result of evaluating *etc*, "
-	    "and a description of the value's underlying KNO pointer "
-	    "(type, refcount, etc). Bundled KNO debugger inits "
-	    "set a breakpoint in this handler to allow the result "
-	    "argument to be examined.")
+	    "`(dbg *expr* *cond* [*pre*])` evaluates *expr* and returns its value. "
+	    "When provided, *cond* is evaluated; if it is #f, dbg just "
+	    "returns the value. Otherwise, a log message is emitted providing "
+	    "information about the value and the result of calling *cond*")
 static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 {
   lispval expr=kno_get_arg(dbg_expr,1);
   lispval msg_expr=kno_get_arg(dbg_expr,2);
-  lispval arg=kno_eval(expr,env,stack);
-  if (VOIDP(msg_expr))
-    u8_message("Debug %q <= %q",arg,expr);
-  else {
-    lispval msg=kno_eval(msg_expr,env,stack);
-    if (FALSEP(msg))
-      return arg;
-    else u8_message("Debug (%q) %q <= %q",msg,arg,expr);
-    kno_decref(msg);}
+  lispval pre_expr=kno_get_arg(dbg_expr,3);
+  lispval msg= (KNO_VOIDP(msg_expr)) ? (KNO_VOID) :
+    (kno_eval(msg_expr,env,stack));
+  if (KNO_FALSEP(msg))
+    return kno_eval(expr,env,stack);
+  else if (!((KNO_VOIDP(pre_expr))||(KNO_FALSEP(pre_expr)))) {
+  examine_expr:
+    if (KNO_VOIDP(msg))
+      u8_message("Evaluating %Q",expr);
+    else u8_message("Evaluating (%q) %Q",msg,expr);}
+  lispval arg = kno_eval(expr,env,stack);
+  if (KNO_VOIDP(msg))
+    u8_message("Debug %q <==\n    %Q",arg,expr);
+  else u8_message("Debug (%q) %q <=\n	  %Q",KNO_LONGVAL(&arg),
+		  msg,arg,expr);
+  kno_decref(msg);
   log_ptr(arg,KNO_VOID,arg);
  examine_result:
   return arg;
 }
 
-DEFC_EVALFN("dbgeval",dbgeval_evalfn,KNO_EVALFN_DEFAULTS,
-	    "evaluates *expr* returning its value. "
-	    "Unless the value of *etc* is false (#f), This logs the value "
-	    "returned, any non-void result of evaluating *etc*, "
-	    "and a description of the value's underlying KNO pointer "
-	    "(type, refcount, etc). Bundled KNO debugger inits "
-	    "set a breakpoint in this handler to allow the result "
-	    "argument to be examined.")
-static lispval dbgeval_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
+KNO_EXPORT lispval kno_debug_wait(lispval obj,lispval msg,int global)
+{
+  volatile int looping = 1;
+  u8_log(LOGCRIT,"DebuggerWait",
+	 "Waiting for debugger to attach pid %s:%lld to examine %q (%q)",
+	 kno_exe_name,(long long)getpid(),obj,msg);
+  if (global) u8_pause("KnoDebugWait");
+  while (looping) {
+  waiting:
+    sleep(1);} /* set looping=0 to continue */
+  return obj;
+}
+
+DEFC_EVALFN("dbg/wait",dbg_wait_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(dbg *expr* *cond* [*pre*])` evaluates *expr* and returns its value. "
+	    "When provided, *cond* is evaluated; if it is #f, dbg just "
+	    "returns the value. Otherwise, a log message is emitted providing "
+	    "information about the value and the result of calling *cond*")
+static lispval dbg_wait_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 {
   lispval expr=kno_get_arg(dbg_expr,1);
   lispval msg_expr=kno_get_arg(dbg_expr,2);
-  lispval arg;
- examine_expr:
-  if (VOIDP(msg_expr))
-    u8_message("Debug eval 0x%llx <==\n	   %Q",KNO_LONGVAL(&arg),expr);
-  else {
-    lispval msg=kno_eval(msg_expr,env,stack);
-    if (FALSEP(msg)) return kno_eval(expr,env,stack);
+  lispval pre_expr=kno_get_arg(dbg_expr,3);
+  lispval global_expr=kno_get_arg(dbg_expr,4);
+  int global = (!((KNO_VOIDP(global_expr))||(KNO_FALSEP(global_expr))));
+  lispval msg= (KNO_VOIDP(msg_expr)) ? (KNO_VOID) :
+    (kno_eval(msg_expr,env,stack));
+  if (KNO_FALSEP(msg))
+    return kno_eval(expr,env,stack);
+  else if (!((KNO_VOIDP(pre_expr))||(KNO_FALSEP(pre_expr)))) {
+  examine_expr:
     if (KNO_VOIDP(msg))
-      u8_message("Debug eval 0x%llx <==\n    %Q",KNO_LONGVAL(&arg),expr);
-    else u8_message("Debug eval 0x%llx %q <=\n	  %Q",KNO_LONGVAL(&arg),
-		    msg,expr);
-    kno_decref(msg);}
-  arg = kno_eval(expr,env,stack);
+      u8_message("Evaluating %Q",expr);
+    else u8_message("Evaluating (%q) %Q",msg,expr);
+    kno_debug_wait(expr,msg,global);}
+  lispval arg = kno_eval(expr,env,stack);
+  if (KNO_VOIDP(msg))
+    u8_message("Debug %q <==\n    %Q",arg,expr);
+  else u8_message("Debug (%q) %q <=\n	  %Q",KNO_LONGVAL(&arg),
+		  msg,arg,expr);
   log_ptr(arg,KNO_VOID,arg);
-  u8_message("Debug eval 0x%llx %q ==> \n  %Q",KNO_LONGVAL(&arg),expr,arg);
+  kno_debug_wait(arg,msg,global);
+  kno_decref(msg);
  examine_result:
   return arg;
 }
@@ -1472,7 +1491,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
   u8_register_source_file(_FILEINFO);
 
   KNO_LINK_EVALFN(kno_scheme_module,dbg_evalfn);
-  KNO_LINK_EVALFN(kno_scheme_module,dbgeval_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,dbg_wait_evalfn);
 
   KNO_LINK_EVALFN(kno_scheme_module,eval1);
   KNO_LINK_EVALFN(kno_scheme_module,eval2);

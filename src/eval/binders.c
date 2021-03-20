@@ -15,6 +15,7 @@
 #include "kno/eval.h"
 #include "eval_internals.h"
 #include "kno/storage.h"
+#include "kno/cprims.h"
 
 #include <libu8/u8printf.h>
 
@@ -23,7 +24,7 @@ u8_condition kno_BindSyntaxError=_("Bad binding expression");
 
 /* Set operations */
 
-DEFC_EVALFN("SET!",assign_evalfn,KNO_EVALFN_DEFAULTS,
+DEFC_EVALFN("set!",assign_evalfn,KNO_EVALFN_DEFAULTS,
 	    "`(set! *var* *value*)` assigns the bound variable "
 	    "*var* to be the result of evaluating *value*.")
 static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -55,7 +56,7 @@ static lispval assign_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return kno_err(kno_BindError,"SET!",SYM_NAME(var),var);
 }
 
-DEFC_EVALFN("SET+!",assign_plus_evalfn,KNO_EVALFN_DEFAULTS,
+DEFC_EVALFN("set+!",assign_plus_evalfn,KNO_EVALFN_DEFAULTS,
 	    "`(set+! *var* *values*)` adds the result of evaluting "
 	    "*values* to the set/choice stored in *var*.")
 static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -76,6 +77,109 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   else return KNO_ERROR;
   kno_decref(value);
   return VOID;
+}
+
+static int do_bind(lispval var,lispval val,
+		       lispval *vals,lispval *start,lispval *limit)
+{
+  lispval *scan = start;
+  while (scan<limit) {
+    if (*scan==var) {
+      vals[scan-start]=val;
+      return 1;}
+    else scan++;}
+  kno_seterr("NotLocal","local",KNO_SYMBOL_NAME(var),var);
+  return -1;
+}
+
+static kno_lexenv copied_env(kno_lexenv env,lispval **vals)
+{
+  if ( (env->env_copy) && (env->env_copy!=env) ) {
+    kno_lexenv copied_env = env->env_copy;
+    if (copied_env->env_vals) {
+      *vals = copied_env->env_vals;
+      return copied_env;}
+    else if (KNO_SCHEMAPP(copied_env->env_bindings)) {
+      *vals = ((kno_schemap)(copied_env->env_bindings))->table_values;
+      return copied_env;}
+    else {
+      kno_seterr("EnvironmentCorruption","locals",NULL,(lispval)copied_env);
+      return NULL;}}
+  else return env;
+}
+
+DEFC_EVALFN("locals",locals_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(locals *var* *value* ...)` or "
+	    "`(locals (*var* *value* [*type*]) ...)` assigns each *var* "
+	    "in the current lexical environment to the result of evaluating "
+	    "the corresponding *value*. If *type* is provided, the value "
+	    "is checked against *type*.")
+static lispval locals_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval bindings = env->env_bindings;
+  kno_lexenv env_copy = env->env_copy;
+  if (env_copy) env=env_copy;
+  struct KNO_SCHEMAP *schemap =
+    (USUALLY(KNO_TYPEP(bindings,kno_schemap_type))) ?
+    ((kno_schemap)bindings) : (NULL);
+  if (schemap == NULL)
+    return kno_err(kno_SyntaxError,"local","not in lexical context",expr);
+  int len = schemap->schema_length;
+  lispval *schema = schemap->table_schema;
+  lispval *vars = schema, *limit=vars+len;
+  lispval *vals = schemap->table_values;
+  lispval args = KNO_CDR(expr);
+  while (KNO_PAIRP(args)) {
+    lispval head = pop_arg(args);
+    if (KNO_SYMBOLP(head)) {
+      lispval var = head;
+      lispval val_expr = pop_arg(args);
+      if (KNO_VOIDP(val_expr))
+	return kno_err(kno_SyntaxError,"local",KNO_SYMBOL_NAME(var),head);
+      lispval val = eval_arg(val_expr,env,_stack);
+      if (KNO_ABORTED(val)) return val;
+      else if ( (env_copy == NULL) && (env->env_copy) &&
+	   (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
+	return KNO_ERROR;
+      else if (do_bind(var,val,vals,vars,limit)>=0) continue;
+      else return KNO_ERROR;}
+    else if (KNO_LEXREFP(head)) {
+      if (KNO_LEXREF_UP(head)>0)
+	return kno_err("NotLocal","local",NULL,head);
+      int off = KNO_LEXREF_ACROSS(head);
+      if (off >= len)
+	return kno_err("InvalidLexref","local",NULL,head);
+      lispval val_expr = pop_arg(args);
+      if (KNO_VOIDP(val_expr))
+	return kno_err(kno_SyntaxError,"local",NULL,expr);
+      lispval val = eval_arg(val_expr,env,_stack);
+      if (KNO_ABORTED(val)) return val;
+      if ( (env_copy == NULL) && (env->env_copy) &&
+	   (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
+	return KNO_ERROR;
+      vals[off]=val;}
+    else if (KNO_PAIRP(head)) {
+      lispval scan = head;
+      lispval var = pop_arg(scan), val_expr = pop_arg(scan),
+	type_expr = pop_arg(scan);
+      if (!(KNO_SYMBOLP(var)))
+	return kno_err(kno_SyntaxError,"local/clause",NULL,head);
+      lispval val = eval_arg(val_expr,env,_stack);
+      if (KNO_ABORTED(val)) return val;
+      else if ( (env_copy == NULL) && (env->env_copy) &&
+		(RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
+	return KNO_ERROR;
+      else if (RARELY (! ( (KNO_VOIDP(type_expr)) || (KNO_FALSEP(type_expr)) ||
+			   (KNO_CHECKTYPE(val,type_expr)) ) )) {
+	u8_byte buf[100];
+	u8_string details = u8_bprintf
+	  (buf,"%s != %q",KNO_SYMBOL_NAME(var),type_expr);
+	return kno_err(kno_TypeError,"local",details,val);}
+      else if (do_bind(var,val,vals,vars,limit)<0)
+	return KNO_ERROR;
+      else NO_ELSE;}
+    else return kno_err(kno_SyntaxError,"local",NULL,expr);}
+  return KNO_VOID;
 }
 
 static int check_defaultp(lispval val,lispval replace_values)
@@ -484,6 +588,9 @@ KNO_EXPORT void kno_init_binders_c()
   KNO_LINK_EVALFN(kno_scheme_module,assign_plus_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,assign_default_evalfn);
 
+  KNO_LINK_EVALFN(kno_scheme_module,locals_evalfn);
+  KNO_LINK_ALIAS("local",locals_evalfn,kno_scheme_module);
+
   KNO_LINK_EVALFN(kno_scheme_module,let_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,letstar_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,letrec_evalfn);
@@ -494,5 +601,10 @@ KNO_EXPORT void kno_init_binders_c()
   KNO_LINK_EVALFN(kno_scheme_module,define_local_evalfn);
 
   KNO_LINK_EVALFN(kno_scheme_module,defimport_evalfn);
+  link_local_cprims();
+}
+
+static void link_local_cprims()
+{
 }
 
