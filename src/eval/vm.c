@@ -903,14 +903,14 @@ static lispval nd1_call(lispval opcode,lispval arg1)
     if (EMPTYP(arg1))
       return arg1;
     else if (PAIRP(arg1)) {
-      lispval car = KNO_CDR(arg1);
-      return kno_incref(car);}
+      lispval cdr = KNO_CDR(arg1);
+      return kno_incref(cdr);}
     else if (CHOICEP(arg1)) {
       lispval results = EMPTY;
       KNO_ITER_CHOICES(scan,limit,arg1);
       while (scan<limit) {
 	lispval arg = *scan++;
-	if (PAIRP(arg)) {CHOICE_ADD_INCREF(results,KNO_CAR(arg));}
+	if (PAIRP(arg)) {CHOICE_ADD_INCREF(results,KNO_CDR(arg));}
 	else { kno_decref(results);
 	  return kno_type_error("pair","cdr_opcode",arg);}}
       return kno_simplify_choice(results);}
@@ -1148,7 +1148,7 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
   else if ( (KNO_CHOICEP(arg1)) || (KNO_CHOICEP(arg2)) ) {
     lispval results = KNO_EMPTY;
     ITER_CHOICES(scan1,limit1,arg1);
-    ITER_CHOICES(start2,limit2,arg1);
+    ITER_CHOICES(start2,limit2,arg2);
     while (scan1<limit1) {
       lispval arg1 = *scan1++;
       const lispval *scan2 = start2;
