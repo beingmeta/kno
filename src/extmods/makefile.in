@@ -27,7 +27,7 @@ checkout update:
 	    echo > /dev/null; \
 	  elif test -d $${dir}/.git; then \
 	    command cd $${dir}; \
-	    git checkout $${BRANCH}; \
+	    git checkout ${BRANCH}; \
 	    git pull; \
 	    command cd ..; \
 	  else \
