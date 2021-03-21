@@ -123,7 +123,12 @@
 
 (define (annotate optimized source opts)
   (if (keep-source? opts)
-      (cons* sourceref-opcode source (qc optimized))
+      (if (and (pair? optimized)
+	       (eq? (car optimized) sourceref-opcode)
+	       (pair? (cdr optimized))
+	       (eq? source (cadr optimized)))
+	  optimized
+	  (cons* sourceref-opcode source (qc optimized)))
       optimized))
 
 (define (optimizable? arg)
@@ -512,7 +517,9 @@
 	 ;; just assume it's a function application and optimize it
 	 ;; that way. In principle, we could optimize ambiguous heads
 	 ;; like {+ -} but we won't do that for now.
-	 (optimize-call expr env bound opts))
+	 (annotate
+	  (optimize-call expr env bound opts)
+	  expr opts))
 	((and (symbol? (car expr)) 
 	      (not (symbol-bound? (car expr) env))
 	      (not (get-lexref (car expr) bound 0))
@@ -603,13 +610,15 @@
 	  (opts-expr (get-arg expr 4 'opts)))
       `(,do-optimize-body ,body-expr ,env-expr ,bound-expr ,opts-expr))))
 
-(defambda (make-fncall fn args env bound opts (len))
+(defambda (make-fncall fn args env bound opts expr (len))
   (default! len (length args))
-  (if (> len 15)
-      (cons* #OP_CALLN len (qc fn)
-	     (forseq (arg args) (optimize arg env bound opts)))
-      (cons* (elt fncall-opcodes len) (qc fn)
-	     (forseq (arg args) (optimize arg env bound opts)))))
+  (annotate
+   (if (> len 15)
+       (cons* #OP_CALLN len (qc fn)
+	      (forseq (arg args) (optimize arg env bound opts)))
+       (cons* (elt fncall-opcodes len) (qc fn)
+	      (forseq (arg args) (optimize arg env bound opts))))
+   expr opts))
 
 (defambda (optimize-variable expr env bound opts)
   (let ((lexref (get-lexref expr bound 0))
@@ -749,8 +758,10 @@
 			 (get special-form-optimizers
 			      (cons (downcase (procedure-name headvalue))
 				    (get-module headvalue)))))))
-	     (try (optimizer headvalue expr env bound opts)
-		  (cons* #OP_EVALFN headvalue expr))))
+	     (annotate
+	      (try (optimizer headvalue expr env bound opts)
+		   (cons* #OP_EVALFN headvalue expr))
+	      expr opts)))
 	  ((exists macro? headvalue)
 	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
 		     expr opts))
@@ -770,7 +781,8 @@
 		  ((test from '%volatile head) `(#OP_SYMREF ,module ,head))
 		  (else head))
 	    (cdr expr)
-	    env bound opts))
+	    env bound opts
+	    expr))
 	  (else
 	   (when (and optwarn from
 		      (not (test from '{%nosubst %volatile} head)))
@@ -833,7 +845,8 @@
 		       `(#OP_SYMREF ,module ,fname))
 		      (else (get-headop fn fname n-args env bound opts)))
 		(cdr expr)
-		env bound opts))))
+		env bound opts
+		expr))))
     (annotate optimized expr opts)))
 
 (defambda (optimize-call expr env bound opts)
