@@ -514,6 +514,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      ((applicable? init) (init loop-state))
 	      (else (logerr |Engine/BadLoopInit|
 		      "The value " init " isn't a valid init value"))))
+
+      (when (and (test loop-state 'counters)
+		 (exists? (pick (get loop-state 'counters) loop-state)))
+	(irritant (pick (get loop-state 'counters) loop-state)
+	    |BadCounter| "Overlaps loop state fields"))
       
     ;;; Check arguments
       (do-choices fcn
@@ -864,6 +869,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (default! fifo (get loop-state 'fifo))
   (let ((%loglevel (getopt loop-state '%loglevel %loglevel))
 	(state (and (test loop-state 'state) (get loop-state 'state)))
+	(opts (get loop-state 'opts))
 	(started (elapsed-time))
 	(runtime #f)
 	(success #f)
@@ -886,7 +892,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		      (lognotice |Engine/Checkpoint| 
 			"Waited " (secs->string (elapsed-time wait-start))
 			" for FIFO to pause")))))
-	      (when (getopt (get loop-state 'opts) 'logchecks #f)
+	      (when (getopt opts 'logchecks #f)
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
 
@@ -896,13 +902,13 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(set! runtime (elapsed-time last-secs))
 		(store! loop-state 'lastcheck check-state))
 
-	      (engine-commit loop-state (get loop-state 'checkpoint))
+	      (unless (getopt opts 'dryrun)
+		(engine-commit loop-state (get loop-state 'checkpoint)))
 
 	      (when state (update-task-state loop-state))
-	      (when (and state (testopt (get loop-state 'opts) 'statefile))
-		(dtype->file (get loop-state 'state)
-			     (getopt (get loop-state 'opts) 'statefile)))
-	      (when (getopt (get loop-state 'opts) 'logchecks #f)
+	      (when (and state (testopt opts 'statefile))
+		(dtype->file (get loop-state 'state) (getopt opts 'statefile)))
+	      (when (getopt opts 'logchecks #f)
 		(engine-logger (qc) 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
 	      (when paused (fifo/pause! fifo #f))
@@ -918,7 +924,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
-	    (when (getopt (getopt loop-state 'opts) 'swapout (config 'swapout))
+	    (when (getopt opts 'swapout (config 'swapout))
 	      (engine-swapout loop-state))))
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
@@ -940,7 +946,19 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			   (try (get (get loop-state 'lastcheck) 'items) 0)))
 	" " (get loop-state 'count-term) " committing "
 	(choice-size modified) " modified dbs"))
+    (when (getopt opts 'precheck)
+      (do-choices (precheck (getopt opts 'precheck))
+	(cond ((not (applicable? precheck))
+	       (logwarn |BadPrecheck| precheck))
+	      ((= (procedure-arity precheck) 0) (precheck))
+	      (else (precheck loop-state (qc dbs))))))
     (knodb/commit dbs (cons [loglevel %loglevel] opts))
+    (when (getopt opts 'postcheck)
+      (do-choices (postcheck (getopt opts 'postcheck))
+	(cond ((not (applicable? postcheck))
+	       (logwarn |BadPostcheck| postcheck))
+	      ((= (procedure-arity postcheck) 0) (postcheck))
+	      (else (postcheck loop-state (qc dbs))))))
     (lognotice |Engine/Checkpoint|
       "Committed " (choice-size modified) " dbs "
       (if (fifo-name (get loop-state 'fifo))
