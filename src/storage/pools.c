@@ -730,6 +730,8 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
 {
   KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
   struct KNO_HASHTABLE *oidcache = ((knotc!=NULL)?(&(knotc->oids)):(NULL));
+  struct KNO_HASHTABLE *cache = &(p->pool_cache);
+  struct KNO_HASHTABLE *changes = &(p->pool_changes);
   int decref_oids = 0, cachelevel;
   if (p == NULL) {
     kno_seterr(kno_NotAPool,"kno_pool_prefetch","NULL pool ptr",VOID);
@@ -772,8 +774,6 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     /* kno_decref(oidschoice); */
     return 0;}
   else if (CHOICEP(oids)) {
-    struct KNO_HASHTABLE *cache = &(p->pool_cache);
-    struct KNO_HASHTABLE *changes = &(p->pool_changes);
     int n = KNO_CHOICE_SIZE(oids);
     /* We use n_locked to track how many of the OIDs are in
        pool_changes (locked). */
@@ -839,7 +839,10 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     u8_big_free(values);
     if (decref_oids) kno_decref(oids);
     return n;}
-  else {
+  else if ( ( (oidcache == NULL) ||
+	      (kno_hashtable_probe_novoid(oidcache,oids)==0)) &&
+	    (kno_hashtable_probe_novoid(cache,oids)==0) &&
+	    (kno_hashtable_probe(changes,oids)==0) ) {
     lispval v = p->pool_handler->fetch(p,oids);
     if (KNO_ABORTP(v)) return v;
     kno_hashtable changes = &(p->pool_changes);
@@ -853,6 +856,7 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
     if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oids,v);
     kno_decref(v);
     return 1;}
+  else return 0;
 }
 
 KNO_EXPORT lispval kno_pool_value(kno_pool p,lispval oid)

@@ -2321,7 +2321,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 	if ( (defslot == ix->index_keyslot) ||
 	     ( (KNO_CHOICEP(defslot)) && (KNO_CHOICEP(ix->index_keyslot)) &&
 	       (KNO_EQUALP(defslot,(ix->index_keyslot))) ) ) {
-	  u8_logf(LOG_NOTICE,"KeySlotOK",
+	  u8_logf(LOG_INFO,"KeySlotOK",
 		  "The keyslot of %s is already %q",ix->indexid,defslot);
 	  return kno_incref(defslot);}
 	else return kno_err("KeySlotAlreadyDefined",
