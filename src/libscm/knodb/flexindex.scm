@@ -105,7 +105,8 @@
 			   (make-front fullpath
 				       (if (fail? serials) 0 (1+ (largest serials)))
 				       (try (largest indexes get-serial) #f)
-				       new-partition-opts)))
+				       new-partition-opts
+				       spec)))
 		  (aggregate
 		   (if (and (singleton? (choice indexes front)) (getopt opts 'readonly))
 		       (choice indexes front include)
@@ -145,7 +146,7 @@
 	  (set+! candidates index))))
     (pick-one (smallest candidates index-file-size))))
 
-(define (make-front fullpath serial model opts)
+(define (make-front fullpath serial model opts parent)
   (let* ((path (mkpath (dirname fullpath)
 		       (glom (basename fullpath) "." (padnum serial 3) ".index")))
 	 (make-opts (get-make-opts fullpath model opts))
@@ -156,7 +157,7 @@
     (when index
       (logwarn |NewPartition|
 	"Created new flexindex partition " (index-source index) " with "
-	($count (dbctl index 'metadata 'buckets) "bucket") " for " fullpath
+	($count (dbctl index 'metadata 'buckets) "bucket") " for " parent
 	"\n" index))
     (tryif index index)))
 
