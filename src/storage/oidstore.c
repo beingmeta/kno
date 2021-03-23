@@ -357,10 +357,12 @@ static lispval edit_oid_value(kno_pool p,lispval f)
   else if (IMMEDIATEP(v)) {
     if ( (KNO_EMPTYP(v)) || (KNO_VOIDP(v)) || (v == KNO_LOCKHOLDER) ) {
       v = kno_make_slotmap(3,0,NULL);
+      KNO_TABLE_SET_MODIFIED(v,1);
       v = init_oid_value(f,v,p);
       return v;}}
-  else if (KNO_TABLEP(v))
-    return v;
+  else if (KNO_TABLEP(v)) {
+    KNO_TABLE_SET_MODIFIED(v,1);
+    return v;}
   else {}
   KNO_OID addr = KNO_OID_ADDR(f);
   u8_byte _details[200];

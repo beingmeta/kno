@@ -629,6 +629,7 @@ KNO_EXPORT lispval kno_locked_oid_value(kno_pool p,lispval oid)
       if (retval<0)
 	return KNO_ERROR;
       else if (retval) {
+	kno_hashtable_store(&(p->pool_changes),oid,KNO_LOCKHOLDER);
 	lispval v = get_oid_value(oid,p);
 	if (KNO_ABORTP(v)) {
 	  kno_seterr("FetchFailed","kno_locked_oid_value",p->poolid,oid);
@@ -700,8 +701,8 @@ KNO_EXPORT lispval kno_pool_get(kno_pool p,lispval oid)
     return fetched;
   /* Handle caching */
   else if (is_locked) {
-    if (kno_hashtable_test(&(p->pool_cache),oid,KNO_LOCKHOLDER))
-      kno_hashtable_store(&(p->pool_cache),oid,fetched);
+    if (kno_hashtable_test(&(p->pool_changes),oid,KNO_LOCKHOLDER)) {
+      kno_hashtable_store(&(p->pool_changes),oid,fetched);}
     if (KNO_TABLEP(fetched)) modify_readonly(fetched,0);
     return fetched;}
   else if ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) )
@@ -1771,7 +1772,7 @@ KNO_EXPORT lispval kno_pool_fetchn(kno_pool p,lispval oids_arg)
       else if (n==1) {
 	lispval table=kno_make_hashtable(NULL,16);
 	lispval value = get_oid_value(oids,p);
-	kno_store(table,oids,value);
+	kno_hashtable_store((kno_hashtable)table,oids,value);
 	kno_decref(value);
 	kno_decref(oids);
 	return table;}
