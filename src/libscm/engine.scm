@@ -698,7 +698,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(printout " (" (show% (getopt loop-state 'items 0) loopmax) " of "
 	  ($num loopmax) " " count-term ")"))
       " in " (secs->string (elapsed-time (get loop-state 'started)) 1) 
-      ", " ($showrate rate) " per second."
+      ", " ($showrate rate) " " count-term " per second."
       (if (testopt loop-state 'logcounters)
 	  (doseq (counter (getopt loop-state 'logcounters) i)
 	    (let ((slotid (if (symbol? counter) counter
