@@ -1908,7 +1908,7 @@
       {"ONERROR" "UNWIND-PROTECT" "DYNAMIC-WIND"}
       optimize-block)
 (add! special-form-optimizers {"FILEOUT" "SYSTEM"} optimize-block)
-(add! special-form-optimizers {dbg dbgeval} optimize-block)
+(add! special-form-optimizers {dbg dbg/wait} optimize-block)
 
 (add! special-form-optimizers 
     ({procedure-name (lambda (x) x) 

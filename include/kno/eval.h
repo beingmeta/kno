@@ -347,6 +347,8 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
 #define _eval_return return kno_pop_stack(_stack),
 #endif
 
+KNO_EXPORT lispval kno_debug_wait(lispval obj,lispval msg,int global);
+
 /* Bindings iteration */
 
 #define KNO_UNPACK_BINDING(pair,var,val)         \

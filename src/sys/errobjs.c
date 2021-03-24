@@ -101,7 +101,6 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
      u8_elapsed_base(),
      u8_threadid());
   kno_incref(irritant);
-  /* if (ex) u8_free_exception(ex,1); */
   u8_exception new_ex =
     u8_new_exception(condition,caller,u8_strdup(details),
 		     (void *)exception,kno_decref_embedded_exception);
