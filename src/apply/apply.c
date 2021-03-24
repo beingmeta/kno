@@ -94,6 +94,7 @@ KNO_FASTOP lispval function_call(u8_string name,kno_function f,
   int rv = (f->fcn_typeinfo) ?
     (check_argtypes(f,n,args)) :
     (check_args((lispval)f,n,args));
+  U8_PAUSABLE;
   if (RARELY(rv<0)) return KNO_ERROR;
   if (RARELY(f->fcn_handler.fnptr == NULL)) {
     /* There's no explicit method on this function object, so we use
@@ -134,6 +135,7 @@ static lispval traced_function_call(u8_string name,kno_function f,
   int rv = (f->fcn_typeinfo) ?
     (check_argtypes(f,n,args)) :
     (check_args((lispval)f,n,args));
+  U8_PAUSABLE;
   if (RARELY(rv<0)) return KNO_ERROR;
   lispval result = KNO_VOID;
   if (RARELY(f->fcn_handler.fnptr == NULL)) {

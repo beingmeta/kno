@@ -281,7 +281,7 @@ lispval lambda_call(kno_stack stack,
     int synchronized = proc->lambda_synchronized, ok = 0;
     int tailable = !( (synchronized) || ( (proc->fcn_call) & KNO_CALL_NOTAIL) );
     stack->eval_source = stack->eval_context = proc->lambda_body;
-
+    U8_PAUSABLE;
     struct rusage init_usage; struct timespec start_time;
     kno_profile profile = proc->fcn_profile;
     if (profile) {

@@ -312,12 +312,13 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 #define KNO_PUSH_STACK(stack)					\
   if (kno_debug_stacks) {					\
     u8_log(LOGWARN,"StackPush","0x%llx ==> 0x%llx @ %s",	\
-	   KNO_LONGVAL(kno_stackptr),					\
-	   KNO_LONGVAL(stack),						\
-	   KNO_FILEPOS);}						\
-  if ((stack)->stack_caller != kno_stackptr)				\
+	   KNO_LONGVAL(kno_stackptr),				\
+	   KNO_LONGVAL(stack),					\
+	   KNO_FILEPOS);}					\
+  if ((stack)->stack_caller != kno_stackptr)			\
     _kno_stack_push_error(stack,KNO_FILEPOS);			\
-  KNO_STACK_SET(stack,KNO_STACK_LIVE);					\
+  KNO_STACK_SET(stack,KNO_STACK_LIVE);				\
+  {U8_PAUSABLE}							\
   __kno_set_stackptr((stack));
 #define KNO_POP_STACK(stack)					\
   if (kno_debug_stacks) {					\
@@ -326,18 +327,21 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 	   KNO_LONGVAL(stack),					\
 	   KNO_FILEPOS);}					\
   if ((stack) != kno_stackptr)					\
-    _kno_stack_pop_error(stack,KNO_FILEPOS);				\
-  KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);				\
+    _kno_stack_pop_error(stack,KNO_FILEPOS);			\
+  {U8_PAUSABLE}							\
+  KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);			\
   __kno_set_stackptr((stack)->stack_caller);
 #else
 #define KNO_PUSH_STACK(stack)						\
   if ((stack)->stack_caller != kno_stackptr)				\
-    _kno_stack_push_error((stack),KNO_FILEPOS);		\
+    _kno_stack_push_error((stack),KNO_FILEPOS);				\
+  {U8_PAUSABLE}								\
   KNO_STACK_SET(stack,KNO_STACK_LIVE);					\
   __kno_set_stackptr(stack);
-#define KNO_POP_STACK(stack)				\
-  if (stack != kno_stackptr)				\
-    _kno_stack_pop_error(stack,KNO_FILEPOS);			\
+#define KNO_POP_STACK(stack)						\
+  if (stack != kno_stackptr)						\
+    _kno_stack_pop_error(stack,KNO_FILEPOS);				\
+  {U8_PAUSABLE}								\
   KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);				\
   __kno_set_stackptr((stack)->stack_caller);
 #endif
