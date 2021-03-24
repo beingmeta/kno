@@ -198,7 +198,11 @@ KNO_EXPORT void kno_set_app_env(kno_lexenv env)
 	else NO_ELSE;}}
     kno_decref(inits); inits=KNO_VOID;
     kno_pop_stack(appinit);
-    u8_log(LOG_NOTICE,"AppEnv",
+    int loglevel = (modules_loaded||files_loaded||inits_run||
+		    modules_failed||files_failed||inits_failed) ?
+      (LOGNOTICE) :
+      (LOGDEBUG);
+    u8_log(loglevel,"AppEnv",
 	   "%d:%d:%d modules:files:inits loaded/run, "
 	   "%d:%d:%d modules:files:init failed",
 	   modules_loaded,files_loaded,inits_run,
