@@ -318,7 +318,7 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
   if ((stack)->stack_caller != kno_stackptr)			\
     _kno_stack_push_error(stack,KNO_FILEPOS);			\
   KNO_STACK_SET(stack,KNO_STACK_LIVE);				\
-  {U8_PAUSABLE}							\
+  U8_PAUSEPOINT();						\
   __kno_set_stackptr((stack));
 #define KNO_POP_STACK(stack)					\
   if (kno_debug_stacks) {					\
@@ -328,25 +328,25 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc);
 	   KNO_FILEPOS);}					\
   if ((stack) != kno_stackptr)					\
     _kno_stack_pop_error(stack,KNO_FILEPOS);			\
-  {U8_PAUSABLE}							\
+  U8_PAUSEPOINT();						\
   KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);			\
   __kno_set_stackptr((stack)->stack_caller);
 #else
 #define KNO_PUSH_STACK(stack)						\
   if ((stack)->stack_caller != kno_stackptr)				\
     _kno_stack_push_error((stack),KNO_FILEPOS);				\
-  {U8_PAUSABLE}								\
+  U8_PAUSEPOINT();							\
   KNO_STACK_SET(stack,KNO_STACK_LIVE);					\
   __kno_set_stackptr(stack);
 #define KNO_POP_STACK(stack)						\
   if (stack != kno_stackptr)						\
     _kno_stack_pop_error(stack,KNO_FILEPOS);				\
-  {U8_PAUSABLE}								\
+  U8_PAUSEPOINT();							\
   KNO_STACK_CLEAR(stack,KNO_STACK_LIVE);				\
   __kno_set_stackptr((stack)->stack_caller);
 #endif
 
-#define KNO_STACK_SET_ENV(stack,env,freeit)		       \
+#define KNO_STACK_SET_ENV(stack,env,freeit)				\
   kno_lexenv _cur_env = stack->eval_env;				\
   int _free_cur = (KNO_STACK_BITP(stack,KNO_STACK_FREE_ENV) );		\
   if (_cur_env != env) {						\
