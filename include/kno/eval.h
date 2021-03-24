@@ -281,7 +281,8 @@ KNO_EXPORT lispval kno_xapply_lambda
 KNO_EXPORT lispval kno_make_lambda(u8_string name,
                                  lispval arglist,lispval body,kno_lexenv env,
                                  int nd,int sync);
-KNO_EXPORT int kno_set_lambda_schema(struct KNO_LAMBDA *s,lispval args);
+KNO_EXPORT int kno_set_lambda_schema
+(struct KNO_LAMBDA *s,int n,lispval *args,lispval *inits,lispval *types);
 
 /* QCODE */
 
