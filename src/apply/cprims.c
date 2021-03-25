@@ -65,9 +65,9 @@ int unparse_cprim(u8_output out,lispval x)
     strcat(arity,"-");
     strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
     strcat(arity,"]");}
-  if ( (name) && (fcn->fcn_schema) ) {
+  if ( (name) && (fcn->fcn_argnames) ) {
     struct U8_OUTPUT sigbuf;
-    lispval *schema = fcn->fcn_schema;
+    lispval *schema = fcn->fcn_argnames;
     U8_INIT_STATIC_OUTPUT_BUF(sigbuf,sizeof(namebuf),namebuf);
     int i = 0, len = fcn->fcn_arginfo_len;
     u8_putc(&sigbuf,'(');
@@ -105,8 +105,8 @@ static void recycle_cprim(struct KNO_RAW_CONS *c)
     u8_free(fn->fcn_defaults);
   if ( (fn->fcn_doc) && ( (free_flags) & (KNO_FCN_FREE_DOC) ) )
     u8_free(fn->fcn_doc);
-  if ( (fn->fcn_schema) && ( (free_flags) & (KNO_FCN_FREE_SCHEMA) ) )
-    u8_free(fn->fcn_schema);
+  if ( (fn->fcn_argnames) && ( (free_flags) & (KNO_FCN_FREE_SCHEMA) ) )
+    u8_free(fn->fcn_argnames);
   if (fn->fcn_attribs) kno_decref(fn->fcn_attribs);
   if (fn->fcn_moduleid) kno_decref(fn->fcn_moduleid);
   if (KNO_MALLOCD_CONSP(c)) u8_free(c);
@@ -175,7 +175,7 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_trace = f->fcn_other = f->fcn_free = 0;
   f->fcn_min_arity = min_arity;
   f->fcn_arginfo_len = arginfo_len;
-  f->fcn_schema = NULL;
+  f->fcn_argnames = NULL;
   f->fcn_typeinfo = typeinfo;
   f->fcn_defaults = defaults;
   f->fcnid = VOID;
@@ -258,7 +258,7 @@ static struct KNO_CPRIM *make_xcprim(u8_string name,
   f->fcn_trace = f->fcn_other = f->fcn_free = 0;
   f->fcn_min_arity   = min_arity;
   f->fcn_arginfo_len = info_len;
-  f->fcn_schema      = schema;
+  f->fcn_argnames    = schema;
   f->fcn_typeinfo    = typeinfo;
   f->fcn_defaults    = defaults;
   f->fcnid = VOID;

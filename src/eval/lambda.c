@@ -381,7 +381,7 @@ KNO_EXPORT int kno_set_lambda_schema
 {
   lispval *use_args = u8_alloc_n(n,lispval);
   kno_lspcpy(use_args,args,n);
-  s->lambda_vars=use_args;
+  s->fcn_argnames=s->lambda_vars=use_args;
 
   lispval *use_inits = NULL;
   if (inits) {
@@ -394,9 +394,7 @@ KNO_EXPORT int kno_set_lambda_schema
     if (use_inits) {
       i=0; while (i<n) {
 	lispval elt = inits[i];
-	if ((KNO_VOIDP(elt)) || (KNO_DEFAULTP(elt)))
-	  use_inits[i]=KNO_VOID;
-	else use_inits[i]=kno_incref(elt);
+	use_inits[i]=kno_incref(elt);
 	i++;}}}
   s->lambda_inits = use_inits;
 
@@ -417,6 +415,8 @@ KNO_EXPORT int kno_set_lambda_schema
 	i++;}}}
   s->fcn_typeinfo = use_types;
 
+  s->lambda_n_vars = n;
+
   return n;
 }
 
@@ -436,8 +436,13 @@ static lispval scan_body(lispval body,u8_string name,
 	  (STRINGP(KNO_CAR(scan))) &&
 	  (PAIRP(KNO_CDR(scan))) ) {
     lispval head = KNO_CAR(scan); scan=KNO_CDR(scan);
-    if (KNO_STRINGP(head)) u8_puts(docout,KNO_CSTRING(head));}
-  if (KNO_EMPTY_LISTP(KNO_CDR(scan))) scan;
+    if (docout->u8_write>docout->u8_outbuf) u8_putc(docout,'\n');
+    u8_puts(docout,KNO_CSTRING(head));}
+  if (KNO_EMPTY_LISTP(body)) return body;
+  else if (!(KNO_PAIRP(body)))
+    return kno_err(kno_SyntaxError,"lambda_body",name,body);
+  else if (KNO_EMPTY_LISTP(KNO_CDR(scan)))
+    return scan;
   else if (KNO_SCHEMAPP(KNO_CAR(scan))) {
     lispval attribs = eval_schemap(KNO_CAR(scan),env,stack);
     if (KNO_ABORTED(attribs)) return attribs;
@@ -487,7 +492,7 @@ _make_lambda(u8_string name,
 	     int incref,int copy_env)
 {
   struct KNO_LAMBDA *s = u8_alloc(struct KNO_LAMBDA);
-  lispval result = LISP_CONS(s);
+  lispval result = KNO_ERROR;
   KNO_INIT_FRESH_CONS(s,kno_lambda_type);
 
   s->fcn_name = ((name) ? (u8_strdup(name)) : (NULL));
@@ -515,7 +520,11 @@ _make_lambda(u8_string name,
     else if (KNO_PAIRP(elt)) {
       lispval argname = pop_arg(elt), init_expr=pop_arg(elt);
       lispval type_expr=pop_arg(elt);
+      if (!(KNO_EMPTY_LISTP(elt))) {
+	result = kno_err(kno_SyntaxError,"lambda/optarg",name,arglist);
+	goto err_exit;}
       kno_stackvec_push(args,argname);
+      if (KNO_VOIDP(init_expr)) init_expr=KNO_VOID;
       kno_stackvec_push(inits,init_expr); kno_incref(init_expr);
       if ( (KNO_VOIDP(type_expr)) || (KNO_FALSEP(type_expr)) )
 	kno_stackvec_push(types,KNO_FALSE);
@@ -523,42 +532,49 @@ _make_lambda(u8_string name,
 	lispval type = kno_eval(type_expr,env,stack);
 	if (KNO_ABORTED(type)) goto err_exit;
 	else kno_stackvec_push(types,type);}
-      if (first_optional>=0) first_optional=i;}
+      if (first_optional<0) first_optional=i;}
     else {
-      kno_seterr(kno_SyntaxError,"lambda/arglist",s->fcn_name,arglist);
+      result = kno_err(kno_SyntaxError,"lambda/arglist",s->fcn_name,arglist);
       goto err_exit;}
     i++;}
   if (scan == KNO_EMPTY_LIST) {
-    s->fcn_arity=i;
+    s->fcn_arginfo_len = s->fcn_arity=i;
     if (first_optional>=0)
       s->fcn_min_arity=first_optional;
     else s->fcn_min_arity=i;}
   else if (KNO_SYMBOLP(scan)) {
     kno_stackvec_push(args,scan);
-    if (first_optional>=0) s->fcn_min_arity=first_optional;
-    else s->fcn_min_arity=i;}
+    kno_stackvec_push(inits,KNO_EMPTY_LIST);
+    kno_stackvec_push(types,KNO_FALSE);
+    if (first_optional>=0)
+      s->fcn_min_arity=first_optional;
+    else s->fcn_min_arity=i;
+    s->fcn_arginfo_len = i+1;
+    s->fcn_arity=-1;}
   else {
     kno_seterr(kno_SyntaxError,"lambda/arglist",s->fcn_name,arglist);
     goto err_exit;}
 
-  int n_positional = KNO_STACKVEC_LEN(args);
   lispval entry = scan_body
     (body,name,s,docout,args,inits,types,env,stack);
   if (KNO_ABORTED(entry)) goto err_exit;
   else if (incref) {
     s->lambda_body = kno_incref(body);
     s->lambda_entry = entry;
-    s->lambda_arglist = kno_incref(arglist);}
+    s->lambda_arglist = kno_incref(arglist);
+    if (body != entry) kno_incref(entry);}
   else {
     s->lambda_body = body;
     s->lambda_entry = entry;
-    s->lambda_arglist = arglist;}
+    s->lambda_arglist = arglist;
+    if (body != entry) kno_incref(entry);}
 
-  if (docout->u8_write>docout->u8_outbuf)
+  if (docout->u8_write>docout->u8_outbuf) {
     s->fcn_doc = u8_strdup(docout->u8_outbuf);
+    s->fcn_free |= KNO_FCN_FREE_DOC;}
   else s->fcn_doc = NULL;
 
-  int n = KNO_STACKVEC_LEN(args);
+  int n = KNO_STACKVEC_COUNT(args);
   int n_vars = kno_set_lambda_schema
     (s,n,KNO_STACKVEC_ELTS(args),
      KNO_STACKVEC_ELTS(inits),

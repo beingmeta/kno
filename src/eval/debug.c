@@ -641,7 +641,7 @@ static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 
 KNO_EXPORT lispval kno_debug_wait(lispval obj,lispval msg,int global)
 {
-  volatile int looping = 1 ,*lptr=&looping;;
+  volatile int looping = 1;
   u8_log(LOGCRIT,"DebuggerWait",
 	 "Waiting for debugger to attach pid %s:%lld to examine %q (%q)",
 	 kno_exe_name,(long long)getpid(),obj,msg);
@@ -659,7 +659,6 @@ DEFC_EVALFN("dbg/wait",dbg_wait_evalfn,KNO_EVALFN_DEFAULTS,
 	    "information about the value and the result of calling *cond*")
 static lispval dbg_wait_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
 {
-  int looping = 1;
   lispval expr=kno_get_arg(dbg_expr,1);
   lispval msg_expr=kno_get_arg(dbg_expr,2);
   lispval pre_expr=kno_get_arg(dbg_expr,3);

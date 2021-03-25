@@ -233,8 +233,8 @@ static lispval procedure_args(lispval fcn)
   if (KNO_FCNIDP(fcn)) fcn = kno_fcnid_ref(fcn);
   if (KNO_FUNCTIONP(fcn)) {
     struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
-    if (f->fcn_schema)
-      return kno_make_vector(f->fcn_arginfo_len,f->fcn_schema);
+    if (f->fcn_argnames)
+      return kno_make_vector(f->fcn_arginfo_len,f->fcn_argnames);
     else return KNO_FALSE;}
   else return KNO_FALSE;
 }
@@ -740,6 +740,62 @@ static lispval lambda_args(lispval lambda)
   else return kno_type_error("lambda","lambda_args",x);
 }
 
+DEFC_PRIM("lambda-vars",lambda_vars,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a vector of symbols bound by calls to *lambda*",
+	  {"lambda",kno_any_type,KNO_VOID})
+static lispval lambda_vars(lispval lambda)
+{
+  lispval x = kno_fcnid_ref(lambda);
+  if (KNO_LAMBDAP(x)) {
+    struct KNO_LAMBDA *proc = (kno_lambda)x;
+    if (proc->lambda_vars)
+      return kno_make_vector(proc->lambda_n_vars,proc->lambda_vars);
+    else return kno_make_vector(0,NULL);}
+  else return kno_type_error("lambda","lambda_vars",x);
+}
+
+DEFC_PRIM("lambda-inits",lambda_inits,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a vector the init expressions for *lambda*'s bindings",
+	  {"lambda",kno_any_type,KNO_VOID})
+static lispval lambda_inits(lispval lambda)
+{
+  lispval x = kno_fcnid_ref(lambda);
+  if (KNO_LAMBDAP(x)) {
+    struct KNO_LAMBDA *proc = (kno_lambda)x;
+    if (proc->lambda_inits) {
+      int n = proc->lambda_n_vars;
+      lispval result = kno_make_vector(n,NULL);
+      lispval *write = KNO_VECTOR_ELTS(result);
+      lispval *read = proc->lambda_inits, *limit = read+proc->lambda_n_vars;
+      while (read<limit) {
+	lispval init = *read++;
+	if (KNO_VOIDP(init)) init = KNO_QVOID;
+	*write++=init;}
+      return result;}
+    else return kno_make_vector(0,NULL);}
+  else return kno_type_error("lambda","lambda_inits",x);
+}
+
+DEFC_PRIM("lambda-types",lambda_types,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a vector of the types for *lambda*'s bindings",
+	  {"lambda",kno_any_type,KNO_VOID})
+static lispval lambda_types(lispval lambda)
+{
+  lispval x = kno_fcnid_ref(lambda);
+  if (KNO_LAMBDAP(x)) {
+    struct KNO_LAMBDA *proc = (kno_lambda)x;
+    if (proc->fcn_typeinfo) {
+      lispval *scan = proc->fcn_typeinfo, *limit = scan+proc->lambda_n_vars;
+      while (scan<limit) { kno_incref(*scan); scan++;}
+      return kno_make_vector(proc->lambda_n_vars,proc->fcn_typeinfo);}
+    else return kno_make_vector(0,NULL);}
+  else return kno_type_error("lambda","lambda_inits",x);
+}
+
+#if 0
 DEFC_PRIM("set-lambda-args!",set_lambda_args,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "Sets the argument list of *lambda* to *list*.",
@@ -751,6 +807,62 @@ static lispval set_lambda_args(lispval lambda,lispval list)
   lispval arglist = proc->lambda_arglist;
   proc->lambda_arglist = kno_incref(list);
   kno_decref(arglist);
+  return VOID;
+}
+#endif
+
+DEFC_PRIM("set-lambda-inits!",set_lambda_inits,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Sets the initialization expressions of *lambda* to *inits*",
+	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"inits",kno_vector_type,KNO_VOID})
+static lispval set_lambda_inits(lispval lambda,lispval inits)
+{
+  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
+  int n = KNO_VECTOR_LENGTH(inits);
+  if ( (n == 0) && (proc->lambda_inits==NULL) ) return VOID;
+  else if (n!=proc->lambda_n_vars)
+    return kno_err("TwoFewInits","set_lambda_inits",proc->fcn_name,inits);
+  lispval *read=KNO_VECTOR_ELTS(inits), *scan=proc->lambda_inits, *limit=read+n;
+  if (scan) {
+    while (read<limit) {
+      lispval cur = *scan, new=*read;
+      *scan=kno_incref(new);
+      kno_decref(cur);
+      scan++; read++;}}
+  else {
+    scan = proc->lambda_inits = u8_alloc_n(n,lispval);
+    while (read<limit) {
+      lispval init = *read++;
+      kno_incref(init);
+      *scan++=init;}}
+  return VOID;
+}
+
+DEFC_PRIM("set-lambda-types!",set_lambda_types,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Sets the initialization expressions of *lambda* to *types*",
+	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"types",kno_vector_type,KNO_VOID})
+static lispval set_lambda_types(lispval lambda,lispval types)
+{
+  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
+  int n = KNO_VECTOR_LENGTH(types);
+  if (n!=proc->lambda_n_vars)
+    return kno_err("TwoFewTypes","set_lambda_types",proc->fcn_name,types);
+  lispval *read=KNO_VECTOR_ELTS(types), *scan=proc->fcn_typeinfo, *limit=read+n;
+  if (scan) {
+    while (read<limit) {
+      lispval cur = *scan, new=*read;
+      *scan=kno_incref(new);
+      kno_decref(cur);
+      scan++; read++;}}
+  else {
+    scan = proc->fcn_typeinfo = u8_alloc_n(n,lispval);
+    while (read<limit) {
+      lispval type = *read++;
+      kno_incref(type);
+      *scan++=type;}}
   return VOID;
 }
 
@@ -1643,7 +1755,6 @@ DEFC_PRIM("profile/unpack",profile_unpack,
 static lispval profile_unpack(lispval profile)
 {
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
-    struct KNO_COMPOUND *p = (kno_compound) profile;
     lispval *vals=KNO_COMPOUND_ELTS(profile);
     return kno_make_schemap(NULL,10,KNO_SCHEMAP_STATIC_VALUES,
 			    profile_schema,vals);}
@@ -1707,16 +1818,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("fcnid/set!",fcnid_setprim,2,reflection);
   KNO_LINK_CPRIM("fcnid/register",fcnid_registerprim,1,reflection);
   KNO_LINK_CPRIM("fcnid/ref",fcnid_refprim,1,reflection);
-  KNO_LINK_CPRIM("set-lambda-source!",set_lambda_source,2,reflection);
-  KNO_LINK_CPRIM("optimize-lambda-body!",optimize_lambda_body,2,reflection);
-  KNO_LINK_CPRIM("set-lambda-body!",set_lambda_body,2,reflection);
-  KNO_LINK_CPRIM("set-lambda-entry!",set_lambda_entry,2,reflection);
-  KNO_LINK_CPRIM("lambda-source",lambda_source,1,reflection);
-  KNO_LINK_CPRIM("lambda-entry",lambda_entry,1,reflection);
-  KNO_LINK_CPRIM("lambda-body",lambda_body,1,reflection);
-  KNO_LINK_CPRIM("lambda-env",lambda_env,1,reflection);
-  KNO_LINK_CPRIM("set-lambda-args!",set_lambda_args,2,reflection);
-  KNO_LINK_CPRIM("lambda-args",lambda_args,1,reflection);
   KNO_LINK_CPRIM("reflect/drop!",reflect_drop,3,reflection);
   KNO_LINK_CPRIM("reflect/add!",reflect_add,3,reflection);
   KNO_LINK_CPRIM("reflect/store!",reflect_store,3,reflection);
@@ -1749,8 +1850,24 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("lambda?",lambdap,1,reflection);
   KNO_LINK_CPRIM("macro?",macrop,1,reflection);
 
-  KNO_LINK_ALIAS("lambda-args",lambda_args,reflection);
+  KNO_LINK_CPRIM("set-lambda-source!",set_lambda_source,2,reflection);
+  KNO_LINK_CPRIM("optimize-lambda-body!",optimize_lambda_body,2,reflection);
+  KNO_LINK_CPRIM("set-lambda-body!",set_lambda_body,2,reflection);
+  KNO_LINK_CPRIM("set-lambda-entry!",set_lambda_entry,2,reflection);
+  KNO_LINK_CPRIM("lambda-source",lambda_source,1,reflection);
+  KNO_LINK_CPRIM("lambda-entry",lambda_entry,1,reflection);
+  KNO_LINK_CPRIM("lambda-body",lambda_body,1,reflection);
+  KNO_LINK_CPRIM("lambda-env",lambda_env,1,reflection);
+  KNO_LINK_CPRIM("lambda-args",lambda_args,1,reflection);
+  KNO_LINK_CPRIM("lambda-vars",lambda_vars,1,reflection);
+  KNO_LINK_CPRIM("lambda-inits",lambda_inits,1,reflection);
+  KNO_LINK_CPRIM("lambda-types",lambda_types,1,reflection);
+  KNO_LINK_CPRIM("set-lambda-inits!",set_lambda_inits,2,reflection);
+  KNO_LINK_CPRIM("set-lambda-types!",set_lambda_types,2,reflection);
+  /* KNO_LINK_CPRIM("set-lambda-args!",set_lambda_args,2,reflection); */
+
   KNO_LINK_ALIAS("lambda-start",lambda_entry,reflection);
+
   KNO_LINK_ALIAS("procedure-env",lambda_env,reflection);
   KNO_LINK_ALIAS("procedure-body",lambda_body,reflection);
   KNO_LINK_ALIAS("compound-procedure?",lambdap,reflection);

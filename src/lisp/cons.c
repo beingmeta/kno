@@ -65,7 +65,7 @@ const char *kno_constant_names[512]={
   "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
   "#type_error","#range_error", "#error","#badptr","#throw",
   "#break","#unbound","#neverseen","#lockholder","#preoid", /* 22 */
-  "#qvoid",NULL,NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
+  "#qvoid","#required",NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,

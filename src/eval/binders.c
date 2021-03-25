@@ -85,7 +85,6 @@ DEFC_EVALFN("local",local_evalfn,KNO_EVALFN_DEFAULTS,
 	    "*type*")
 static lispval local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  int retval;
   lispval args = KNO_CDR(expr);
   lispval var = pop_arg(args), val_expr = pop_arg(args), type = pop_arg(args);
   lispval value = KNO_VOID;
