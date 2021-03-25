@@ -876,7 +876,7 @@
   (thread/set! 'codewarnings #{})
   (let* ((env (lambda-env proc))
 	 ;;[delete] (arglist (lambda-args proc))
-	 (inits (%wc lambda-inits proc))
+	 (inits (lambda-inits proc))
 	 (body (lambda-body proc))
 	 (bound (list (lambda-vars proc)))
 	 (initial (and (pair? body) (car body)))
@@ -888,7 +888,7 @@
 	 (new-body (optimize-body body env bound opts)))
     (unless (null? body)
       (reflect/store! proc 'optimized (gmtimestamp))
-      (%wc reflect/store! proc 'original_inits inits)
+      (reflect/store! proc 'original_inits inits)
       (reflect/store! proc 'original_body body)
       (cond ((not (use-opcodes? opts)))
 	    ((not simplify-bodies))
@@ -900,7 +900,6 @@
 	  (set-lambda-entry! proc new-body))
       (when (and inits (> (length inits) 0))
 	(let ((optimized (forseq (init inits) (optimize init env '() opts))))
-	  (%watch "optimized-inits" proc inits optimized)
 	  (unless (equal? inits optimized)
 	    (set-lambda-inits! proc optimized))))
       (if (exists? (thread/get 'codewarnings))
@@ -950,7 +949,7 @@
     (when (reflect/get proc 'original_body)
       (reflect/drop! proc 'original_body)
       (optimize-lambda-body! proc #f))
-    (when (%wc reflect/get proc 'original_inits)
+    (when (reflect/get proc 'original_inits)
       (set-lambda-inits! proc (reflect/get proc 'original_inits))
       (reflect/drop! proc 'original_inits))))
 
@@ -1495,7 +1494,8 @@
 
 (define (optimize-assign handler expr env bound opts)
   (let ((var (get-arg expr 1))
-	(setval (get-arg expr 2)))
+	(setval (get-arg expr 2))
+	(name (car expr)))
     (let ((loc (or (get-lexref var bound 0) 
 		   (if (wherefrom var env)
 		       (cons var (wherefrom var env))
@@ -1506,8 +1506,19 @@
 		 ;; If loc is a symbol, we couldn't resolve it to a
 		 ;; lexical contour or enviroment
 		 `(,handler ,var ,optval))
-		((overlaps? handler set!) `
-		 (#OP_ASSIGN ,loc #f . ,optval))
+		((overlaps? handler set!)
+		 `(#OP_ASSIGN ,loc #f . ,optval))
+		((overlaps? handler local)
+		 (if (and (pair? bound)
+			  (position var (car bound)))
+		     `(#OP_ASSIGN ,loc #f . ,optval)
+		     (begin
+		       (codewarning (cons* '|NotLocal| var expr bound))
+		       (when optwarn
+			 (logwarn |NotLocal|
+			   "The variable " var " is not defined in the scope for "
+			   expr ", converting to set!"))
+		       `(#OP_EVALFN ,set! 'set! ,var ,optval))))
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
@@ -1517,9 +1528,9 @@
 		((overlaps? handler default!) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(,default! ,var ,optval . ,(cdddr expr)))
-		(else `(,handler ,var ,optval)))
-	  `(,handler ,var ,optval)))))
+		 `(#OP_EVALFN ,default! ,name ,var ,optval . ,(cdddr expr)))
+		(else `(#OP_EVALFN ,handler ,name ,var ,optval)))
+	  `(#OP_EVALFN ,handler ,name ,var ,optval)))))
 
 (define (optimize-lambda handler expr env bound opts)
   `(,handler ,(cadr expr)
@@ -1856,7 +1867,7 @@
 (add! special-form-optimizers (choice lambda ambda slambda)
       optimize-lambda)
 (add! special-form-optimizers 
-      (choice set! set+! default! define)
+      (choice set! set+! default! define local)
       optimize-assign)
 
 (add! special-form-optimizers
