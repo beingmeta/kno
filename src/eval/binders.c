@@ -91,7 +91,7 @@ static lispval local_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   lispval bindings = env->env_bindings;
   struct KNO_SCHEMAP *schemap =
     (USUALLY(KNO_TYPEP(bindings,kno_schemap_type))) ?
-    ((kno_schemap)env) : (NULL);
+    ((kno_schemap)bindings) : (NULL);
   if (schemap == NULL)
     return kno_err(kno_SyntaxError,"local","not in lexical context",expr);
   if (VOIDP(var))

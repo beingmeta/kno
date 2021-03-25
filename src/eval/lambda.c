@@ -431,7 +431,7 @@ static lispval scan_body(lispval body,u8_string name,
 			 kno_lexenv env,
 			 kno_stack stack)
 {
-  lispval scan = body;
+  lispval scan = body, entry = body;
   while ( (PAIRP(scan)) &&
 	  (STRINGP(KNO_CAR(scan))) &&
 	  (PAIRP(KNO_CDR(scan))) ) {
@@ -451,6 +451,7 @@ static lispval scan_body(lispval body,u8_string name,
     s->fcn_attribs=kno_deep_copy(KNO_CAR(scan));}
   else NO_ELSE;
   if (KNO_EMPTY_LISTP(KNO_CDR(scan))) return scan;
+  entry = scan;
   lispval def = KNO_CAR(scan);
   while (KNO_PAIRP(def)) {
     lispval arg, init = KNO_VOID, type = KNO_FALSE;
@@ -471,7 +472,8 @@ static lispval scan_body(lispval body,u8_string name,
       else return kno_err(kno_SyntaxError,"lambda",name,def);}
     else break;
     kno_stackvec_push(args,arg);
-    kno_stackvec_push(inits,init); kno_incref(init);
+    /* kno_stackvec_push(inits,init); kno_incref(init);*/
+    kno_stackvec_push(inits,KNO_VOID);
     if ( (KNO_VOIDP(type)) || (KNO_FALSEP(type)) )
       kno_stackvec_push(types,KNO_FALSE);
     else {
@@ -481,7 +483,7 @@ static lispval scan_body(lispval body,u8_string name,
     if (KNO_EMPTY_LISTP(KNO_CDR(scan))) return scan;
     else scan = KNO_CDR(scan);
     def = KNO_CAR(scan);}
-  return scan;
+  return entry;
 }
 
 static lispval
