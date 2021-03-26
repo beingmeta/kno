@@ -288,6 +288,7 @@ KNO_EXPORT int kno_bind_value(lispval sym,lispval val,kno_lexenv env)
   /* TODO: Check for checking the return value of calls to
      `kno_bind_value` */
   if (env) {
+    if ( (env->env_copy) && (env->env_copy!=env) ) env=env->env_copy;
     lispval bindings = env->env_bindings;
     lispval exports = env->env_exports;
     if (kno_store(bindings,sym,val)<0) {

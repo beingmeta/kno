@@ -114,7 +114,6 @@ int lambda_setup(kno_stack stack,kno_stack origin,
     (n_vars - 1 - proc->lambda_n_locals) :
     (arity);
 
-
   /* Argument processing */
   lispval *inits = proc->lambda_inits;
   int i = 0;
@@ -289,13 +288,6 @@ lispval lambda_call(kno_stack stack,
       else kno_profile_start(&init_usage,&start_time);}
 
     int n_args = lambda_stack->stack_argc, n_locals = proc->lambda_n_locals;
-    if ( (n_locals) && (proc->lambda_inits) ) {
-      int locals_off = n_args-n_locals;
-      ok = init_locals(lambda_stack,lambda_stack->eval_env,
-		       proc->lambda_inits+locals_off,
-		       stack->stack_args+locals_off,
-		       n_locals);}
-
     if (ok>=0) {
       lispval start = proc->lambda_entry;
       result = eval_body(start,&body_env,lambda_stack,
@@ -415,7 +407,7 @@ KNO_EXPORT int kno_set_lambda_schema
 	i++;}}}
   s->fcn_typeinfo = use_types;
 
-  s->lambda_n_vars = n;
+  s->fcn_call_width = s->lambda_n_vars = n;
 
   return n;
 }
@@ -597,6 +589,7 @@ _make_lambda(u8_string name,
      KNO_STACKVEC_ELTS(inits),
      KNO_STACKVEC_ELTS(types));
   if (n_vars < 0) goto err_exit;
+  s->lambda_n_locals = n_vars-s->fcn_arginfo_len;
 
   if (env == NULL)
     s->lambda_env = env;

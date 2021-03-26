@@ -736,17 +736,40 @@ static u8_string lexref_name(lispval lexref,kno_lexenv env)
   else return NULL;
 }
 
+static kno_lexenv copied_env(kno_lexenv env,lispval **vals)
+{
+  if ( (env->env_copy) && (env->env_copy!=env) ) {
+    kno_lexenv copied_env = env->env_copy;
+    if (copied_env->env_vals) {
+      *vals = copied_env->env_vals;
+      return copied_env;}
+    else if (KNO_SCHEMAPP(copied_env->env_bindings)) {
+      *vals = ((kno_schemap)(copied_env->env_bindings))->table_values;
+      return copied_env;}
+    else {
+      kno_seterr("EnvironmentCorruption","locals",NULL,(lispval)copied_env);
+      return NULL;}}
+  else return env;
+}
+
 static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval env_bindings =
-    (USUALLY(((env->env_copy==NULL)||(env->env_copy==env)))) ?
-    (env->env_bindings) :
-    (env->env_copy->env_bindings);
+  kno_lexenv env_copy = env->env_copy;
+  if (env_copy) env = env_copy;
+  lispval env_bindings = env->env_bindings;
   if (USUALLY(KNO_SCHEMAPP(env_bindings))) {
     struct KNO_SCHEMAP *table = (kno_schemap) env_bindings;
     int n_values = table->schema_length;
     lispval *vals = table->table_values;
     lispval scan = KNO_CDR(expr); while (KNO_PAIRP(scan)) {
+      if ( (env_copy == NULL) && (env->env_copy) ) {
+	env = env->env_copy;
+	if (env->env_vals)
+	  vals = env->env_vals;
+	else if (KNO_SCHEMAPP(env->env_bindings)) {
+	  struct KNO_SCHEMAP *table = (kno_schemap)env->env_bindings;
+	  vals = table->table_values;}
+	else return kno_err("ShouldNeverHappen","locals_evalfn",NULL,expr);}
       lispval head = pop_arg(scan);
       if (USUALLY(KNO_LEXREFP(head))) {
 	lispval var = head;
@@ -756,9 +779,12 @@ static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack
 	lispval val_expr = pop_arg(scan);
 	lispval val = doeval(val_expr,env,_stack,0);
 	if (KNO_ABORTED(val)) return val;
-	else if (KNO_VOIDP(val))
+	else if (RARELY(KNO_VOIDP(val)))
 	  return kno_err(kno_VoidArgument,"locals",lexref_name(var,env),val_expr);
-	else vals[offset]=val;}
+	else if ( (RARELY( (env_copy == NULL) && (env->env_copy) )) &&
+		  (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
+		 return KNO_ERROR;
+      else vals[offset]=val;}
       else if (KNO_PAIRP(head)) {
 	lispval clause = head, var = pop_arg(clause), val_expr=pop_arg(clause);
 	lispval type = pop_arg(clause);
@@ -766,8 +792,11 @@ static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack
 	  int offset = GET_LEXREF_OFFSET(var,n_values);
 	  lispval val = doeval(val_expr,env,_stack,0);
 	  if (KNO_ABORTED(val)) return val;
-	  else if (KNO_VOIDP(val))
+	  else if (RARELY(KNO_VOIDP(val)))
 	    return kno_err(kno_VoidArgument,"locals",lexref_name(var,env),val_expr);
+	  else if ( (RARELY( (env_copy == NULL) && (env->env_copy) )) &&
+		    (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
+	    return KNO_ERROR;
 	  else if (RARELY((!((KNO_VOIDP(type)) || (KNO_FALSEP(type)) )) &&
 			  (!(KNO_CHECKTYPE(val,type))))) {
 	    u8_byte buf[100];
