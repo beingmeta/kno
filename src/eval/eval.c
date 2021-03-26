@@ -786,6 +786,26 @@ static ssize_t write_lexref_dtype(struct KNO_OUTBUF *out,lispval x)
   return n_bytes;
 }
 
+KNO_EXPORT lispval kno_lexref_name(lispval lexref,kno_lexenv env)
+{
+  int code = KNO_GET_IMMEDIATE(lexref,kno_lexref_type);
+  int up = code/32, across = code%32;
+  while ((env) && (up)) {
+    if (RARELY((env->env_copy!=NULL))) env = env->env_copy;
+    env = env->env_parent;
+    up--;}
+  if (KNO_USUALLY(env != NULL)) {
+    if (RARELY((env->env_copy != NULL))) env = env->env_copy;
+    lispval bindings = env->env_bindings;
+    if (KNO_USUALLY(KNO_SCHEMAPP(bindings))) {
+      struct KNO_SCHEMAP *s = (struct KNO_SCHEMAP *)bindings;
+      if ( across < s->schema_length)
+	return s->table_schema[across];
+      else return KNO_FALSE;}
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
 lispval _lexref_error(lispval ref,int up,kno_lexenv env,kno_lexenv root)
 {
   lispval root_ptr = (lispval) root;

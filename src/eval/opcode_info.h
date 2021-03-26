@@ -28,6 +28,7 @@ static void init_opcode_names()
   set_opcode_name(KNO_PICK_TYPE_OPCODE,"OP_PICK_TYPE");
   set_opcode_name(KNO_SKIP_TYPE_OPCODE,"OP_SKIP_TYPE");
   set_opcode_name(KNO_CHECK_TYPE_OPCODE,"OP_CHECK_TYPE");
+  set_opcode_name(KNO_LOCALS_OPCODE,"OP_LOCALS");
 
   /* ND ops */
   set_opcode_info(KNO_AMBIGP_OPCODE,"OP_AMBIGP",KNO_CALL_NDCALL);

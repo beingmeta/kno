@@ -334,7 +334,7 @@ KNO_EXPORT lispval kno_get_body(lispval expr,int i);
 KNO_EXPORT lispval kno_symeval(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
-KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
+KNO_EXPORT lispval kno_lexref_name(lispval lexref,kno_lexenv env);
 
 KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
 

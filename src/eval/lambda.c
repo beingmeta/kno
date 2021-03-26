@@ -420,7 +420,7 @@ KNO_EXPORT int kno_set_lambda_schema
   return n;
 }
 
-DEF_KNOSYM(local); DEF_KNOSYM(define);
+DEF_KNOSYM(locals); DEF_KNOSYM(local); DEF_KNOSYM(define);
 
 static lispval scan_body(lispval body,u8_string name,
 			 kno_lambda s,
@@ -454,32 +454,47 @@ static lispval scan_body(lispval body,u8_string name,
   entry = scan;
   lispval def = KNO_CAR(scan);
   while (KNO_PAIRP(def)) {
-    lispval arg, init = KNO_VOID, type = KNO_FALSE;
-    if (KNO_CAR(def) == KNOSYM(local)) {
-      arg = kno_get_arg(def,1);
-      init = kno_get_arg(def,2);
-      type = kno_get_arg(def,3);}
+    if ( (KNO_CAR(def) == KNOSYM(local)) || (KNO_CAR(def) == KNOSYM(locals)) ) {
+      lispval vars = KNO_CDR(def); while (KNO_PAIRP(vars)) {
+	lispval head = KNO_CAR(vars);
+	if (KNO_SYMBOLP(head)) {
+	  kno_stackvec_push(args,head);
+	  kno_stackvec_push(inits,KNO_VOID);
+	  kno_stackvec_push(types,KNO_FALSE);
+	  vars = KNO_CDR(vars);
+	  if (KNO_PAIRP(scan)) vars = KNO_CDR(vars);
+	  else return kno_err(kno_SyntaxError,"lambda_body/locals",name,def);}
+	else if ( (KNO_PAIRP(head)) && (KNO_SYMBOLP(KNO_CAR(head))) ) {
+	  lispval arg = KNO_CAR(head), type = kno_get_arg(head,2);
+	  kno_stackvec_push(args,arg);
+	  kno_stackvec_push(inits,KNO_VOID);
+	  if (KNO_VOIDP(type))
+	    kno_stackvec_push(types,KNO_FALSE);
+	  else {
+	    kno_incref(type);
+	    kno_stackvec_push(types,type);}
+	  vars = KNO_CDR(vars);}
+	else return kno_err(kno_SyntaxError,"lambda_body",name,def);}}
     else if (KNO_CAR(def) == KNOSYM(define)) {
       lispval spec = kno_get_arg(def,1);
+      lispval arg, type = KNO_FALSE;
       if (KNO_SYMBOLP(spec)) {
 	arg = spec;
-	init = kno_get_arg(def,2);
-	type = kno_get_arg(def,3);}
+	type = KNO_FALSE;}
       else if ( (KNO_PAIRP(spec)) && (KNO_SYMBOLP(KNO_CAR(spec))) ) {
 	arg = KNO_CAR(spec);
-	init = KNO_VOID;
 	type = KNO_FALSE;}
-      else return kno_err(kno_SyntaxError,"lambda",name,def);}
+      else return kno_err(kno_SyntaxError,"lambda",name,def);
+      kno_stackvec_push(args,arg);
+      /* kno_stackvec_push(inits,init); kno_incref(init);*/
+      kno_stackvec_push(inits,KNO_VOID);
+      if ( (KNO_VOIDP(type)) || (KNO_FALSEP(type)) )
+	kno_stackvec_push(types,KNO_FALSE);
+      else {
+	lispval type_val = kno_eval(type,env,stack);
+	if (KNO_ABORTED(type_val)) return type_val;
+	kno_stackvec_push(inits,type_val);}}
     else break;
-    kno_stackvec_push(args,arg);
-    /* kno_stackvec_push(inits,init); kno_incref(init);*/
-    kno_stackvec_push(inits,KNO_VOID);
-    if ( (KNO_VOIDP(type)) || (KNO_FALSEP(type)) )
-      kno_stackvec_push(types,KNO_FALSE);
-    else {
-      lispval type_val = kno_eval(type,env,stack);
-      if (KNO_ABORTED(type_val)) return type_val;
-      kno_stackvec_push(inits,type_val);}
     if (KNO_EMPTY_LISTP(KNO_CDR(scan))) return scan;
     else scan = KNO_CDR(scan);
     def = KNO_CAR(scan);}

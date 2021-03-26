@@ -725,6 +725,63 @@ static lispval vector_bindop(lispval op,
   return result;
 }
 
+#define GET_LEXREF_OFFSET(lexref,width) \
+  ( ( (KNO_LEXREF_UP(lexref)==0) &&  (KNO_LEXREF_ACROSS(lexref)<(width)) ) ? \
+    (KNO_LEXREF_ACROSS(lexref)) : (-1) )
+
+static u8_string lexref_name(lispval lexref,kno_lexenv env)
+{
+  lispval name = kno_lexref_name(lexref,env);
+  if (KNO_SYMBOLP(name)) return KNO_SYMBOL_NAME(name);
+  else return NULL;
+}
+
+static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval env_bindings =
+    (USUALLY(((env->env_copy==NULL)||(env->env_copy==env)))) ?
+    (env->env_bindings) :
+    (env->env_copy->env_bindings);
+  if (USUALLY(KNO_SCHEMAPP(env_bindings))) {
+    struct KNO_SCHEMAP *table = (kno_schemap) env_bindings;
+    int n_values = table->schema_length;
+    lispval *vals = table->table_values;
+    lispval scan = KNO_CDR(expr); while (KNO_PAIRP(scan)) {
+      lispval head = pop_arg(scan);
+      if (USUALLY(KNO_LEXREFP(head))) {
+	lispval var = head;
+	int offset = GET_LEXREF_OFFSET(var,n_values);
+	if (RARELY(offset<0))
+	  return kno_err("BadLexref","locals_opcode",lexref_name(var,env),expr);
+	lispval val_expr = pop_arg(scan);
+	lispval val = doeval(val_expr,env,_stack,0);
+	if (KNO_ABORTED(val)) return val;
+	else if (KNO_VOIDP(val))
+	  return kno_err(kno_VoidArgument,"locals",lexref_name(var,env),val_expr);
+	else vals[offset]=val;}
+      else if (KNO_PAIRP(head)) {
+	lispval clause = head, var = pop_arg(clause), val_expr=pop_arg(clause);
+	lispval type = pop_arg(clause);
+	if (USUALLY(KNO_LEXREFP(var))) {
+	  int offset = GET_LEXREF_OFFSET(var,n_values);
+	  lispval val = doeval(val_expr,env,_stack,0);
+	  if (KNO_ABORTED(val)) return val;
+	  else if (KNO_VOIDP(val))
+	    return kno_err(kno_VoidArgument,"locals",lexref_name(var,env),val_expr);
+	  else if (RARELY((!((KNO_VOIDP(type)) || (KNO_FALSEP(type)) )) &&
+			  (!(KNO_CHECKTYPE(val,type))))) {
+	    u8_byte buf[100];
+	    u8_string details = u8_bprintf
+	      (buf,"%s != %q",lexref_name(var,env),type);
+	    return kno_err(kno_TypeError,"locals",details,val);}
+	  else vals[offset]=val;}
+	else return kno_err("BadLexref","handle_locals_opcode",NULL,expr);}
+      else return kno_err(kno_SyntaxError,"handle_locals_opcode",NULL,expr);}}
+  else return kno_err
+	 (kno_SyntaxError,"handle_locals_opcode","not local context",expr);
+  return KNO_VOID;
+}
+
 static void reset_env_op(kno_lexenv env)
 {
   if ( (env->env_copy) && (env != env->env_copy) ) {
@@ -1619,6 +1676,9 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
       kno_decref(candidates);
       return KNO_ERROR;}}
 
+  case KNO_LOCALS_OPCODE:
+    return handle_locals_opcode(expr,env,_stack);
+    
   default:
     return kno_err("BadOpcode","handle_special_opcode",NULL,expr);
   }
