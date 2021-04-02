@@ -533,6 +533,9 @@
 /* Whether we have the tidybuffio.h header file */
 #undef HAVE_TIDYBUFFIO_H
 
+/* Whether we have the execvpe function */
+#undef HAVE_EXECVPE
+
 /* Whether we have the waitpid function */
 #undef HAVE_WAITPID
 

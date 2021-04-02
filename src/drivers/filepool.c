@@ -958,7 +958,7 @@ static lispval label_file_pool(struct KNO_FILE_POOL *fp,lispval label)
 /* The handler struct */
 
 static struct KNO_POOL_HANDLER file_pool_handler={
-  "file_pool", 1, sizeof(struct KNO_FILE_POOL), 12,
+  "file_pool", 1, sizeof(struct KNO_FILE_POOL), 12, NULL,
   file_pool_close, /* close */
   file_pool_alloc, /* alloc */
   file_pool_fetch, /* fetch */

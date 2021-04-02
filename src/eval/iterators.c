@@ -9,14 +9,16 @@
 #endif
 
 #define KNO_EVAL_INTERNALS 1
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
 #include "kno/sequences.h"
 #include "kno/storage.h"
 #include "kno/numbers.h"
-
 #include "eval_internals.h"
 
 /* Helper functions */
@@ -412,4 +414,10 @@ KNO_EXPORT void kno_init_iterators_c()
   kno_def_evalfn(kno_scheme_module,"ONBREAK",onbreak_evalfn,
 		 "*undocumented*");
 
+  link_local_cprims();
+
+}
+
+static void link_local_cprims()
+{
 }

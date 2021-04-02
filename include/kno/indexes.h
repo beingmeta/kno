@@ -97,6 +97,7 @@ typedef struct KNO_KEY_SIZE *kno_key_size;
 
 typedef struct KNO_INDEX_HANDLER {
   u8_string name; int version, length, n_handlers;
+  struct KNO_TYPEINFO *typeinfo;
   void (*close)(kno_index ix);
   int (*commit)(kno_index ix,kno_commit_phase,struct KNO_INDEX_COMMITS *);
   lispval (*fetch)(kno_index ix,lispval key);
@@ -126,7 +127,7 @@ KNO_EXPORT lispval kno_index_hashop, kno_index_slotsop, kno_index_bucketsop;
 
 #if 0
 struct KNO_INDEX_HANDLER some_handler={
-  "somehandler", 1, sizeof(somestruct), 4,
+  "somehandler", 1, sizeof(somestruct), 4, NULL,
   NULL, /* close */
   NULL, /* save */
   NULL, /* commit */

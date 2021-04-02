@@ -26,8 +26,7 @@
  */
 struct KNO_BLOOM
 {
-  KNO_CONS_HEADER;
-  unsigned long long bloom_adds;
+  unsigned long long bloom_adds, bloom_added;
   // These fields are part of the public interface of this structure.
   // Client code may read these values if desired. Client code MUST NOT
   // modify any of these.
@@ -105,10 +104,9 @@ struct KNO_BLOOM *kno_init_bloom_filter(struct KNO_BLOOM * bloom, int entries, d
 KNO_EXPORT
 struct KNO_BLOOM *
 kno_import_bloom_filter(struct KNO_BLOOM *use_bloom,
-                       int entries,double error,
-                       const unsigned char *bytes,
-                       size_t n_bytes);
-
+			unsigned long long adds,int entries,double error,
+			const unsigned char *bytes,
+			size_t n_bytes);
 
 /** ***************************************************************************
  * Check if the given element is in the bloom filter. Remember this may
@@ -166,6 +164,8 @@ int kno_bloom_op(struct KNO_BLOOM * bloom, lispval val, int flags);
 #define KNO_BLOOM_RAW 0x02
 #define KNO_BLOOM_ERR 0x04
 #define KNO_BLOOM_CHECK 0x08
+
+KNO_EXPORT lispval kno_make_bloom_filter(int entries,double error);
 
 #endif /* KNO_BLOOM_H */
 

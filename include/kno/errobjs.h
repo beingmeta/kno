@@ -37,6 +37,8 @@ KNO_EXPORT u8_string kno_errstring(u8_exception e);
 KNO_EXPORT lispval kno_exception_xdata(u8_exception e);
 
 KNO_EXPORT void kno_print_exception(U8_OUTPUT *out,u8_exception e);
+KNO_EXPORT void kno_log_error(u8_condition c,u8_context caller,
+			      u8_string details,lispval irritant);
 KNO_EXPORT void kno_log_exception(u8_exception ex);
 KNO_EXPORT void kno_output_exception(u8_output out,u8_exception ex);
 KNO_EXPORT void kno_output_errstack(u8_output out,u8_exception ex);
@@ -91,6 +93,10 @@ KNO_EXPORT u8_condition kno_retcode_to_exception(lispval err);
 KNO_EXPORT lispval kno_exception_backtrace(u8_exception ex);
 
 KNO_EXPORT lispval kno_lisp_error(u8_exception ex);
+
+KNO_EXPORT int kno_notice_error(u8_condition c,u8_context caller,
+				u8_string details,lispval irritant,
+				lispval errobj,u8_exception ex);
 
 #endif /* ndef KNO_ERROBJS_H */
 

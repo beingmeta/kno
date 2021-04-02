@@ -10,12 +10,16 @@
 #define KNO_PROCPRIMS_H_INFO "include/kno/procprims.h"
 #endif
 
-typedef struct KNO_SUBJOB {
+typedef struct KNO_SUBPROC {
   KNO_CONS_HEADER;
-  u8_string subjob_id;
-  pid_t subjob_pid;
-  lispval subjob_stdin, subjob_stdout, subjob_stderr;}
-  *kno_subjob;
+  u8_string proc_id;
+  pid_t proc_pid;
+  u8_string proc_progname;
+  char **proc_argv, **proc_envp;
+  double proc_started, proc_finished;
+  lispval proc_stdin, proc_stdout, proc_stderr;
+  lispval proc_opts;}
+  *kno_subproc;
 
 KNO_EXPORT lispval kno_rlimit_codes;
 

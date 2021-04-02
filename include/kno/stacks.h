@@ -30,6 +30,9 @@
 KNO_EXPORT int kno_debug_stacks;
 #endif
 
+#include "kno/lisp.h"
+#include "kno/lexenv.h"
+
 /* Stack vectors (stackvecs) */
 
 typedef struct KNO_STACKVEC {
@@ -558,6 +561,11 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
   kno_pop_stack(_stack); return (v)
 
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
+
+KNO_EXPORT void kno_throw_contour(u8_contour c,u8_context cxt);
+
+KNO_EXPORT void knodbg_show_stack_frame(u8_output out,struct KNO_STACK *stack,int concise);
+KNO_EXPORT void knodbg_log_stack(int level,u8_condition c,int concise);
 
 #endif /* KNO_STACKS_H */
 

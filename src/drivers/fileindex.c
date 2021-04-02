@@ -1302,7 +1302,7 @@ static void fileindex_recycle(kno_index ix)
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER fileindex_handler={
-  "fileindex", 1, sizeof(struct KNO_FILEINDEX), 12,
+  "fileindex", 1, sizeof(struct KNO_FILEINDEX), 12, NULL,
   fileindex_close, /* close */
   fileindex_commit, /* commit */
   fileindex_fetch, /* fetch */

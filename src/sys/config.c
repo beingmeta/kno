@@ -1162,6 +1162,20 @@ static lispval hostname_config_get(lispval var,void *data)
   return kno_wrapstring(hostname);
 }
 
+/* Feature configuration */
+
+static lispval features_config_get(lispval var,void *data)
+{
+  return kno_getkeys(kno_runtime_features);
+}
+
+static int features_config_set(lispval var,lispval val,void *data)
+{
+  if (KNO_PAIRP(val))
+    return kno_store(kno_runtime_features,KNO_CAR(val),KNO_CDR(val));
+  else return kno_store(kno_runtime_features,val,KNO_TRUE);
+}
+
 /* Initialization */
 
 void kno_init_config_c()
@@ -1270,6 +1284,11 @@ void kno_init_config_c()
 		      "Check the POSIX environment for configuration information",
                       kno_boolconfig_get,kno_boolconfig_set,
                       &envconfig_enabled);
+
+  kno_register_config("FEATURES",
+		      "Defined runtime features in this session",
+		      features_config_get,features_config_set,
+		      NULL);
 
   kno_register_config
     ("TRACECONFIG",_("whether to trace configuration"),

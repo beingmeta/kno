@@ -34,6 +34,8 @@ static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static lispval flags_symbol, register_symbol, readonly_symbol, phased_symbol;
 static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
+#define BLOOM_FILTER_TYPE 0x63845e
+
 /* These are called when the lisp version of its pool/index argument
    is being returned and needs to be incref'd if it is consed. */
 KNO_FASTOP lispval index_ref(kno_index ix)
@@ -539,6 +541,29 @@ static lispval known_pool_typep(lispval stringy)
   if (ixtype) return KNO_TRUE; else return KNO_FALSE;
 }
 
+DEFC_PRIM("pool-type",get_pool_type,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the type of *pool* or, if *pool* is a string, "
+	  "then corresponding named type is returned.",
+	  {"pool",kno_any_type,KNO_VOID})
+static lispval get_pool_type(lispval spec)
+{
+  if (KNO_STRINGP(spec)) {
+    kno_pool_typeinfo ptype = kno_get_pool_typeinfo(KNO_CSTRING(spec));
+    if (ptype) return ptype->pool_typeid;
+    else return KNO_FALSE;}
+  else if (KNO_SYMBOLP(spec)) {
+    kno_pool_typeinfo ptype = kno_get_pool_typeinfo(KNO_SYMBOL_NAME(spec));
+    if (ptype) return ptype->pool_typeid;
+    else return KNO_FALSE;}
+  else if (KNO_POOLP(spec)) {
+    kno_pool ix = kno_lisp2pool(spec);
+    kno_pool_typeinfo ptype = kno_pool_typeinfo_by_handler(ix->pool_handler);
+    if (ix) return ptype->pool_typeid;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
 DEFC_PRIM("open-pool",open_pool,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
 	  "**undocumented**",
@@ -601,6 +626,29 @@ static lispval known_index_typep(lispval stringy)
     (kno_get_index_typeinfo(KNO_CSTRING(stringy))) :
     (NULL);
   if (ixtype) return KNO_TRUE; else return KNO_FALSE;
+}
+
+DEFC_PRIM("index-type",get_index_type,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns the type of *index* or, if *index* is a string, "
+	  "then corresponding named type is returned.",
+	  {"index",kno_any_type,KNO_VOID})
+static lispval get_index_type(lispval spec)
+{
+  if (KNO_STRINGP(spec)) {
+    kno_index_typeinfo ixtype = kno_get_index_typeinfo(KNO_CSTRING(spec));
+    if (ixtype) return ixtype->index_typeid;
+    else return KNO_FALSE;}
+  else if (KNO_SYMBOLP(spec)) {
+    kno_index_typeinfo ixtype = kno_get_index_typeinfo(KNO_SYMBOL_NAME(spec));
+    if (ixtype) return ixtype->index_typeid;
+    else return KNO_FALSE;}
+  else if (KNO_INDEXP(spec)) {
+    kno_index ix = kno_lisp2index(spec);
+    kno_index_typeinfo ixtype = kno_index_typeinfo_by_handler(ix->index_handler);
+    if (ix) return ixtype->index_typeid;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
 }
 
 DEFC_PRIM("oid-value",oidvalue,
@@ -3924,12 +3972,17 @@ DEFC_PRIM("make-bloom-filter",make_bloom_filter,
 	  {"allowed_error",kno_flonum_type,KNO_VOID})
 static lispval make_bloom_filter(lispval n_entries,lispval allowed_error)
 {
-  struct KNO_BLOOM *filter = (VOIDP(allowed_error))?
-    (kno_init_bloom_filter(NULL,FIX2INT(n_entries),0.0004)) :
-    (kno_init_bloom_filter(NULL,FIX2INT(n_entries),KNO_FLONUM(allowed_error)));
-  if (filter)
-    return (lispval) filter;
-  else return KNO_ERROR;
+  return kno_make_bloom_filter
+    (FIX2INT(n_entries),
+     (VOIDP(allowed_error))?(0.0004):KNO_FLONUM(allowed_error));
+}
+
+static struct KNO_BLOOM *getbloom(lispval x,u8_context caller)
+{
+  if (KNO_RAW_TYPEP(x,kno_bloom_filter_typetag))
+    return (struct KNO_BLOOM *)KNO_RAWPTR_VALUE(x);
+  kno_seterr(kno_TypeError,caller,NULL,x);
+  return NULL;
 }
 
 #define BLOOM_DTYPE_LEN 1000
@@ -3942,7 +3995,7 @@ DEFC_PRIM("bloom/add!",bloom_add,
 	  "should be added to the filter. Otherwise, the "
 	  "binary DTYPE representation for the value is "
 	  "added to the filter.",
-	  {"filter",kno_bloom_filter_type,KNO_VOID},
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID},
 	  {"value",kno_any_type,KNO_VOID},
 	  {"raw_arg",kno_any_type,KNO_FALSE},
 	  {"ignore_errors",kno_any_type,KNO_FALSE})
@@ -3950,7 +4003,8 @@ static lispval bloom_add(lispval filter,lispval value,
 			 lispval raw_arg,
 			 lispval ignore_errors)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom_add");
+  if (bloom==NULL) return KNO_ERROR;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
@@ -3974,7 +4028,7 @@ DEFC_PRIM("bloom/check",bloom_check,
 	  "dtypes before being tested. If *noerr* is true, "
 	  "type or conversion errors are just considered "
 	  "misses and ignored.",
-	  {"filter",kno_bloom_filter_type,KNO_VOID},
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID},
 	  {"value",kno_any_type,KNO_VOID},
 	  {"raw_arg",kno_any_type,KNO_FALSE},
 	  {"ignore_errors",kno_any_type,KNO_FALSE})
@@ -3982,7 +4036,8 @@ static lispval bloom_check(lispval filter,lispval value,
 			   lispval raw_arg,
 			   lispval ignore_errors)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom_check");
+  if (bloom==NULL) return KNO_ERROR;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
@@ -4006,7 +4061,7 @@ DEFC_PRIM("bloom/hits",bloom_hits,
 	  "dtypes before being tested. If *noerr* is true, "
 	  "type or conversion errors are just considered "
 	  "misses and ignored.",
-	  {"filter",kno_bloom_filter_type,KNO_VOID},
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID},
 	  {"value",kno_any_type,KNO_VOID},
 	  {"raw_arg",kno_any_type,KNO_FALSE},
 	  {"ignore_errors",kno_any_type,KNO_FALSE})
@@ -4014,7 +4069,8 @@ static lispval bloom_hits(lispval filter,lispval value,
 			  lispval raw_arg,
 			  lispval ignore_errors)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom/hits");
+  if (bloom==NULL) return KNO_ERROR;
   int raw = (!(FALSEP(raw_arg)));
   int noerr = (!(FALSEP(ignore_errors)));
   int rv = kno_bloom_op(bloom,value,
@@ -4028,10 +4084,11 @@ static lispval bloom_hits(lispval filter,lispval value,
 DEFC_PRIM("bloom-size",bloom_size,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the size (in bytes) of a bloom filter ",
-	  {"filter",kno_bloom_filter_type,KNO_VOID})
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID})
 static lispval bloom_size(lispval filter)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom_size");
+  if (bloom==NULL) return KNO_ERROR;
   return KNO_INT(bloom->entries);
 }
 
@@ -4039,10 +4096,11 @@ DEFC_PRIM("bloom-count",bloom_count,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the number of objects added to a bloom "
 	  "filter",
-	  {"filter",kno_bloom_filter_type,KNO_VOID})
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID})
 static lispval bloom_count(lispval filter)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom-count");
+  if (bloom==NULL) return KNO_ERROR;
   return KNO_INT(bloom->bloom_adds);
 }
 
@@ -4050,20 +4108,22 @@ DEFC_PRIM("bloom-error",bloom_error,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the error threshold (a flonum) for the "
 	  "filter",
-	  {"filter",kno_bloom_filter_type,KNO_VOID})
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID})
 static lispval bloom_error(lispval filter)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom-error");
+  if (bloom==NULL) return KNO_ERROR;
   return kno_make_double(bloom->error);
 }
 
 DEFC_PRIM("bloom-data",bloom_data,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the bytes of the filter as a packet",
-	  {"filter",kno_bloom_filter_type,KNO_VOID})
+	  {"filter",BLOOM_FILTER_TYPE,KNO_VOID})
 static lispval bloom_data(lispval filter)
 {
-  struct KNO_BLOOM *bloom = (struct KNO_BLOOM *)filter;
+  struct KNO_BLOOM *bloom = getbloom(filter,"bloom_data");
+  if (bloom==NULL) return KNO_ERROR;
   return kno_bytes2packet(NULL,bloom->bytes,bloom->bf);
 }
 
@@ -4164,6 +4224,8 @@ static lispval procindexp(lispval index)
 KNO_EXPORT void kno_init_dbprims_c()
 {
   u8_register_source_file(_FILEINFO);
+
+  kno_register_tag_type(kno_bloom_filter_typetag,BLOOM_FILTER_TYPE);
 
   link_local_cprims();
 
@@ -4339,9 +4401,11 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("oid-value",oidvalue,1,kno_db_module);
   KNO_LINK_CPRIM("make-index",make_index,2,kno_db_module);
   KNO_LINK_CPRIM("index-type?",known_index_typep,1,kno_db_module);
+  KNO_LINK_CPRIM("index-type",get_index_type,1,kno_db_module);
   KNO_LINK_CPRIM("open-pool",open_pool,2,kno_db_module);
   KNO_LINK_CPRIM("make-pool",make_pool,2,kno_db_module);
   KNO_LINK_CPRIM("pool-type?",known_pool_typep,1,kno_db_module);
+  KNO_LINK_CPRIM("pool-type",get_pool_type,1,kno_db_module);
   KNO_LINK_CPRIM("cons-index",cons_index,2,kno_db_module);
   KNO_LINK_CPRIM("register-index",register_index,2,kno_db_module);
   KNO_LINK_CPRIM("open-index",open_index,2,kno_db_module);

@@ -4,7 +4,7 @@
 
 (module-export! '{main packpool})
 
-(use-module '{kno/mttools varconfig engine text/stringfmts optimize logger})
+(use-module '{kno/mttools varconfig binio engine text/stringfmts optimize logger})
 (use-module '{knodb/countrefs})
 
 (define %loglevel (config 'loglevel %notice%))
@@ -13,6 +13,8 @@
 (define isadjunct #f)
 (varconfig! isadjunct isadjunct config:boolean)
 (varconfig! adjunct isadjunct config:boolean)
+
+(when (config 'showsource) (logwarn |Loading| (get-component)))
 
 (define (getflags)
   (choice->list
@@ -40,12 +42,12 @@
 (define compression-type-map
   #[bigpool snappy oidpool zlib kpool zstd9 filepool #f])
 
-(define (make-new-pool filename old 
-		       (type (symbolize (config 'pooltype 'kpool)))
-		       (adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
+(define (make-new-pool filename old (opts #f) (type) (adjslot))
+  (default! type (getopt opts 'pooltype (symbolize (config 'pooltype 'kpool))))
+  (default! adjslot (getopt opts 'adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
   (let ((metadata (or (poolctl old 'metadata) #[]))
 	(base-metadata (or (poolctl old '%metadata) #[]))
-	(xrefs (and (eq? type 'kpool) (compute-xrefs old))))
+	(xrefs (and (eq? type 'kpool) (get-xrefs old opts))))
     (when (eq? type 'kpool)
       (if xrefs
 	  (lognotice |XRefs| "Identified " (length xrefs) " xrefs")
@@ -111,18 +113,21 @@
 	((config 'ncycles) (/ n (config 'ncycles)))
 	(else 100000)))
 
-(define (copy-block queuefn old new (msg #f))
+(define (copy-block queuefn old new (xopts #f) (report #f))
   (let ((oids (queuefn))
 	(started (elapsed-time)))
     (while (and (exists? oids) oids)
       (let* ((oidvec (choice->vector oids))
-	     (valvec (pool/fetchn old oidvec)))
-	(pool/storen! new oidvec valvec))
-      (when msg (msg (choice-size oids) started))
+	     (valvec (pool/fetchn old oidvec))
+	     (storevec (if xopts
+			   (forseq (val valvec) (precode-xtype val xopts))
+			   valvec)))
+	(pool/storen! new oidvec storevec))
+      (when report (report (choice-size oids) started))
       (set! oids (queuefn))
       (set! started (elapsed-time)))))
 
-(define (copy-oids old new)
+(define (copy-oids old new (opts #f))
   (loginfo |CopyOIDS|
       "Copying OIDs" (if (pool-label old)
 			 (append " for " (pool-label old)))
@@ -136,8 +141,9 @@
 		   (pick alloids oid-offset < newload)))
 	 (threadcount (mt/threadcount (config 'nthreads 10)))
 	 (loadsize (config 'loadsize 100000))
-	 (blocksize (quotient loadsize threadcount))
+	 (blocksize (config 'blocksize (quotient loadsize threadcount)))
 	 (noids (choice-size oids))
+	 (compression (dbctl new 'compression))
 	 (nblocks (1+ (quotient noids blocksize)))
 	 (blocks-done 0)
 	 (oids-done 0)
@@ -167,25 +173,40 @@
 	     (lognotice |CopyOIDs|
 	       "Copied " ($num blocks-done) "/" ($num nblocks) " blocks, "
 	       ($num oids-done) " OIDs (" (show% oids-done noids) ") "
-	       "after " (secs->string (elapsed-time started))))))
+	       "after " (secs->string (elapsed-time started)))))
+	  (xopts (and (eq? (poolctl new 'type) 'kpool)
+		      [xrefs (poolctl new '%xrefs) 
+		       compression (getopt opts 'compresion compression)])))
       (if threadcount
 	  (let ((threads {}))
 	    (dotimes (i threadcount)
 	      (set+! threads 
-		(thread/call copy-block pop-queue old new report-progress)))
+		(thread/call copy-block pop-queue old new xopts report-progress)))
 	    (thread/wait threads))
-	  (copy-block pop-queue old new report-progress)))))
+	  (copy-block pop-queue old new xopts report-progress)))))
 
-(define (compute-xrefs pool)
-  (let ((xrefs-config (config 'xrefs)))
-    (cond ((not xrefs-config) (count-xrefs pool))
-	  ((and (string? xrefs-config) (file-exists? xrefs-config))
-	   (read-xrefs xrefs-config))
-	  ((and (or (symbol? xrefs-config) (string? xrefs-config))
-		(overlaps? (downcase xrefs-config) 
-			   {"no" "none" "false" "off"}))
-	   #f)
-	  (else (count-xrefs pool)))))
+(define (existing-xrefs pool (opts #f))
+  (let ((refs (poolctl pool 'xrefs))
+	(maxlen (getopt opts 'maxrefs)))
+    (when (and (not refs) (testopt opts 'compute))
+      (logwarn |NoExistingXRefs| "Computing xrefs from contents of " pool)
+      (set! refs (count-xrefs pool opts)))
+    (and refs (vector? refs)
+	 (if (and maxlen (> (length refs) maxlen))
+	     (slice refs 0 maxlen)
+	     refs))))
+
+(define (get-xrefs pool (opts #f))
+  (let ((xrefs-source (getopt opts 'xrefs (config 'xrefs #f))))
+    (cond ((and (string? xrefs-source) (file-exists? xrefs-source))
+	   (read-xrefs xrefs-source opts))
+	  ((or (symbol? xrefs-source) (string? xrefs-source))
+	   (let ((opt (downcase xrefs-source)))
+	     (cond ((overlaps? opt {"no" "none" "false" "off" "reset" "fresh"}) #f)
+		   ((overlaps? opt {"keep" "retain"}) (poolctl pool 'xrefs))
+		   ((overlaps? opt {"auto" "compute" "count"}) (count-xrefs pool opts))
+		   (else (logwarn |BadXrefsOption| xrefs-source)))))
+	  (else (existing-xrefs pool (opt+ opts 'compute #t))))))
 
 (define (get-base-oids pool)
   (let ((base (pool-base pool))
@@ -196,17 +217,22 @@
       (set+! base-oids (oid-plus base (* i #mib))))
     base-oids))
 
-(define (read-xrefs file)
-  (let* ((elts '())
-	 (in (open-input-file file))
-	 (item (read in)))
-    (while (or (symbol? item) (oid? item))
-      (set! elts (cons item elts))
-      (set! item (read in)))
-    (reverse (->vector elts))))
+(define (read-xrefs file (opts #f))
+  (cond ((has-suffix file ".pool")
+	 (poolctl (open-pool file [register #f adjunct #t]) 'xrefs))
+	((has-suffix file ".index")
+	 (poolctl (open-index file [register #f adjunct #t]) 'xrefs))
+	(else (let* ((elts '())
+		     (in (open-input-file file))
+		     (item (read in)))
+		(while (or (symbol? item) (oid? item))
+		  (set! elts (cons item elts))
+		  (set! item (read in)))
+		(reverse (->vector elts))))))
 
-(define (count-xrefs pool)
-  (let* ((freqs (countrefs/pool pool)))
+(define (count-xrefs pool opts)
+  (let* ((freqs (countrefs/pool pool opts)))
+    (when (config 'savefreqs) (write-xtype freqs (config 'savefreqs)))
     (rsorted (getkeys freqs) freqs)))
 
 (define (writable? file)
@@ -215,7 +241,7 @@
       (and (file-directory? (dirname file)) 
 	   (file-writable? (dirname file)))))
 
-(define (repack-pool from to)
+(define (repack-pool from to (opts #f))
   (let* ((base (basename from))
 	 (inplace (equal? from to))
 	 (tmpfile (config 'TMPFILE (CONFIG 'TEMPFILE (glom to ".part"))))
@@ -243,12 +269,12 @@
 	(when inplace
 	  (printout " with backup saved as " bakfile)))
       (let ((new (make-new-pool tmpfile old)))
-	(copy-oids old new)
+	(copy-oids old new opts)
 	(commit new)))
     (when inplace (domove from bakfile))
     (domove tmpfile to)))
 
-(define (copy-pool from to)
+(define (copy-pool from to (opts #f))
   (let* ((base (basename from)))
     (config! 'appid (glom "copy(" (basename to) ")"))
     (when (not (writable? to))
@@ -261,7 +287,7 @@
 	"Copying " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
 	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
 	" to " to)
-      (copy-oids old new)
+      (copy-oids old new opts)
       (commit new))))
 
 ;;; Exports
@@ -288,7 +314,7 @@
 	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
 	 (config! 'appid (glom "copy(" (basename from) ")"))
 	 (logwarn |Copying| "Copying OIDs to existing pool " (write to))
-	 (copy-pool from to))
+	 (copy-pool from to #f))
 	((and (file-exists? to) (not (equal? from to)) (not overwrite))
 	 (logwarn |FileExists| "Not overwriting " (write to))
 	 (exit))
@@ -296,7 +322,7 @@
 	 (logwarn |MissingInput| "Can't locate source " (write from))
 	 (exit))
 	(else (config! 'appid (glom "repack(" (basename from) ")"))
-	      (repack-pool (abspath from) (abspath to)))))
+	      (repack-pool (abspath from) (abspath to) #f))))
 
 (define (default-configs)
   (config! 'cachelevel 2)

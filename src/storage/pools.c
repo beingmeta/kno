@@ -2187,7 +2187,7 @@ KNO_EXPORT void kno_set_pool_namefn(kno_pool p,lispval namefn)
 /* GLUEPOOL handler (empty) */
 
 static struct KNO_POOL_HANDLER gluepool_handler={
-  "gluepool", 1, sizeof(struct KNO_GLUEPOOL), 11,
+  "gluepool", 1, sizeof(struct KNO_GLUEPOOL), 11, NULL,
   NULL, /* close */
   NULL, /* alloc */
   NULL, /* fetch */
@@ -2744,9 +2744,11 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
   else if (op == KNOSYM_FILENAME)
     return KNO_FALSE;
   else {
-    u8_log(LOG_WARN,"Unhandled POOLCTL op",
-	   "Couldn't handle %q for %s",op,p->poolid);
-    return KNO_FALSE;}
+    lispval lp = (p->pool_serialno<0) ? ((lispval)p) :
+      LISPVAL_IMMEDIATE(kno_poolref_type,p->pool_serialno);
+    int flags = n | KNO_DISPATCH_LOOKUP;
+    struct KNO_TYPEINFO *info=p->pool_handler->typeinfo;
+    return kno_type_dispatch(NULL,info,lp,op,flags,args);}
 }
 
 static lispval copy_consed_pool(lispval x,int deep)
@@ -2875,7 +2877,7 @@ static int zero_pool_unlock(kno_pool p,lispval oids)
 }
 
 static struct KNO_POOL_HANDLER zero_pool_handler={
-  "zero_pool", 1, sizeof(struct KNO_POOL), 12,
+  "zero_pool", 1, sizeof(struct KNO_POOL), 12, NULL,
   NULL, /* close */
   zero_pool_alloc, /* alloc */
   zero_pool_fetch, /* fetch */

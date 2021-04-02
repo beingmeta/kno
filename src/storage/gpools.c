@@ -160,7 +160,7 @@ static lispval gpool_alloc(kno_pool p,int n)
 }
 
 static struct KNO_POOL_HANDLER gpool_handler={
-  "gpool", 1, sizeof(struct KNO_GPOOL), 12,
+  "gpool", 1, sizeof(struct KNO_GPOOL), 12, NULL,
   NULL, /* close */
   gpool_alloc, /* alloc */
   gpool_fetch, /* fetch */

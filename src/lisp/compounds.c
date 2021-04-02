@@ -237,7 +237,6 @@ static int compound_table_getsize(lispval obj)
   return kno_getsize(co->compound_0);
 }
 
-
 static lispval compound_table_keys(lispval obj)
 {
   if (!(compound_tablep(obj)))

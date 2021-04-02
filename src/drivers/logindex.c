@@ -396,7 +396,7 @@ static void logindex_recycle(kno_index ix)
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER logindex_handler={
-  "logindex", 1, sizeof(struct KNO_LOGINDEX), 14,
+  "logindex", 1, sizeof(struct KNO_LOGINDEX), 14, NULL,
   NULL, /* close */
   logindex_commit, /* commit */
   logindex_fetch, /* fetch */

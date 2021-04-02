@@ -8,19 +8,12 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
-
 #define KNO_EVAL_INTERNALS      1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
 #include "kno/storage.h"
-#include "kno/eval.h"
 #include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
@@ -133,9 +126,13 @@ KNO_EXPORT int kno_init_struct_eval_c()
 		"(vector, slotmap, etc) and return a copy with those "
 		"values.");
   kno_defalias(kno_scheme_module,"STRUCT-EVAL","#.");
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
+static void link_local_cprims()
+{
+}

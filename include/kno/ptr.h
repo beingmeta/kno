@@ -153,6 +153,8 @@ typedef enum KNO_LISP_TYPE {
   kno_indexref_type = KNO_IMMEDIATE_TYPECODE(9),
   kno_histref_type = KNO_IMMEDIATE_TYPECODE(10),
   kno_ctype_type = KNO_IMMEDIATE_TYPECODE(11),
+  kno_pooltype_type = KNO_IMMEDIATE_TYPECODE(12),
+  kno_indextype_type = KNO_IMMEDIATE_TYPECODE(13),
 
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
@@ -223,17 +225,16 @@ typedef enum KNO_LISP_TYPE {
   kno_stream_type = KNO_CONS_TYPECODE(39),
 
   kno_service_type = KNO_CONS_TYPECODE(40),
-  kno_bloom_filter_type = KNO_CONS_TYPECODE(41),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(42),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(43),
+  kno_sqldb_type = KNO_CONS_TYPECODE(41),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(42),
 
-  kno_pathstore_type = KNO_CONS_TYPECODE(44),
+  kno_pathstore_type = KNO_CONS_TYPECODE(43),
 
-  kno_consed_index_type = KNO_CONS_TYPECODE(45),
-  kno_consed_pool_type = KNO_CONS_TYPECODE(46),
+  kno_consed_index_type = KNO_CONS_TYPECODE(44),
+  kno_consed_pool_type = KNO_CONS_TYPECODE(45),
 
-  kno_subjob_type = KNO_CONS_TYPECODE(47),
+  kno_subproc_type = KNO_CONS_TYPECODE(46),
 
   /* Extended types */
 
@@ -264,8 +265,8 @@ typedef enum KNO_LISP_TYPE {
 
 } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 48
-#define KNO_BUILTIN_IMMEDIATE_TYPES 12
+#define KNO_BUILTIN_CONS_TYPES 47
+#define KNO_BUILTIN_IMMEDIATE_TYPES 14
 #define KNO_BUILTIN_EXTENDED_TYPES 11
 
 KNO_EXPORT unsigned int kno_next_cons_type;
@@ -748,6 +749,7 @@ KNO_EXPORT lispval kno_make_bigint(long long intval);
 #define KNO_UNALLOCATED_OID        KNO_CONSTANT(22)
 #define KNO_QVOID                  KNO_CONSTANT(23)
 #define KNO_REQUIRED_VALUE         KNO_CONSTANT(24)
+#define KNO_BLANK_PARSE            KNO_CONSTANT(25)
 
 #define KNO_TAIL                   KNO_TAIL_LOOP
 
@@ -917,7 +919,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_PATHSTORE_TYPE KNO_CTYPE(kno_pathstore_type)
 #define KNO_CONSED_INDEX KNO_CTYPE(kno_consed_index_type)
 #define KNO_CONSED_POOL KNO_CTYPE(kno_consed_pool_type)
-#define KNO_SUBJOB_TYPE KNO_CTYPE(kno_subjob_type)
+#define KNO_SUBPROC_TYPE KNO_CTYPE(kno_subproc_type)
 #define KNO_EMPTY_TYPE KNO_CTYPE(kno_empty_type)
 #define KNO_EXISTS_TYPE KNO_CTYPE(kno_exists_type)
 #define KNO_SINGLETON_TYPE KNO_CTYPE(kno_singleton_type)
@@ -984,10 +986,12 @@ KNO_EXPORT lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSY
 KNO_EXPORT lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 KNO_EXPORT lispval KNOSYM_FILE, KNOSYM_FILENAME;
 KNO_EXPORT lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
-KNO_EXPORT lispval KNOSYM_HASHMARK, KNOSYM_HISTORY_THREADVAL;
+KNO_EXPORT lispval KNOSYM_GT, KNOSYM_GTE;
+KNO_EXPORT lispval KNOSYM_HASHMARK, KNOSYM_HISTREF, KNOSYM_HISTORY_THREADVAL;
 KNO_EXPORT lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT;
 KNO_EXPORT lispval KNOSYM_ISADJUNCT, KNOSYM_KEYSLOT;
 KNO_EXPORT lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
+KNO_EXPORT lispval KNOSYM_LT, KNOSYM_LTE;
 KNO_EXPORT lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 KNO_EXPORT lispval KNOSYM_MINUS, KNOSYM_MODULE, KNOSYM_MODULEID;
 KNO_EXPORT lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
@@ -1001,7 +1005,7 @@ KNO_EXPORT lispval KNOSYM_SUFFIX;
 KNO_EXPORT lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
 KNO_EXPORT lispval KNOSYM_UTF8;
 KNO_EXPORT lispval KNOSYM_VERSION, KNOSYM_VOID;
-KNO_EXPORT lispval KNOSYM_XREFS, KNOSYM_XTYPE;
+KNO_EXPORT lispval KNOSYM_XREFS, KNOSYM_XTYPE, KNOSYM_XXREFS;
 
 KNO_EXPORT lispval kno_timestamp_xtag,
   kno_rational_xtag, kno_complex_xtag, kno_regex_xtag,

@@ -8,8 +8,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_EVAL_INTERNALS 1 */
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
@@ -51,84 +49,64 @@ static u8_output get_output_port(lispval portarg)
   else return NULL;
 }
 
+static lispval log_helper_evalfn(int loglevel,u8_condition condition,
+				 lispval body,
+				 kno_lexenv env,
+				 kno_stack stack)
+{
+  U8_OUTPUT *out = u8_open_output_string(1024);
+  U8_OUTPUT *stream = u8_current_output;
+  u8_set_default_output(out);
+  while (PAIRP(body)) {
+    lispval value = kno_eval(KNO_CAR(body),env,stack);
+    if (printout_helper(out,value)) kno_decref(value);
+    else {
+      u8_set_default_output(stream);
+      u8_close_output(out);
+      return value;}
+    body = KNO_CDR(body);}
+  u8_set_default_output(stream);
+  u8_logger(loglevel,condition,out->u8_outbuf);
+  u8_close_output(out);
+  return VOID;
+}
+
+DEFC_EVALFN("message",message_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(message *printout args...*)` generates a log message "
+	    "with output specified by *printout args...*. This "
+	    "message will not be controlled by loglevels but will "
+	    "be handled by logging functions.")
 static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = kno_get_body(expr,1);
-  U8_OUTPUT *out = u8_open_output_string(1024);
-  U8_OUTPUT *stream = u8_current_output;
-  u8_set_default_output(out);
-  while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
-    if (printout_helper(out,value)) kno_decref(value);
-    else {
-      u8_set_default_output(stream);
-      u8_close_output(out);
-      return value;}
-    body = KNO_CDR(body);}
-  u8_set_default_output(stream);
-  u8_logger(U8_LOG_MSG,NULL,out->u8_outbuf);
-  u8_close_output(out);
-  return VOID;
+  return log_helper_evalfn(U8_LOG_MSG,NULL,kno_get_body(expr,1),env,_stack);
 }
 
+
+DEFC_EVALFN("notify",notify_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(notify *printout args...*)` generates a log message "
+	    "with output specified by *printout args...*. This "
+	    "message will have logging priority NOTICE.")
 static lispval notify_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = kno_get_body(expr,1);
-  U8_OUTPUT *out = u8_open_output_string(1024);
-  U8_OUTPUT *stream = u8_current_output;
-  u8_set_default_output(out);
-  while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
-    if (printout_helper(out,value)) kno_decref(value);
-    else {
-      u8_set_default_output(stream);
-      u8_close_output(out);
-      return value;}
-    body = KNO_CDR(body);}
-  u8_set_default_output(stream);
-  u8_logger(LOG_NOTICE,NULL,out->u8_outbuf);
-  u8_close_output(out);
-  return VOID;
+  return log_helper_evalfn(LOG_NOTIFY,NULL,kno_get_body(expr,1),env,_stack);
 }
 
+DEFC_EVALFN("status",status_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(status *printout args...*)` generates a log message "
+	    "with output specified by *printout args...*. This "
+	    "message will have logging priority INFO.")
 static lispval status_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = kno_get_body(expr,1);
-  U8_OUTPUT *out = u8_open_output_string(1024);
-  U8_OUTPUT *stream = u8_current_output;
-  u8_set_default_output(out);
-  while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
-    if (printout_helper(out,value)) kno_decref(value);
-    else {
-      u8_set_default_output(stream);
-      u8_close_output(out);
-      return value;}
-    body = KNO_CDR(body);}
-  u8_set_default_output(stream);
-  u8_logger(LOG_INFO,NULL,out->u8_outbuf);
-  u8_close_output(out);
-  return VOID;
+  return log_helper_evalfn(LOG_INFO,NULL,kno_get_body(expr,1),env,_stack);
 }
 
+DEFC_EVALFN("warning",warning_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(status *printout args...*)` generates a log message "
+	    "with output specified by *printout args...*. This "
+	    "message will have logging priority WARNING.")
 static lispval warning_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval body = kno_get_body(expr,1);
-  U8_OUTPUT *out = u8_open_output_string(1024);
-  U8_OUTPUT *stream = u8_current_output;
-  u8_set_default_output(out);
-  while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
-    if (printout_helper(out,value)) kno_decref(value);
-    else {
-      u8_set_default_output(stream);
-      u8_close_output(out);
-      return value;}
-    body = KNO_CDR(body);}
-  u8_set_default_output(stream);
-  u8_logger(LOG_WARN,NULL,out->u8_outbuf);
-  u8_close_output(out);
-  return VOID;
+  return log_helper_evalfn(LOG_WARN,NULL,kno_get_body(expr,1),env,_stack);
 }
 
 static int get_loglevel(lispval level_arg)
@@ -137,6 +115,11 @@ static int get_loglevel(lispval level_arg)
   else return -1;
 }
 
+DEFC_EVALFN("logmsg",log_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logmsg *priority* *condition* *printout args...*)` generates a "
+	    "log message with priority *priority* (evaluated) and "
+	    "condition name *condition*, which is either a symbol "
+	    "(not evaluated) or anything else (evaluated)")
 static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack);
@@ -157,13 +140,16 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       condition = SYM_NAME(KNO_CAR(body));
     else if (KNO_EVALP(cond_expr)) {
       lispval condition_name = kno_eval(cond_expr,env,_stack);
-      if (KNO_SYMBOLP(condition_name))
-        condition = SYM_NAME(condition_name);
+      if (KNO_ABORTED(condition_name)) {
+	u8_close_output(out);
+	return condition_name;}
+      else if (KNO_SYMBOLP(condition_name))
+	condition = SYM_NAME(condition_name);
       else if (!(KNO_VOIDP(condition_name)))
         kno_unparse(out,condition_name);
       else {}
       kno_decref(condition_name);}
-    else {}
+    else NO_ELSE;
     body = KNO_CDR(body);}
   while (PAIRP(body)) {
     lispval value = kno_eval(KNO_CAR(body),env,_stack);
@@ -179,42 +165,10 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
-static lispval logreport_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval body = kno_get_body(expr,1);
-  int level = - LOG_NOTICE;
-  U8_OUTPUT *out = u8_open_output_string(1024);
-  U8_OUTPUT *stream = u8_current_output;
-  u8_condition condition = NULL;
-  u8_set_default_output(out);
-  if (PAIRP(body)) {
-    lispval cond_expr = KNO_CAR(body);
-    if (KNO_SYMBOLP(cond_expr))
-      condition = SYM_NAME(KNO_CAR(body));
-    else if (KNO_EVALP(cond_expr)) {
-      lispval condition_name = kno_eval(cond_expr,env,_stack);
-      if (KNO_SYMBOLP(condition_name))
-        condition = SYM_NAME(condition_name);
-      else if (!(KNO_VOIDP(condition_name)))
-        kno_unparse(out,condition_name);
-      else {}
-      kno_decref(condition_name);}
-    else {}
-    body = KNO_CDR(body);}
-  while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
-    if (printout_helper(out,value)) kno_decref(value);
-    else {
-      u8_set_default_output(stream);
-      u8_close_output(out);
-      return value;}
-    body = KNO_CDR(body);}
-  u8_set_default_output(stream);
-  u8_logger(level,condition,out->u8_outbuf);
-  u8_close_output(out);
-  return VOID;
-}
-
+#if 0
+DEFC_EVALFN("logif",logif_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logif *test* *condition* *printout args...*)` generates a "
+	    "log message if *test* evaluates to anything but {} or #f.")
 static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE;
@@ -261,14 +215,18 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     u8_close_output(out);
     return VOID;}
 }
+#endif
 
-static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+DEFC_EVALFN("logif",logif_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logif *test* *priority* *condition* *printout args...*)` generates a "
+	    "log message")
+static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1), value = KNO_FALSE, loglevel_arg;
   if (KNO_ABORTP(test_expr)) return test_expr;
   else if (RARELY(STRINGP(test_expr)))
     return kno_reterr(kno_SyntaxError,"logif_evalfn",
-                      _("LOGIF condition expression cannot be a string"),expr);
+                      _("LOGIF+ condition expression cannot be a string"),expr);
   else value = kno_eval(test_expr,env,_stack);
   if (KNO_ABORTP(value))
     return value;
@@ -318,6 +276,54 @@ static lispval logifplus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     u8_logger(-priority,condition,out->u8_outbuf);
     u8_close_output(out);
     return VOID;}
+}
+
+/* Logging with the stack */
+
+DEFC_EVALFN("logstack",logstack_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logstack *level* *condition* *printout args...*)` generates a "
+	    "log message")
+static lispval logstack_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack);
+  lispval body = kno_get_body(expr,2);
+  int level = get_loglevel(level_arg);
+  U8_OUTPUT *out = u8_open_output_string(1024);
+  U8_OUTPUT *stream = u8_current_output;
+  u8_condition condition = NULL;
+  if (KNO_THROWP(level_arg))
+    return level_arg;
+  else if (KNO_ABORTP(level_arg)) {
+    kno_clear_errors(1);}
+  else kno_decref(level_arg);
+  u8_set_default_output(out);
+  if (PAIRP(body)) {
+    lispval cond_expr = KNO_CAR(body);
+    if (KNO_SYMBOLP(cond_expr))
+      condition = SYM_NAME(KNO_CAR(body));
+    else if (KNO_EVALP(cond_expr)) {
+      lispval condition_name = kno_eval(cond_expr,env,_stack);
+      if (KNO_SYMBOLP(condition_name))
+        condition = SYM_NAME(condition_name);
+      else if (!(KNO_VOIDP(condition_name)))
+        kno_unparse(out,condition_name);
+      else {}
+      kno_decref(condition_name);}
+    else {}
+    body = KNO_CDR(body);}
+  while (PAIRP(body)) {
+    lispval value = kno_eval(KNO_CAR(body),env,_stack);
+    if (printout_helper(out,value)) kno_decref(value);
+    else {
+      u8_set_default_output(stream);
+      u8_close_output(out);
+      return value;}
+    body = KNO_CDR(body);}
+  u8_set_default_output(stream);
+  u8_logger(level,condition,out->u8_outbuf);
+  u8_close_output(out);
+  knodbg_log_stack(level,condition,1);
+  return VOID;
 }
 
 /* Printing a backtrace */
@@ -417,32 +423,19 @@ KNO_EXPORT void kno_init_logprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
-  /* Logging functions for specific levels */
-  kno_def_evalfn(kno_sys_module,"NOTIFY",notify_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_sys_module,"STATUS",status_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_sys_module,"WARNING",warning_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(kno_sys_module,message_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,notify_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,status_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,warning_evalfn);
 
   /* Generic logging function, always outputs */
-  kno_def_evalfn(kno_sys_module,"MESSAGE",message_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_sys_module,"%LOGGER",message_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(kno_sys_module,message_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,message_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,log_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,logif_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,logstack_evalfn);
 
-  /* Logging with message level */
-  kno_def_evalfn(kno_sys_module,"LOGMSG",log_evalfn,
-		 "*undocumented*");
-  /* Logging with message level */
-  kno_def_evalfn(kno_sys_module,"LOGREPORT",logreport_evalfn,
-		 "*undocumented*");
-  /* Conditional logging */
-  kno_def_evalfn(kno_sys_module,"LOGIF",logif_evalfn,
-		 "*undocumented*");
-  /* Conditional logging with priority level */
-  kno_def_evalfn(kno_sys_module,"LOGIF+",logifplus_evalfn,
-		 "*undocumented*");
+  KNO_LINK_ALIAS("logif+",logif_evalfn,kno_sys_module);
 
   link_local_cprims();
 }

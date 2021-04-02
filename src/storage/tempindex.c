@@ -127,7 +127,7 @@ static kno_index create_tempindex(u8_string spec,void *data,
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER tempindex_handler={
-  "tempindex", 1, sizeof(struct KNO_TEMPINDEX), 14,
+  "tempindex", 1, sizeof(struct KNO_TEMPINDEX), 14, NULL,
   NULL, /* close */
   NULL, /* commit */
   tempindex_fetch, /* fetch */

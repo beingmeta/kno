@@ -290,7 +290,7 @@ static void network_pool_close(kno_pool p)
 }
 
 static struct KNO_POOL_HANDLER netpool_handler={
-  "netpool", 1, sizeof(struct KNO_NETWORK_POOL), 12,
+  "netpool", 1, sizeof(struct KNO_NETWORK_POOL), 12, NULL,
   network_pool_close, /* close */
   NULL, /* alloc */
   network_pool_fetch, /* fetch */

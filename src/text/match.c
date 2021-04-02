@@ -3400,6 +3400,39 @@ static u8_byteoff anumber_search
   return -1;
 }
 
+/* EXPR matches */
+
+static lispval expr_match
+(lispval pat,lispval next,kno_lexenv env,
+ u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  struct U8_INPUT in;
+  U8_INIT_STRING_INPUT(&in,lim-off,string+off);
+  int c = kno_skip_whitespace(&in);
+  if (c<0) return KNO_EMPTY;
+  else if (in.u8_read>in.u8_inbuf) return KNO_EMPTY;
+  else {
+    lispval obj = kno_parser(&in);
+    if (KNO_ABORTED(obj)) {
+      u8_pop_exception();
+      return KNO_EMPTY;}
+    kno_decref(obj);
+    return KNO_INT((in.u8_read-in.u8_inbuf)+off);}
+}
+
+static u8_byteoff expr_search
+  (lispval pat,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  struct U8_INPUT in;
+  U8_INIT_STRING_INPUT(&in,lim-off,string+off);
+  int c = kno_skip_whitespace(&in);
+  if (c<0) return KNO_EMPTY;
+  else if (in.u8_read>in.u8_inbuf)
+    return off+(in.u8_read-in.u8_inbuf);
+  else return KNO_EMPTY;
+}
+
 /* Hashset matches */
 
 static kno_hashset to_hashset(lispval arg)
@@ -4032,6 +4065,8 @@ void kno_init_match_c()
 
   kno_add_match_operator("MAXLEN",maxlen_match,maxlen_search,NULL);
   kno_add_match_operator("MINLEN",minlen_match,minlen_search,NULL);
+
+  kno_add_match_operator("EXPR",expr_match,expr_search,NULL);
 
   subst_symbol = kno_intern("subst");
 }

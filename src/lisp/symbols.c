@@ -27,10 +27,12 @@ lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
 lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 lispval KNOSYM_FILE, KNOSYM_FILENAME;
 lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
-lispval KNOSYM_HASHMARK, KNOSYM_HISTORY_THREADVAL;
+lispval KNOSYM_GT, KNOSYM_GTE;
+lispval KNOSYM_HASHMARK, KNOSYM_HISTREF, KNOSYM_HISTORY_THREADVAL;
 lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT, KNOSYM_ISADJUNCT;
 lispval KNOSYM_KEYSLOT;
 lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
+lispval KNOSYM_LT, KNOSYM_LTE;
 lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 lispval KNOSYM_MINUS, KNOSYM_MODULE, KNOSYM_MODULEID;
 lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
@@ -43,7 +45,7 @@ lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING, KNOSYM_SUFFIX;
 lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
 lispval KNOSYM_UTF8;
 lispval KNOSYM_VERSION, KNOSYM_VOID;
-lispval KNOSYM_XREFS, KNOSYM_XTYPE;
+lispval KNOSYM_XREFS, KNOSYM_XTYPE, KNOSYM_XXREFS;
 
 u8_rwlock kno_symbol_lock;
 static u8_memlist old_symbol_data = NULL;
@@ -123,7 +125,10 @@ static void init_builtin_symbols()
   KNOSYM_FLAGS = kno_intern("flags");
   KNOSYM_FORMAT = kno_intern("format");
   KNOSYM_FRONT = kno_intern("front");
+  KNOSYM_GT = kno_intern(">");
+  KNOSYM_GTE = kno_intern(">=");
   KNOSYM_HASHMARK = kno_intern("%history");
+  KNOSYM_HISTREF = kno_intern("%histref");
   KNOSYM_HISTORY_THREADVAL = kno_intern("%history");
   KNOSYM_ID = kno_intern("id");
   KNOSYM_INDEX = kno_intern("index");
@@ -134,6 +139,8 @@ static void init_builtin_symbols()
   KNOSYM_LAZY = kno_intern("lazy");
   KNOSYM_LENGTH = kno_intern("length");
   KNOSYM_LOGLEVEL = kno_intern("loglevel");
+  KNOSYM_LT = kno_intern("<");
+  KNOSYM_LTE = kno_intern("<=");
   KNOSYM_MAIN = kno_intern("main");
   KNOSYM_MERGE = kno_intern("merge");
   KNOSYM_METADATA = kno_intern("metadata");
@@ -176,6 +183,7 @@ static void init_builtin_symbols()
   KNOSYM_VOID = kno_intern("void");
   KNOSYM_XREFS = kno_intern("xrefs");
   KNOSYM_XTYPE = kno_intern("xtype");
+  KNOSYM_XXREFS = kno_intern("%xrefs");
 }
 
 static void grow_symbol_tables()

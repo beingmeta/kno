@@ -4,7 +4,7 @@
 
 (in-module 'text/stringfmts)
 
-(use-module '{defmacro})
+(use-module '{defmacro kno/reflect logger})
 
 ;;; Generation of strings from various other kinds of values
 
@@ -21,11 +21,14 @@
    $size $sizestring $nelts
    $bytes $bytestring
    $bytes/sec
-   $rate})
+   $rate
+   $fn})
 
 (module-export!
  '{$lines $lines/indent
    $indented $table})
+
+(module-export! '{$singular $plural})
 
 ;; Percentages
 
@@ -96,9 +99,60 @@
 
 (define $num (fcn/alias printnum))
 
+;;; Plural stuff, just for English now
+
+(define (strip-plural string)
+  (try (tryif (has-suffix string "ies") (glom (slice string 0 -3) "y"))
+       (tryif (has-suffix string "es") (slice string 0 -2))
+       (tryif (has-suffix string "s") (slice string 0 -1))))
+
+(define (make-plural string)
+  (try (tryif (has-suffix string "y") (glom (slice string 0 -1) "ies"))
+       (tryif (has-suffix string "x") (glom string "es"))
+       (glom string "s")))
+
+(define ($plural string)
+  (if (has-suffix string "s") string (make-plural string)))
+
+(define ($singular string)
+  (if (has-suffix string "s") (strip-plural string) string))
+
 ;;; Plural stuff (automatic stuff is just English)
 
 (define ($count n (singular #f) (plural #f) (spellout #t))
+  ;; This may be too hairy, but it simplifies some things
+  (when (symbol? singular) (set! singular (downcase singular)))
+  (when (symbol? plural) (set! plural (downcase plural)))
+  (cond ((and (pair? singular) (string? (car singular)) (string? (cdr singular)))
+	 (let ((pair singular))
+	   (cond ((has-suffix (car pair) "s")
+		  (set! plural (car pair))
+		  (set! singular (cdr pair)))
+		 (else
+		  (set! singular (car pair))
+		  (set! plural (cdr pair))))))
+	((and (pair? singular) (= (length singular) 2)
+	      (string? (car singular)) (string? (second singular)))
+	 (let ((lst singular))
+	   (cond ((has-suffix (first lst) "s")
+		  (set! plural (first lst))
+		  (set! singular (second lst)))
+		 (else
+		  (set! singular (first lst))
+		  (set! plural (second lst))))))
+	((and (string? singular) (not plural) (has-suffix singular "s"))
+	 (let ((base (strip-plural singular)))
+	   (set! plural singular)
+	   (set! singular base)))
+	((and (string? singular) (not plural))
+	 (set! plural (make-plural singular)))
+	(else
+	 (unless (or (not singular) (string? singular))
+	   (logwarn |BadCountTerm/singular| singular)
+	   (set! singular #f))
+	 (unless (or (not plural) (string? plural))
+	   (logwarn |BadCountTerm/plural| plural)
+	   (set! plural #f))))
   (printout
     (if spellout
 	(if (= n 0) "zero"
@@ -107,8 +161,7 @@
 	n)
     (when singular
       (printout " "
-		(if (= n 1) singular
-		    (or plural (string-append singular "s")))))))
+		(if (= n 1) singular plural)))))
 (define ($countstring n (singular #f) (plural #f) (spellout #t))
   (stringout (apply $count n singular plural spellout)))
 
@@ -324,3 +377,13 @@
 	    (if (= j 0)
 		(printout name (dotimes (i (- maxwidth (length name))) (display " ")) v)
 		(printout indent-string v))))))))
+
+;;;; Displaying procedures
+
+(define ($fn fn)
+  (cond ((not (procedure-name fn)) fn)
+	((procedure-module fn) 
+	 (printout (procedure-name fn) "(" (procedure-module fn) ")"))
+	((procedure-filename fn) 
+	 (printout (procedure-name fn) "(" (procedure-filename fn) ")"))
+	(else (procedure-name fn))))

@@ -8,15 +8,12 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_TABLES	(!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
 #define KNO_EVAL_INTERNALS	1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
 #include "kno/storage.h"
-#include "kno/eval.h"
 #include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
@@ -383,5 +380,11 @@ KNO_EXPORT void kno_init_quasiquote_c()
   kno_def_evalfn(kno_scheme_module,"QUASIQUOTE",quasiquote_evalfn,
 		 "*undocumented*");
 
+  link_local_cprims();
+
   u8_register_source_file(_FILEINFO);
+}
+
+static void link_local_cprims()
+{
 }

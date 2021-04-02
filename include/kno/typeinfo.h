@@ -23,9 +23,14 @@ typedef lispval (*kno_type_dispatchfn)(lispval,lispval,int,
 				       const lispval *,
 				       kno_typeinfo);
 
+typedef struct KNO_SCHEMA_ENTRY {
+  lispval name;
+  lispval type;
+  unsigned int bits;} *kno_schema_entry;
+
 typedef struct KNO_TYPEINFO {
   KNO_CONS_HEADER;
-  lispval typetag, type_props, type_usetag;
+  lispval typetag, type_props, type_usetag, type_schema;
   u8_string type_name, type_description;
   char type_isopaque, type_ismutable, type_issequence, type_istable;
   kno_lisp_type type_basetype;
@@ -37,7 +42,8 @@ typedef struct KNO_TYPEINFO {
   kno_type_restorefn type_restorefn;
   kno_type_dispatchfn type_dispatchfn;
   struct KNO_TABLEFNS *type_tablefns;
-  struct KNO_SEQFNS *type_seqfns;} KNO_TYPEINFO;
+  struct KNO_SEQFNS *type_seqfns;
+  void *type_defdata;} KNO_TYPEINFO;
 
 KNO_EXPORT kno_type_unparsefn kno_default_unparsefn;
 KNO_EXPORT kno_type_consfn kno_default_consfn;
@@ -53,6 +59,10 @@ KNO_EXPORT int kno_set_dumpfn(lispval tag,kno_type_dumpfn fn);
 KNO_EXPORT int kno_set_restorefn(lispval tag,kno_type_restorefn fn);
 KNO_EXPORT int kno_set_dispatchfn(lispval tag,kno_type_dispatchfn fn);
 
+typedef kno_typeinfo(*kno_subtypefn)(lispval);
+KNO_EXPORT struct KNO_TYPEINFO *kno_ctypeinfo[KNO_TYPE_MAX];
+KNO_EXPORT kno_subtypefn kno_subtypefns[KNO_TYPE_MAX];
 
+KNO_EXPORT kno_typeinfo kno_register_tag_type(lispval tag,long int longcode);
 
 #endif

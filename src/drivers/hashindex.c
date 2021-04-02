@@ -3858,7 +3858,7 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER hashindex_handler={
-  "hashindex", 1, sizeof(struct KNO_HASHINDEX), 14,
+  "hashindex", 1, sizeof(struct KNO_HASHINDEX), 14, NULL,
   hashindex_close, /* close */
   hashindex_commit, /* commit */
   hashindex_fetch, /* fetch */

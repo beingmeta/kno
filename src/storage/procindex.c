@@ -465,7 +465,7 @@ KNO_EXPORT void kno_register_procindex(u8_string typename,lispval handlers)
 /* The default procindex handler */
 
 struct KNO_INDEX_HANDLER kno_procindex_handler={
-  "procindex", 1, sizeof(struct KNO_PROCINDEX), 14,
+  "procindex", 1, sizeof(struct KNO_PROCINDEX), 14, NULL,
   procindex_close, /* close */
   procindex_commit, /* commit */
   procindex_fetch, /* fetch */

@@ -647,6 +647,46 @@ KNO_EXPORT int kno_swapcheck()
   return 1;
 }
 
+/* subtype functions */
+
+static kno_typeinfo indexref_typefn(lispval ref)
+{
+  int serial = KNO_GET_IMMEDIATE(ref,kno_indexref_type);
+  kno_index ix = (RARELY(serial<0)) ? (NULL) :
+    (USUALLY(serial<KNO_MAX_PRIMARY_INDEXES)) ? (kno_primary_indexes[serial]) :
+    (NULL);
+  if (ix)
+    return ix->index_handler->typeinfo;
+  else return NULL;
+}
+
+static kno_typeinfo consindex_typefn(lispval ref)
+{
+  kno_index ix = (kno_index) ref;
+  if (ix)
+    return ix->index_handler->typeinfo;
+  else return NULL;
+}
+
+static kno_typeinfo poolref_typefn(lispval ref)
+{
+  int serial = KNO_GET_IMMEDIATE(ref,kno_poolref_type);
+  kno_pool p = (RARELY(serial<0)) ? (NULL) :
+    (USUALLY(serial<kno_n_pools)) ? (kno_pools_by_serialno[serial]) :
+    (NULL);
+  if (p)
+    return p->pool_handler->typeinfo;
+  else return NULL;
+}
+
+static kno_typeinfo conspool_typefn(lispval ref)
+{
+  kno_pool p = (kno_pool) ref;
+  if (p)
+    return p->pool_handler->typeinfo;
+  else return NULL;
+}
+
 /* Init stuff */
 
 static void register_header_files()
@@ -782,6 +822,11 @@ KNO_EXPORT int kno_init_storage()
      config_onsave_get,
      config_onsave_set,
      NULL);
+
+  kno_subtypefns[kno_indexref_type] = indexref_typefn;
+  kno_subtypefns[kno_consed_index_type] = consindex_typefn;
+  kno_subtypefns[kno_poolref_type] = poolref_typefn;
+  kno_subtypefns[kno_consed_pool_type] = conspool_typefn;
 
   return knostorage_initialized;
 }

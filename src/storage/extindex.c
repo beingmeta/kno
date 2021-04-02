@@ -214,7 +214,7 @@ static void recycle_extindex(kno_index ix)
 }
 
 struct KNO_INDEX_HANDLER kno_extindex_handler={
-  "extindexhandler", 1, sizeof(struct KNO_EXTINDEX), 14,
+  "extindexhandler", 1, sizeof(struct KNO_EXTINDEX), 14, NULL,
   NULL, /* close */
   extindex_commit, /* commit */
   extindex_fetch, /* fetch */

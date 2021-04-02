@@ -189,8 +189,6 @@ static lispval *aggregate_fetchkeys(kno_index ix,int *n)
   }
 }
 
-DEF_KNOSYM(canonical);
-
 KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
 (lispval opts,int n_allocd,int n,kno_index *indexes)
 {
@@ -367,7 +365,7 @@ static void recycle_aggregate_index(kno_index ix)
 }
 
 static struct KNO_INDEX_HANDLER aggregate_index_handler={
-  "aggregateindex", 1, sizeof(struct KNO_AGGREGATE_INDEX), 14,
+  "aggregateindex", 1, sizeof(struct KNO_AGGREGATE_INDEX), 14, NULL,
   NULL, /* close */
   NULL, /* commit */
   aggregate_fetch, /* fetch */

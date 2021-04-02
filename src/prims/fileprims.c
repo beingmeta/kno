@@ -8,8 +8,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_EVAL_INTERNALS 1 */
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/numbers.h"
@@ -1463,9 +1461,10 @@ static lispval readdir_prim(lispval dirname,lispval fullpath)
 /* File flush function */
 
 DEFC_PRIM("close",close_prim,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	  "**undocumented**",
-	  {"portarg",kno_any_type,KNO_VOID})
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Closes *port*.",
+	  {"port",kno_any_type,KNO_VOID},
+	  {"opts",kno_opts_type,KNO_VOID})
 static lispval close_prim(lispval portarg)
 {
   if (TYPEP(portarg,kno_stream_type)) {
@@ -1476,22 +1475,13 @@ static lispval close_prim(lispval portarg)
   else if (KNO_PORTP(portarg)) {
     struct KNO_PORT *p=
       kno_consptr(struct KNO_PORT *,portarg,kno_ioport_type);
-    U8_OUTPUT *out = p->port_output; U8_INPUT *in = p->port_input; int closed = -1;
+    U8_OUTPUT *out = p->port_output; U8_INPUT *in = p->port_input;
     if (out) {
       u8_flush(out);
-      if (out->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
-	U8_XOUTPUT *xout = (U8_XOUTPUT *)out;
-	if (xout->u8_xfd<0) {}
-	else {
-	  closed = xout->u8_xfd; fsync(xout->u8_xfd); close(xout->u8_xfd);
-	  xout->u8_xfd = -1;}}}
+      u8_close_output(out);}
     if (in) {
       u8_flush(out);
-      if (in->u8_streaminfo&U8_STREAM_OWNS_SOCKET) {
-	U8_XINPUT *xin = (U8_XINPUT *)in;
-	if (xin->u8_xfd<0) { /* already closed. warn? */ }
-	else if (closed!=xin->u8_xfd) {
-	  close(xin->u8_xfd); xin->u8_xfd = -1;}}}
+      u8_close_input(in);}
     return VOID;}
   else return kno_type_error("port","close_prim",portarg);
 }

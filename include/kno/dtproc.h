@@ -10,6 +10,8 @@
 #define KNO_DTPROC_H_INFO "include/kno/dtproc.h"
 #endif
 
+#include "kno/apply.h"
+
 #include <libu8/u8netfns.h>
 
 typedef struct KNO_DTPROC {

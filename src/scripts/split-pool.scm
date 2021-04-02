@@ -69,8 +69,7 @@
 		   'nthreads (tryif (config 'nthreads) (config 'nthreads))))
 		(flexpool (flexpool/split from split-opts (or capacity #default)))
 		(partitions (flexpool/partitions flexpool))
-		(fifo (fifo/make (choice->vector (flexpool/partitions flexpool))
-				`#[fillfn ,fifo/exhausted!]))
+		(fifo (fifo/make (choice->vector (flexpool/partitions flexpool))))
 		(nprocs (config 'nprocs
 				(max 1 (min (choice-size partitions)
 					    (quotient (rusage 'ncpus) 2)))))

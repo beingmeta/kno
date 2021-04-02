@@ -8,10 +8,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_EVAL_INTERNALS 1 */
-
 #include "kno/knosource.h"
-
 #include "kno/lisp.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
@@ -275,6 +272,30 @@ static u8_string get_malloc_info()
 #endif
 }
 
+void extract_rusage(lispval result,
+		    struct rusage *r,
+		    struct rusage *ref)
+{
+    add_intval(result,data_symbol,r->ru_idrss);
+    add_intval(result,stack_symbol,r->ru_isrss);
+    add_intval(result,shared_symbol,r->ru_ixrss);
+    add_intval(result,rss_symbol,r->ru_maxrss);
+    add_intval(result,datakb_symbol,((r->ru_idrss*pagesize)/1024));
+    add_intval(result,stackkb_symbol,((r->ru_isrss*pagesize)/1024));
+    add_intval(result,privatekb_symbol,
+	       (((r->ru_idrss+r->ru_isrss)*pagesize)/1024));
+    add_intval(result,sharedkb_symbol,((r->ru_ixrss*pagesize)/1024));
+    add_intval(result,rsskb_symbol,((r->ru_maxrss*pagesize)/1024));
+    if (ref) {
+      add_flonum(result,utime_symbol,
+		 (u8_dbldifftime(r->ru_utime,ref->ru_utime))/1000000);
+      add_flonum(result,stime_symbol,
+		 (u8_dbldifftime(r->ru_stime,ref->ru_stime))/1000000);}
+    else {
+      add_flonum(result,utime_symbol,u8_dbltime(r->ru_utime)/1000000);
+      add_flonum(result,stime_symbol,u8_dbltime(r->ru_stime)/1000000);}
+}
+
 DEFC_PRIM("rusage",rusage_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
 	  "returns information about the current process. "
@@ -324,16 +345,7 @@ static lispval rusage_prim(lispval field)
       add_intval(result,total_ram_symbol,total_ram);}
 #endif
 
-    add_intval(result,data_symbol,r.ru_idrss);
-    add_intval(result,stack_symbol,r.ru_isrss);
-    add_intval(result,shared_symbol,r.ru_ixrss);
-    add_intval(result,rss_symbol,r.ru_maxrss);
-    add_intval(result,datakb_symbol,((r.ru_idrss*pagesize)/1024));
-    add_intval(result,stackkb_symbol,((r.ru_isrss*pagesize)/1024));
-    add_intval(result,privatekb_symbol,
-	       (((r.ru_idrss+r.ru_isrss)*pagesize)/1024));
-    add_intval(result,sharedkb_symbol,((r.ru_ixrss*pagesize)/1024));
-    add_intval(result,rsskb_symbol,((r.ru_maxrss*pagesize)/1024));
+    extract_rusage(result,&r,&init_rusage);
     add_intval(result,memusage_symbol,mem);
     add_intval(result,vmemusage_symbol,vmem);
     add_flonum(result,memload_symbol,memload);
@@ -369,11 +381,6 @@ static lispval rusage_prim(lispval field)
       add_flonum(result,clock_symbol,elapsed);
       add_flonum(result,cpusage_symbol,cpusage);
       add_flonum(result,tcpusage_symbol,tcpusage);}
-
-    add_flonum(result,utime_symbol,
-	       (u8_dbldifftime(r.ru_utime,init_rusage.ru_utime))/1000000);
-    add_flonum(result,stime_symbol,
-	       (u8_dbldifftime(r.ru_stime,init_rusage.ru_stime))/1000000);
 
     { /* SYSCONF information */
       int n_cpus = get_n_cpus(), max_cpus = get_max_cpus();

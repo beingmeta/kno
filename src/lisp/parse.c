@@ -14,6 +14,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/compounds.h"
+#include "kno/numbers.h"
 #include "kno/ports.h"
 
 #include <libu8/u8printf.h>
@@ -70,16 +71,17 @@ u8_condition kno_UnterminatedBlockComment=_("Unterminated block (#|..|#) comment
 
 int kno_interpret_pointers = 1;
 
-static lispval histref_symbol, comment_symbol, histref_typetag;
+static lispval comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 static lispval opaque_tag, struct_eval_symbol;
 
 kno_history_resolvefn kno_resolve_histref = NULL;
+static int skip_block_comment(u8_input in);
 
 static int skip_whitespace(u8_input s)
 {
   int c = u8_getc(s);
-  if (c<-1) return c;
+  if (c < -1) return c;
   while (1) {
     while ( (c>0) && (spacecharp(c)) ) c = u8_getc(s);
     if (c==';') {
@@ -89,17 +91,24 @@ static int skip_whitespace(u8_input s)
       u8_ungetc(s,c);
       return c;}
     else if ( (c=='#') && (u8_probec(s)=='|') ) {
-      int bar = 0; c = u8_getc(s);
-      /* Read block comment */
-      while ( (c = u8_getc(s)) >= 0 )
-        if (c=='|') bar = 1;
-        else if ((bar) && (c=='#')) break;
-        else bar = 0;
-      if (c=='#') c = u8_getc(s);}
+      u8_getc(s); c = skip_block_comment(s);}
     else break;}
   if (c<0) return c;
   u8_ungetc(s,c);
   return c;
+}
+
+static int skip_block_comment(u8_input in)
+{
+  int depth = 1;
+  int c = u8_getc(in), nc = u8_getc(in);
+  while ( (nc>=0) && (depth>0) ) {
+    if ( (c == '#') && (nc == '|') ) depth++;
+    else if ( (c == '|') && (nc == '#') ) depth--;
+    else NO_ELSE;
+    c=nc; nc=u8_getc(in);}
+  if (nc<0) return nc;
+  else return u8_getc(in);
 }
 
 KNO_EXPORT int kno_skip_whitespace(u8_input s)
@@ -367,7 +376,7 @@ lispval kno_parse_atom(u8_string start,int len)
     if (value != KNO_NULL) return value;
     /* Number syntaxes */
     if (strchr("XxOoBbEeIiDd",start[1])) {
-      lispval result=_kno_parse_number(start,-1);
+      lispval result=kno_parse_number(start,-1);
       if (!(FALSEP(result))) return result;}
     kno_seterr3(kno_InvalidConstant,"kno_parse_atom",start);
     return KNO_PARSE_ERROR;}
@@ -377,7 +386,7 @@ lispval kno_parse_atom(u8_string start,int len)
     if ((isdigit(start[0])) ||
 	( ( (start[0]=='+') || (start[0]=='-') || (start[0]=='.') ) &&
 	  (isdigit(start[1])) )) {
-      result=_kno_parse_number(start,-1);
+      result=kno_parse_number(start,-1);
       if (!(FALSEP(result))) return result;}
     /* Otherwise, it's a symbol */
     return kno_make_symbol(start,len);}
@@ -928,6 +937,10 @@ static lispval *parse_vec(u8_input in,char end_char,int *size)
       if (PARSE_ABORTP(elt))
         kno_interr(elt);
       return NULL;}
+    else if (elt == KNO_BLANK_PARSE) {
+      /* Skip node */
+      ch = skip_whitespace(in);
+      continue;}
     else if (n_elts == max_elts) {
       lispval *new_elts = u8_realloc_n(elts,max_elts*2,lispval);
       if (new_elts) {elts = new_elts; max_elts = max_elts*2;}
@@ -992,13 +1005,19 @@ static lispval parse_list(U8_INPUT *in)
         else u8_ungetc(in,nextch);}
       list_elt = kno_parser(in);
       if (PARSE_ABORTP(list_elt)) {
-        kno_decref(head); return list_elt;}
+        kno_decref(head);
+	return list_elt;}
+      else if (list_elt == KNO_BLANK_PARSE) {
+	ch = skip_whitespace(in);
+	continue;}
+      else NO_ELSE;
       new_pair = u8_alloc(struct KNO_PAIR);
       if (new_pair) {
         scan->cdr = kno_init_pair(new_pair,list_elt,NIL);
         scan = new_pair;}
       else {
-        kno_decref(head); kno_decref(list_elt);
+        kno_decref(head);
+	kno_decref(list_elt);
         return KNO_OOM;}
       ch = skip_whitespace(in);}
     if (ch<0) {
@@ -1011,6 +1030,7 @@ static lispval parse_list(U8_INPUT *in)
     else {
       lispval tail;
       tail = kno_parser(in);
+      while (tail == KNO_BLANK_PARSE) tail = kno_parser(in);
       if (PARSE_ABORTP(tail)) {
         kno_decref(head);
         return tail;}
@@ -1226,17 +1246,8 @@ lispval kno_parser(u8_input in)
         case '(': return parse_vector(in);
         case '{': return parse_qchoice(in);
         case '[': return parse_slotmap(in);
-        case '|': {
-          int bar = 0;
-          /* Skip block #|..|# comment */
-          while ((ch = u8_getc(in))>=0)
-            if (ch=='|') bar = 1;
-            else if ((bar) && (ch=='#')) break;
-            else bar = 0;
-          if (ch<0) {
-            u8_seterr(kno_UnterminatedBlockComment,"kno_parser",NULL);
-            return KNO_PARSE_ERROR;}
-          else return kno_parser(in);}
+	case '|':
+	  return kno_err("BadBlockComment","kno_parser",NULL,KNO_VOID);
         case '*': {
           int nextc = u8_getc(in);
           lispval result = parse_packet(in,nextc);
@@ -1321,7 +1332,19 @@ lispval kno_parser(u8_input in)
             if (PARSE_ABORTP(obj))
               return obj;
             else return kno_make_list(2,struct_eval_symbol,obj);}}
-        default: {
+	case '+': case '-': {
+	  int plus = (ch == '+');
+	  lispval feature = kno_parser(in);
+	  int exists = kno_feature_testp(feature);
+	  lispval expr = kno_parser(in);
+	  if ( exists == plus ) {
+	    kno_decref(feature);
+	    return expr;}
+	  else {
+	    kno_decref(feature);
+	    kno_decref(expr);
+	    return KNO_BLANK_PARSE;}}
+	default: {
           /* This introduced a hash-punct sequence which is used
              for other kinds of character macros. */
           u8_byte buf[16]; struct U8_OUTPUT out; int nch;
@@ -1377,12 +1400,10 @@ static lispval parse_atom(u8_input in,int ch1,int ch2,int normcase)
 }
 
 
-DEF_KNOSYM(histref);
-
 static lispval parse_histref(u8_input in)
 {
   struct U8_OUTPUT tmpbuf;
-  lispval elts = kno_init_pair(NULL,histref_symbol,KNO_EMPTY_LIST);
+  lispval elts = kno_init_pair(NULL,KNOSYM_HISTREF,KNO_EMPTY_LIST);
   lispval *tail = &(KNO_CDR(elts));
   char buf[128];
   int c = u8_getc(in), n_elts = 0;
@@ -1450,12 +1471,87 @@ static lispval parse_histref(u8_input in)
       kno_decref(elts);
       return resolved;}}
   lispval ref = kno_init_compound
-    (NULL,histref_typetag,KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
+    (NULL,KNOSYM_HISTREF,KNO_COMPOUND_SEQUENCE|KNO_COMPOUND_INCREF,
      1,KNO_CDR(elts));
   KNO_SETCDR(elts,KNO_EMPTY_LIST);
   kno_decref(elts);
   return ref;
 }
+
+/* Feature tests */
+
+lispval kno_runtime_features = KNO_EMPTY;
+
+DEF_KNOSYM(and); DEF_KNOSYM(or); DEF_KNOSYM(not); DEF_KNOSYM(overlaps);
+
+static lispval get_cadr(lispval arg)
+{
+  if (KNO_PAIRP(arg)) {
+    lispval cdr = KNO_CDR(arg);
+    if (KNO_PAIRP(cdr)) return KNO_CAR(cdr);
+    else return KNO_VOID;}
+  else return KNO_VOID;
+}
+
+KNO_EXPORT int kno_feature_testp(lispval expr)
+{
+  if (PAIRP(expr)) {
+    lispval head = KNO_CAR(expr);
+    lispval body = KNO_CDR(expr);
+    if (!(KNO_PAIRP(body))) return 0;
+    else if (head == KNOSYM(and)) {
+      lispval scan = body;
+      while (KNO_PAIRP(scan)) {
+	lispval clause = KNO_CAR(scan);
+	if (!(kno_feature_testp(clause))) return 0;
+	scan = KNO_CDR(scan);}
+      return 1;}
+    else if (head == KNOSYM(or)) {
+      lispval scan = body;
+      while (KNO_PAIRP(scan)) {
+	lispval clause = KNO_CAR(scan);
+	if (kno_feature_testp(clause)) return 1;
+	scan = KNO_CDR(scan);}
+      return 0;}
+    else if (head == KNOSYM(not)) {
+      lispval clause = KNO_CAR(body);
+      if (kno_feature_testp(clause))
+	return 0;
+      else return 1;}
+    else if (head == KNOSYM(overlaps)) {
+      lispval feature = get_cadr(expr);
+      lispval value = get_cadr(expr);
+      lispval fv = kno_get(kno_runtime_features,feature,KNO_VOID);
+      if (KNO_VOIDP(fv)) return 0;
+      else if (kno_overlapp(fv,value)) {
+	kno_decref(fv);
+	return 1;}
+      else return 0;}
+    else if ((head == KNOSYM_GT) || (head == KNOSYM_GTE) ||
+	     (head == KNOSYM_LT) || (head == KNOSYM_LTE) ) {
+      lispval feature = KNO_CAR(body);
+      lispval value = get_cadr(body);
+      lispval fv = kno_get(kno_runtime_features,feature,KNO_VOID);
+      if ( (KNO_NUMBERP(fv)) &&  (KNO_NUMBERP(value)) ) {
+	int cmp = kno_numcompare(fv,value);
+	kno_decref(fv);
+	if ( head == KNOSYM_GT) return (cmp>0);
+	else if ( head == KNOSYM_GTE) return (cmp>=0);
+	else if ( head == KNOSYM_LTE) return (cmp<=0);
+	else return (cmp<0);}
+      else return 0;}
+    else if (head == KNOSYM_GT) {
+      lispval feature = KNO_CAR(body);
+      lispval value = get_cadr(body);
+      lispval fv = kno_get(kno_runtime_features,feature,KNO_VOID);
+      int rv = (KNO_EQUALP(fv,value));
+      kno_decref(fv);
+      return rv;}
+    else return 0;}
+  else return kno_test(kno_runtime_features,expr,KNO_VOID);
+}
+
+/* Top level functions */
 
 KNO_EXPORT
 /* kno_parse_expr:
@@ -1491,6 +1587,8 @@ lispval kno_parse_expr(u8_input in)
       u8_free(context);}
     else ex->u8x_details = context;
     return result;}
+  else if (result == KNO_BLANK_PARSE)
+    return kno_parse_expr(in);
   else return result;
 }
 
@@ -1511,6 +1609,8 @@ lispval kno_parse(u8_string s)
       if (ex == NULL)
         kno_seterr("UnexpectedEndOfExpression","kno_parse",s,VOID);}
     return result;}
+  else if (result == KNO_BLANK_PARSE)
+    return kno_parser(&stream);
   else return result;
 }
 
@@ -1724,11 +1824,11 @@ KNO_EXPORT void kno_init_parse_c()
 
   u8_init_rwlock(&constnames_lock);
 
+  kno_runtime_features = kno_make_hashtable(NULL,100);
+
   quasiquote_symbol = kno_intern("quasiquote");
   unquote_symbol = kno_intern("unquote");
   unquotestar_symbol = kno_intern("unquote*");
-  histref_symbol = kno_intern("%histref");
-  histref_typetag = kno_intern("%histref");
   comment_symbol = kno_intern("comment");
   opaque_tag = kno_intern("%opaque");
   struct_eval_symbol = kno_intern("#.");

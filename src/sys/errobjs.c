@@ -33,12 +33,31 @@
 #include <libu8/libu8io.h>
 #endif
 
+int kno_log_exceptions = 0;
+int kno_logstack_onerr = 0;
+int kno_logstack_concise = 1;
+
+static lispval onerror_hooks = KNO_EMPTY;
+
 static lispval stack_entry_symbol, exception_stack_symbol, exception_symbol;
 static int max_irritant_len=256;
 
 int kno_capture_stack=1;
 int kno_log_stack_max = 500;
 int kno_sum_stack_max = 200;
+
+/* Logging exceptions */
+
+KNO_EXPORT void kno_log_error(u8_condition condition,u8_context caller,
+			      u8_string details,lispval irritant)
+{
+  if ( (details==NULL) && (KNO_VOIDP(irritant)) )
+    u8_log(LOGERR,condition,"in %s",caller);
+  else if (details==NULL)
+    u8_log(LOGERR,condition,"in %s for %q",caller,irritant);
+  else u8_log(LOGERR,condition,"in %s (%s) for %q",caller,details,irritant);
+  if (kno_logstack_onerr) knodbg_log_stack(LOGERR,"Stack",kno_logstack_concise);
+}
 
 /* Managing error data */
 
@@ -72,6 +91,46 @@ static lispval get_exception_context(u8_exception ex)
     return kno_make_slotmap(4,1,&init_kv);}
 }
 
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+
+KNO_EXPORT
+int kno_notice_error(u8_condition c,u8_context caller,
+		     u8_string details,lispval irritant,
+		     lispval errobj,u8_exception ex)
+{
+  u8_exception cur_ex = NULL;
+  kno_stack curstack = NULL;
+  int flags = 0, harderr = 0;
+  cur_ex = u8_current_exception;
+  curstack = kno_stackptr;
+  flags = curstack->stack_flags;
+
+  if (flags & (KNO_STACK_ERR_CATCH|KNO_STACK_ERR_CATCHALL)) {
+  soft:
+    harderr = 0;}
+  else {
+  hard:
+    harderr = 1;}
+
+
+  KNO_DO_CHOICES(handler,onerror_hooks) {
+    if (KNO_APPLICABLEP(handler)) {
+      lispval result = kno_call(curstack,handler,1,&errobj);
+      if (KNO_ABORTED(result)) {
+	u8_exception scan = u8_current_exception;
+	while ( (scan) && (scan!=cur_ex) ) {
+	  u8_exception prev = scan->u8x_prev;
+	  u8_exception popped = u8_pop_exception();
+	  u8_free_exception(popped,0);
+	  scan=prev;}}
+      else kno_decref(result);}}
+
+  return harderr;
+}
+
+#pragma GCC pop_options
+
 KNO_EXPORT
 lispval kno_mkerr(u8_condition c,u8_context caller,
 		  u8_string details,lispval irritant,
@@ -80,6 +139,7 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
+  kno_stack cur_stack = kno_stackptr;
   /* Don't grab contexts or backtraces for thread termination */
  initialized:
   if (c == kno_ThreadTerminated) {
@@ -87,10 +147,11 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
     if (push) *push=new_ex;
     else u8_expush(new_ex);
     return KNO_ERROR;}
+  if (kno_log_exceptions) kno_log_error(c,caller,details,irritant);
   struct KNO_EXCEPTION *exo = (ex) ? (kno_exception_object(ex)) : (NULL);
   lispval backtrace = ( (exo) && (KNO_CONSP(exo->ex_stack)) ) ?
     (kno_incref(exo->ex_stack)) :
-    (kno_capture_stack) ? (kno_get_backtrace(kno_stackptr)) :
+    (kno_capture_stack) ? (kno_get_backtrace(cur_stack)) :
     (KNO_EMPTY_LIST);
   lispval context = (ex) ? (get_exception_context(ex)) : (KNO_VOID);
   lispval exception = kno_init_exception
@@ -104,6 +165,7 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   u8_exception new_ex =
     u8_new_exception(condition,caller,u8_strdup(details),
 		     (void *)exception,kno_decref_embedded_exception);
+  kno_notice_error(c,caller,details,irritant,exception,new_ex);
   if (push) *push = new_ex;
   else u8_expush(new_ex);
   return KNO_ERROR;
@@ -320,16 +382,11 @@ KNO_EXPORT
 void kno_log_exception(u8_exception ex)
 {
   if (ex==NULL)
-    u8_log(LOG_ERR,"NoException","kno_log_exception called on NULL");
+    kno_log_error("NoException","kno_log_exception called on NULL",NULL,VOID);
   else if (ex->u8x_xdata) {
     lispval irritant = kno_get_irritant(ex);
-    u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)\n\t%Q",
-           (U8ALT((ex->u8x_details),((U8SNUL)))),
-           (U8ALT((ex->u8x_context),((U8SNUL)))),
-           irritant);}
-  else u8_log(LOG_WARN,ex->u8x_cond,"%m (%m)",
-              (U8ALT((ex->u8x_details),((U8SNUL)))),
-              (U8ALT((ex->u8x_context),((U8SNUL)))));
+    kno_log_error(ex->u8x_cond,ex->u8x_context,ex->u8x_details,irritant);}
+  else kno_log_error(ex->u8x_cond,ex->u8x_context,ex->u8x_details,VOID);
 }
 
 KNO_EXPORT
@@ -918,9 +975,29 @@ void kno_init_errobjs_c()
   ex_typeinfo->type_restorefn=restore_exception;
 
   kno_register_config
+    ("ERROR:LOG",_("Whether to log errors when they happen"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &kno_log_exceptions);
+  kno_register_config
+    ("ERROR:LOG:STACK",_("Whether to log the stack on errors"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &kno_logstack_onerr);
+  kno_register_config
+    ("ERROR:LOG:CONCISE",
+     _("Whether to log a concise (rather than full) backtrace"),
+     kno_boolconfig_get,kno_boolconfig_set,
+     &kno_logstack_concise);
+
+  kno_register_config
+    ("ERROR:HOOKS",
+     _("Functions to be called on exception objects when errors occur"),
+     kno_lconfig_get,kno_lconfig_add,
+     &onerror_hooks);
+
+
+  kno_register_config
     ("ERROR:STACK:CAPTURE",
      _("Whether record backtraces when errors are signalled"),
      kno_boolconfig_get,kno_boolconfig_set,
      &kno_capture_stack);
-
 }

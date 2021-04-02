@@ -53,14 +53,14 @@
 	 (newsize (config 'NEWSIZE (getopt combined 'size)))
 	 (keyslot (config 'KEYSLOT (getopt combined 'keyslot)))
 	 (archive (config 'archive))
-	 (rarefile (or (config 'rarefile) {}))
+	 (tailfile (or (config 'tailfile) {}))
 	 (opts (frame-create #f
 		 'newsize newsize
 		 'keyslot (tryif keyslot (->slotid keyslot))
-		 'mincount (or (config 'mincount (config 'rarethresh))
-			       (if rarefile 7 {}))
+		 'mincount (or (config 'mincount (config 'tailcount))
+			       (if tailfile 7 {}))
 		 'maxcount (or (config 'maxcount) {})
-		 'rarefile rarefile
+		 'tailfile tailfile
 		 'repair (config 'repair #f)
 		 'overwrite #f))
 	 (n (length in)))

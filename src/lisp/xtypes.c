@@ -75,7 +75,7 @@ static ssize_t write_schemap(kno_outbuf out,struct KNO_SCHEMAP *map,xtype_refs r
 static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,xtype_refs refs);
 static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashset,xtype_refs refs);
 
-static ssize_t write_compound(kno_outbuf out,
+static ssize_t write_compound(kno_outbuf out,lispval tag,
 			      struct KNO_COMPOUND *cvec,
 			      xtype_refs refs);
 
@@ -248,25 +248,6 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     kno_write_4bytes(out,KNO_OID_HI(addr));
     kno_write_4bytes(out,KNO_OID_LO(addr));
     return 9;}
-  else if (SYMBOLP(x)) {
-    if ( (refs) && (! ( (flags) & (XTYPE_NO_XTREFS) ) ) ) {
-      ssize_t xtref = kno_xtype_ref(x,refs,-1);
-      if (xtref >= 0) {
-	kno_write_byte(out,xt_absref);
-	return 1+kno_write_varint(out,xtref);}}
-    u8_string pname = KNO_SYMBOL_NAME(x);
-    ssize_t len = strlen(pname);
-    int rv = kno_write_byte(out,xt_symbol);
-    rv = kno_write_varint(out,len);
-    if (KNO_RARELY(rv<0))
-      return rv;
-    return 1+rv+kno_write_bytes(out,pname,len);}
-  else if (KNO_CHARACTERP(x)) {
-    int code = KNO_CHAR2CODE(x);
-    kno_write_byte(out,xt_character);
-    ssize_t code_len = kno_write_varint(out,code);
-    if (code_len < 0) return code_len;
-    else return 1+code_len;}
   else if (KNO_FIXNUMP(x)) {
     ssize_t intval = KNO_FIX2INT(x);
     if (intval<0) {
@@ -275,6 +256,25 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     kno_write_byte(out,xt_posint);
     return 1+kno_write_varint(out,intval);}
   else if (KNO_IMMEDIATEP(x)) {
+    if (SYMBOLP(x)) {
+      if ( (refs) && (! ( (flags) & (XTYPE_NO_XTREFS) ) ) ) {
+	ssize_t xtref = kno_xtype_ref(x,refs,-1);
+	if (xtref >= 0) {
+	  kno_write_byte(out,xt_absref);
+	  return 1+kno_write_varint(out,xtref);}}
+      u8_string pname = KNO_SYMBOL_NAME(x);
+      ssize_t len = strlen(pname);
+      int rv = kno_write_byte(out,xt_symbol);
+      rv = kno_write_varint(out,len);
+      if (KNO_RARELY(rv<0))
+	return rv;
+      return 1+rv+kno_write_bytes(out,pname,len);}
+    else if (KNO_CHARACTERP(x)) {
+      int code = KNO_CHAR2CODE(x);
+      kno_write_byte(out,xt_character);
+      ssize_t code_len = kno_write_varint(out,code);
+      if (code_len < 0) return code_len;
+      else return 1+code_len;}
     int rv = -1;
     switch (x) {
     case KNO_FALSE:
@@ -383,8 +383,30 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
     return write_hashtable(out,(kno_hashtable)x,refs);
   case kno_hashset_type:
     return write_hashset(out,(kno_hashset)x,refs);
-  case kno_tagged_type:
-    return write_compound(out,(kno_compound)x,refs);
+  case kno_compound_type: case kno_rawptr_type: {
+    lispval typetag = (ctype==kno_compound_type) ? (KNO_COMPOUND_TAG(x)) :
+      (KNO_RAWPTR_TAG(x));
+    struct KNO_TYPEINFO *typeinfo = kno_probe_typeinfo(typetag);
+    if ( (typeinfo) && (typeinfo->type_dumpfn) ) {
+      lispval dumped = typeinfo->type_dumpfn(x,typeinfo);
+      lispval usetag = typeinfo->type_usetag;
+      if (KNO_VOIDP(usetag)) usetag=typetag;
+      if (!(KNO_ABORTED(dumped))) {
+	ssize_t rv = kno_write_tagged_xtype(out,usetag,dumped,refs);
+	kno_decref(dumped);
+	return rv;}
+      else {
+	u8_log(LOGWARN,"xtype/dumpfn_failed",
+	       "Couldn't render %q data for %q",
+	       typeinfo->typetag,x);
+	kno_clear_errors(1);}}
+    if (ctype == kno_compound_type)
+      return write_compound(out,typetag,(kno_compound)x,refs);
+    else if (flags&XTYPE_WRITE_OPAQUE)
+      return write_opaque(out,x,refs);
+    else {
+      kno_seterr("XType/BadImmediate","xt_write_dtype",NULL,x);
+      return -1;}}
   case kno_qchoice_type: {
     struct KNO_QCHOICE *qv = (kno_qchoice) x;
     kno_write_byte(out,xt_tagged);
@@ -1074,9 +1096,8 @@ static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
   else return rv;
 }
 
-KNO_EXPORT ssize_t kno_write_tagged_xtype(kno_outbuf out,lispval tag,
-					  lispval data,
-					  xtype_refs refs)
+KNO_EXPORT ssize_t kno_write_tagged_xtype
+(kno_outbuf out,lispval tag,lispval data,xtype_refs refs)
 {
   ssize_t size = 1;
   kno_output_byte(out,xt_tagged);
@@ -1088,10 +1109,29 @@ KNO_EXPORT ssize_t kno_write_tagged_xtype(kno_outbuf out,lispval tag,
 }
 
 
-static ssize_t write_compound(kno_outbuf out,
-			      struct KNO_COMPOUND *cvec,
-			      xtype_refs refs)
+static ssize_t write_compound
+(kno_outbuf out,lispval tag,struct KNO_COMPOUND *cvec,xtype_refs refs)
 {
+  if (tag == KNOSYM_XTYPE) {
+    if ( (cvec->compound_length>=1) &&
+	 (KNO_PACKETP(KNO_COMPOUND_VREF(cvec,0))) ) {
+      lispval packet = KNO_COMPOUND_VREF(cvec,0);
+      ssize_t packet_len = KNO_PACKET_LENGTH(packet);
+      const unsigned char *packet_data = KNO_PACKET_DATA(packet);
+      if (cvec->compound_length==1) {
+	kno_output_bytes(out,packet_data,packet_len);
+	return packet_len;}
+      else {
+	lispval xrefs = KNO_COMPOUND_VREF(cvec,1);
+	if (KNO_FALSEP(xrefs)) {
+	  kno_output_bytes(out,packet_data,packet_len);
+	  return packet_len;}
+	else if (KNO_RAW_TYPEP(xrefs,kno_xtrefs_typetag)) {
+	  xtype_refs cxrefs = KNO_RAWPTR_VALUE(xrefs);
+	  if ( (refs == cxrefs) || (refs->xt_lookup == cxrefs->xt_lookup) ) {
+	    kno_output_bytes(out,packet_data,packet_len);
+	    return packet_len;}
+	  else {/* This should probably unpack the object and repack it */}}}}}
   ssize_t bytes = 0;
   int n_elts = cvec->compound_length;
   lispval *elts = &(cvec->compound_0), *limit = elts + n_elts;
@@ -1101,7 +1141,7 @@ static ssize_t write_compound(kno_outbuf out,
   if (rv<0) return rv; else bytes += rv;
   rv = kno_write_varint(out,write_elts);
   if (rv<0) return rv; else bytes += rv;
-  rv = write_xtype(out,cvec->typetag,refs);
+  rv = write_xtype(out,tag,refs);
   if (rv<0) return rv; else bytes += rv;
   if (cvec->compound_seqoff>=0) {
     rv=kno_write_byte(out,xt_posint);
@@ -1335,6 +1375,44 @@ KNO_EXPORT lispval kno_wrap_xrefs(struct XTYPE_REFS *refs)
 			  NULL);
 }
 
+KNO_EXPORT lispval kno_copy_xrefs(struct XTYPE_REFS *refs)
+{
+  struct XTYPE_REFS *copy = u8_alloc(struct XTYPE_REFS);
+  unsigned int copy_flags = XTYPE_REFS_READ_ONLY;
+  memset(copy,0,sizeof(struct XTYPE_REFS));
+  int n_refs = refs->xt_n_refs;
+  lispval *copycodes = u8_alloc_n(n_refs,lispval);
+  if (refs->xt_refs_flags & XTYPE_REFS_CONS_ELTS) {
+    lispval *codes = refs->xt_refs;
+    int i = 0; while (i<n_refs) {
+      lispval ref = codes[i]; kno_incref(ref);
+      copycodes[i]=ref;
+      i++;}
+    copy_flags |= XTYPE_REFS_CONS_ELTS;}
+  else memcpy(copycodes,refs->xt_refs,sizeof(lispval)*n_refs);
+  copy->xt_refs_flags = copy_flags;
+  copy->xt_refs_max=copy->xt_refs_len=n_refs;
+  copy->xt_refs=copycodes;
+  if (refs->xt_lookup) {
+    kno_hashtable lookup = refs->xt_lookup;
+    if (KNO_MALLOCD_CONSP(lookup)) {
+      kno_incref(((lispval)lookup));
+      copy->xt_lookup=lookup;}
+    else {
+      kno_hashtable lookup_copy = kno_copy_hashtable(NULL,lookup,1);
+      if (!(lookup_copy)) {
+	if (refs->xt_refs_flags & XTYPE_REFS_CONS_ELTS)
+	  kno_decref_vec(copycodes,n_refs);
+	u8_free(copycodes);
+	u8_free(copy);
+	return KNO_ERROR;}
+      else copy->xt_lookup=lookup_copy;}}
+  return kno_wrap_pointer((void *)copy,sizeof(struct XTYPE_REFS),
+			  recycle_xtype_refs,
+			  kno_xtrefs_typetag,
+			  NULL);
+}
+
 KNO_EXPORT lispval kno_getxrefs(lispval arg)
 {
   int free_arg = 0;
@@ -1368,7 +1446,7 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
   else if ( (KNO_SYMBOLP(arg)) || (KNO_OIDP(arg)) ) {
     elts = &arg; n_elts = 1;}
   else return kno_err("InvalidXRefValue","kno_getxrefs",NULL,arg);
-  
+
   if ( (elts) && (n_elts) ) {
     lispval *copy = u8_alloc_n(n_elts,lispval);
     int i = 0; while (i < n_elts) {

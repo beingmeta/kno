@@ -23,5 +23,9 @@ KNO_EXPORT lispval kno_histfind(lispval value);
 KNO_EXPORT void kno_hist_init(int size);
 KNO_EXPORT void kno_histclear(int size);
 
+KNO_EXPORT lispval kno_eval_histrefs(lispval obj,lispval history);
+KNO_EXPORT lispval kno_eval_histref(lispval obj,lispval history);
+KNO_EXPORT lispval kno_get_histref(lispval elts);
+
 #endif /* ndf KNO_HISTORY_H */
 

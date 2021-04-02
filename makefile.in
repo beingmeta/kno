@@ -310,9 +310,10 @@ SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig 
 	      src/shell/kno_start_daemons src/shell/kno_start_servlets src/shell/kno_stop_jobs \
 	      src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog  \
 	      src/shell/knorestart src/shell/knoctl src/shell/knogdb src/shell/knodbgexec \
-	      src/shell/knocleanup src/shell/knojob src/shell/knobuild
-SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index \
-	       exe/scripts/split-index exe/scripts/merge-indexes exe/scripts/merge-index \
+	      src/shell/knocleanup src/shell/knojob src/shell/knobuild \
+	      src/shell/flexsplit
+SCHEME_SCRIPTS=exe/scripts/pack-pool exe/scripts/pack-index exe/scripts/split-index \
+	       exe/scripts/merge-indexes exe/scripts/merge-index \
 	       exe/scripts/knocall exe/scripts/knoserver \
 	       exe/scripts/knopkg exe/scripts/knodb
 
@@ -349,7 +350,7 @@ KNO_SOURCES=									\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
 	src/apply/ffi.c src/apply/exec.c src/apply/dispatch.c 			\
-	src/apply/apply_internals.h						\
+	src/apply/apply_internals.h			  			\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
@@ -1035,6 +1036,20 @@ SCHEMETAGS: ${SCHEME_MODULES} makefile
 	@find src/scripts -name "*.scm" -type f | xargs etags -o $@ -a
 	@find src/brico -name "*.scm" -type f | xargs etags -o $@ -a
 	@find tests -name "*.scm" -type f | xargs etags -o $@ -a
+
+LIBSCMTAGS: src/libscm/*.scm src/libscm/*/*.scm makefile
+	@echo Building LIBSCMTAGS file
+	@rm -f LIBSCMTAGS
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names)
+	@find src/libscm -name "*.scm" -type f | xargs etags -o $@ -a
+
+KNODBTAGS: src/libscm/knodb/*.scm src/libscm/knodb/*/*.scm makefile
+	@echo Building KNODBTAGS file
+	@rm -f KNODBTAGS
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names)
+	@find src/libscm/knodb -name "*.scm" -type f | xargs etags -o $@ -a
 
 alltags: TAGS CORETAGS CTAGS SCHEMETAGS
 freshtags:

@@ -1262,7 +1262,8 @@ static ssize_t kpool_write_value(kno_kpool p,lispval value,
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   kno_write_xtype(tmpout,value,&(p->pool_xrefs));
-  if (p->pool_compression) {
+  if ( (p->pool_compression) &&
+       (!(KNO_RAW_TYPEP(value,KNOSYM_XTYPE))) ) {
     size_t source_length = tmpout->bufwrite-tmpout->buffer;
     size_t compressed_length = 0;
     unsigned char *compressed =
@@ -2017,6 +2018,12 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 	else NO_ELSE;
 	i++;}
       return KNO_INT(new_refs);}}
+  else if (op == KNOSYM_XXREFS) {
+    struct XTYPE_REFS *refs = &(kp->pool_xrefs);
+    int n_refs = refs->xt_n_refs;
+    if (n_refs == 0)
+      return KNO_FALSE;
+    else return kno_copy_xrefs(refs);}
   else if (op == kno_label_op) {
     if (n == 0) {
       if (p->pool_label)
@@ -2300,7 +2307,7 @@ static kno_pool kpool_create(u8_string spec,void *type_data,
 /* Initializing the driver module */
 
 static struct KNO_POOL_HANDLER kpool_handler={
-  "kpool", 1, sizeof(struct KNO_KPOOL), 12,
+  "kpool", 1, sizeof(struct KNO_KPOOL), 12, NULL,
   kpool_close, /* close */
   kpool_alloc, /* alloc */
   kpool_fetch, /* fetch */

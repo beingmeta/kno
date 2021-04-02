@@ -9,18 +9,20 @@
 #endif
 
 #define KNO_EVAL_INTERNALS 1
+#define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
+#include "kno/cons.h"
 #include "kno/storage.h"
 #include "kno/numbers.h"
 #include "kno/frames.h"
-#include "kno/sorting.h"
-#include "kno/cprims.h"
-
 #include "eval_internals.h"
-
+#include "kno/sorting.h"
 
 static lispval keyfn_get(lispval val,lispval keyfn)
 {

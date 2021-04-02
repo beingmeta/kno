@@ -8,8 +8,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_EVAL_INTERNALS 1 */
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
@@ -241,6 +239,44 @@ static lispval encode_xtype(lispval object,lispval opts)
   else return compress_xtype(compression,&out);
 }
 
+DEFC_PRIM("precode-xtype",precode_xtype,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "returns a 'precoded' xtype encoded with a particular "
+	  "set of XREFs. Writing out this XTYPE just writes the "
+	  "precoded bytes, which can be much more efficient.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_FALSE})
+static lispval precode_xtype(lispval object,lispval opts)
+{
+  size_t size = getposfixopt(opts,KNOSYM_BUFSIZE,8000);
+  struct KNO_OUTBUF out = { 0 };
+  KNO_INIT_BYTE_OUTPUT(&out,size);
+  lispval refs_arg = kno_getxrefs(opts);
+  struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag)) ?
+    (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
+  ssize_t bytes = kno_write_xtype(&out,object,refs);
+  if (bytes<0) {
+    kno_decref(refs_arg);
+    return KNO_ERROR;}
+  kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);
+  lispval packet = KNO_VOID;
+  if ( (compression == KNO_NOCOMPRESS) &&
+       ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER ) )
+    packet = kno_init_packet(NULL,bytes,out.buffer);
+  else {
+    if (compression == KNO_NOCOMPRESS)
+      packet = kno_make_packet(NULL,out.bufwrite-out.buffer,out.buffer);
+    else packet = compress_xtype(compression,&out);
+    kno_close_outbuf(&out);}
+  lispval result = (refs) ?
+    (kno_init_compound(NULL,KNOSYM_XTYPE,0,2,packet,refs_arg)) :
+    (kno_init_compound(NULL,KNOSYM_XTYPE,0,1,packet));
+  if (KNO_ABORTED(result)) {
+    kno_decref(packet);
+    kno_decref(refs_arg);}
+  return result;
+}
+
 static lispval compress_xtype(kno_compress_type compression,
 			      kno_outbuf uncompressed)
 {
@@ -279,6 +315,7 @@ static lispval compress_xtype(kno_compress_type compression,
       kno_write_varint(&cmpout,compressed_len);
       kno_write_bytes(&cmpout,compressed,compressed_len);
       str->str_bytelen = cmpout.bufwrite-cmpout.buffer;
+      u8_big_free(compressed);
       return packet;}
 }
 
@@ -1106,6 +1143,58 @@ static ssize_t get_more_data(u8_input in,ssize_t lim)
   else return in->u8_fillfn(in);
 }
 
+/* Dumping the stack */
+
+static lispval dumpstack_helper(lispval dest,int concise)
+{
+  U8_OUTPUT *out = NULL; int close_out = 0;
+  struct U8_OUTPUT tmpout;
+  if (KNO_FALSEP(dest)) {
+    U8_INIT_STATIC_OUTPUT(tmpout,10000);
+    out=&tmpout;}
+  else if (STRINGP(dest)) {
+    out = (u8_output) u8_open_output_file(CSTRING(dest),NULL,-1,-1);
+    if (out == NULL) return KNO_ERROR;
+    close_out = 1;}
+  else out = get_output_port(dest);
+  struct KNO_STACK *stack = kno_stackptr, *scan = stack;
+  while (scan) {
+    knodbg_show_stack_frame(out,scan,concise);
+    u8_putc(out,'\n');
+    scan=scan->stack_caller;}
+  u8_flush(out);
+  if (close_out) u8_close_output(out);
+  if (KNO_STRINGP(dest))
+    u8_log(LOGNOTICE,"StackDumped","%s stack dumped to %s",
+	   ((concise)?("Concise"):("Detailed")),
+	   KNO_CSTRING(dest));
+  if (KNO_FALSEP(dest))
+    return kno_init_string(NULL,u8_outbuf_len(&tmpout),tmpout.u8_outbuf);
+  else return KNO_VOID;
+}
+
+DEFC_PRIM("dumpstack",dumpstack_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Concisely writes the current stack, to *dest*, which can be "
+	  "a port, #t for stdout, or a filename. If *dest* is #f, the stack "
+	  "is written to a string and returned, otherwise `dumpstack` "
+	  "returns VOID",
+	  {"dest",kno_any_type,KNO_VOID})
+static lispval dumpstack_prim(lispval dest)
+{
+  return dumpstack_helper(dest,1);
+}
+
+DEFC_PRIM("dumpstack/full",dumpstack_full_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Verbosely dumps the current stack, to *dest*, which can be "
+	  "a port, #t for stdout, or a filename.",
+	  {"dest",kno_any_type,KNO_VOID})
+static lispval dumpstack_full_prim(lispval dest)
+{
+  return dumpstack_helper(dest,0);
+}
+
 /* PPRINT lisp primitives */
 
 static lispval column_symbol, depth_symbol, detail_symbol;
@@ -1840,13 +1929,6 @@ KNO_EXPORT void kno_init_portprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
   KNO_LINK_CPRIMN("pprinter",lisp_pprinter,kno_textio_module);
   KNO_LINK_CPRIMN("pprint",lisp_pprint,kno_textio_module);
   KNO_LINK_CPRIMN("$pprint",lisp_4pprint,kno_textio_module);
@@ -1870,21 +1952,34 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("portid",portid_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("open-input-string",open_input_string,1,kno_textio_module);
   KNO_LINK_CPRIM("open-output-string",open_output_string,0,kno_textio_module);
-  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_textio_module);
-  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
-  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
-  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_textio_module);
   KNO_LINK_CPRIM("eof-object?",eofp,1,kno_textio_module);
   KNO_LINK_CPRIM("port?",portp,1,kno_textio_module);
   KNO_LINK_CPRIM("input-port?",input_portp,1,kno_textio_module);
   KNO_LINK_CPRIM("output-port?",output_portp,1,kno_textio_module);
 
+  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_textio_module);
+  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
+  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("precode-xtype",precode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_textio_module);
+
+  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
+
+  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
   KNO_LINK_CPRIM("compress",compress_prim,2,kno_textio_module);
   KNO_LINK_CPRIM("uncompress",uncompress_prim,3,kno_textio_module);
+
+  KNO_LINK_CPRIM("dumpstack",dumpstack_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("dumpstack/full",dumpstack_full_prim,1,kno_textio_module);
 
   KNO_LINK_CPRIM("pathstore?",pathstorep_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_textio_module);

@@ -163,8 +163,14 @@ KNO_EXPORT int _KNO_XTYPEP(lispval x,int type)
 
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 {
-  if (KNO_IMMEDIATEP(objtype)) {
-    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) )
+  if (KNO_CHOICEP(objtype)) {
+    KNO_ITER_CHOICES(types,limit,objtype);
+    while (types<limit) {
+      if (KNO_CHECKTYPE(obj,*types)) return 1;
+      else types++;}
+    return 0;}
+  else if (KNO_IMMEDIATEP(objtype)) {
+    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) || (KNO_EMPTYP(objtype)) )
       return 1;
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -180,7 +186,7 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
 	       ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type)) {
     struct KNO_TYPEINFO *info = (kno_typeinfo) objtype;
-    if ( (info->type_basetype>=0) && (!(KNO_TYPEP(obj,info->type_basetype))) )
+    if ( (info->type_basetype>=0) && (!(KNO_XTYPEP(obj,info->type_basetype))) )
       return 0;
     else if (KNO_COMPOUNDP(obj))
       return ( (KNO_COMPOUND_TAG(obj)) == info->typetag) &&
@@ -188,6 +194,8 @@ KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype)
     else if (KNO_TYPEP(obj,kno_rawptr_type))
       return ( (KNO_RAWPTR_TAG(obj)) == info->typetag) &&
 	( (info->type_testfn == NULL) || ((info->type_testfn(obj,info))) );
+    else if (info->type_testfn)
+      return (info->type_testfn)(obj,info);
     else return 0;}
   else return 0;
 }
@@ -333,6 +341,9 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_histref_type,_("histref"),_("histref")},
    { kno_ctype_type,_("ctype"),
      _("a representation of a primitive type value used by the runtime")},
+   { kno_pooltype_type,_("pooltype"),_("an implemented pool type")},
+   { kno_indextype_type,_("indextype"),_("an implemented pool type")},
+
    { kno_string_type,_("string"),_("a UTF-8 encoded string")},
    { kno_packet_type,_("packet"),_("a byte vector")},
    { kno_vector_type,_("vector"),_("vector")},
@@ -388,8 +399,6 @@ struct typeinfo_initializer init_typeinfo[]=
    
    { kno_service_type,_("service"),_("service")},
    
-   { kno_bloom_filter_type,_("bloom_filter"),_("bloom_filter")},
-   
    { kno_sqldb_type,_("sqldb"),_("sqldb")},
    { kno_sqlproc_type,_("sqlproc"),_("sqlproc")},
    
@@ -399,7 +408,7 @@ struct typeinfo_initializer init_typeinfo[]=
 
     { kno_consed_index_type,_("raw index"),
       _("a pointer to an unregistered ('ephemeral') index")},
-   { kno_subjob_type,_("subjob"),_("a sub-process (subjob) object")},
+   { kno_subproc_type,_("subprocess"),_("a sub-process (subproc) object")},
 
    { kno_empty_type,_("empty"),_("the empty/fail value")},
    { kno_exists_type,_("exists"),_("the complement of the empty/fail type")},

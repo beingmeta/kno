@@ -194,15 +194,8 @@ KNO_EXPORT int kno_historyp()
 }
 
 KNO_EXPORT
-lispval kno_get_histref(lispval elts)
+lispval kno_eval_histref(lispval elts,lispval history)
 {
-  lispval history = kno_thread_get(history_symbol);
-  if (KNO_ABORTP(history))
-    return history;
-  else if ( (VOIDP(history)) || (FALSEP(history)) ) {
-    kno_seterr("NoActiveHistory","histref_evalfn",NULL,KNO_VOID);
-    return KNO_ERROR_VALUE;}
-  else NO_ELSE;
   lispval root = KNO_CAR(elts);
   int void_root = (KNO_FALSEP(root));
   if (void_root) {
@@ -309,6 +302,19 @@ lispval kno_get_histref(lispval elts)
     else return kno_make_list(2,KNOSYM_QUOTE,scan);}
 }
 
+KNO_EXPORT
+lispval kno_get_histref(lispval elts)
+{
+  lispval history = kno_thread_get(history_symbol);
+  if (KNO_ABORTP(history))
+    return history;
+  else if ( (VOIDP(history)) || (FALSEP(history)) ) {
+    kno_seterr("NoActiveHistory","histref_evalfn",NULL,KNO_VOID);
+    return KNO_ERROR_VALUE;}
+  else NO_ELSE;
+  return kno_eval_histref(elts,history);
+}
+
 KNO_EXPORT void kno_hist_init(int size)
 {
   lispval history = kno_thread_get(history_symbol);
@@ -339,41 +345,27 @@ KNO_EXPORT void kno_histclear(int size)
   else kno_thread_set(history_symbol,KNO_FALSE);
 }
 
-#if 0
 /* Resolving histrefs in structures */
 
-static lispval resolve_histrefs(lispval obj,lispval history)
+KNO_EXPORT lispval kno_eval_histrefs(lispval obj,lispval history)
 {
   if (KNO_CONSP(obj)) {
     switch (KNO_TYPEOF(obj)) {
     case kno_compound_type: {
-      if (KNO_COMPOUND_TAG(obj)==histref_symbol) {}
-      else if (KNO_COMPOUND_OPAQUEP(obj)) return kno_incref(obj);
-      else {
-	ssize_t n_elts = KNO_COMPOUND_LENGTH(obj), changed = 0;
-	lispval resolved[n_elts], *elts = KNO_COMPOUND_ELTS(obj);
-	ssize_t i = 0; while (i<n_elts) {
-	  lispval elt = elts[i];
-	  if (CONSP(elt)) {
-	    lispval r = resolve_histrefs(elt,history);
-	    if ( (!changed) && (elt != r) ) changed=1;
-	    resolved[i++]=r;}
-	  else resolved[i++] = elt;}
-	if (changed) {
-	  return kno_make_compound();}
-	else {
-	  kno_decref_vec(resolved,n_elts);
-	  return kno_incref(obj);}}}
+      if (KNO_COMPOUND_TAG(obj)==KNOSYM_HISTREF) {
+	lispval ref = KNO_COMPOUND_REF(obj,0);
+	return kno_eval_histref(ref,history);}
+      else return kno_incref(obj);}
     case kno_vector_type: {
       ssize_t n_elts = KNO_VECTOR_LENGTH(obj), changed = 0;
       lispval resolved[n_elts], *elts = KNO_VECTOR_ELTS(obj);
       ssize_t i = 0; while (i<n_elts) {
 	lispval elt = elts[i];
 	if (CONSP(elt)) {
-	  lispval r = resolve_histrefs(elt,history);
+	  lispval r = kno_eval_histrefs(elt,history);
 	  if ( (!changed) && (elt != r) ) changed=1;
 	  resolved[i++]=r;}
-	else resolved[i++]=r;}
+	else resolved[i++]=elt;}
       if (changed)
 	return kno_make_vector(n_elts,resolved);
       else {
@@ -381,26 +373,46 @@ static lispval resolve_histrefs(lispval obj,lispval history)
 	return kno_incref(obj);}}
     case kno_pair_type: {
       lispval scan = obj; lispval head = KNO_VOID, *tail=&head;
-      int changed = 0;
       while (KNO_PAIRP(scan)) {
 	lispval car = KNO_CAR(scan);
-	lispval newcar = (KNO_CONSP(car)) ? (resolve_histref(car,history)) :
+	lispval newcar = (KNO_CONSP(car)) ? (kno_eval_histrefs(car,history)) :
 	  (car);
-	lispval cons = kno_init_pair(NULL,car,KNO_EMPTY_LIST);
+	lispval cons = kno_init_pair(NULL,newcar,KNO_EMPTY_LIST);
 	*tail = cons;
 	tail = (&(((kno_pair)cons)->cdr));
 	scan = KNO_CDR(scan);}
       if (KNO_CONSP(scan))
-	*tail = resolve_histref(scan,history);
+	*tail = kno_eval_histrefs(scan,history);
       else *tail = scan;
       return head;}
-    case kno_slotmap_type: {}
-    case kno_schemap_type: {}
+    case kno_slotmap_type: {
+      lispval copy = kno_copier(obj,KNO_SIMPLE_COPY);
+      struct KNO_SLOTMAP *smap = (kno_slotmap) copy;
+      struct KNO_KEYVAL *keyvals = KNO_XSLOTMAP_KEYVALS(smap);
+      int i = 0, n = smap->n_slots;
+      while (i<n) {
+	lispval val = keyvals[i].kv_val;
+	lispval newval = kno_eval_histrefs(val,history);
+	keyvals[i].kv_val = newval;
+	kno_decref(val);
+	i++;}
+      return copy;}
+    case kno_schemap_type: {
+      lispval copy = kno_copier(obj,KNO_SIMPLE_COPY);
+      struct KNO_SCHEMAP *smap = (kno_schemap) copy;
+      lispval *values = smap->table_values;
+      int i = 0, n = smap->schema_length;
+      while (i<n) {
+	lispval val = values[i];
+	lispval newval = kno_eval_histrefs(val,history);
+	values[i]=newval;
+	kno_decref(val);
+	i++;}
+      return copy;}
     default:
       return kno_incref(obj);}}
   else return obj;
 }
-#endif
 
 /* Histrefs parse config */
 

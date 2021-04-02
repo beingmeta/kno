@@ -65,7 +65,7 @@ const char *kno_constant_names[512]={
   "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
   "#type_error","#range_error", "#error","#badptr","#throw",
   "#break","#unbound","#neverseen","#lockholder","#preoid", /* 22 */
-  "#qvoid","#required",NULL,NULL,NULL,NULL,NULL,NULL, /* 30 */
+  "#qvoid","#required","#blank",NULL,NULL,NULL,NULL,NULL, /* 30 */
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
   NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,
@@ -735,6 +735,16 @@ KNO_EXPORT int kno_register_immediate_type(char *name,kno_checkfn fn,long int lo
   u8_unlock_mutex(&type_registry_lock);
   if (longcode>0) kno_add_type_alias(longcode,KNO_CTYPE(typecode));
  return typecode;
+}
+
+KNO_EXPORT struct KNO_TYPEINFO *kno_register_tag_type(lispval tag,long int longcode)
+{
+  struct KNO_TYPEINFO *info;
+  u8_lock_mutex(&type_registry_lock);
+  info = kno_use_typeinfo(tag);
+  if (longcode>0) kno_add_type_alias(longcode,tag);
+  u8_unlock_mutex(&type_registry_lock);
+  return info;
 }
 
 /* Utility functions (for debugging) */

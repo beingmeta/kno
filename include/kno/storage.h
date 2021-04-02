@@ -121,7 +121,11 @@ KNO_EXPORT lispval kno_commit_phases[8];
 
 KNO_EXPORT kno_storage_flags kno_get_dbflags(lispval,kno_storage_flags);
 
-/* IPEVAL stuff */
+/* BLoom fliters */
+
+KNO_EXPORT lispval kno_bloom_filter_typetag;
+
+/* ipeval stuff */
 
 #if KNO_IPEVAL_ENABLED
 #if (KNO_GLOBAL_IPEVAL)

@@ -1,5 +1,13 @@
 #define INLINE_DEF static U8_MAYBE_UNUSED
 
+#include "kno/eval.h"
+#include "kno/opcodes.h"
+#include "kno/cprims.h"
+
+#ifndef INIT_ARGBUF_LEN
+#define INIT_ARGBUF_LEN 7
+#endif
+
 extern u8_condition BadExpressionHead;
 
 #define MU U8_MAYBE_UNUSED
@@ -7,9 +15,18 @@ extern u8_condition BadExpressionHead;
 #define BAD_ARGP(v) \
   (RARELY ( (KNO_IMMEDIATEP(v)) && ( (KNO_VOIDP(v)) || (KNO_ABORTP(v)) ) ) )
 
+static u8_string MU opcode_name(lispval opcode)
+{
+  long opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
+  if ((opcode_offset<kno_opcodes_length) &&
+      (kno_opcode_names[opcode_offset]))
+    return kno_opcode_names[opcode_offset];
+  else return NULL;
+}
+
 #define VEC_LENGTH KNO_VECTOR_LENGTH
 #define VEC_ELTS   KNO_VECTOR_ELTS
-#define opname     kno_opcode_name
+#define opname     opcode_name
 
 lispval eval_schemap(lispval expr,kno_lexenv env,kno_stack stack);
 lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);
@@ -137,6 +154,15 @@ INLINE_DEF U8_MAYBE_UNUSED lispval get_body(lispval expr,int i)
       expr = KNO_CDR(expr);
     else {expr = KNO_CDR(expr); i--;}
   return expr;
+}
+
+static U8_MAYBE_UNUSED lispval unwrap_qchoice(lispval val)
+{
+  if (QCHOICEP(val)) {
+    lispval choice_val = KNO_QCHOICEVAL(val);
+    kno_incref(choice_val); kno_decref(val);
+    return choice_val;}
+  else return val;
 }
 
 INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
@@ -493,3 +519,4 @@ KNO_FASTOP void init_iter_env(kno_schemap bindings,lispval value,
     bindings->schema_length=3;}
   else bindings->schema_length=1;
 }
+

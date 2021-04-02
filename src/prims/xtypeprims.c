@@ -8,8 +8,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-/* #define KNO_EVAL_INTERNALS 1 */
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/numbers.h"
@@ -328,6 +326,8 @@ static lispval write_xtype_at_prim(lispval object,lispval stream,lispval pos,
     return KNO_ERROR;
   else return KNO_INT(len);
 }
+
+/* File initializations */
 
 static int scheme_xtypeprims_initialized = 0;
 

@@ -79,7 +79,7 @@ KNO_EXPORT int kno_list_object(u8_output out,
 
 
 KNO_EXPORT lispval kno_string2number(u8_string string,int base);
-KNO_EXPORT int kno_output_number(u8_output output,lispval num,int base);
+KNO_EXPORT int kno_output_number(u8_output output,lispval num,int base,int sep);
 
 KNO_EXPORT int kno_unparse_maxchars, kno_unparse_maxelts;
 KNO_EXPORT int kno_unparse_hexpacket, kno_packet_outfmt;
@@ -87,8 +87,10 @@ KNO_EXPORT int kno_unparse_hexpacket, kno_packet_outfmt;
 KNO_EXPORT int kno_register_record_tag
   (lispval symbol,lispval (*recreate)(int n,lispval *v));
 
+KNO_EXPORT lispval kno_runtime_features;
+KNO_EXPORT int kno_feature_testp(lispval expr);
+
 KNO_EXPORT int kno_parse_pointers;
-KNO_EXPORT lispval (*_kno_parse_number)(u8_string,int);
 
 KNO_EXPORT int (*kno_unparse_error)(U8_OUTPUT *,lispval x,u8_string details);
 KNO_EXPORT int (*kno_dtype_error)(struct KNO_OUTBUF *,lispval x,u8_string details);

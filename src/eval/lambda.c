@@ -9,15 +9,19 @@
 #endif
 
 #define KNO_EVAL_INTERNALS 1
+#define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
-#include "kno/cprims.h"
 #include "kno/storage.h"
 
-#include "eval_internals.h"
 #include "../apply/apply_internals.h"
+#include "eval_internals.h"
 
 #include <libu8/u8printf.h>
 
@@ -95,7 +99,7 @@ int lambda_setup(kno_stack stack,kno_stack origin,
   u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
   stack->stack_bits |= KNO_STACK_LAMBDA_CALL;
   stack->stack_file = filename;
-  stack->stack_label = label;
+  stack->stack_origin = stack->stack_label = label;
 
   if (proc->fcn_trace) kno_trace_call(stack,(kno_function)proc,n_given,given);
 
@@ -116,7 +120,8 @@ int lambda_setup(kno_stack stack,kno_stack origin,
 
   /* Argument processing */
   lispval *inits = proc->lambda_inits;
-  int i = 0;
+  lispval *typeinfo = proc->fcn_typeinfo;
+  int i = 0, typeinfo_len = proc->fcn_arginfo_len;
  process_args:
   while (i<max_positional) {
     lispval arg = (i<n_given) ? (given[i]) : (KNO_VOID);
@@ -151,6 +156,18 @@ int lambda_setup(kno_stack stack,kno_stack origin,
 	arg = qarg;}
       else if (!(free_given)) kno_incref(arg);
       else NO_ELSE;}
+    else NO_ELSE;
+    if ( (KNO_EMPTYP(arg)) || (KNO_VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) {}
+    else if ( (typeinfo) && (i<typeinfo_len) ) {
+      lispval typeval = typeinfo[i];
+      if (KNO_FALSEP(typeval)) {}
+      else if (!(KNO_CHECKTYPE(arg,typeval))) {
+	u8_byte buf[100];
+	u8_string details =
+	  u8_bprintf(buf,"%s.%s[%d] !~ %q",
+		     label,KNO_SYMBOL_NAME(vars[i]),i,typeval);
+	kno_seterr(kno_TypeError,"lambda",details,arg);
+	return -1;}}
     else NO_ELSE;
     args[i++] = arg;
     stack->stack_argc = i;}
@@ -543,14 +560,22 @@ _make_lambda(u8_string name,
 	result = kno_err(kno_SyntaxError,"lambda/optarg",name,arglist);
 	goto err_exit;}
       kno_stackvec_push(args,argname);
-      kno_stackvec_push(inits,init_expr); kno_incref(init_expr);
-      if ( (KNO_VOIDP(type_expr)) || (KNO_FALSEP(type_expr)) )
+      if (init_expr == KNO_REQUIRED_VALUE)
+	kno_stackvec_push(inits,KNO_VOID);
+      else {
+	kno_stackvec_push(inits,init_expr);
+	kno_incref(init_expr);}
+      if ( (KNO_VOIDP(type_expr)) || (KNO_FALSEP(type_expr)) ||
+	   (KNO_EMPTYP(type_expr)) )
 	kno_stackvec_push(types,KNO_FALSE);
       else {
 	lispval type = kno_eval(type_expr,env,stack);
 	if (KNO_ABORTED(type)) goto err_exit;
 	else kno_stackvec_push(types,type);}
-      if (first_optional<0) first_optional=i;}
+      if (init_expr==KNO_REQUIRED_VALUE)  {}
+      else if (first_optional<0)
+	first_optional=i;
+      else NO_ELSE;}
     else {
       result = kno_err(kno_SyntaxError,"lambda/arglist",s->fcn_name,arglist);
       goto err_exit;}

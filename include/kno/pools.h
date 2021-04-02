@@ -229,6 +229,7 @@ typedef struct KNO_POOL_COMMITS {
 
 typedef struct KNO_POOL_HANDLER {
   u8_string name; int version, length, n_handlers;
+  struct KNO_TYPEINFO *typeinfo;
   void (*close)(kno_pool p);
   lispval (*alloc)(kno_pool p,int n);
   lispval (*fetch)(kno_pool p,lispval oid);
@@ -248,7 +249,7 @@ typedef struct KNO_POOL_HANDLER *kno_pool_handler;
 
 #if 0
 struct KNO_POOL_HANDLER some_handler={
-   "any", 1, sizeof(poolstruct), 9,
+   "any", 1, sizeof(poolstruct), 9, NULL,
    NULL, /* close */
    NULL, /* alloc */
    NULL, /* fetch */

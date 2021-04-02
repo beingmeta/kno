@@ -17,6 +17,7 @@
 #include "kno/storage.h"
 #include "kno/pools.h"
 #include "kno/indexes.h"
+#include "kno/apply.h"
 #include "kno/drivers.h"
 
 #include <libu8/libu8io.h>
@@ -153,6 +154,9 @@ ssize_t kno_get_bufsize(lispval opts,ssize_t fallback,int for_write)
 
 static struct KNO_POOL_TYPEINFO *pool_typeinfo;
 static u8_mutex pool_typeinfo_lock;
+static int n_pool_types = 0;
+
+static lispval pool_dispatchfn(lispval,lispval,int,kno_argvec,kno_typeinfo);
 
 KNO_EXPORT void kno_register_pool_type
 (u8_string name,
@@ -189,8 +193,22 @@ KNO_EXPORT void kno_register_pool_type
   ptype->opener = opener;
   ptype->matcher = matcher;
   ptype->type_data = type_data;
+
+  if (handler->typeinfo == NULL) {
+    lispval typeid = KNO_LISP_IMMEDIATE(kno_pooltype_type,n_pool_types);
+    n_pool_types++;
+    ptype->pool_typeid = typeid;
+    { u8_string constname = u8_mkstring("%s_pooltype",name);
+      kno_add_constname(constname,typeid);
+      u8_free(constname);}
+    handler->typeinfo = kno_use_typeinfo(typeid);
+    if (handler->typeinfo->type_dispatchfn==NULL)
+      handler->typeinfo->type_dispatchfn=pool_dispatchfn;}
+  else ptype->pool_typeid = handler->typeinfo->typetag;
+
   ptype->next_type = pool_typeinfo;
   pool_typeinfo = ptype;
+
   u8_unlock_mutex(&pool_typeinfo_lock);
 }
 
@@ -207,6 +225,16 @@ kno_pool_typeinfo kno_get_pool_typeinfo(u8_string name)
   return NULL;
 }
 
+KNO_EXPORT kno_pool_typeinfo kno_pool_typeinfo_by_handler(kno_pool_handler handler)
+{
+  struct KNO_POOL_TYPEINFO *ptype = pool_typeinfo;
+  while (ptype) {
+    if (ptype->handler == handler)
+      return ptype;
+    else ptype = ptype->next_type;}
+  return NULL;
+}
+
 KNO_EXPORT kno_pool_typeinfo kno_set_default_pool_type(u8_string id)
 {
   kno_pool_typeinfo info = (id) ?  (kno_get_pool_typeinfo(id)) :
@@ -214,6 +242,26 @@ KNO_EXPORT kno_pool_typeinfo kno_set_default_pool_type(u8_string id)
   if (info)
     default_pool_type = info;
   return info;
+}
+
+static int unparse_pool_type(u8_output out,lispval xtype)
+{
+  struct KNO_POOL_TYPEINFO *ptype = pool_typeinfo;
+  while (ptype) {
+    if (ptype->pool_typeid==xtype) {
+      u8_printf(out,"#%s_pooltype",ptype->handler->name);
+      return 1;}
+    else ptype = ptype->next_type;}
+  u8_printf(out,"#!%p",xtype);
+  return 1;
+}
+
+static lispval pool_dispatchfn(lispval pool,lispval op,int flags,
+				kno_argvec args,
+				kno_typeinfo info)
+{
+  kno_pool p = kno_poolptr(pool);
+  return kno_pool_ctl(p,op,flags&KNO_DISPATCH_ARG_MASK,args);
 }
 
 static kno_pool open_pool(kno_pool_typeinfo ptype,u8_string spec,
@@ -382,6 +430,10 @@ kno_pool kno_make_pool(u8_string spec,
 
 static struct KNO_INDEX_TYPEINFO *index_typeinfo;
 static u8_mutex index_typeinfo_lock;
+static int n_index_types = 0;
+
+
+static lispval index_dispatchfn(lispval,lispval,int,kno_argvec,kno_typeinfo);
 
 KNO_EXPORT void kno_register_index_type
 (u8_string name,
@@ -424,6 +476,19 @@ KNO_EXPORT void kno_register_index_type
   ixtype->opener = opener;
   ixtype->matcher = matcher;
   ixtype->type_data = type_data;
+
+  if (handler->typeinfo == NULL) {
+    lispval typeid = KNO_LISP_IMMEDIATE(kno_indextype_type,n_index_types);
+    n_index_types++;
+    ixtype->index_typeid = typeid;
+    { u8_string constname = u8_mkstring("%s_indextype",name);
+      kno_add_constname(constname,typeid);
+      u8_free(constname);}
+    handler->typeinfo = kno_use_typeinfo(typeid);}
+  else ixtype->index_typeid = handler->typeinfo->typetag;
+  if (handler->typeinfo->type_dispatchfn==NULL)
+    handler->typeinfo->type_dispatchfn=index_dispatchfn;
+
   ixtype->next_type = index_typeinfo;
   index_typeinfo = ixtype;
   u8_unlock_mutex(&index_typeinfo_lock);
@@ -441,6 +506,16 @@ KNO_EXPORT kno_index_typeinfo kno_get_index_typeinfo(u8_string name)
   return NULL;
 }
 
+KNO_EXPORT kno_index_typeinfo kno_index_typeinfo_by_handler(kno_index_handler handler)
+{
+  struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
+  while (ixtype) {
+    if (ixtype->handler == handler)
+      return ixtype;
+    else ixtype = ixtype->next_type;}
+  return NULL;
+}
+
 KNO_EXPORT kno_index_typeinfo kno_set_default_index_type(u8_string id)
 {
   kno_index_typeinfo info = (id) ? (kno_get_index_typeinfo(id)) :
@@ -449,6 +524,29 @@ KNO_EXPORT kno_index_typeinfo kno_set_default_index_type(u8_string id)
     default_index_type=info;
   return info;
 }
+
+static int unparse_index_type(u8_output out,lispval xtype)
+{
+  struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
+  while (ixtype) {
+    if (ixtype->index_typeid==xtype) {
+      u8_printf(out,"#%s_indextype",ixtype->handler->name);
+      return 1;}
+    else ixtype = ixtype->next_type;}
+  u8_printf(out,"#!%p",xtype);
+  return 1;
+}
+
+static lispval index_dispatchfn(lispval ix,lispval op,int flags,
+				kno_argvec args,
+				kno_typeinfo info)
+{
+  kno_index ixptr = kno_indexptr(ix);
+  return kno_index_ctl(ixptr,op,flags&KNO_DISPATCH_ARG_MASK,args);
+}
+
+
+/* Open index given type */
 
 
 static kno_index open_index(kno_index_typeinfo ixtype,u8_string spec,
@@ -1302,6 +1400,9 @@ KNO_EXPORT int kno_init_drivers_c()
 		      "The write buffer size for file streams used in on-disk dbs",
 		      kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_writesize);
 
-  return drivers_c_initialized;
+  kno_unparsers[kno_pooltype_type]=unparse_pool_type;
+  kno_unparsers[kno_indextype_type]=unparse_index_type;
+
+ return drivers_c_initialized;
 }
 

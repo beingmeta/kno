@@ -274,13 +274,13 @@ command $bpnum
  set looping=0
 end
 break dbg_evalfn:examine_result
-set $dbger = $bpnum
+set $dbgeval = $bpnum
 break dbgeval_evalfn:examine_expr
-set $dbgex = $bpnum
-break dbgeval_evalfn:examine_result
-set $dbgexv = $bpnum
-break kno_mkerr:initialized
-set $dbgmkerr = $bpnum
+set $dbgexpr = $bpnum
+break kno_notice_error:soft
+set $dbgsofterr = $bpnum
+break kno_notice_error:hard
+set $dbgharderr = $bpnum
 break u8_pause:waiting
 set $dbgpause = $bpnum
 break u8_debug_wait:waiting
@@ -292,10 +292,18 @@ break __asan_report_error
 break abort
 
 define breakon
-enable $dbger
-enable $dbgex
-enable $dbgexv
-enable $dbgmkerr
+enable $dbgeval
+enable $dbgexpr
+enable $dbgharderr
+enable $dbgsofterr
+end
+
+define skipsoft
+disable $dbgsofterr
+end
+
+define catchsoft
+enable $dbgsofterr
 end
 
 define debug_utf8
@@ -424,6 +432,15 @@ end
 
 define stackvar
   print/x _knodbg_get_stack_var($arg0,"$arg1")
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
+end
+
+define findval
+  if ($argc == 1)
+     print/x _knodbg_find_stack_var(0,"$arg0")
+  else
+     print/x _knodbg_find_stack_var($arg0,"$arg1")
+  end
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 

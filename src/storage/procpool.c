@@ -445,7 +445,7 @@ KNO_EXPORT void kno_register_procpool(u8_string typename,lispval handlers)
 /* The default procpool handler */
 
 struct KNO_POOL_HANDLER kno_procpool_handler={
-  "procpool", 1, sizeof(struct KNO_PROCPOOL), 12,
+  "procpool", 1, sizeof(struct KNO_PROCPOOL), 12, NULL,
   procpool_close, /* close */
   procpool_alloc, /* alloc */
   procpool_fetch, /* fetch */

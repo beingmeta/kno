@@ -1,14 +1,14 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/actions/packindex)
+(in-module 'knodb/actions/splitindex)
 
-(module-export! '{packindex main})
+(module-export! '{splitindex main})
 
-(use-module '{varconfig logger text/stringfmts optimize kno/mttools})
+(use-module '{varconfig logger text/stringfmts optimize knodb})
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
-(define %optimize '{knodb/actions/packindex
+(define %optimize '{knodb/actions/splitindex
 		    knodb/indexes
 		    knodb/hashindexes
 		    ezrecords
@@ -19,7 +19,7 @@
 
 (define (->slotid arg)
   (if (not (string? arg))
-      arg 
+      arg
       (if (has-prefix arg {"@" ":@"})
 	  (parse-arg arg)
 	  (string->symbol (downcase arg)))))
@@ -52,64 +52,59 @@
   (set! slotids (dbctl input 'slotids))
   (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
 
-(define (do-packindex in out)
-  (let* ((overwrite (config 'overwrite #f config:boolean))
-	 (restart (config 'restart #f config:boolean))
+(define (do-splitindex in head-file tail-file tailcount)
+  (let* ((restart (config 'restart #f config:boolean))
 	 (input (open-index in #[register #f]))
-	 (newtype (get-new-type input #f))
-	 (keyslot (->slotid (or (config 'keyslot)
-				(indexctl input 'keyslot))))
-	 (opts (frame-create #f
-		 'type newtype
-		 'newsize (config 'newsize {})
-		 'keyslot (tryif keyslot keyslot)
-		 'mincount (config 'mincount {})
-		 'maxcount (config 'maxcount {})
-		 'slotids 
-		 (tryif (and newtype 
-			     (equal? (downcase newtype) "hashindex")
-			     (not (config 'slotids)))
-		   (tryif (config 'slotcodes #t config:boolean)
-		     #(type)))
-		 'tailfile (or (config 'tail) {})
-		 'repair (config 'repair #f)
-		 'overwrite overwrite)))
-    (info%watch "pack-index/main" 
-      in out input newtype keyslot overwrite
-      "\nOPTS" opts)
-    (when (and out (file-exists? out) (not (equal? in out))
-	       (not overwrite))
-      (logerr |FileExists|
-	"The output file " (write out) " already exists.\n  "
-	"Specify OVERWRITE=yes to remove.")
-      (exit))
-    (when (and out (file-exists? (glom out ".part")))
+	 (keyslot (indexctl input 'keyslot))
+	 (input-keycount (table-size input)))
+    (when (and head-file (file-exists? (glom head-file ".part")))
       (cond (restart 
-	     (logwarn |Restarting| "Removing partial file " (write (glom out ".part")))
-	     (remove-file (glom out ".part")))
+	     (logwarn |Restarting| "Removing partial file " (write (glom head-file ".part")))
+	     (remove-file (glom head-file ".part")))
 	    (else (logerr |PartialFile|
-		    "The temporary output file " (write (glom out ".part")) " exists.\n  "
+		    "The temporary output file " (write (glom head-file ".part")) " exists.\n  "
 		    "Specify RESTART=yes to remove.")
 		  (exit))))
-    (when (and overwrite (getopt opts 'tailfile))
-      (overwriting (getopt opts 'tailfile)))
-    (config! 'appid (glom "pack(" (basename in) ")"))
-    (unless (index/pack! in out opts)
-      (error "Pack index failed"))))
+    (let* ((head (index/ref head-file (frame-create #f
+					'maxload (config 'HEADLOAD (config 'MAXLOAD 0.5))
+					'keyslot (tryif keyslot keyslot)
+					'addkeys input-keycount
+					'create #t)))
+	   (tail (and tail-file
+		      (index/ref tail-file (frame-create #f
+					     'maxload (config 'TAILLOAD (CONFIG 'MAXLOAD 0.6))
+					     'maxsize (config 'TAILMAXSIZE (CONFIG 'MAXSIZE #2gib))
+					     'keyslot (tryif keyslot keyslot)
+					     'addkeys input-keycount
+					     'create #t))))
+	   (opts (frame-create #f
+		   'tail (or tail {})
+		   'tailcount (or tailcount {})
+		   'maxcount (config 'maxcount {})
+		   'mincount (config 'mincount {}))))
+      (config! 'appid (glom "splitindex(" (basename in) ")"))
+      (unless (index/copy! in head opts)
+	(error "Pack index failed")))))
 
-(define (packindex (in #f) (out))
-  (default! out in)
-  (when (overlaps? out '{"inplace" "-"}) (set! out in))
+(define (splitindex (in #f) (head) 
+		    (tail (config 'tailfile #f)) 
+		    (tailcount (config 'TAILCOUNT #f)))
+  (default! head in)
+  (when (overlaps? head '{"inplace" "-"}) (set! head in))
   (default-configs)
   (if (and (string? in) (file-exists? in))
-      (do-packindex in out)
+      (do-splitindex in head tail tailcount)
       (usage)))
 
-(define (main (in #f) (out))
-  (default! out in)
-  (when (overlaps? out '{"inplace" "-"}) (set! out in))
-  (when (config 'optimized #t) (optimize-module! %optimize))
-  (packindex in out))
+(define (main (in #f) (head)
+	      (tail (config 'tailfile #f)) 
+	      (tailcount (config 'TAILCOUNT #f)))
+  (default! head in)
+  (when (overlaps? head '{"inplace" "-"}) (set! head in))
+  (default-configs)
+  (if (and (string? in) (file-exists? in))
+      (do-splitindex in head tail tailcount)
+      (usage)))
 
 (define configs-done #f)
 
@@ -124,7 +119,7 @@
     (set! configs-done #t)))
 
 (define (usage)
-  (lineout "Usage: pack-index <from> [to]\n"
+  (lineout "Usage: split-index <input> <head> [tail]\n"
     ($indented 4
 	       "Repacks the file index stored in <from> either in place or into [to]."
 	       "Common options include (first value is default) : \n"

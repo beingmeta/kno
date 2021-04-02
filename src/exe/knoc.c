@@ -147,6 +147,13 @@ int swallow_hspace(u8_input in)
   else return c;
 }
 
+static lispval parser(u8_input in)
+{
+  lispval result = kno_parser(in);
+  while (result == KNO_BLANK_PARSE) result = kno_parser(in);
+  return result;
+}
+
 static kno_stream eval_server = NULL;
 
 static u8_input inconsole = NULL;
@@ -354,10 +361,10 @@ static lispval read_command(u8_input in,int iscmd,kno_lexenv env)
          (nextc == '+') || (nextc == '-') ||
 	 (nextc == '{') || (nextc == '[') ||
          (u8_isdigit(nextc)) )
-      arg = kno_parser(in);
+      arg = parser(in);
     else if (nextc == ':') {
       u8_getc(in);
-      arg = kno_parser(in);}
+      arg = parser(in);}
     else {
       struct U8_OUTPUT argout;
       U8_INIT_OUTPUT(&argout,100);
@@ -407,7 +414,7 @@ static lispval stream_read(u8_input in,kno_lexenv env)
   c = skip_whitespace(in);
   if (c<0) return KNO_EOF;
   else if (c=='=') {
-    lispval expr = kno_parser(in);
+    lispval expr = parser(in);
     swallow_hspace(in);
     return kno_init_compound
       (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,KNOSYM_EQUALS,expr);}
@@ -421,9 +428,9 @@ static lispval stream_read(u8_input in,kno_lexenv env)
            (nextc == '"') || (nextc == '\'') ||
            (nextc == '+') || (nextc == '-') ||
            (u8_isdigit(nextc)) )
-        arg = kno_parser(in);
+        arg = parser(in);
       else if (nextc == ':') {
-        u8_getc(in); arg = kno_parser(in);}
+        u8_getc(in); arg = parser(in);}
       else {
         struct U8_OUTPUT argout;
         U8_INIT_OUTPUT(&argout,100);
@@ -464,7 +471,7 @@ static lispval stream_read(u8_input in,kno_lexenv env)
   /* Handle command parsing here */
   /* else if ((c==':')||(c==',')) {} */
   else u8_ungetc(in,c);
-  expr = kno_parser(in);
+  expr = parser(in);
   if ((expr == KNO_EOX)||(expr == KNO_EOF)) {
     if (in->u8_read>in->u8_inbuf)
       return kno_err(kno_ParseError,"stream_read",NULL,expr);
@@ -486,7 +493,7 @@ static lispval console_read(u8_input in,kno_lexenv env)
       return KNO_VOID;
     else if (line[0]=='=')  {
       U8_INIT_STRING_INPUT(&scan,n_bytes-1,line+1);
-      lispval expr = kno_parser(&scan);
+      lispval expr = parser(&scan);
       return kno_init_compound
         (NULL,command_tag,KNO_COMPOUND_SEQUENCE,2,KNOSYM_EQUALS,expr);}
     else if ( (line[0] == ',') || (line[0] == ':') ) {
@@ -497,7 +504,7 @@ static lispval console_read(u8_input in,kno_lexenv env)
     /* else if ((line[0]=='=')||(line[0]==',')) {} */
     struct HistEvent tmp;
     U8_INIT_STRING_INPUT(&scan,n_bytes,line);
-    expr = kno_parser(&scan);
+    expr = parser(&scan);
     if ( (KNO_EOXP(expr)) || (KNO_EOFP(expr)) ) {
       lispval readpoint = kno_make_string(NULL,-1,scan.u8_inbuf);
       u8_byte edge[42];
@@ -930,6 +937,9 @@ int main(int argc,char **argv)
     u8_free(home_config);
     u8_free(home_configs);}
   else u8_message("Warning: .knoconfig/.knoc files are suppressed");
+
+  kno_set_config("APPMODS",kno_intern("kno/sessions"));
+  kno_set_config("APPMODS",kno_intern("kno/debug"));
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");
 

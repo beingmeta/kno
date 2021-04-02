@@ -318,6 +318,8 @@
 		 (index (open-index source (cons [register #f] opts)))
 		 (repack (and (not loaded) (get-repack-size index opts))))
 	    (cond (repack
+		   (logwarn |RepackingIndex| 
+		     "Repacking index " (write source) " based on maxload " (getopt opts 'maxload))
 		   (index/pack! index #f `#[newsize ,repack])
 		   ;; The 'right' thing would be to reopen the index,
 		   ;;  but reopening isn't currently supported, so

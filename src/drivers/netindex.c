@@ -268,7 +268,7 @@ static void netindex_close(kno_index ix)
 }
 
 static struct KNO_INDEX_HANDLER netindex_handler={
-  "netindex", 1, sizeof(struct KNO_NETWORK_INDEX), 14,
+  "netindex", 1, sizeof(struct KNO_NETWORK_INDEX), 14, NULL,
   netindex_close, /* close */
   NULL, /* netindex_commit */
   netindex_fetch, /* fetch */

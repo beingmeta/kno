@@ -82,6 +82,8 @@ lispval kno_max_fixnum = KNO_INT(KNO_MAX_FIXNUM);
 lispval kno_min_fixnum = KNO_INT(KNO_MIN_FIXNUM);
 #endif
 
+int kno_integer_sepchar = -1;
+
 #pragma clang diagnostic pop
 
 /* These macros come from the original MIT Scheme code */
@@ -100,7 +102,6 @@ static lispval vector_dotproduct(lispval x,lispval y);
 static lispval vector_scale(lispval vec,lispval scalar);
 
 int kno_numvec_showmax = 7;
-
 
 static kno_bigint
 DEFUN (bigint_malloc, (kno_veclen), int length)
@@ -3432,28 +3433,37 @@ static void output_bigint_digit(unsigned char **digits,int digit)
 {
   **digits = digit; (*digits)++;
 }
-static int output_bigint(struct U8_OUTPUT *out,kno_bigint bi,int base)
+static int output_bigint(struct U8_OUTPUT *out,kno_bigint bi,int base,char sep)
 {
   int n_bytes = kno_bigint_length_in_bytes(bi), n_digits = n_bytes*3;
-  unsigned char _digits[128], *digits, *scan;
+  unsigned char _digits[128], *digits, *scan, *top;
   if (n_digits>128) scan = digits = u8_alloc_n(n_digits,unsigned char);
   else scan = digits=_digits;
   if (bigint_test(bi) == kno_bigint_less) {
     base = 10; u8_putc(out,'-');}
   kno_bigint_to_digit_stream
     (bi,base,(bigint_consumer)output_bigint_digit,(void *)&scan);
-  scan--; while (scan>=digits) {
-    int digit = *scan--;
-    if (digit<10) u8_putc(out,'0'+digit);
-    else if (digit<16) u8_putc(out,'a'+(digit-10));
-    else u8_putc(out,'?');}
+  top=--scan;
+  if (sep<0) {
+    while (scan>=digits) {
+      int digit = *scan--;
+      if (digit<10) u8_putc(out,'0'+digit);
+      else if (digit<16) u8_putc(out,'a'+(digit-10));
+      else u8_putc(out,'?');}}
+  else while (scan>=digits) {
+      if ( (scan<top) && (scan>digits) && ((((scan-digits)+1)%3)==0) )
+	u8_putc(out,sep);
+      int digit = *scan--;
+      if (digit<10) u8_putc(out,'0'+digit);
+      else if (digit<16) u8_putc(out,'a'+(digit-10));
+      else u8_putc(out,'?');}
   if (digits != _digits) u8_free(digits);
   return 1;
 }
 static int unparse_bigint(struct U8_OUTPUT *out,lispval x)
 {
   kno_bigint bi = kno_consptr(kno_bigint,x,kno_bigint_type);
-  output_bigint(out,bi,10);
+  output_bigint(out,bi,10,kno_integer_sepchar);
   return 1;
 }
 
@@ -3618,12 +3628,215 @@ lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp)
   else return VOID;
 }
 
+/* New number parser */
+
+lispval parse_number(u8_string string,int base);
+static lispval parse_bigint(u8_string string,int base,int negative);
+
+static int scan_number(u8_output num,u8_string start,int base)
+{
+  u8_string scan = start;
+  int c = u8_sgetc(&scan), after_sep = 0;
+  if (c == '_') return -1;
+  if ( (c == '+') || (c == '-') ) {
+    u8_putc(num,c); c = u8_sgetc(&scan);}
+  while (c>=0) {
+    if (c == '_') {
+      if (after_sep) return -1;
+      else {
+	after_sep=1;}}
+    else if (u8_isdigit(c)) {
+      after_sep=0;
+      u8_putc(num,c);}
+    else if ( (base == 16) && (isxdigit(c)) ) {
+      after_sep=0;
+      u8_putc(num,c);}
+    else return 0;
+    c = u8_sgetc(&scan);}
+  return 1;
+}
+
+static lispval numeric_atom(u8_string start,int base)
+{
+  ssize_t len = strlen(start);
+  u8_string scan = start;
+  U8_STATIC_OUTPUT(num,len+7);
+  if (base<0) base=10;
+  int is_int = scan_number(&num,scan,base);
+  if (is_int) {
+    char *end = NULL;
+    lispval result = KNO_FALSE;
+    u8_string numstring = num.u8_outbuf, numend = num.u8_write;
+    long long fixnum = strtoll(numstring,&end,base);
+    int saved_errno = errno; errno=0;
+    if ( (!(end)) || (((u8_string)end)!=numend) )
+      result = KNO_FALSE;
+    else if ((fixnum) &&
+	     (fixnum<KNO_MAX_FIXNUM) &&
+	     (fixnum>KNO_MIN_FIXNUM))
+      result = KNO_INT(fixnum);
+    else if ((fixnum==0) && (end) && (*end=='\0'))
+      result = KNO_INT(0);
+    else if ((saved_errno) && (saved_errno != ERANGE))
+      result = KNO_FALSE;
+    else if (*numstring =='-')
+      result = parse_bigint(numstring+1,base,1);
+    else if (*numstring =='+')
+      result = parse_bigint(numstring+1,base,0);
+    else result = parse_bigint(numstring,base,0);
+    if ((num.u8_streaminfo)&(U8_STREAM_OWNS_BUF)) u8_free(num.u8_outbuf);
+    if (ABORTED(result)) {
+      kno_clear_errors(1);
+      return KNO_FALSE;}
+    else if (!(NUMBERP(result))) {
+      kno_decref(result);
+      return KNO_FALSE;}
+    else return result;}
+  else {
+    double flonum; char *end = NULL;
+    flonum = strtod(start,(char **)&end);
+    U8_CLEAR_ERRNO();
+    if ((end>((char*)start)) && ((end-((char*)start)) == len))
+      return kno_make_flonum(flonum);
+    else return KNO_FALSE;}
+}
+
+#define STR_EXTRACT(into,start,end) \
+  u8_byte into[(end-start)+1]; \
+  strncpy(into,start,end-start); \
+  into[end-start]='\0'
+
+static lispval parse_complex_number(const u8_byte *string)
+{
+    /* Complex number */
+  u8_byte *plus = strchr(string+1,'+');
+  u8_byte *minus = strchr(string+1,'-');
+  int len = strlen(string);
+  if ( (plus) && (minus) ) return KNO_FALSE;
+  u8_string sep = (plus) ? (plus) : (minus);
+  if (sep == NULL) sep=string;
+  STR_EXTRACT(real_part,string,sep);
+  STR_EXTRACT(imag_part,sep,string+(len-1));
+  lispval real = (real_part[0]=='\0') ? (KNO_INT(0)) :
+    (parse_number(real_part,10));
+  if (KNO_FALSEP(real)) return KNO_FALSE;
+  /* Remove trailing 'i' */
+  lispval imag = parse_number(imag_part,10);
+  if (KNO_FALSEP(imag)) {
+    kno_decref(real);
+    return KNO_FALSE;}
+  else if (!((KNO_NUMBERP(real))&&(KNO_NUMBERP(imag)))) {
+    /* This probably can't happen, but check anyway */
+    kno_decref(real); kno_decref(imag);
+    return KNO_FALSE;}
+  else return make_complex(real,imag);
+}
+
+static lispval read_exponent_notation(u8_string string)
+{
+  int len = strlen(string);
+  STR_EXTRACT(copy,string,string+len);
+  u8_byte *dot = strchr(copy,'.'), *scan = dot+1; *dot='\0';
+  lispval num = kno_string2number(copy,10), den = KNO_INT(1);
+  if (RARELY(!(NUMBERP(num)))) return KNO_FALSE;
+  while (*scan)
+    if (isdigit(*scan)) {
+      /* Make the remainder into an exact fraction */
+      lispval numx10 = kno_multiply(num,KNO_INT(10));
+      int uchar = *scan;
+      int numweight = u8_digit_weight(uchar);
+      lispval add_digit = KNO_INT(numweight);
+      lispval nextnum = kno_plus(numx10,add_digit);
+      lispval nextden = kno_multiply(den,KNO_INT(10));
+      kno_decref(numx10); kno_decref(num); kno_decref(den);
+      num = nextnum; den = nextden;
+      scan++;}
+    else if (strchr("sSeEfFlL",*scan)) {
+      /* Start of the exponent, we'll only handle non-bigint exponents */
+      int i = 0, exponent = strtol(scan+1,NULL,10);
+      if (exponent>=0)
+	while (i<exponent) {
+	  lispval nextnum = kno_multiply(num,KNO_INT(10));
+	  kno_decref(num); num = nextnum; i++;}
+      else {
+	exponent = -exponent;
+	while (i<exponent) {
+	  lispval nextden = kno_multiply(den,KNO_INT(10));
+	  kno_decref(den); den = nextden; i++;}}
+      break;}
+    else {
+      kno_seterr3(kno_InvalidNumericLiteral,"kno_string2number",string);
+      return KNO_PARSE_ERROR;}
+  return make_rational(num,den);
+}
+
+lispval parse_number(u8_string string,int base)
+{
+  u8_string scan = string, start = string;
+  int c = u8_sgetc(&scan);
+  while (u8_isspace(c)) {start = scan; c=u8_sgetc(&scan);}
+  if (*start == '\0') return KNO_FALSE; else scan = start;
+  int len = strlen(start);
+  if ( (start[len-1]=='i') || (start[len-1]=='I') )
+    return parse_complex_number(start);
+  if (c == '#') {
+    switch (scan[1]) {
+    case 'o': case 'O': return parse_number(scan+2,8);
+    case 'x': case 'X': return parse_number(scan+2,16);
+    case 'd': case 'D': return parse_number(scan+2,10);
+    case 'b': case 'B': return parse_number(scan+2,2);
+    case 'i': case 'I': { /* inexact */
+      lispval result = parse_number(scan+1,base);
+      if (USUALLY(NUMBERP(result))) {
+	double dbl = todouble(result);
+	lispval inexresult = kno_init_flonum(NULL,dbl);
+	kno_decref(result);
+	return inexresult;}
+      else return KNO_FALSE;}
+    case 'e': case 'E': {
+      if (strchr(string,'.'))
+	return read_exponent_notation(string+2);
+      else return parse_number(string+2,base);}
+    default:
+      return KNO_FALSE;}}
+  else if ( (c == '0') && ((scan[1]=='x') || (scan[1]=='X')) )
+    return parse_number(scan+2,16);
+  else {
+    u8_byte *slash = strchr(scan,'/');
+    if (slash) {
+      STR_EXTRACT(num_string,string,slash);
+      STR_EXTRACT(den_string,slash+1,string+len);
+      lispval numerator = parse_number(num_string,base);
+      if (KNO_FALSEP(numerator)) return KNO_FALSE;
+      lispval denominator = parse_number(den_string,base);
+      if (KNO_FALSEP(denominator)) {
+	kno_decref(numerator);
+	return KNO_FALSE;}
+      else if (!((KNO_NUMBERP(numerator))&&(KNO_NUMBERP(denominator)))) {
+	/* This probably can't happen, but check anyway */
+	kno_decref(numerator); kno_decref(denominator);
+	return KNO_FALSE;}
+      else return make_rational(numerator,denominator);}
+    else return numeric_atom(start,base);}
+}
+
+KNO_EXPORT lispval kno_parse_number(u8_string string,int base)
+{
+  return parse_number(string,base);
+}
+
 /* Parsing numbers */
 
 static lispval parse_bigint(u8_string string,int base,int negativep);
 static lispval make_complex(lispval real,lispval imag);
 static lispval make_rational(lispval n,lispval d);
 
+KNO_EXPORT
+lispval kno_string2number(u8_string string,int base)
+{
+  return parse_number(string,base);
+}
+#if 0
 KNO_EXPORT
 lispval kno_string2number(u8_string string,int base)
 {
@@ -3775,8 +3988,9 @@ lispval kno_string2number(u8_string string,int base)
     else result = parse_bigint(start,base,0);
     return result;}
 }
+#endif
 
-lispval (*_kno_parse_number)(u8_string,int) = kno_string2number;
+/* Parsing bigints */
 
 static int read_digit_weight(const u8_byte **scan)
 {
@@ -3799,18 +4013,55 @@ static lispval parse_bigint(u8_string string,int base,int negative)
   else return VOID;
 }
 
-KNO_EXPORT
-int kno_output_number(u8_output out,lispval num,int base)
+char *write_fixnum_helper(unsigned long long int num,char *buf,
+			  int base,const char *digits,
+			  unsigned long long int mult,
+			  int sep)
 {
-  if (FIXNUMP(num)) {
+  char *write=buf;
+  if (num==0) {
+    *write++='0'; *write++='\0';
+    return buf;}
+  unsigned long long int reduce=num;
+  int started=0; while (mult>0) {
+    int weight=(reduce/mult)%base;
+    if (started) *write++=digits[weight];
+    else if (weight) {
+      *write++=digits[weight];
+      started=1;}
+    else NO_ELSE;
+    reduce=reduce%mult;
+    mult=mult/base;}
+  *write++='\0';
+  return buf;
+}
+
+KNO_EXPORT
+int kno_output_number(u8_output out,lispval num,int base,int sep)
+{
+  if ( (FIXNUMP(num)) && ( (sep<=0) || (base != 10) ) ) {
     long long fixnum = FIX2INT(num);
     if (base==10) u8_printf(out,"%lld",fixnum);
     else if (base==16) u8_printf(out,"%llx",fixnum);
     else if (base == 8) u8_printf(out,"%llo",fixnum);
     else {
       kno_bigint bi = kno_long_to_bigint(fixnum);
-      output_bigint(out,bi,base);
+      output_bigint(out,bi,base,sep);
       return 1;}
+    return 1;}
+  else if (FIXNUMP(num)) {
+    char buf[64];
+    long long fixnum = FIX2INT(num);
+    u8_string digits = write_fixnum_helper
+      (fixnum,buf,base,"0123456789",
+       10000000000000000000ULL,sep);
+    int place = strlen(digits);
+    u8_string scan = digits;
+    while (*scan) {
+      if ( (scan>digits) && ((place%3)==0) ) u8_putc(out,sep);
+      u8_putc(out,*scan);
+      place--;
+      scan++;}
     return 1;}
   else if (KNO_FLONUMP(num)) {
     unsigned char buf[256];
@@ -3820,33 +4071,9 @@ int kno_output_number(u8_output out,lispval num,int base)
     return 1;}
   else if (KNO_BIGINTP(num)) {
     kno_bigint bi = kno_consptr(kno_bigint,num,kno_bigint_type);
-    output_bigint(out,bi,base);
+    output_bigint(out,bi,base,sep);
     return 1;}
   else return 0;
-}
-
-/* New number parser */
-
-static int copy_numstring(u8_byte *target,u8_string from,u8_string to)
-{
-  /* This elides separator characters */
-  u8_string scan = from; u8_byte *write=target;
-  int saw_digit = 0, saw_sep = 0;
-  while (scan<to) {
-    int c = u8_sgetc(&scan);
-    if (c=='_') {
-      if (!(saw_digit)) return -1;
-      else saw_sep = 1;
-      saw_digit=0;}
-    else if ( (c<0x80) && (isdigit(c)) ) {
-      *write++=c;
-      saw_digit=1;
-      saw_sep=0;}
-    else if (c<0x80)
-      *write++=c;
-    else return -1;}
-  if (saw_sep) return -1;
-  else return write-target;
 }
 
 #if 0

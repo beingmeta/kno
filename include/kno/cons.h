@@ -245,6 +245,8 @@ KNO_EXPORT lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int copy_fl
 KNO_EXPORT void kno_incref_vec(lispval *vec,size_t n);
 KNO_EXPORT void kno_decref_vec(lispval *vec,size_t n);
 
+#define KNO_SIMPLE_COPY 1 /* Only copies one level */
+
 #define KNO_DEEP_COPY 2   /* Make a deep copy */
 #define KNO_FULL_COPY 4   /* Copy non-static objects */
 #define KNO_STRICT_COPY 8 /* Require methods for all objects */
@@ -864,7 +866,11 @@ KNO_FASTOP struct KNO_TYPEINFO *__kno_objtype(lispval obj)
       struct KNO_TYPEINFO *info = kno_use_typeinfo(tagged->typetag);
       tagged->typeinfo = info;
       return info;}}
-  else return NULL;
+  kno_lisp_type ctype = KNO_TYPEOF(obj);
+  struct KNO_TYPEINFO *info = (kno_subtypefns[ctype]) ?
+    ((kno_subtypefns[ctype])(obj)) : ((kno_typeinfo)(NULL));
+  if (info) return info;
+  else return kno_ctypeinfo[ctype];
 }
 #define kno_objtype __kno_objtype
 #else
@@ -1072,6 +1078,7 @@ KNO_EXPORT unsigned char kno_isfunctionp[];
 
 #include "choices.h"
 #include "tables.h"
+#include "compounds.h"
 #include "sequences.h"
 #include "knoregex.h"
 
@@ -1132,6 +1139,8 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
     case kno_type_type:
       if ( (KNO_OIDP(x)) || (KNO_SYMBOLP(x)) ||
 	   (KNO_IMMEDIATE_TYPEP(x,kno_ctype_type)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_pooltype_type)) ||
+	   (KNO_IMMEDIATE_TYPEP(x,kno_indextype_type)) ||
 	   (KNO_TYPEP(x,kno_typeinfo_type)) )
 	return 1;
       else return 0;
@@ -1174,10 +1183,10 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype);
 
 #if KNO_INLINE_CHECKTYPE
-KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
+KNO_FASTOP int KNO_CHECKTYPE(lispval obj,lispval objtype)
 {
   if (KNO_IMMEDIATEP(objtype)) {
-    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) )
+    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) || (KNO_EMPTYP(objtype)) )
       return 1;
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -1185,11 +1194,19 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_ctype_type)) {
       kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
       return (KNO_TYPEP(obj,ltype));}
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_pooltype_type)) {
+      kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
+      return (KNO_TYPEP(obj,ltype));}
+    else if (KNO_IMMEDIATE_TYPEP(objtype,kno_indextype_type)) {
+      kno_lisp_type ltype = (KNO_IMMEDIATE_DATA(objtype));
+      return (KNO_TYPEP(obj,ltype));}
     else return 0;}
   else if (KNO_OIDP(objtype))
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type))
+    return _KNO_CHECKTYPE(obj,objtype);
+  else if (KNO_CHOICEP(objtype))
     return _KNO_CHECKTYPE(obj,objtype);
   else return 0;
 }

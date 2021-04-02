@@ -87,17 +87,18 @@ KNO_EXPORT lispval kno_dispatch_apply(struct KNO_STACK *stack,lispval handler,
   return dispatch_apply(stack,handler,flags,n_args,args);
 }
 
-KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
-				lispval obj,lispval m,
-				kno_dispatch_flags flags,
-				kno_argvec args)
+KNO_EXPORT lispval kno_type_dispatch(struct KNO_STACK *stack,
+				     struct KNO_TYPEINFO *typeinfo,
+				     lispval obj,lispval m,
+				     kno_dispatch_flags flags,
+				     kno_argvec args)
 {
   int n = (flags & KNO_DISPATCH_ARG_MASK);
   int optional = (flags & KNO_DISPATCH_OPTIONAL);
   int no_error = (flags & KNO_DISPATCH_NOERR);
   if (stack==NULL) stack = kno_stackptr;
-  struct KNO_TYPEINFO *typeinfo = kno_objtype(obj);
-  if ( (typeinfo) && (typeinfo->type_dispatchfn) )
+  if (typeinfo==NULL) typeinfo = kno_objtype(obj);
+  if ( (typeinfo) && (typeinfo->type_dispatchfn) && ((flags&KNO_DISPATCH_LOOKUP )) )
     return (typeinfo->type_dispatchfn)(obj,m,flags,args,typeinfo);
   lispval handler = (typeinfo) ? (kno_get(typeinfo->type_props,m,KNO_VOID)) :
     (KNO_VOID);
@@ -130,6 +131,14 @@ KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
        handler);
     kno_decref(handler);
     return KNO_ERROR;}
+}
+
+KNO_EXPORT lispval kno_dispatch(struct KNO_STACK *stack,
+				lispval obj,lispval m,
+				kno_dispatch_flags flags,
+				kno_argvec args)
+{
+  return kno_type_dispatch(stack,NULL,obj,m,flags,args);
 }
 
 DEF_KNOSYM(consfn);

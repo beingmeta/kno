@@ -34,5 +34,10 @@ KNO_EXPORT void kno_missing_error(u8_string details);
 #define kno_err(condition,caller,details,irritant) \
   (_kno_mkerr(condition,caller,details,irritant,NULL))
 
+#define kno_graberrno(errno,caller,details,irritant)	\
+  {int _saved_errno = errno; errno=0; \
+    _kno_mkerr(u8_strerror(errno),caller,details,irritant,NULL);}
+
+
 #endif /* ndef KNO_ERRORS_H */
 

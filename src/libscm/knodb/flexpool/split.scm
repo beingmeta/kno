@@ -61,8 +61,7 @@
 	   (flexpool (flexpool/make output (cons opts+ opts))))
       (when (getopt opts 'copy #t)
 	(let* ((partitions (flexpool/partitions flexpool))
-	       (fifo (fifo/make (choice->vector (flexpool/partitions flexpool))
-				`#[fillfn ,fifo/exhausted!])))
+	       (fifo (fifo/make (choice->vector (flexpool/partitions flexpool)))))
 	  ;; Now, copy all of the OIDs, trying to be efficient
 	  (let ((count 0)
 		(start (elapsed-time))

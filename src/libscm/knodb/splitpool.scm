@@ -76,9 +76,9 @@
 			   " in " (secs->string (elapsed-time start)) 
 			   " (aggregate " total-time ") or "
 			   ($num (/~ count (/~ (elapsed-time start) 60)) 1) " OIDs/minute"))))
-	      (let ((threads {})
-		    (fifo (fifo/make (choice->vector (flexpool/partitions flexpool))
-				     `#[fillfn ,fifo/exhausted!])))
+	      (let* ((threads {})
+		     (partitions (flexpool/partitions flexpool))
+		     (fifo (fifo/make (choice->vector partitions))))
 		(cond ((and nthreads (> nthreads 1))
 		       (dotimes (i nthreads)
 			 (set+! threads (thread/call copy-subpool input fifo batchsize logcopy)))

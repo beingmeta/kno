@@ -144,10 +144,14 @@ static lispval applytest(int n,kno_argvec args)
 			NULL,expected);}
   else NO_ELSE;
   u8_string testid = get_testid(fn,n_args,argstart);
+
+  kno_stack s = kno_stackptr;
+  if (expected == err_symbol) {KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,1);}
   lispval result = (KNO_APPLICABLEP(fn)) ? (kno_apply(fn,n_args,argstart)) :
     (n_args==0) ? (kno_incref(fn)) :
     (n_args==1) ? (kno_incref(argstart[0])) :
     (kno_err("BadApplyTest","applytest",NULL,VOID));
+  if (expected == err_symbol) {KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,0);}
   if ( (KNO_ABORTP(result)) && (expected == err_symbol) ) {
     u8_exception ex = u8_erreify();
     u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) for %s",
@@ -246,7 +250,11 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
     kno_seterr("BadExpectedValue","evaltest_evalfn",name,expected_expr);
     return expected;}
   else {
-    result = kno_eval(testexpr,env,s);
+    if (expected == err_symbol) {
+      KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,1);
+      result = kno_eval(testexpr,env,s);
+      KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,0);}
+    else result = kno_eval(testexpr,env,s);
     if ( (KNO_ERRORP(result)) && (expected == err_symbol) ) {
       u8_exception ex = u8_erreify();
       u8_logf(LOG_INFO,"Tests/ExpectedError","%m (from %s: %s) evaluating %q",
@@ -319,7 +327,9 @@ static lispval evaltest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 static lispval errtest_evalfn(lispval expr,kno_lexenv env,kno_stack s)
 {
   lispval test_expr = kno_get_arg(expr,1);
+  KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,1);
   lispval v = kno_eval(test_expr,env,s);
+  KNO_STACK_SET_FLAG(s,KNO_STACK_ERR_CATCHALL,0);
   if (KNO_ABORTP(v)) {
     u8_exception ex = u8_erreify();
     if (ex) {

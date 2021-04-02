@@ -3477,7 +3477,7 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
 /* Initializing the driver module */
 
 static struct KNO_INDEX_HANDLER kindex_handler={
-  "kindex", 1, sizeof(struct KNO_KINDEX), 14,
+  "kindex", 1, sizeof(struct KNO_KINDEX), 14, NULL,
   kindex_close, /* close */
   kindex_commit, /* commit */
   kindex_fetch, /* fetch */

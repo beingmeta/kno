@@ -325,7 +325,9 @@
   "Add modules to the current application session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (if (exists? good-mods)
-	(session-config! 'appmods good-mods *session*)
+	(if *session*
+	    (session-config! 'appmods good-mods *session*)
+	    (config! 'appmods good-mods))
 	(logwarn |UseMods| "No modules specified"))))
 (define usemod.command (fcn/alias usemods.command))
 (define (optmods.command . modules)
@@ -339,7 +341,9 @@
   "Use (and optimize) the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (cond ((exists? good-mods)
-	   (session-config! 'appmods good-mods *session*)
+	   (if *session*
+	       (session-config! 'appmods good-mods *session*)
+	       (config! 'appmods good-mods))
 	   (optimize-module! (get-module (elts modules)))
 	   (session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
@@ -381,7 +385,9 @@
 		    (exception-summary ex))))))
     (if (string? db)
 	(logwarn |UseDBFailed| db)
-	(session-config! 'usedb spec *session*))))
+	(if *session*
+	    (session-config! 'usedb spec *session*)
+	    (config! 'usedb spec)))))
 
 (define (commit.command . args)
   (knodb/commit!))

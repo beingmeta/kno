@@ -2378,7 +2378,12 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
     else return KNO_FALSE;}
   else if (op == KNOSYM_FILENAME)
     return KNO_FALSE;
-  else return KNO_FALSE;
+  else {
+    lispval lx = (ix->index_serialno<0) ? ((lispval)ix) :
+      LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
+    int flags = n | KNO_DISPATCH_NOERR;
+    struct KNO_TYPEINFO *info=ix->index_handler->typeinfo;
+    return kno_type_dispatch(NULL,info,lx,op,flags,args);}
 }
 
 /* Initialize */

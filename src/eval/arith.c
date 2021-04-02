@@ -9,12 +9,11 @@
 #endif
 
 #define KNO_EVAL_INTERNALS 1
+#define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
 #include "kno/numbers.h"
-#include "kno/cprims.h"
 #include "eval_internals.h"
 
 #define REALP(x)							\
@@ -31,7 +30,8 @@
 
 DEFC_PRIM("complex?",complexp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a complex number, whether it "
+	  "has an imaginary component or not :)",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval complexp(lispval x)
 {
@@ -42,7 +42,7 @@ static lispval complexp(lispval x)
 
 DEFC_PRIM("fixnum?",fixnump,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a fixnum, a fixed precision integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval fixnump(lispval x)
 {
@@ -53,7 +53,8 @@ static lispval fixnump(lispval x)
 
 DEFC_PRIM("bignum?",bignump,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is bignum fixnum, an arbitrary precision "
+	  "integer which can not be represented as a fixnum",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval bignump(lispval x)
 {
@@ -64,7 +65,7 @@ static lispval bignump(lispval x)
 
 DEFC_PRIM("integer?",integerp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval integerp(lispval x)
 {
@@ -86,7 +87,8 @@ static lispval wholep(lispval x)
 
 DEFC_PRIM("rational?",rationalp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a rational number, which includes "
+	  "integers",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval rationalp(lispval x)
 {
@@ -97,7 +99,8 @@ static lispval rationalp(lispval x)
 
 DEFC_PRIM("exact?",exactp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an 'exact' number, which means "
+	  "it doesn't have any inexact (floating point) components.",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval exactp(lispval x)
 {
@@ -115,7 +118,8 @@ static lispval exactp(lispval x)
 
 DEFC_PRIM("inexact?",inexactp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an 'inexact' number, which means "
+	  "it has some inexact (floating point) components.",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval inexactp(lispval x)
 {
@@ -133,7 +137,7 @@ static lispval inexactp(lispval x)
 
 DEFC_PRIM("odd?",oddp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an odd integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval oddp(lispval x)
 {
@@ -153,7 +157,7 @@ static lispval oddp(lispval x)
 
 DEFC_PRIM("even?",evenp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an even integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval evenp(lispval x)
 {
@@ -173,7 +177,8 @@ static lispval evenp(lispval x)
 
 DEFC_PRIM("real?",realp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a real number (i.e. has "
+	  "no imaginary component)",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval realp(lispval x)
 {
@@ -184,7 +189,7 @@ static lispval realp(lispval x)
 
 DEFC_PRIM("positive?",positivep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a positive number",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval positivep(lispval x)
 {
@@ -196,7 +201,7 @@ static lispval positivep(lispval x)
 
 DEFC_PRIM("negative?",negativep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a positive number",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval negativep(lispval x)
 {
@@ -1446,18 +1451,36 @@ static lispval inexact2string(lispval x,lispval precision)
     return kno_stream2string(&out);}
 }
 
-DEFC_PRIM("number->string",number2string,
+DEFC_PRIM("parsenum",parsenum_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "(parsenum *obj* [*base*=10])\n"
+	  "Converts *obj* (a number) into a string in the "
+	  "given *base*",
+	  {"string",kno_string_type,KNO_VOID},
+	  {"base",kno_fixnum_type,KNO_INT(10)})
+static lispval parsenum_prim(lispval string,lispval base)
+{
+  return kno_parse_number(CSTRING(string),FIX2INT(base));
+}
+
+
+
+DEFC_PRIM("number->string",number2string,
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	  "(number->string *obj* [*base*=10])\n"
 	  "Converts *obj* (a number) into a string in the "
 	  "given *base*",
 	  {"x",kno_any_type,KNO_VOID},
-	  {"base",kno_fixnum_type,KNO_INT(10)})
-static lispval number2string(lispval x,lispval base)
+	  {"base",kno_fixnum_type,KNO_INT(10)},
+	  {"sep",kno_any_type,KNO_FALSE})
+static lispval number2string(lispval x,lispval base,lispval sep)
 {
   if (NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-    kno_output_number(&out,x,kno_getint(base));
+    int sepchar = (KNO_TRUEP(sep)) ? ('_') :
+      (KNO_CHARACTERP(sep)) ? (KNO_CHAR2CODE(sep)) :
+      (-1);
+    kno_output_number(&out,x,kno_getint(base),sepchar);
     return kno_stream2string(&out);}
   else return kno_err(kno_TypeError,"number2string",NULL,x);
 }
@@ -1512,7 +1535,7 @@ static lispval tohex(lispval x)
     return kno_string2number(CSTRING(x),16);
   else if (KNO_NUMBERP(x)) {
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-    kno_output_number(&out,x,16);
+    kno_output_number(&out,x,16,-1);
     return kno_stream2string(&out);}
   else return kno_err(kno_NotANumber,"argtohex",NULL,x);
 }
@@ -1563,7 +1586,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("->hex",tohex,1,scheme_module);
   KNO_LINK_CPRIM("string->number",string2number,2,scheme_module);
   KNO_LINK_CPRIM("number->locale",number2locale,2,scheme_module);
-  KNO_LINK_CPRIM("number->string",number2string,2,scheme_module);
+  KNO_LINK_CPRIM("number->string",number2string,3,scheme_module);
   KNO_LINK_CPRIM("inexact->string",inexact2string,2,scheme_module);
   KNO_LINK_CPRIM("u8itoa",itoa_prim,2,scheme_module);
   KNO_LINK_CPRIM("cityhash128",cityhash128,1,scheme_module);
@@ -1635,6 +1658,8 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIM("ATAN2",latan2,2,scheme_module);
   KNO_LINK_CPRIM("POW~",lpow,2,scheme_module);
+
+  KNO_LINK_CPRIM("parsenum",parsenum_prim,2,scheme_module);
 
   KNO_LINK_ALIAS("->inexact",exact2inexact,scheme_module);
   KNO_LINK_ALIAS("1-",minus1,scheme_module);

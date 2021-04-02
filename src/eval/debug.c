@@ -14,8 +14,6 @@
 #define KNO_INLINE_STACKS  (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV  (!(KNO_AVOID_INLINE))
 
-/* #define KNO_EVAL_INTERNALS (!(KNO_AVOID_INLINE)) */
-
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/support.h"
@@ -33,6 +31,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8stdio.h>
 
 #include <math.h>
 #include <pthread.h>
@@ -281,11 +280,11 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-DEFC_EVALFN("%watchcons",watchcons_evalfn,KNO_EVALFN_DEFAULTS,
+DEFC_EVALFN("%watchrefs",watchrefs_evalfn,KNO_EVALFN_DEFAULTS,
 	    "evaluates *exprs...* "
 	    "reporting any changes to the reference count data for the "
 	    "result of evaluating *ptrval*.");
-static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval watchrefs_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
   lispval name_spec = kno_get_arg(expr,2);
@@ -296,23 +295,23 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_CONSP(value)) {
     int refcount = KNO_CONS_REFCOUNT((kno_cons)value);
     if (refcount == 0)
-      u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
+      u8_log(U8_LOGWARN,"%WATCHREFS","Not a cons: %q",value);
     else {
-      lispval result = kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
+      lispval result = kno_eval_body(body,env,_stack,"%WATCHREFS",label,0);
       int after = KNO_CONS_REFCOUNT((kno_cons)value);
       if (refcount != after) {
 	if (after == 0)
-	  u8_log(U8_LOGWARN,"%WATCHCONS",
+	  u8_log(U8_LOGWARN,"%WATCHREFS",
 		 "STATIC %d => 0%s%s %q\n    %q",
 		 refcount-1,U8IF(label," "),U8S(label),
 		 value,val_expr);
 	else if (after == 0)
-	  u8_log(U8_LOGWARN,"%WATCHCONS",
+	  u8_log(U8_LOGWARN,"%WATCHREFS",
 		 "FREED %d => 0%s%s %q=>\n    %q",
 		 refcount-1,
 		 U8IF(label," "),U8S(label),
 		 value,val_expr);
-	else u8_log(U8_LOGWARN,"%WATCHCONS",
+	else u8_log(U8_LOGWARN,"%WATCHREFS",
 		    "%s%d (%d => %d)%s%s %q\n	 %q",
 		    (after>refcount)?("+"):(""),
 		    (after-refcount),
@@ -324,8 +323,8 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else {
 	kno_decref(value);
 	return result;}}}
-  else u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
-  return kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
+  else u8_log(U8_LOGWARN,"%WATCHREFS","Not a cons: %q",value);
+  return kno_eval_body(body,env,_stack,"%WATCHREFS",label,0);
 }
 
 DEFC_PRIM("%watchptrval",watchptr_prim,
@@ -1484,6 +1483,127 @@ static lispval plus15(lispval arg1,lispval arg2,
   return KNO_INT(sum);
 }
 
+/* C debugging functions */
+
+KNO_EXPORT void knodbg_show_env(u8_output out,kno_lexenv start,int limit)
+{
+  int depth = 0;
+  kno_lexenv env=start;
+  if (limit<0)  {
+    lispval bindings = env->env_bindings;
+    lispval keys = kno_getkeys(bindings);
+    u8_byte buf[128];
+    KNO_DO_CHOICES(key,keys) {
+      if (KNO_SYMBOLP(key)) {
+        lispval val=kno_get(bindings,key,KNO_VOID);
+        u8_string vstring=u8_sprintf(buf,128,"%q",val);
+	u8_printf(out,"  %s\t 0x%llx\t%s\n",
+		  KNO_SYMBOL_NAME(key),(unsigned long long)val,
+		  vstring);
+	kno_decref(val);}}
+    kno_decref(keys);}
+  else while ( (env) && (depth < limit) ) {
+      lispval bindings = env->env_bindings;
+      kno_lisp_type btype = KNO_TYPEOF(bindings);
+      lispval name = kno_get(bindings,KNOSYM_MODULEID,KNO_VOID);
+      if (KNO_VOIDP(name)) {
+        lispval keys = kno_getkeys(bindings);
+        u8_printf(out,"  env#%d %q\t\t\t(%s[%d]) %p/%p\n",
+		  depth,keys,kno_type_names[btype],KNO_CHOICE_SIZE(keys),
+		  bindings,env);
+	kno_decref(keys);}
+      else u8_printf(out,"  env#%d module %q\t\t%p\n",depth,name,env);
+      kno_decref(name);
+      env=env->env_parent;
+      depth++;}
+}
+
+#if 0
+KNO_EXPORT struct KNO_STACK *knodbg_get_stack_frame(void *arg)
+{
+  struct KNO_STACK *curstack=kno_stackptr;
+  unsigned long long intval=KNO_LONGVAL( arg);
+  if (arg==NULL)
+    return curstack;
+  else if ((intval < 100000) && (curstack) &&
+           (intval <= (curstack->stack_depth))) {
+    struct KNO_STACK *scan=curstack;
+    while (scan) {
+      if ( scan->stack_depth == intval )
+        return scan;
+      else scan=scan->stack_caller;}
+    return NULL;}
+  else return (kno_stack)arg;
+}
+
+KNO_EXPORT lispval knodbg_get_stack_arg(void *arg,int n)
+{
+  struct KNO_STACK *stack=knodbg_get_stack_frame(arg);
+  if (STACK_ARGS(stack))
+    if ( (n>=0) && (n < (STACK_WIDTH(stack)) ) )
+      return STACK_ARGS(stack)[n];
+    else return KNO_NULL;
+  else return KNO_NULL;
+}
+
+KNO_EXPORT lispval knodbg_get_stack_var(void *arg,u8_string varname)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (KNO_STACK_LIVEP(stack)) {
+    if (stack->eval_env) {
+      lispval sym = kno_getsym(varname);
+      return kno_symeval(sym,stack->eval_env);}}
+  return KNO_NULL;
+}
+
+KNO_EXPORT lispval knodbg_find_stack_var(FILE *out,void *arg,u8_string varname)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (out==NULL) out=stderr;
+  lispval sym = kno_getsym(varname);
+  while ( (stack) && (KNO_STACK_LIVEP(stack)) ) {
+    if (stack->eval_env) {
+      lispval v = kno_symeval(sym,stack->eval_env);
+      if (!(KNO_VOIDP(v))) {
+	knodbg_concise_stack_frame(out,stack);
+	return v;}}
+    stack = stack->stack_caller;}
+  return KNO_NULL;
+}
+
+KNO_EXPORT void knodbg_show_stack(FILE *out,void *arg,int limit)
+{
+  int count=0;
+  if (out==NULL) out=stderr;
+  struct KNO_STACK *stack=knodbg_get_stack_frame(arg);
+  if (stack==NULL) {
+    fprintf(out,"!! No stack\n");
+    return;}
+  while (stack) {
+    knodbg_concise_stack_frame(out,stack);
+    count++;
+    stack=stack->stack_caller;
+    if ( (limit > 0) && (count >= limit) ) break;}
+}
+
+KNO_EXPORT void knodbg_show_stack_env(FILE *out,void *arg)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (out==NULL) out=stderr;
+  if (stack==NULL) {
+    fprintf(out,"!! No stack frame\n");
+    return;}
+  else if (KNO_STACK_LIVEP(stack)) {
+    fprintf(out,"!! Dead stack frame\n");
+    return;}
+  else {
+    knodbg_concise_stack_frame(out,(kno_stack)stack);
+    if (stack->eval_env)
+      knodbg_show_env(out,stack->eval_env,-1);
+    else fprintf(out,"!! No env\n");}
+}
+#endif
+
 /* Initialization */
 
 KNO_EXPORT void kno_init_eval_debug_c()
@@ -1515,7 +1635,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,profiled_eval_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_plus_evalfn);
-  KNO_LINK_EVALFN(kno_scheme_module,watchcons_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,watchrefs_evalfn);
 
   KNO_LINK_EVALFN(kno_scheme_module,watched_cond_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watched_try_evalfn);

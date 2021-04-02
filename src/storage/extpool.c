@@ -240,7 +240,7 @@ static void recycle_extpool(kno_pool p)
 }
 
 struct KNO_POOL_HANDLER kno_extpool_handler={
-  "extpool", 1, sizeof(struct KNO_EXTPOOL), 12,
+  "extpool", 1, sizeof(struct KNO_EXTPOOL), 12, NULL,
   NULL, /* close */
   extpool_alloc, /* alloc */
   extpool_fetch, /* fetch */

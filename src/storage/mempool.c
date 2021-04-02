@@ -180,7 +180,7 @@ static int mempool_swapout(kno_pool p,lispval oidvals)
 }
 
 static struct KNO_POOL_HANDLER mempool_handler={
-  "mempool", 1, sizeof(struct KNO_MEMPOOL), 12,
+  "mempool", 1, sizeof(struct KNO_MEMPOOL), 12, NULL,
   NULL, /* close */
   mempool_alloc, /* alloc */
   mempool_fetch, /* fetch */

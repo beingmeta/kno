@@ -371,12 +371,18 @@ typedef int kno_dispatch_flags;
 #define KNO_DISPATCH_NOERR    0x40000000
 #define KNO_DISPATCH_DCALL    0x20000000
 #define KNO_DISPATCH_DECREF   0x10000000
+#define KNO_DISPATCH_LOOKUP   0x08000000
 
 KNO_EXPORT lispval kno_get_handler(lispval obj,lispval m);
 KNO_EXPORT lispval kno_dispatch(kno_stack stack,
 				lispval obj,lispval method,
 				kno_dispatch_flags flags,
 				kno_argvec args);
+KNO_EXPORT lispval kno_type_dispatch(struct KNO_STACK *stack,
+				     struct KNO_TYPEINFO *typeinfo,
+				     lispval obj,lispval m,
+				     kno_dispatch_flags flags,
+				     kno_argvec args);
 KNO_EXPORT lispval kno_dispatch_apply(struct KNO_STACK *stack,lispval handler,
 				      kno_dispatch_flags flags,
 				      int n_args,kno_argvec args);

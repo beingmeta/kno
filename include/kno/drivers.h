@@ -45,16 +45,17 @@ KNO_EXPORT u8_string kno_match4bytes(u8_string file,void *data);
 KNO_EXPORT u8_string kno_netspecp(u8_string file,void *data);
 KNO_EXPORT int kno_same_sourcep(u8_string ref,u8_string source);
 
-
 struct KNO_POOL_TYPEINFO {
   u8_string pool_typename;
+  lispval pool_typeid;
   kno_pool_handler handler;
   kno_pool (*opener)(u8_string filename,kno_storage_flags flags,lispval opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct KNO_POOL_TYPEINFO *next_type;};
 typedef struct KNO_POOL_TYPEINFO *kno_pool_typeinfo;
-struct KNO_POOL_TYPEINFO *kno_get_pool_typeinfo(u8_string string);
+KNO_EXPORT kno_pool_typeinfo kno_get_pool_typeinfo(u8_string string);
+KNO_EXPORT kno_pool_typeinfo kno_pool_typeinfo_by_handler(kno_pool_handler handler);
 
 KNO_EXPORT
 void kno_register_pool_type
@@ -78,13 +79,15 @@ KNO_EXPORT kno_pool kno_make_pool(u8_string spec,u8_string pooltype,
 
 struct KNO_INDEX_TYPEINFO {
   u8_string index_typename;
+  lispval index_typeid;
   kno_index_handler handler;
   kno_index (*opener)(u8_string filename,kno_storage_flags flags,lispval opts);
   u8_string (*matcher)(u8_string filename,void *);
   void *type_data;
   struct KNO_INDEX_TYPEINFO *next_type;};
 typedef struct KNO_INDEX_TYPEINFO *kno_index_typeinfo;
-struct KNO_INDEX_TYPEINFO *kno_get_index_typeinfo(u8_string string);
+KNO_EXPORT kno_index_typeinfo kno_get_index_typeinfo(u8_string string);
+KNO_EXPORT kno_index_typeinfo kno_index_typeinfo_by_handler(kno_index_handler handler);
 
 KNO_EXPORT
 void kno_register_index_type

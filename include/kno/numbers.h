@@ -3,13 +3,15 @@ KNO_EXPORT u8_condition kno_NotANumber;
 KNO_EXPORT u8_condition kno_DivideByZero;
 KNO_EXPORT u8_condition kno_InvalidNumericLiteral;
 
+KNO_EXPORT int kno_integer_sepchar;
+
 KNO_EXPORT lispval kno_max_fixnum;
 KNO_EXPORT lispval kno_min_fixnum;
 
 KNO_EXPORT lispval kno_make_bigint(long long intval);
 KNO_EXPORT lispval kno_init_double(struct KNO_FLONUM *ptr,double flonum);
 KNO_EXPORT lispval kno_string2number(u8_string string,int base);
-KNO_EXPORT int kno_output_number(u8_output out,lispval num,int base);
+KNO_EXPORT int kno_output_number(u8_output out,lispval num,int base,int sep);
 KNO_EXPORT lispval kno_make_complex(lispval real,lispval imag);
 KNO_EXPORT lispval kno_make_rational(lispval num,lispval denom);
 KNO_EXPORT int kno_small_bigintp(kno_bigint bi);
@@ -55,6 +57,7 @@ KNO_EXPORT kno_bigint kno_bigint_multiply(kno_bigint bx,kno_bigint by);
 KNO_EXPORT kno_bigint kno_bigint_substract(kno_bigint bx,kno_bigint by);
 KNO_EXPORT kno_bigint kno_bigint_add(kno_bigint bx,kno_bigint by);
 
+KNO_EXPORT lispval kno_parse_number(u8_string string,int base);
 
 
 KNO_EXPORT int kno_numcompare(lispval x,lispval y);

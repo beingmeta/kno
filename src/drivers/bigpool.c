@@ -2328,7 +2328,7 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
 /* Initializing the driver module */
 
 static struct KNO_POOL_HANDLER bigpool_handler={
-  "bigpool", 1, sizeof(struct KNO_BIGPOOL), 12,
+  "bigpool", 1, sizeof(struct KNO_BIGPOOL), 12, NULL,
   bigpool_close, /* close */
   bigpool_alloc, /* alloc */
   bigpool_fetch, /* fetch */
