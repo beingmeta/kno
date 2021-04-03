@@ -12,9 +12,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
 #include "kno/numbers.h"
-#include "kno/cprims.h"
 #include "eval_internals.h"
 
 #define REALP(x)							\

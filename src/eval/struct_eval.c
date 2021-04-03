@@ -20,7 +20,6 @@
 #include "kno/lisp.h"
 #include "kno/support.h"
 #include "kno/storage.h"
-#include "kno/eval.h"
 #include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"

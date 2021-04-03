@@ -3,6 +3,9 @@
 
 #include <libu8/u8printf.h>
 
+#include "kno/lisp.h"
+#include "kno/apply.h"
+
 KNO_EXPORT u8_condition kno_VoidArgument;
 
 #define KNO_ARGS_FAIL    0x01

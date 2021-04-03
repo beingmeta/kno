@@ -30,6 +30,9 @@
 KNO_EXPORT int kno_debug_stacks;
 #endif
 
+#include "kno/lisp.h"
+#include "kno/lexenv.h"
+
 /* Stack vectors (stackvecs) */
 
 typedef struct KNO_STACKVEC {

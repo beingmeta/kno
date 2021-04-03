@@ -80,6 +80,7 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
   u8_exception ex = u8_current_exception;
   u8_condition condition = (c) ? (c) : (ex) ? (ex->u8x_cond) :
     ((u8_condition)"Unknown (NULL) error");
+  kno_stack cur_stack = kno_stackptr;
   /* Don't grab contexts or backtraces for thread termination */
  initialized:
   if (c == kno_ThreadTerminated) {

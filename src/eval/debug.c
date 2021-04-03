@@ -33,6 +33,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8pathfns.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8stdio.h>
 
 #include <math.h>
 #include <pthread.h>
@@ -1483,6 +1484,248 @@ static lispval plus15(lispval arg1,lispval arg2,
     KNO_FIX2INT(arg13) + KNO_FIX2INT(arg14) + KNO_FIX2INT(arg15);
   return KNO_INT(sum);
 }
+
+/* C debugging functions */
+
+#if 0
+KNO_EXPORT struct KNO_STACK *knodbg_get_stack_frame(void *arg)
+{
+  struct KNO_STACK *curstack=kno_stackptr;
+  unsigned long long intval=KNO_LONGVAL( arg);
+  if (arg==NULL)
+    return curstack;
+  else if ((intval < 100000) && (curstack) &&
+           (intval <= (curstack->stack_depth))) {
+    struct KNO_STACK *scan=curstack;
+    while (scan) {
+      if ( scan->stack_depth == intval )
+        return scan;
+      else scan=scan->stack_caller;}
+    return NULL;}
+  else return (kno_stack)arg;
+}
+
+KNO_EXPORT void knodbg_show_env(FILE *out,kno_lexenv start,int limit)
+{
+  int depth = 0;
+  if (out==NULL) out=stderr;
+  kno_lexenv env=start;
+  if (limit<0)  {
+    lispval bindings = env->env_bindings;
+    lispval keys = kno_getkeys(bindings);
+    u8_byte buf[128];
+    KNO_DO_CHOICES(key,keys) {
+      if (KNO_SYMBOLP(key)) {
+        lispval val=kno_get(bindings,key,KNO_VOID);
+        u8_string vstring=u8_sprintf(buf,128,"%q",val);
+        fprintf(out,"  %s\t 0x%llx\t%s\n",
+		KNO_SYMBOL_NAME(key),(unsigned long long)val,
+		vstring);
+        kno_decref(val);}}
+    kno_decref(keys);}
+  else while ( (env) && (depth < limit) ) {
+      lispval bindings = env->env_bindings;
+      kno_lisp_type btype = KNO_TYPEOF(bindings);
+      lispval name = kno_get(bindings,KNOSYM_MODULEID,KNO_VOID);
+      if (KNO_VOIDP(name)) {
+        lispval keys = kno_getkeys(bindings);
+        u8_fprintf(out,"  env#%d %q\t\t\t(%s[%d]) %p/%p\n",
+                   depth,keys,kno_type_names[btype],KNO_CHOICE_SIZE(keys),
+		   bindings,env);
+        kno_decref(keys);}
+      else u8_fprintf(out,"  env#%d module %q\t\t%p\n",depth,name,env);
+      kno_decref(name);
+      env=env->env_parent;
+      depth++;}
+}
+
+KNO_EXPORT void knodbg_concise_stack_frame(FILE *out,struct KNO_STACK *stack)
+{
+  lispval op = stack->stack_op;
+  kno_stackvec refs = &(stack->stack_refs);
+  u8_string file = stack->stack_file;
+  if (out==NULL) out=stderr;
+  if ( (stack->stack_label) && (stack->stack_origin) &&
+       ( (stack->stack_origin) != (stack->stack_label) ) )
+    fprintf(out,"(%d) 0x%llx %s:%s%s%s%s %d/%d args, %d/%d%s refs",
+	    stack->stack_depth,KNO_LONGVAL(stack),
+	    stack->stack_origin,stack->stack_label,
+	    U8OPTSTR("(",file,")"),
+	    stack->stack_argc,stack->stack_width,
+	    refs->count,KNO_STACKVEC_LEN(refs),
+	    (KNO_STACKVEC_ONHEAP(refs)) ? ("(heap)") : (""));
+  else if ( (stack->stack_label) || (stack->stack_origin) )
+    fprintf(out,"(%d) 0x%llx %s%s%s%s %d/%d args, %d/%d%s refs",
+	    stack->stack_depth,KNO_LONGVAL(stack),
+	    ( (stack->stack_label) ?
+	      (stack->stack_label) :
+	      (stack->stack_origin) ),
+	    U8OPTSTR("(",file,")"),
+	    stack->stack_argc,stack->stack_width,
+	    refs->count,KNO_STACKVEC_LEN(refs),
+	    (KNO_STACKVEC_ONHEAP(refs)) ? ("(heap)") : (""));
+  else fprintf(out,"(%d) 0x%llx %s%s%s %d/%d args, %d/%d refs",
+	       stack->stack_depth,KNO_LONGVAL(stack),
+	       U8OPTSTR("(",file,")"),
+	       stack->stack_argc,stack->stack_width,
+	       refs->count,refs->len);
+  unsigned int bits = stack->stack_bits;
+  if (!(U8_BITP(bits,KNO_STACK_LIVE))) fputs(" dead",out);
+  if (U8_BITP(bits,KNO_STACK_TAIL_POS)) fputs(" tailpos",out);
+  if (U8_BITP(bits,KNO_STACK_TAIL_LOOP)) fputs(" loop",out);
+  if (U8_BITP(bits,KNO_STACK_LAMBDA_CALL)) fputs(" lambda",out);
+  if (U8_BITP(bits,KNO_STACK_VOID_VAL)) fputs(" void",out);
+  if (U8_BITP(bits,KNO_STACK_DECREF_ARGS)) fputs(" decref",out);
+  if (U8_BITP(bits,KNO_STACK_FREE_ARGVEC)) fputs(" freevec",out);
+  if ( (U8_BITP(bits,KNO_STACK_OWNS_ENV)) && (stack->eval_env) )
+    fputs(" env",out);
+  if (U8_BITP(bits,KNO_STACK_FREE_ENV)) fputs("/free",out);
+  if ( (U8_BITP(bits,KNO_STACK_OWNS_ENV)) && (stack->eval_env) ) {
+    kno_lexenv env = stack->eval_env;
+    lispval bindings = env->env_bindings;
+    if (KNO_SCHEMAPP(bindings)) {
+      struct KNO_SCHEMAP *map = (kno_schemap) bindings;
+      lispval *schema = map->table_schema;
+      int i = 0, n = map->schema_length;
+      if (n>0) fputs(" binds:",out);
+      while (i<n) {
+	lispval argname = schema[i];
+	if (i>0) fputc(',',out);
+	i++;
+	fputc(' ',out);
+	if (i == n) fputs("and ",out);
+	if (KNO_SYMBOLP(argname))
+	  fputs(KNO_SYMBOL_NAME(argname),out);
+	else fputs("+weird+",out);}
+      fputs("; ",out);}}
+  if (stack->stack_file) fprintf(out," %s;",stack->stack_file);
+  if (KNO_SYMBOLP(op))
+    fprintf(out," point=:%s",SYM_NAME(op));
+  else if ( (KNO_FUNCTIONP(op)) &&
+	    ((KNO_GETFUNCTION(op))->fcn_name) ) {
+    struct KNO_FUNCTION *fn=KNO_GETFUNCTION(op);
+    u8_string prefix = (KNO_CPRIMP(op)) ? ("c#") :
+      (KNO_LAMBDAP(op)) ? ("l#") : ("#");
+    fprintf(out," point=%s%s",prefix,fn->fcn_name);}
+  else if (TYPEP(op,kno_evalfn_type)) {
+    struct KNO_EVALFN *evalfn=(kno_evalfn)op;
+    fprintf(out," point=z#%s",evalfn->evalfn_name);}
+  else if (!(KNO_CONSP(op))) {
+    u8_byte buf[64];
+    fprintf(out," point=%s",u8_bprintf(buf,"%q",op));}
+  else fprintf(out," point=%s",kno_type_name(op));
+  fprintf(out,"\n");
+}
+
+KNO_EXPORT void knodbg_show_stack_frame(FILE *out,void *arg)
+{
+  struct KNO_STACK *stack=knodbg_get_stack_frame(arg);
+  if (out==NULL) out=stderr;
+  kno_lexenv env = NULL;
+  knodbg_concise_stack_frame(out,stack);
+  if (KNO_CONSP(stack->eval_source))
+    u8_fprintf(out,"\tsource: %Q\n",stack->eval_source);
+  if (KNO_APPLICABLEP(stack->stack_op)) {
+    u8_fprintf(out,"Applying %q to %d args",
+	       stack->stack_op,
+	       stack->stack_argc);
+    if (stack->stack_argc) {
+      u8_byte buf[200];
+      kno_argvec args = stack->stack_args;
+      int i=0, n = stack->stack_argc;
+      while (i<n) {
+	lispval arg = args[i];
+	u8_string line=u8_bprintf(buf,"#%d %p\t%q",i,arg,arg);
+	fputs(line,out); fputc('\n',out);
+	i++;}}}
+  else if (CONSP(stack->stack_op)) {
+    u8_fprintf(out,"Evaluating in %p %Q\n",stack->eval_env,stack->stack_op);}
+  if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {
+    if (stack->eval_env) {
+      env = stack->eval_env;
+      lispval bindings = env->env_bindings;
+      if (KNO_SCHEMAPP(bindings)) {
+	kno_schemap map = (kno_schemap)bindings;
+	lispval *schema = map->table_schema;
+	lispval *values = map->table_values;
+	int i = 0, n = map->schema_length;
+	while (i<n) {
+	  lispval key = schema[i];
+	  lispval val = values[i];
+	  u8_byte buf[256];
+	  fputs(u8_bprintf(buf,"  %q\t%p\t%q",key,val,val),out);
+	  fputc('\n',out);
+	  i++;}}}}
+  else NO_ELSE;
+}
+
+KNO_EXPORT lispval knodbg_get_stack_arg(void *arg,int n)
+{
+  struct KNO_STACK *stack=knodbg_get_stack_frame(arg);
+  if (STACK_ARGS(stack))
+    if ( (n>=0) && (n < (STACK_WIDTH(stack)) ) )
+      return STACK_ARGS(stack)[n];
+    else return KNO_NULL;
+  else return KNO_NULL;
+}
+
+KNO_EXPORT lispval knodbg_get_stack_var(void *arg,u8_string varname)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (KNO_STACK_LIVEP(stack)) {
+    if (stack->eval_env) {
+      lispval sym = kno_getsym(varname);
+      return kno_symeval(sym,stack->eval_env);}}
+  return KNO_NULL;
+}
+
+KNO_EXPORT lispval knodbg_find_stack_var(FILE *out,void *arg,u8_string varname)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (out==NULL) out=stderr;
+  lispval sym = kno_getsym(varname);
+  while ( (stack) && (KNO_STACK_LIVEP(stack)) ) {
+    if (stack->eval_env) {
+      lispval v = kno_symeval(sym,stack->eval_env);
+      if (!(KNO_VOIDP(v))) {
+	knodbg_concise_stack_frame(out,stack);
+	return v;}}
+    stack = stack->stack_caller;}
+  return KNO_NULL;
+}
+
+KNO_EXPORT void knodbg_show_stack(FILE *out,void *arg,int limit)
+{
+  int count=0;
+  if (out==NULL) out=stderr;
+  struct KNO_STACK *stack=knodbg_get_stack_frame(arg);
+  if (stack==NULL) {
+    fprintf(out,"!! No stack\n");
+    return;}
+  while (stack) {
+    knodbg_concise_stack_frame(out,stack);
+    count++;
+    stack=stack->stack_caller;
+    if ( (limit > 0) && (count >= limit) ) break;}
+}
+
+KNO_EXPORT void knodbg_show_stack_env(FILE *out,void *arg)
+{
+  struct KNO_STACK *stack=(kno_stack)knodbg_get_stack_frame(arg);
+  if (out==NULL) out=stderr;
+  if (stack==NULL) {
+    fprintf(out,"!! No stack frame\n");
+    return;}
+  else if (KNO_STACK_LIVEP(stack)) {
+    fprintf(out,"!! Dead stack frame\n");
+    return;}
+  else {
+    knodbg_concise_stack_frame(out,(kno_stack)stack);
+    if (stack->eval_env)
+      knodbg_show_env(out,stack->eval_env,-1);
+    else fprintf(out,"!! No env\n");}
+}
+#endif
 
 /* Initialization */
 

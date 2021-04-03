@@ -27,7 +27,6 @@
 #include "kno/lisp.h"
 #include "kno/support.h"
 #include "kno/storage.h"
-#include "kno/eval.h"
 #include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
@@ -35,7 +34,6 @@
 #include "kno/opcodes.h"
 #include "kno/dbprims.h"
 #include "kno/ffi.h"
-#include "kno/cprims.h"
 #include "kno/profiles.h"
 
 #include "../apply/apply_internals.h"
@@ -147,18 +145,9 @@ static int bound_in_envp(lispval symbol,kno_lexenv env)
 
 /* Opcodes */
 
-u8_string kno_opcode_names[0xF00]         ={NULL};
+u8_string kno_opcode_names[0xF00]         = {NULL};
 unsigned char kno_opcode_call_info[0xF00] = { 0 };
 const int kno_opcodes_length = 0xF00;
-
-u8_string opcode_name(lispval opcode)
-{
-  long opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
-  if ((opcode_offset<kno_opcodes_length) &&
-      (kno_opcode_names[opcode_offset]))
-    return kno_opcode_names[opcode_offset];
-  else return NULL;
-}
 
 KNO_EXPORT u8_string kno_opcode_name(lispval opcode)
 {
@@ -609,9 +598,12 @@ lispval call_evalfn(lispval evalop,lispval expr,kno_lexenv env,
   /* These are evalfns which do all the evaluating themselves */
   int notail = handler->evalfn_notail;
   lispval result = KNO_VOID;
+  u8_string old_label = stack->stack_label;
+  stack->stack_label = handler->evalfn_name;
   if (notail) {KNO_STACK_SET_TAIL(stack,0);}
   else {KNO_STACK_SET_TAIL(stack,tail);}
   result = handler->evalfn_handler(expr,env,stack);
+  stack->stack_label = old_label;
   return result;
 }
 
@@ -641,8 +633,10 @@ lispval lisp_eval(lispval head,lispval expr,
   if (KNO_OPCODEP(head))
     return vm_eval(head,expr,env,stack,tail);
   lispval result = KNO_VOID, source = expr, op = head;
+  u8_string use_label = (KNO_SYMBOLP(head)) ? (KNO_SYMBOL_NAME(head)) :
+    (U8S("eval"));
   KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
-  KNO_START_EVAL(_stack,"pusheval",expr,env,stack);
+  KNO_START_EVAL(_stack,use_label,expr,env,stack);
  entry:
   KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
   _stack->eval_source = source;
@@ -694,14 +688,16 @@ lispval eval_apply(lispval fn,lispval exprs,
   if ((f) && (check_fcn_arity(f,n_args)<0))
     return KNO_ERROR;
 
-  lispval result = KNO_VOID;
+  lispval result = KNO_VOID, old_op = stack->stack_op;
   kno_lisp_type fntype = KNO_TYPEOF(fn);
+  u8_string old_label = stack->stack_label;
 
   lispval argbuf[width];
   stack->stack_args = argbuf;
   stack->stack_width = width;
   stack->stack_argc = 0;
 
+  stack->stack_op=fn;
   stack->stack_origin = "eval_apply";
   stack->stack_label = (f) ? (f->fcn_name) :
     (fntype == kno_opcode_type) ? (opcode_name(fn)) :
@@ -715,10 +711,12 @@ lispval eval_apply(lispval fn,lispval exprs,
     (eval_args(n_args,argbuf,exprs,env,stack,prune)) :
     1;
 
-  if (arg_info<0) return KNO_ERROR;
-  else if (arg_info == 0) return KNO_EMPTY;
-  else if (arg_info == KNO_THROWN_ARG)
-    return KNO_THROW_VALUE;
+  if (arg_info<0) {
+    result=KNO_ERROR; goto cleanup;}
+  else if (arg_info == 0) {
+    result=KNO_EMPTY; goto cleanup;}
+  else if (arg_info == KNO_THROWN_ARG) {
+    result=KNO_THROW_VALUE; goto cleanup;}
   else NO_ELSE;
 
   int choice_args = (U8_BITP(arg_info,KNO_AMBIG_ARGS));
@@ -748,7 +746,9 @@ lispval eval_apply(lispval fn,lispval exprs,
 
   KNO_STACK_FREE_ARGS(stack);
 
- cleanup_args:
+ cleanup:
+  stack->stack_label=old_label;
+  stack->stack_op=old_op;
   if (KNO_PRECHOICEP(result))
     return kno_simplify_choice(result);
   else return result;

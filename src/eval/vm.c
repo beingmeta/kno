@@ -27,12 +27,9 @@
 #include "kno/lisp.h"
 #include "kno/support.h"
 #include "kno/storage.h"
-#include "kno/eval.h"
-#include "kno/dtproc.h"
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/ports.h"
-#include "kno/opcodes.h"
 #include "kno/dbprims.h"
 #include "kno/ffi.h"
 #include "kno/cprims.h"
@@ -40,6 +37,8 @@
 
 #include "../apply/apply_internals.h"
 #include "eval_internals.h"
+
+#include "kno/dtproc.h"
 
 #include <libu8/u8timefns.h>
 #include <libu8/u8filefns.h>
@@ -682,7 +681,7 @@ static lispval bindop(lispval op,
       kno_pop_stack(bind_stack);
       return val;}
     else if (KNO_BAD_ARGP(val)) {
-      lispval err = kno_bad_arg(val,"letrec_evalfn",val_expr);
+      lispval err = kno_bad_arg(val,"#BINDOP",val_expr);
       kno_pop_stack(bind_stack);
       return err;}
     else if ( (env_copy == NULL) && (bound->env_copy) ) {
@@ -713,14 +712,14 @@ static lispval vector_bindop(lispval op,
       kno_pop_stack(bind_stack);
       return val;}
     else if (KNO_BAD_ARGP(val)) {
-      lispval err = kno_bad_arg(val,"letrec_evalfn",val_expr);
+      lispval err = kno_bad_arg(val,"#VECTOR_BINDOP",val_expr);
       kno_pop_stack(bind_stack);
       return err;}
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
     values[i++]=val;}
-  lispval result = eval_body(body,bound,bind_stack,"#VECTORBIND",NULL,tail);
+  lispval result = eval_body(body,bound,bind_stack,"#VECTOR_BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);
   return result;
 }
@@ -847,6 +846,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
 		       kno_lexenv env,kno_stack stack,int tail)
 {
   lispval fn;
+  u8_string old_label=stack->stack_label;
   if (KNO_LEXREFP(fn_arg)) {
     fn = eval_lexref(fn_arg,env);
     if (KNO_CONSP(fn))
@@ -862,39 +862,44 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
     if (f->fcn_call & KNO_CALL_NDCALL) nd_call = 1;
     if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 0;
     if (f->fcn_profile) profiled=1;
-    if (f->fcn_trace) traced=1;}
+    if (f->fcn_trace) traced=1;
+    stack->stack_label=(f->fcn_name) ? (f->fcn_name) : (U8S("#OP_CALL"));}
   else if (KNO_APPLICABLEP(fn)) {
-    prune_call = 1; nd_call = 0;}
+    prune_call = 1; nd_call = 0;
+    stack->stack_label="#OP_CALL";}
   else if (KNO_CHOICEP(fn)) {
     prune_call = 0; nd_call = 0; ambig_fn = 1;
     KNO_ITER_CHOICES(scan,limit,fn);
     while (scan<limit) {
       lispval each = *scan++;
       if (!(KNO_APPLICABLEP(each))) {
-	return kno_err(kno_NotAFunction,"call_op",NULL,each);}}}
+	return kno_err(kno_NotAFunction,"call_op",NULL,each);}}
+    stack->stack_label="#OP_NDCALL";}
   else if (KNO_ABORTED(fn)) return fn;
   else return kno_err(kno_NotAFunction,"call_op",NULL,fn);
-  lispval args[n];
+    
+  lispval args[n], old_op = stack->stack_op, result = KNO_VOID;
+  stack->stack_op = fn;
   int rv = eval_args(n,args,exprs,env,stack,prune_call);
+  int free_args = (rv&KNO_CONSED_ARGS);
   if (RARELY(rv<0)) {
-    if (rv == -2) return kno_err(kno_TooManyArgs,"call_op",NULL,fn);
-    return KNO_ERROR;}
-  else if (rv == 0) return KNO_EMPTY;
+    if (rv == -2) result=kno_err(kno_TooManyArgs,"call_op",NULL,fn);
+    goto just_exit;}
+  else if (rv == 0) {result=KNO_EMPTY; goto just_exit;}
   else if ( (ambig_fn) || ( (rv&KNO_AMBIG_ARGS) && (!(nd_call)) ) ) {
-    lispval result = kno_call(stack,fn,n,args);
-    kno_decref_vec(args,n);
-    return result;}
+    result = kno_call(stack,fn,n,args);
+    goto just_exit;}
   else NO_ELSE;
   if (rv&KNO_QCHOICE_ARGS) unwrap_qchoices(n,args);
   KNO_STACK_SET_TAIL(stack,tail);
-  int free_args = (rv&KNO_CONSED_ARGS);
-  if ( (f == NULL) || (traced) || (profiled) ) {
-    if (free_args) {
-      lispval result = kno_dcall(stack,fn,n,args);
-      kno_decref_vec((lispval *)args,n);
-      return result;}
-    else return kno_dcall(stack,fn,n,args);}
-  else return docall(fn,n,args,stack,tail,free_args);
+  if ( (f == NULL) || (traced) || (profiled) )
+    result = kno_dcall(stack,fn,n,args);
+  else result = docall(fn,n,args,stack,tail,free_args);
+ just_exit:
+  if (free_args) kno_decref_vec(args,n);
+  stack->stack_label=old_label;
+  stack->stack_op=old_op;
+  return result;
 }
 
 /* Sequence opcodes */
@@ -1783,10 +1788,12 @@ lispval vm_eval(lispval op,lispval expr,
   KNO_STACK_SET_TAIL(stack,tail);
   if (USUALLY(KNO_OPCODEP(op))) {
     int opcode_class = KNO_OPCODE_CLASS(op);
+    u8_string old_label = stack->stack_label;
     lispval old_source = stack->eval_source;
     lispval result = KNO_VOID;
     lispval arg1 = VOID, arg2 = VOID, arg3 = VOID;
     stack->eval_source = source;
+    stack->stack_label = opcode_name(op);
     switch (opcode_class) {
     case KNO_SPECIAL_OPCODE_CLASS: {
       result = handle_special_opcode(op,payload,expr,env,stack,tail);
@@ -1890,6 +1897,7 @@ lispval vm_eval(lispval op,lispval expr,
     kno_decref(arg2);
     kno_decref(arg3);
     stack->eval_source=old_source;
+    stack->stack_label=old_label;
     return result;}
   else return lisp_eval(op,expr,env,stack,tail);
 }

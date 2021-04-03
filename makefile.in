@@ -349,7 +349,7 @@ KNO_SOURCES=									\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
 	src/apply/ffi.c src/apply/exec.c src/apply/dispatch.c 			\
-	src/apply/apply_internals.h						\
+	src/apply/apply_internals.h			  			\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \

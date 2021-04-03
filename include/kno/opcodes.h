@@ -11,6 +11,7 @@
 #endif
 
 #include "ptr.h"
+#include "apply.h"
 
 KNO_EXPORT lispval kno_opcode_dispatch
 (lispval opcode,lispval expr,kno_lexenv env,

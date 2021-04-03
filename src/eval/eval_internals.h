@@ -1,5 +1,9 @@
 #define INLINE_DEF static U8_MAYBE_UNUSED
 
+#include "kno/eval.h"
+#include "kno/opcodes.h"
+#include "kno/cprims.h"
+
 extern u8_condition BadExpressionHead;
 
 #define MU U8_MAYBE_UNUSED
@@ -7,9 +11,18 @@ extern u8_condition BadExpressionHead;
 #define BAD_ARGP(v) \
   (RARELY ( (KNO_IMMEDIATEP(v)) && ( (KNO_VOIDP(v)) || (KNO_ABORTP(v)) ) ) )
 
+static u8_string opcode_name(lispval opcode)
+{
+  long opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
+  if ((opcode_offset<kno_opcodes_length) &&
+      (kno_opcode_names[opcode_offset]))
+    return kno_opcode_names[opcode_offset];
+  else return NULL;
+}
+
 #define VEC_LENGTH KNO_VECTOR_LENGTH
 #define VEC_ELTS   KNO_VECTOR_ELTS
-#define opname     kno_opcode_name
+#define opname     opcode_name
 
 lispval eval_schemap(lispval expr,kno_lexenv env,kno_stack stack);
 lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);

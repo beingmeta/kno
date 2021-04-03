@@ -12,10 +12,8 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
-#include "eval_internals.h"
 #include "kno/storage.h"
-#include "kno/cprims.h"
+#include "eval_internals.h"
 
 #include <libu8/u8printf.h>
 

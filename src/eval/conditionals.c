@@ -12,10 +12,7 @@
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
-#include "kno/eval.h"
 #include "eval_internals.h"
-#include "kno/cprims.h"
-
 
 static lispval else_symbol;
 
