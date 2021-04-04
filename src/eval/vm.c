@@ -846,7 +846,6 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
 		       kno_lexenv env,kno_stack stack,int tail)
 {
   lispval fn;
-  u8_string old_label=stack->stack_label;
   if (KNO_LEXREFP(fn_arg)) {
     fn = eval_lexref(fn_arg,env);
     if (KNO_CONSP(fn))
@@ -878,27 +877,27 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
   else if (KNO_ABORTED(fn)) return fn;
   else return kno_err(kno_NotAFunction,"call_op",NULL,fn);
     
-  lispval args[n], old_op = stack->stack_op, result = KNO_VOID;
+  lispval args[n], result = KNO_VOID;
   stack->stack_op = fn;
   int rv = eval_args(n,args,exprs,env,stack,prune_call);
   int free_args = (rv&KNO_CONSED_ARGS);
   if (RARELY(rv<0)) {
-    if (rv == -2) result=kno_err(kno_TooManyArgs,"call_op",NULL,fn);
-    goto just_exit;}
-  else if (rv == 0) {result=KNO_EMPTY; goto just_exit;}
-  else if ( (ambig_fn) || ( (rv&KNO_AMBIG_ARGS) && (!(nd_call)) ) ) {
+    if (rv == -2)
+      result = kno_err(kno_TooManyArgs,"call_op",NULL,fn);
+    else result = KNO_ERROR;}
+  else if (rv == 0)
+    result=KNO_EMPTY;
+  else if ( (ambig_fn) || ( (rv&KNO_AMBIG_ARGS) && (!(nd_call)) ) )
     result = kno_call(stack,fn,n,args);
-    goto just_exit;}
-  else NO_ELSE;
-  if (rv&KNO_QCHOICE_ARGS) unwrap_qchoices(n,args);
-  KNO_STACK_SET_TAIL(stack,tail);
-  if ( (f == NULL) || (traced) || (profiled) )
-    result = kno_dcall(stack,fn,n,args);
-  else result = docall(fn,n,args,stack,tail,free_args);
- just_exit:
+  else {
+    if (rv&KNO_QCHOICE_ARGS) unwrap_qchoices(n,args);
+    KNO_STACK_SET_TAIL(stack,tail);
+    if ( (f == NULL) || (traced) || (profiled) )
+      result = kno_dcall(stack,fn,n,args);
+    else {
+      result = docall(fn,n,args,stack,tail,free_args);
+      free_args=0;}}
   if (free_args) kno_decref_vec(args,n);
-  stack->stack_label=old_label;
-  stack->stack_op=old_op;
   return result;
 }
 

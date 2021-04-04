@@ -688,9 +688,8 @@ lispval eval_apply(lispval fn,lispval exprs,
   if ((f) && (check_fcn_arity(f,n_args)<0))
     return KNO_ERROR;
 
-  lispval result = KNO_VOID, old_op = stack->stack_op;
+  lispval result = KNO_VOID;
   kno_lisp_type fntype = KNO_TYPEOF(fn);
-  u8_string old_label = stack->stack_label;
 
   lispval argbuf[width];
   stack->stack_args = argbuf;
@@ -747,8 +746,6 @@ lispval eval_apply(lispval fn,lispval exprs,
   KNO_STACK_FREE_ARGS(stack);
 
  cleanup:
-  stack->stack_label=old_label;
-  stack->stack_op=old_op;
   if (KNO_PRECHOICEP(result))
     return kno_simplify_choice(result);
   else return result;
