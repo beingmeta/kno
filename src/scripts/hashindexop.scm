@@ -178,7 +178,7 @@
 	(set+! batch (cons (qc batch) batches)))
       (set! batches (->vector batches)))
 
-    (let ((fifo (fifo/make batches `#[fillfn ,fifo/exhausted!]))
+    (let ((fifo (fifo/make batches))
 	  (n-threads (mt/threadcount (getopt opts 'nthreads default-nthreads)))
 	  (modfn (getopt opts 'modfn #f))
 	  (changed 0)
