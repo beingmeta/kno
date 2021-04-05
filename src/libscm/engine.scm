@@ -226,6 +226,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			 monitors
 			 stopfn)
   "This is then loop function for each engine thread."
+  (logdebug |EngineThreadfn| iterfn fifo "\n" loop-state batchsize)
   (let* ((batch (if fillfn
 		    (get-batch fifo batchsize loop-state fillfn)
 		    (fifo/pop fifo batchsize)))
@@ -313,9 +314,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			      (test loop-state 'items)
 			      (>= (get loop-state 'items) (get loop-state 'maxitems))
 			      (cons 'maxitems (get loop-state 'maxitems)))
-			 (if (and (exists? stopfn) stopfn)
-			     (exists stopfn loop-state)
-			     (and (zero? (fifo/load fifo)) 'fifo-empty))))
+			 (and (fifo-readonly? fifo) (zero? (fifo/load fifo)) 'fifo-empty)
+			 (and (exists? stopfn) stopfn
+			      (exists stopfn loop-state))))
 	    (load (fifo/load fifo)))
 	(when stopval
 	  (if (zero? load)
@@ -370,8 +371,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 (defambda (get-items-vec items opts (max))
   (set! max (getopt opts 'maxitems (config 'maxitems)))
-  (if (applicable? items)
-      items
+  (if (applicable? items) #()
       (let ((vec (if (and (singleton? items) (vector? items)) 
 		     items
 		     (choice->vector items))))
@@ -379,25 +379,30 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    vec
 	    (slice vec 0 max)))))
 
+(define (get-engine-threadcount opts n-items fill)
+  (let* ((spec (or (getopt opts 'nthreads)
+		   (config 'engine:threads (config 'nthreads #t))))
+	 (nthreads (threadcount spec)))
+    (if fill nthreads
+	(if (and nthreads n-items)
+	    (min nthreads n-items)
+	    nthreads))))
+
 (defambda (engine/run fcn items-arg (opts #f))
   (let* ((loop-inits (getopt opts 'loop))
 	 (items (get-items-vec items-arg opts))
-	 (fill (if (applicable? items-arg)
-		   items-arg
-		   (getopt opts 'fill #f)))
+	 (fill (if (applicable? items-arg) items-arg (getopt opts 'fill #f)))
 	 (n-items (if (fail? items) 0
 		      (if (vector? items) (length items) (|| items))))
-	 (batchsize (getopt opts 'batchsize 1))
+	 (batchsize (getopt opts 'batchsize))
 	 ;; How many threads to actually create
-	 (nthreads
-	  (threadcount (getopt opts 'nthreads
-			       (config 'engine:threads (config 'nthreads #t)))))
+	 (nthreads (get-engine-threadcount opts n-items fill))
 	 ;; how much to space the launching of threads to reduce racetrack problems
 	 (spacing (pick-spacing opts nthreads))
 	 ;; How long to make the queue
 	 (queuelen (getopt opts 'queuesize
 			   (getopt opts 'size
-				   (cond ((and nthreads batchsize)(* nthreads batchsize))
+				   (cond ((and nthreads batchsize) (* nthreads batchsize))
 					 (nthreads (* nthreads 16))
 					 (batchsize (* 2 batchsize))
 					 (else 64))))))
@@ -406,7 +411,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      'name (getopt opts 'name (or (procedure-name fcn) {}))
 	      'size queuelen
 	      'maxlen (getopt opts 'maxlen queuelen)
-	      'async (tryif fill #t)))
+	      'readonly (tryif fill #f)))
 	   (fifo (->fifo items fifo-opts))
 	   (name (getopt opts 'name
 			 (getopt loop-inits 'name
@@ -510,7 +515,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		       (overlaps? (procedure-arity logfn) {1 3 6}))
 	    (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
-      (cond ((<= n-items 0))
+      (cond ((and (<= n-items 0) (not fill)))
 	    ((and nthreads (> nthreads 1))
 	     (let ((threads {}))
 	       (dotimes (i nthreads)
@@ -639,8 +644,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	  (printout "(" (show% (fifo/load fifo) (fifo-size fifo) 2)") "))
 	"Processed " ($num (choice-size batch)) " " count-term " in " 
 	(secs->string (elapsed-time (get batch-state 'started)) 1) " or ~"
-	($showrate (/~ (choice-size batch)
-		       (elapsed-time (get batch-state 'started))))
+	($showrate (/~ (choice-size batch) (elapsed-time (get batch-state 'started))))
 	" " count-term "/second for this batch and thread."))
     (debug%watch "ENGINE/LOG" loop-state)
     (lognotice |Engine/Progress|
@@ -649,7 +653,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(printout " (" (show% (getopt loop-state 'items 0) loopmax) " of "
 	  ($num loopmax) " " count-term ")"))
       " in " (secs->string (elapsed-time (get loop-state 'started)) 1) 
-      ", " ($showrate rate) " " count-term " per second."
+      " or ~" ($showrate rate) " " count-term " per second"
       (if (testopt loop-state 'logcounters)
 	  (doseq (counter (getopt loop-state 'logcounters) i)
 	    (let ((slotid (if (symbol? counter) counter
@@ -746,7 +750,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (unless (or (test loop-state '{stopped stopping}) (> (fifo/load fifo) fillthresh))
     (let ((need (- (fifo-size fifo) (fifo/load fifo))))
       (while (and (> need 0) (not (test loop-state '{stopped stopping})))
-	(let ((items (fillfn need)))
+	(let ((items (if (= (procedure-arity fillfn) 2)
+			 (fillfn need loop-state)
+			 (fillfn need))))
 	  (debug%watch "engine/fill!" fifo need "got" (|| items))
 	  (when (and (exists? items) items)
 	    (cond ((ambiguous? items)
