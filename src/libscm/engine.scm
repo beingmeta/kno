@@ -315,17 +315,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			      (cons 'maxitems (get loop-state 'maxitems)))
 			 (if (and (exists? stopfn) stopfn)
 			     (exists stopfn loop-state)
-			     (and (zero? (fifo/load (get loop-state 'fifo)))
-				  'fifo-empty)))))
-	(cond ((and stopval (zero? (fifo/load fifo)))
-	       (store! loop-state 'stopped (timestamp)))
-	      (stopval (store! loop-state 'stopping (timestamp))
-		       (fifo/set-fillfn! (get loop-state 'fifo) fifo/nofill)))
+			     (and (zero? (fifo/load fifo)) 'fifo-empty))))
+	    (load (fifo/load fifo)))
 	(when stopval
-	  (if (zero? (fifo/load fifo))
+	  (if (zero? load)
 	      (store! loop-state 'stopped (timestamp))
-	      (begin  (store! loop-state 'stopping (timestamp))
-		(fifo/set-fillfn! (get loop-state 'fifo) fifo/nofill)))
+	      (store! loop-state 'stopping (timestamp)))
 	  (unless (test loop-state 'stopval)
 	    (logwarn |EngineStopping| "Due to circumstance: " stopval)
 	    (store! loop-state 'stopval stopval)))
@@ -342,12 +337,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			     (action testval loop-state)
 			     (logwarn |BadMonitorAction| action))))))
 		  (else (logwarn |BadMonitor| monitor)))))
-	(unless (or (getopt loop-state 'stopped) (zero? (fifo/load fifo)))
-	  (unless (test loop-state 'stopping)
-	    (when (checkpointing? loop-state)
-	      (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
-		(when (or (test loop-state 'checknow) (check/save? loop-state))
-		  (thread/wait! (thread/call engine/checkpoint loop-state fifo))))))
+	(unless (test loop-state '{stopped stopping})
+	  (when (checkpointing? loop-state)
+	    (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
+	      (when (or (test loop-state 'checknow) (check/save? loop-state))
+		(thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
 	  (set! batch (get-batch fifo batchsize loop-state fillfn))
 	  (set! batchno (1+ batchno))
 	  (set! start (elapsed-time))
@@ -412,7 +406,6 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      'name (getopt opts 'name (or (procedure-name fcn) {}))
 	      'size queuelen
 	      'maxlen (getopt opts 'maxlen queuelen)
-	      'fillfn (getopt opts 'fifo-fillfn {})
 	      'async (tryif fill #t)))
 	   (fifo (->fifo items fifo-opts))
 	   (name (getopt opts 'name
@@ -522,7 +515,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	     (let ((threads {}))
 	       (dotimes (i nthreads)
 		 (set+! threads 
-		   (thread/call engine-threadfn 
+		   (thread/call engine-threadfn
 		       fcn fifo opts 
 		       loop-state state (or batchsize 1)
 		       (qc before) (qc after) (qc fill)
@@ -639,7 +632,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (elapsed (elapsed-time (get loop-state 'started)))
 	 (rate (/~ items elapsed))
 	 (%loglevel (getopt loop-state '%loglevel %loglevel))
-	 (fifo (getopt loop-state 'fifo)))
+	 (fifo (get loop-state 'fifo)))
     (when (exists? batch)
       (loginfo |Batch/Progress| 
 	(when (testopt (fifo-opts fifo) 'static)
@@ -759,7 +752,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    (cond ((ambiguous? items)
 		   (loginfo |EngineFill|
 		     "Adding " ($count (|| items) "item") " to queue " fifo " using " fillfn)
-		   (fifo/push/n! fifo (choice->vector items)))
+		   (fifo/push/all! fifo (choice->vector items)))
 		  ((vector? items)
 		   (loginfo |EngineFill|
 		     "Adding " ($count (length items) "item") " to queue " fifo " using " fillfn)
@@ -914,11 +907,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (default! opts (getopt loop-state 'opts))
   (let ((modified (knodb/get-modified dbs))
 	(%loglevel (getopt loop-state 'loglevel %loglevel))
-	(started (elapsed-time)))
+	(started (elapsed-time))
+	(fifo (get loop-state 'fifo)))
     (when (or (test loop-state 'stopped) (exists? modified))
       (lognotice |Checkpoint/Start|
 	(if (test loop-state 'stopped) "Final " "Incremental ")
-	"checkpoint for " (try (get loop-state 'name) (get loop-state 'fifo))
+	"checkpoint for " (try (get loop-state 'name) fifo)
 	" after " (secs->string (difftime (get loop-state 'started)))
 	" and " ($count (- (get loop-state 'items)
 			   (try (get (get loop-state 'lastcheck) 'items) 0)))
@@ -941,30 +935,30 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      (else (postcheck loop-state (qc dbs))))))
     (lognotice |Engine/Checkpoint|
       "Committed " (choice-size modified) " dbs "
-      (if (fifo-name (get loop-state 'fifo))
-	  (printout "for " (fifo-name (get loop-state 'fifo))))
+      (if (fifo-name fifo)
+	  (printout "for " (fifo-name fifo)))
       " in " (secs->string (elapsed-time started)))))
 
 (defambda (engine-swapout loop-state)
   (let ((started (elapsed-time))
 	(dbs (getopt loop-state 'caches
-		     (getopt (get loop-state 'opts) 'caches))))
+		     (getopt (get loop-state 'opts) 'caches)))
+	(fifo (get loop-state 'fifo)))
     (cond ((not dbs)
 	   (loginfo |EngineSwapout| 
-	     "Clearing cached data for " (get loop-state 'fifo))
+	     "Clearing cached data for " fifo)
 	   (swapout)
 	   (lognotice |Engine/Swapout| 
-	     "Cleared cached data in " (secs->string (elapsed-time started)) " "
-	     "for " (get loop-state 'fifo)))
+	     "Cleared cached data in " (secs->string (elapsed-time started)) "for " fifo))
 	  (else (loginfo |Engine/Swapout| 
 		  "Clearing cached data from "
 		  ($count (choice-size dbs) " databases ")
-		  "for " (get loop-state 'fifo))
+		  "for " fifo)
 		(do-choices (db dbs) (swapout db))
 		(lognotice |Engine/Swapout| 
 		  "Cleared cached data in " (secs->string (elapsed-time started))  " "
 		  "from " ($count (choice-size dbs) " databases ")
-		  "for " (get loop-state 'fifo))))))
+		  "for " fifo)))))
 
 (define (inner-commit arg timings start (work #f))
   (cond ((registry? arg) (registry/save! arg))

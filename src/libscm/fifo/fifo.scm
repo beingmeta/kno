@@ -1,4 +1,4 @@
-;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
+;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc.  All rights reserved.
 ;;; Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 
@@ -12,8 +12,9 @@
 (module-export!
  '{->fifo fifo/make fifo/close! fifo?
    fifo/pop fifo/popvec fifo/remove!
-   fifo/push!
    fifo/push/n!
+   fifo/push!
+   fifo/push/all!
    fifo/release!
    fifo/finished!
    fifo/jump! 
@@ -40,7 +41,7 @@
    fifo-queued
    close-fifo
    fifo-pause
-   fifo-fillfn
+   fifo-readonly
    fifo-opts
    fifo-live?
    fifo-size
@@ -48,8 +49,7 @@
    fifo-running
    fifo/waiting
    fifo/idle?
-   fifo/set-debug!
-   fifo/set-fillfn!})
+   fifo/set-debug!})
 
 (define-init %loglevel %warn%)
 
@@ -88,22 +88,22 @@
 	">")))
 
 (defrecord (fifo MUTABLE OPAQUE `(stringfn . fifo->string))
-  name    ;; a string
-  condvar ;; a condvar
-  queue   ;; a vector
-  start   ;; the vector index for the next item
-  end     ;; the vector index for the last item
-  opts    ;; options
-  fillfn  ;; a function or (function . more-args) to call when the queue is empty
-  (items #f)   ;; a hashset of items waiting in the queue, if nodups is set
-  (maxlen #f)  ;; The max length to which the fifo will grow
-  (live? #t)  ;; Whether the FIFO is active (callers should wait)
-  (pause #f)  ;; Whether the FIFO is paused (value is #f, READ, WRITE, READWRITE, or CLOSING)
-  (waiting {}) ;; The threads waiting on the FIFO.
-  (running {}) ;; The threads currently processing results from the FIFO.
-  (filling #f) ;; The thread currently filling the FIFO
-  (state #[])
-  (debug #f)  ;; Whether we're debugging the FIFO
+  name           ;; a string
+  condvar        ;; a condvar
+  queue          ;; a vector
+  start          ;; the vector index for the next item
+  end            ;; the vector index for the last item
+  opts           ;; options
+  (items #f)     ;; a hashset of items waiting in the queue, if nodups is set
+  (maxlen #f)    ;; The max length to which the fifo will grow
+  (readonly #f)  ;; a function or (function . more-args) to call when the queue is empty
+  (live? #t)     ;; Whether the FIFO is active (callers should wait)
+  (pause #f)     ;; Whether the FIFO is paused (value is #f, READ, WRITE, READWRITE, or CLOSING)
+  (waiting {})   ;; The threads waiting on the FIFO.
+  (running {})   ;; The threads currently processing results from the FIFO.
+  (filling #f)   ;; The thread currently filling the FIFO
+  (notes #[])    ;; Slotmap for generic notes
+  (debug #f)     ;; Whether we're debugging the FIFO
   )
 
 (define (fifo-debug? fifo) (or default-debug (fifo-debug fifo)))
@@ -114,7 +114,7 @@
   "vectors (for data), or tables (for options). Options provide defaults "
   "for these other attributes."
   (let ((size #f) (name #f) (data #f) (opts #f) (queue #f) 
-	(items #f) (debug #f) (fillfn #f) (live? #t) (init-items 0)
+	(items #f) (debug #f) (live? #t) (init-items 0)
 	(maxlen #f))
     (doseq (arg args)
       (cond ((string? arg)
@@ -164,15 +164,8 @@
 	   (set! init-items (compact-queue data queue))))
     (when (and maxlen (not (fixnum? maxlen)) (> maxlen 0))
       (set! maxlen size))
-    (set! fillfn
-      (cond ((testopt opts 'fillin #f) fifo/nofill)
-	    ((testopt opts 'fillin) (getopt opts 'fillfn #f))
-	    ((getopt opts 'filled #f) fifo/nofill)
-	    ((getopt opts 'async #f) #f)
-	    ((and init-items (> init-items 0)) fifo/nofill)
-	    (else #f)))
-    (cons-fifo name (make-condvar) queue 0 init-items opts
-	       fillfn items maxlen
+    (cons-fifo name (make-condvar) queue 0 init-items opts items
+	       maxlen (getopt opts 'readonly (> init-items 0))
 	       live? #f {} {} #f #[] debug)))
 (define (make-fifo (size 64)) (fifo/make size))
 
@@ -198,94 +191,85 @@
       (vector-set! into (+ write i) #f))
     write))
 
-(defambda (wait-paused fifo flags)
-  "Checks whether a FIFO is paused for any of FLAGS "
-  "and blocks until it is un-paused."
-  (while (and (fifo-live? fifo) (overlaps? (fifo-pause fifo) flags))
-    (condvar/wait (fifo-condvar fifo))))
+;;; Wrappers for fifo/push/n!
 
-(define (fifo/push/n! fifo items (opts #f) 
-		      (broadcast) (uselock)
-		      (block) (grow))
-  "Pushes multiple items into the FIFO. If *broadcast* is true, "
-  "a broadcast signal is sent to all waiting threads, rather than "
-  "just one."
-  (locals result #f len (length items))
-  (when (eq? opts #t)
-    (set! broadcast #t)
-    (set! opts #f))
-  (default! broadcast (getopt opts 'broadcast #t))
-  (default! uselock (getopt opts 'uselock #t))
-  (default! block (getopt opts 'block #t))
-  (default! grow (getopt opts 'grow #t))
+(define (fifo/push/all! fifo items (opts #f))
+  "Pushes all of *items* into the FIFO *fifo*. "
+  "See fifo/push/n! for information on *opts*."
+  (set! opts (opt+ 'noblock #f opts (fifo-opts opts)))
+  (while (and items (> (length items) 0))
+    (set! items (fifo/push/n! fifo items opts))))
+
+(define (fifo/push! fifo item (opts #f))
+  "Pushes *item* into the FIFO *fifo*. "
+  "See fifo/push/n! for information on *opts*."
+  (fifo/push/n! fifo (vector item) opts))
+
+(define (fifo-push fifo item (opts #f))
+  "Pushes *item* into the FIFO *fifo*. "
+  "See fifo/push/n! for information on *opts*."
+  (fifo/push/n! fifo (vector item) opts))
+
+;;; The core procedure
+
+(define (fifo/push/n! fifo items (opts #f))
+  "Pushes multiple items into the FIFO and returns any "
+  "unpushed items as a vector. Options include: "
+  "* GROW (grows the FIFO if needed) and "
+  "* NOBLOCK (don't wait for available space). "
+  "If #f is returned, all the items were pushed."
+  (set! opts (opt+ opts (fifo-opts fifo)))
+  (locals len (length items)
+	  condvar (fifo-condvar fifo)
+	  noblock (getopt opts 'noblock #f)
+	  grow (getopt opts 'grow #t)
+	  result #f)
   (unwind-protect
       (begin (if (fifo-debug? fifo)
-		 (always%watch "FIFO/PUSH/N!" "N" len broadcast fifo)
-		 (debug%watch "FIFO/PUSH/N!" "N" len broadcast fifo))
-	(when uselock (condvar/lock! (fifo-condvar fifo)))
-	(when (and (overlaps? (fifo-pause fifo) '{write readwrite}) block)
-	  (fifo/waiting! fifo)
-	  (wait-paused fifo '{write readwrite})
-	  (fifo/release! fifo))
-	(set! result (fifo-pusher fifo items grow block))
-	(condvar/signal (fifo-condvar fifo) broadcast))
-    (when uselock (condvar/unlock! (fifo-condvar fifo))))
-  (if (and (vector? result) block)
-      (fifo/push/n! fifo result broadcast uselock)
-      result))
+		 (always%watch "FIFO/PUSH/N!" "N" len fifo "\n" opts)
+		 (debug%watch "FIFO/PUSH/N!" "N" len fifo "\n" opts))
+	(condvar/lock! (fifo-condvar fifo))
+	(unless noblock
+	  (while (and (fifo-live? fifo)
+		      (or (overlaps? (fifo-pause fifo) '{write readwrite})
+			  (and (not grow)
+			       (= (fifo-size fifo) (fifo-load fifo)))))
+	    (condvar/wait condvar)))
+	(cond ((not (fifo-live? fifo)) (cons 'dead items))
+	      ((overlaps? (fifo-pause fifo) '{write readwrite})
+	       (cons 'paused items))
+	      ((= (fifo-size fifo) (- (fifo-end fifo) (fifo-start fifo))) #f)
+	      (else (fifo-push-unlocked fifo items grow)
+		    (condvar/signal condvar #t))))
+    (condvar/unlock! (fifo-condvar fifo))))
   
-(define (fifo-pusher fifo items grow block)
-  (cond ((not (fifo-live? fifo)) (cons 'dead items))
-	((overlaps? (fifo-pause fifo) '{write readwrite}) (cons 'paused items))
-	(else (fifo-push-unlocked fifo items grow block))))
+(define (fifo-push-unlocked fifo items (grow #f))
+  (locals addn (length items))
+  (if (and (> addn (fifo-load fifo)) grow)
+      (grow-fifo/unlocked fifo addn)
+      (if (> addn (fifo-tail fifo)) (compress-fifo/unlocked fifo)))
+  (let ((pushn (min (length items) (fifo-tail fifo)))
+	(queue (fifo-queue fifo))
+	(end (fifo-end fifo)))
+    (dotimes (i pushn)
+      (vector-set! queue (+ end i) (elt items i)))
+    (set-fifo-end! fifo (+ (fifo-end fifo) pushn))
+    (and (> (length items) pushn)
+	 (slice items pushn))))
 
-(define (fifo-push-unlocked fifo items grow block)
-  (let* ((vec (fifo-queue fifo))
-	 (start (fifo-start fifo))
-	 (end (fifo-end fifo))
-	 (add (length items))
-	 (len (length vec))
-	 (atend (- len end))
-	 (point #f))
-    (when (> add atend)
-      (set! end (compress-fifo/unlocked fifo vec start end))
-      (set! start 0))
-    (when (and (> add atend) grow
-	       (or (not (fifo-maxlen fifo))
-		   (< (length vec) (fifo-maxlen fifo)))
-	       (grow-fifo/unlocked fifo))
-      (set! vec (fifo-queue fifo))
-      (set! start (fifo-start fifo))
-      (set! end (fifo-end fifo))
-      (set! len (length vec)))
-    (cond ((<= add (- len end))
-	   (doseq (item items i)
-	     (vector-set! vec (+ end i) item))
-	   (set-fifo-end! fifo (+ end add))
-	   #f)
-	  (else
-	   (let ((space (- len end))
-		 (undone #f))
-	     (dotimes (i space)
-	       (vector-set! vec (+ end i) (elt items i)))
-	     (set-fifo-end! fifo (+ end space))
-	     (set! undone (slice items space))
-	     (cond ((not block) undone)
-		   (else (while (and (= (fifo-space fifo) 0)
-				     (not (overlaps? (fifo-pause fifo) '{write readwrite}))
-				     (fifo-live? fifo))
-			   (condvar/wait fifo))
-			 (fifo-pusher fifo undone grow block))))))))
-
-(define (compress-fifo/unlocked fifo vec start end)
-  (local point (- end start))
-  (dotimes (i point)
+(define (compress-fifo/unlocked fifo (vec) (start) (end))
+  (default! vec (fifo-queue fifo))
+  (default! start (fifo-start fifo))
+  (default! end (fifo-end fifo))
+  (default! load (- end start))
+  (dotimes (i load)
     (vector-set! vec i (elt vec (+ start i))))
   (set-fifo-start! fifo 0)
-  (set-fifo-end! fifo point)
-  (dotimes (i (- (length vec) point))
-    (vector-set! vec (+ point i) #f))
-  point)
+  (set-fifo-end! fifo load)
+  (dotimes (i (- (length vec) load))
+    (vector-set! vec (+ load i) #f))
+  ;; Return the load, also the new fifo-end
+  load)
        
 (define (grow-fifo/unlocked fifo (add 1))
   (let* ((vec (fifo-queue fifo))
@@ -316,16 +300,7 @@
 		(else (set! trylen (* 2 trylen)))))
 	trylen)))
 
-(define (fifo/push! fifo item (opts #f) args)
-  "Pushes a new item into the FIFO. If *broadcast* is true, "
-  "a broadcast signal is sent to all waiting threads, rather than "
-  "just one."
-  (fifo/push/n! fifo (vector item) opts))
-(define (fifo-push fifo item (opts #f))
-  "Pushes a new item into the FIFO. If *broadcast* is true, "
-  "a broadcast signal is sent to all waiting threads, rather than "
-  "just one."
-  (fifo/push/n! fifo (vector item) opts))
+;;;; 
 
 (define (fifo/waiting! fifo (cvar) (tid))
   "Declare that a thread is waiting on the FIFO"
@@ -376,127 +351,27 @@
   (choice-size (fifo-running fifo)))
 (define fifo/finished! (fcn/alias fifo/release!))
 
-(define (fill-fifo! fifo (fillfn)) 
-  (set! fillfn (fifo-fillfn fifo))
-  (cond ((not fillfn))
-	((and (applicable? fillfn) (zero? (procedure-arity fillfn)))
-	 (fifo/fill! fifo fillfn))
-	((applicable? fillfn) (fillfn fifo))
-	((and (pair? fillfn) (applicable? (car fillfn)))
-	 (apply (car fillfn) fifo (cdr fillfn)))
-	(else (irritant fillfn |FIFO/InvalidFillFn|))))
-
-(define (fifo/fill! fifo fillfn)
-  "Uses the procedure *fillfn* to fill *fifo*. If the result of "
-  "*fillfn* is a choice or a vector, all of its elements are "
-  "added to the fifo; otherwise, the returned value is added. "
-  "This means that if *fillfn* wants to return a vector as an item, "
-  "it needs to be wrapped in another vector. "
-  "If the *fifo*'s options specify a `fillmax` property, *fillfn* is called "
-  "repeatedly until either *fillmax* elements are generated "
-  "or the fifo stops accepting new elements."
-  (let* ((fill-max (fifo-size fifo))
-	 (filling (fillfn))
-	 (fill-count 0))
-    (until (fail? filling)
-      (if (ambiguous? filling)
-	  (fifo/push/n! fifo (choice->vector filling))
-	  (if (vector? filling)
-	      (fifo/push/n! fifo filling)
-	      (fifo/push! fifo filling)))
-      (if (and (singleton? filling) (vector? filling))
-	  (set! fill-count (+ fill-count (length filling)))
-	  (set! fill-count (+ fill-count (|| filling))))
-      (when (and fill-max (>= fill-count fill-max)) (break))
-      (when (or (not (fifo-live? fifo))
-		(overlaps? (fifo-pause fifo) '{write readwrite closing}))
-	(break))
-      (set! filling (fillfn)))
-    fill-count))
-
-(define (stop-waiting? fifo fillthresh fillfn)
-  (or (> (- (fifo-end fifo) (fifo-start fifo)) (or fillthresh 0))
-      (and fillfn (not (fifo-filling fifo))
-	   (not (overlaps? (fifo-pause fifo) '{write readwrite}))
-	   (begin
-	     (set-fifo-filling! fifo (threadid))
-	     (modify-fifo-waiting! fifo difference (threadid))
-	     (condvar/unlock! (fifo-condvar fifo))
-	     (fill-fifo! fifo)
-	     (set-fifo-filling! fifo #f)
-	     (condvar/lock! (fifo-condvar fifo))
-	     (or (not (fifo-live? fifo))
-		 (> (fifo-end fifo) (fifo-start fifo)))))))
-
-(define (fifo/pop fifo (maxcount 1) (fillthresh #f) (condvar) (fillfn))
+(define (fifo/pop fifo (maxcount 1) (opts #f))
   "Pops some number of items (at least one) from the FIFO."
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
-  (if (fifo-debug? fifo)
-      (always%watch "FIFO/POP" fifo)
-      (debug%watch "FIFO/POP" fifo))
-  (set! condvar (fifo-condvar fifo))
-  (set! fillfn (fifo-fillfn fifo))
-  (set! fillthresh
-    (if fillfn
-	(getopt (fifo-opts fifo) 'fillthresh
-		(quotient (fifo-size fifo) 2))
-	0))
-  (if (fifo-live? fifo)
-      (unwind-protect
-	  (begin
-	    ;; Start critical section
-	    (condvar/lock! condvar)
-	    ;; Assert that we're waiting
-	    (fifo/waiting! fifo)
-	    ;; Wait until there's something to do or we're all done
-	    (while (and (fifo-live? fifo)
-			(or (overlaps? (fifo-pause fifo) '{read readwrite})
-			    (not (stop-waiting? fifo fillthresh fillfn))))
-	      (condvar/wait condvar))
-	    (cond ((not (fifo-live? fifo)) (fail))
-		  (else
-		   (fifo/running! fifo)
-		   (let* ((vec (fifo-queue fifo))
-			  (start (fifo-start fifo))
-			  (end (fifo-end fifo))
-			  (count (min maxcount (- end start)))
-			  (items (elts vec start (+ start count))))
-		     (when (overlaps? items #f) (dbg fifo))
-		     (if (fifo-debug? fifo)
-			 (always%watch "FIFO/POP/ITEM" start end fifo items)
-			 (debug%watch "FIFO/POP/ITEM" start end fifo items))
-		     ;; Replace the popped item with false
-		     (dotimes (i count)
-		       (vector-set! vec (+ start i) #f))
-		     ;; Advance the start pointer
-		     (set-fifo-start! fifo (+ start count))
-		     (when (= (fifo-start fifo) (fifo-end fifo))
-		       ;; If we're empty, move the pointers back to the beginning
-		       (set-fifo-start! fifo 0)
-		       (set-fifo-end! fifo 0))
-		     (when (fifo-items fifo)
-		       (hashset-drop! (fifo-items fifo) items))
-		     items))))
-	(condvar/unlock! condvar))
-      (fail)))
+  (elts (fifo/popvec fifo maxcount opts)))
+
 (define (fifo-pop fifo)
   "Pops some number of items (at least one) from the FIFO."
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
   (fifo/pop fifo))
 
-(define (fifo/popvec fifo (maxcount 1) (fillthresh #f) (condvar) (fillfn))
+(define (fifo/popvec fifo (maxcount 1) (opts #f))
   "Pops some number of items (at least one) from the FIFO."
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
+  (locals condvar (fifo-condvar fifo)
+	  noblock (getopt opts 'noblock #t))
   (if (fifo-debug? fifo)
       (always%watch "FIFO/POPVEC" fifo maxcount)
       (debug%watch "FIFO/POPVEC" fifo maxcount))
-  (set! fillthresh (getopt (fifo-opts fifo) 'fillthresh
-			    (quotient (fifo-size fifo) 2)))
-  (set! condvar (fifo-condvar fifo))
-  (set! fillfn (fifo-fillfn fifo))
   (if (fifo-live? fifo)
       (unwind-protect
 	  (begin
@@ -505,11 +380,16 @@
 	    ;; Assert that we're waiting
 	    (fifo/waiting! fifo)
 	    ;; Wait until there's something to do or we're all done
-	    (while (and (fifo-live? fifo)
-			(or (overlaps? (fifo-pause fifo) '{read readwrite})
-			    (not (stop-waiting? fifo fillthresh fillfn))))
+	    (while (and (fifo-live? fifo) (not noblock)
+			(overlaps? (fifo-pause fifo) '{read readwrite})
+			(and (not (fifo-readonly fifo))
+			     (zero? (- (fifo-end fifo) (fifo-start fifo)))))
 	      (condvar/wait condvar))
 	    (cond ((not (fifo-live? fifo)) (fail))
+		  ((and (= (fifo-end fifo) (fifo-start fifo)) (fifo-readonly fifo))
+		   (fifo/close! fifo #f)
+		   (fail))
+		  ((= (fifo-end fifo) (fifo-start fifo)) (fail))
 		  (else
 		   (fifo/running! fifo)
 		   (let* ((vec (fifo-queue fifo))
@@ -572,13 +452,13 @@
 (define (fifo-loop fifo handler)
   (fifo/loop fifo handler))
 
-(define (fifo/close! fifo (uselock #t) (result #f) (condvar))
+(define (fifo/close! fifo (needlock #t))
   "Closes a FIFO, returning a vector of the remaining queued items."
-  (set! condvar (fifo-condvar fifo))
+  (locals condvar (fifo-condvar fifo) result #f)
   (when (fifo-debug? fifo) (always%watch "FIFO/CLOSE!" fifo condvar))
   (unwind-protect
       (begin
-	(when uselock (condvar/lock! condvar))
+	(when needlock (condvar/lock! condvar))
 	(let ((queue (fifo-queue fifo)))
 	  (set! result (slice queue (fifo-start fifo) (fifo-end fifo)))
 	  (dotimes (i (length queue)) (vector-set! queue i #f))
@@ -588,14 +468,8 @@
 	  result))
     (begin
       (condvar/signal condvar #t)
-      (when uselock (condvar/unlock! condvar)))))
+      (when needlock (condvar/unlock! condvar)))))
 (define (close-fifo fifo) (fifo/close! fifo))
-
-(define (fifo/nofill fifo) 
-  (when (zero? (fifo-load fifo))
-    (when (fifo-debug? fifo) (always%watch "FIFO/EXHAUSTED!" fifo))
-    (fifo/close! fifo #f)))
-(define fifo/exhausted! fifo/nofill)
 
 (define (fifo/queued fifo (result #f))
   "Returns a vector of the queued items in a FIFO, in order"
@@ -614,7 +488,9 @@
       (begin (condvar/lock! (fifo-condvar fifo))
 	     (- (fifo-end fifo) (fifo-start fifo)))
     (condvar/unlock! (fifo-condvar fifo))))
+
 (define (fifo-load fifo) (- (fifo-end fifo) (fifo-start fifo)))
+(define (fifo-tail fifo) (- (length (fifo-queue fifo)) (fifo-end fifo)))
 (define (fifo-size fifo) (length (fifo-queue fifo)))
 (define (fifo-space fifo) 
   (- (length (fifo-queue fifo))(- (fifo-end fifo) (fifo-start fifo))))
@@ -667,4 +543,4 @@
   (and (fifo-pause fifo) (fail? (fifo-running fifo))))
 
 (define (fifo/set-debug! fifo (flag #t)) (set-fifo-debug! fifo flag))
-(define (fifo/set-fillfn! fifo (fillfn #t)) (set-fifo-fillfn! fifo fillfn))
+
