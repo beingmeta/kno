@@ -41,7 +41,7 @@
    fifo-queued
    close-fifo
    fifo-pause
-   fifo-readonly
+   fifo-readonly?
    fifo-opts
    fifo-live?
    fifo-size
@@ -96,7 +96,7 @@
   opts           ;; options
   (items #f)     ;; a hashset of items waiting in the queue, if nodups is set
   (maxlen #f)    ;; The max length to which the fifo will grow
-  (readonly #f)  ;; a function or (function . more-args) to call when the queue is empty
+  (readonly? #f)  ;; a function or (function . more-args) to call when the queue is empty
   (live? #t)     ;; Whether the FIFO is active (callers should wait)
   (pause #f)     ;; Whether the FIFO is paused (value is #f, READ, WRITE, READWRITE, or CLOSING)
   (waiting {})   ;; The threads waiting on the FIFO.
@@ -261,7 +261,7 @@
   (default! vec (fifo-queue fifo))
   (default! start (fifo-start fifo))
   (default! end (fifo-end fifo))
-  (default! load (- end start))
+  (local load (- end start))
   (dotimes (i load)
     (vector-set! vec i (elt vec (+ start i))))
   (set-fifo-start! fifo 0)
@@ -382,11 +382,11 @@
 	    ;; Wait until there's something to do or we're all done
 	    (while (and (fifo-live? fifo) (not noblock)
 			(overlaps? (fifo-pause fifo) '{read readwrite})
-			(and (not (fifo-readonly fifo))
+			(and (not (fifo-readonly? fifo))
 			     (zero? (- (fifo-end fifo) (fifo-start fifo)))))
 	      (condvar/wait condvar))
 	    (cond ((not (fifo-live? fifo)) (fail))
-		  ((and (= (fifo-end fifo) (fifo-start fifo)) (fifo-readonly fifo))
+		  ((and (= (fifo-end fifo) (fifo-start fifo)) (fifo-readonly? fifo))
 		   (fifo/close! fifo #f)
 		   (fail))
 		  ((= (fifo-end fifo) (fifo-start fifo)) (fail))
