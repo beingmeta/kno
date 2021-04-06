@@ -472,7 +472,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(cond ((not nthreads) " in the current thread")
 	      ((= nthreads 1) " in a single thread")
 	      (else (printout " across " nthreads " threads")))
-	" to process " (try max-items "multiple") " " count-term)
+	" to process " 
+	(if (and (exists? max-items) max-items)
+	    ($count max-items count-term)
+	    (printout "multiple " count-term)))
 
       (do-choices (init loop-inits)
 	(cond ((not init))
@@ -981,23 +984,26 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 
     (knodb/commit dbs (cons [loglevel %loglevel] opts))
-    (when (getopt opts 'postcheck)
-      (do-choices (postcheck (getopt opts 'postcheck))
+    (lognotice |Engine/Checkpoint|
+      "Committed " (choice-size modified) " dbs "
+      (if (fifo-name fifo)
+	  (printout "for " (fifo-name fifo)))
+      " in " (secs->string (elapsed-time started)))
+    (when (testopt opts 'postcheck)
+      (do-choices (postcheck (getopt opts 'postcheck {}))
 	(let ((started (elapsed-time)))
 	  (cond ((not (applicable? postcheck))
 		 (logwarn |BadPostcheck| postcheck))
 		((= (procedure-arity postcheck) 0)
 		 (postcheck)
-		 (lognotice |PostCheckpoint|
-		   "Took " (secs->string (elapsed-time started)) " for " postcheck))
+		 (when (> (elapsed-time started) 0)
+		   (lognotice |PostCheckpoint|
+		     "Took " (secs->string (elapsed-time started)) " for " postcheck)))
 		(else (postcheck loop-state (qc dbs))
-		      (lognotice |PostCheckpoint| 
-			"Took " (secs->string (elapsed-time started)) " for " postcheck))))))
-    (lognotice |Engine/Checkpoint|
-      "Committed " (choice-size modified) " dbs "
-      (if (fifo-name fifo)
-	  (printout "for " (fifo-name fifo)))
-      " in " (secs->string (elapsed-time started)))))
+		      (when (> (elapsed-time started) 0)
+			(lognotice |PostCheckpoint| 
+			  "Took " (secs->string (elapsed-time started))
+			  " for " postcheck)))))))))
 
 (defambda (engine-swapout loop-state)
   (let ((started (elapsed-time))
