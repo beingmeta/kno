@@ -51,11 +51,11 @@
 (define ($showrate rate (term #f))
   (if term
       (if (> rate 50)
-	  ($num (->exact rate 0))
-	  ($num rate))
-      (if (> rate 50)
 	  ($count (->exact rate 0) term)
-	  ($count rate term))))
+	  ($count rate term))
+      (if (> rate 50)
+	  ($num (->exact rate 0))
+	  ($num rate))))
 
 ;;; This is a task loop engine where a task applies a function to a
 ;;;  bunch of data items organized into batches.
