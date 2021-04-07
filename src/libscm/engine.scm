@@ -700,7 +700,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(secs->string (elapsed-time (get batch-state 'started)) 1) " or ~"
 	($showrate (/~ (choice-size batch) (elapsed-time (get batch-state 'started)))
 		   count-term) 
-	"/second for this batch and thread."))
+	"/second for this batch and thread"))
     (debug%watch "ENGINE/LOG" loop-state)
     (lognotice |Engine/Progress|
       "Processed " ($count (getopt loop-state 'items 0) count-term)
@@ -723,7 +723,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		  (printout (if (zero? (remainder i 5)) ",\n   " ", ")
 		    ($count count count-term)
 		    (when (overlaps? counter logrates)
-		      (printout " (" ($showrate rate count-term) "/sec)")))))))
+		      (printout " (" ($showrate rate) " " count-term "/sec)")))))))
 	  (do-choices (counter (difference (get loop-state 'counters) 'items) i)
 	    (when (test loop-state counter)
 	      (let* ((count (get loop-state counter))
@@ -734,7 +734,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(printout (if (zero? (remainder i 5)) ",\n   " ", ")
 		  ($count count count-term)
 		  (when (overlaps? counter logrates)
-		    (printout " (" ($showrate rate count-term) "/sec)"))))))))
+		    (printout " (" ($showrate rate) " " count-term "/sec)"))))))))
     (when loopmax
       (let* ((togo (- loopmax count))
 	     (timeleft (/~ togo rate))
