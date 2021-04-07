@@ -49,7 +49,8 @@
    fifo-running
    fifo/waiting
    fifo/idle?
-   fifo/set-debug!})
+   fifo/set-debug!
+   set-fifo-readonly?!})
 
 (define-init %loglevel %warn%)
 
@@ -196,7 +197,7 @@
 (define (fifo/push/all! fifo items (opts #f))
   "Pushes all of *items* into the FIFO *fifo*. "
   "See fifo/push/n! for information on *opts*."
-  (set! opts (opt+ 'noblock #f opts (fifo-opts opts)))
+  (set! opts (opt+ 'block #f opts (fifo-opts opts)))
   (while (and items (> (length items) 0))
     (set! items (fifo/push/n! fifo items opts))))
 
@@ -216,12 +217,13 @@
   "Pushes multiple items into the FIFO and returns any "
   "unpushed items as a vector. Options include: "
   "* GROW (grows the FIFO if needed) and "
-  "* NOBLOCK (don't wait for available space). "
+  "* BLOCK (wait for at least some available space). "
   "If #f is returned, all the items were pushed."
+  (when (fifo-readonly? fifo) (irritant fifo |ReadOnlyFIFO|))
   (set! opts (opt+ opts (fifo-opts fifo)))
   (locals len (length items)
 	  condvar (fifo-condvar fifo)
-	  noblock (getopt opts 'noblock #f)
+	  block (getopt opts 'block #t)
 	  grow (getopt opts 'grow #t)
 	  result #f)
   (unwind-protect
@@ -229,7 +231,7 @@
 		 (always%watch "FIFO/PUSH/N!" "N" len fifo "\n" opts)
 		 (debug%watch "FIFO/PUSH/N!" "N" len fifo "\n" opts))
 	(condvar/lock! (fifo-condvar fifo))
-	(unless noblock
+	(when block
 	  (while (and (fifo-live? fifo)
 		      (or (overlaps? (fifo-pause fifo) '{write readwrite})
 			  (and (not grow)
@@ -368,7 +370,7 @@
   "The *maxcount* argument specifies the number of maximum number of items "
   "to be popped."
   (locals condvar (fifo-condvar fifo)
-	  noblock (getopt opts 'noblock #t))
+	  block (getopt opts 'block (not (fifo-readonly? fifo))))
   (if (fifo-debug? fifo)
       (always%watch "FIFO/POPVEC" fifo maxcount)
       (debug%watch "FIFO/POPVEC" fifo maxcount))
@@ -380,10 +382,9 @@
 	    ;; Assert that we're waiting
 	    (fifo/waiting! fifo)
 	    ;; Wait until there's something to do or we're all done
-	    (while (and (fifo-live? fifo) (not noblock)
-			(overlaps? (fifo-pause fifo) '{read readwrite})
-			(and (not (fifo-readonly? fifo))
-			     (zero? (- (fifo-end fifo) (fifo-start fifo)))))
+	    (while (and (fifo-live? fifo) block
+			(or (overlaps? (fifo-pause fifo) '{read readwrite})
+			    (zero? (- (fifo-end fifo) (fifo-start fifo)))))
 	      (condvar/wait condvar))
 	    (cond ((not (fifo-live? fifo)) (fail))
 		  ((and (= (fifo-end fifo) (fifo-start fifo)) (fifo-readonly? fifo))
