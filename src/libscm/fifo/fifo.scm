@@ -23,7 +23,7 @@
    fifo/pausing?
    fifo/paused?
    fifo/nofill
-   fifo/exhausted!
+   fifo/exhausted?
    fifo/loop
    fifo/queued
    fifo/load
@@ -50,7 +50,7 @@
    fifo/waiting
    fifo/idle?
    fifo/set-debug!
-   set-fifo-readonly?!})
+   fifo/readonly!})
 
 (define-init %loglevel %warn%)
 
@@ -58,6 +58,9 @@
 
 (define default-debug #f)
 (varconfig! fifo:debug default-debug config:boolean)
+
+(define (fifo/exhausted? fifo)
+  (and (fifo-readonly? fifo) (zero? (- (fifo-end fifo) (fifo-start fifo)))))
 
 (define (fifo->string fifo)
   (if (fifo-name fifo)
@@ -68,6 +71,7 @@
 	  (printout " [" (fifo-start fifo) "," (fifo-end fifo) "] "))
 	"-r" (choice-size (fifo-running fifo)) "-w" (choice-size (fifo-waiting fifo)) " "
 	(if (not (fifo-live? fifo)) " (exhausted)")
+	(if (fifo-readonly? fifo) " (readonly)")
 	(when (fifo-pause fifo) (printout " paused=" (fifo-pause fifo)))
 	(when (or (fifo-debug fifo) default-debug)
 	  (printout)" (debug)"
@@ -382,9 +386,11 @@
 	    ;; Assert that we're waiting
 	    (fifo/waiting! fifo)
 	    ;; Wait until there's something to do or we're all done
-	    (while (and (fifo-live? fifo) block
-			(or (overlaps? (fifo-pause fifo) '{read readwrite})
-			    (zero? (- (fifo-end fifo) (fifo-start fifo)))))
+	    (while (and block
+			(fifo-live? fifo)
+			(or (overlaps? (fifo-pause fifo) '{read readwrite}) 
+			    (and (not (fifo-readonly? fifo))
+				 (zero? (- (fifo-end fifo) (fifo-start fifo))))))
 	      (condvar/wait condvar))
 	    (cond ((not (fifo-live? fifo)) (fail))
 		  ((and (= (fifo-end fifo) (fifo-start fifo)) (fifo-readonly? fifo))
@@ -545,3 +551,6 @@
 
 (define (fifo/set-debug! fifo (flag #t)) (set-fifo-debug! fifo flag))
 
+(define (fifo/readonly! fifo flag)
+  (set-fifo-readonly?! fifo flag)
+  (condvar/signal (fifo-condvar fifo) #t))
