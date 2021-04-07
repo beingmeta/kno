@@ -4,7 +4,7 @@
 
 (in-module 'text/stringfmts)
 
-(use-module '{defmacro})
+(use-module '{defmacro kno/reflect})
 
 ;;; Generation of strings from various other kinds of values
 
@@ -21,7 +21,8 @@
    $size $sizestring $nelts
    $bytes $bytestring
    $bytes/sec
-   $rate})
+   $rate
+   $fn})
 
 (module-export!
  '{$lines $lines/indent
@@ -324,3 +325,13 @@
 	    (if (= j 0)
 		(printout name (dotimes (i (- maxwidth (length name))) (display " ")) v)
 		(printout indent-string v))))))))
+
+;;;; Displaying procedures
+
+(define ($fn fn)
+  (cond ((not (procedure-name fn)) fn)
+	((procedure-module fn) 
+	 (printout (procedure-name fn) "(" (procedure-module fn) ")"))
+	((procedure-filename fn) 
+	 (printout (procedure-name fn) "(" (procedure-filename fn) ")"))
+	(else (procedure-name fn))))
