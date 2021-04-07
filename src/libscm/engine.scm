@@ -231,8 +231,6 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (if batchsize
       ($count (length batch) count-term)
       ($count (|| batch) count-term)))
-(defambda ($iterfn fn)
-  (or (procedure-name fn) fn))
 
 (define (engine-threadfn iterfn fifo opts loop-state state batchsize
 			 beforefn afterfn fillfn
@@ -258,130 +256,130 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	   (start (get batch-state 'started))
 	   (proc-time #f))
       (while (and (exists? batch) batch)
-	(loginfo |GotBatch|
+	(logdebug |GotBatch|
 	  "Processing " ($batchsize batch count-term batchsize)
 	  " in batch#" batchno " of thread " threadid
-	  " using " iterfn))
-      (when (exists? batch-indexes)
-	(do-choices (indexslot batch-indexes)
-	  (when (test loop-state indexslot)
-	    (store! batch-state indexslot 
-	      (index/branch (get loop-state indexslot))))))
-      (when (and (exists? beforefn) beforefn)
-	(beforefn (qc batch) batch-state loop-state state))
-      (logdetail |EngineStepStarted|
-	"Applying " iterfn " to " ($batchsize batch count-term batchsize)
-	" in batch#" batchno " of thread " threadid)
-      (set! proc-time (elapsed-time))
-      (onerror
-	  (if batchsize
-	      (if batchcall
-		  (cond ((= (procedure-arity iterfn) 1)
-			 (iterfn batch))
-			((= (procedure-arity iterfn) 2)
-			 (iterfn batch batch-state))
-			((= (procedure-arity iterfn) 3)
-			 (iterfn batch batch-state loop-state))
-			((= (procedure-arity iterfn) 4)
-			 (iterfn batch batch-state loop-state state))
-			(else (iterfn batch)))
-		  (cond ((= (procedure-arity iterfn) 1)
-			 (doseq (item batch) (iterfn item)))
-			((= (procedure-arity iterfn) 2)
-			 (doseq (item batch) (iterfn item batch-state)))
-			((= (procedure-arity iterfn) 3)
-			 (doseq (item batch) (iterfn item batch-state loop-state)))
-			((= (procedure-arity iterfn) 4)
-			 (doseq (item batch)
-			   (iterfn item batch-state loop-state state)))
-			(else (doseq (item batch) (iterfn item)))))
-	      (if (or batchcall (singleton? batch))
-		  (cond ((= (procedure-arity iterfn) 1)
-			 (iterfn (qc batch)))
-			((= (procedure-arity iterfn) 2)
-			 (iterfn (qc batch) batch-state))
-			((= (procedure-arity iterfn) 3)
-			 (iterfn (qc batch) batch-state loop-state))
-			((= (procedure-arity iterfn) 4)
-			 (iterfn (qc batch) batch-state loop-state state))
-			(else (iterfn (qc batch))))
-		  (cond ((= (procedure-arity iterfn) 1)
-			 (dochoices (item batch) (iterfn item)))
-			((= (procedure-arity iterfn) 2)
-			 (dochoices (item batch) (iterfn item batch-state)))
-			((= (procedure-arity iterfn) 3)
-			 (dochoices (item batch) (iterfn item batch-state loop-state)))
-			((= (procedure-arity iterfn) 4)
-			 (dochoices (item batch)
-			   (iterfn item batch-state loop-state state)))
-			(else (dochoices (item batch) (iterfn item))))))
-	  (engine-error-handler batch-state loop-state))
-      (set! proc-time (elapsed-time proc-time))
-      (logdetail |EngineStepFinished|
-	"Took " (secs->string proc-time) " to apply "iterfn 
-	" to " ($batchsize batch count-term batchsize)
-	" in batch#" batchno " of thread " threadid)
-      (when (exists? batch-indexes)
-	(do-choices (indexslot batch-indexes)
-	  (branch/commit! (get batch-state indexslot)))
-	(logdebug |FinishedBranchCommits| (getopt opts 'branchindexes)))
-      (unless (test batch-state 'aborted)
-	(when (and  (exists? afterfn) afterfn)
-	  (afterfn (qc batch) batch-state loop-state state))
-	(bump-loop-state batch-state loop-state
-			 (if batchsize (length batch) (|| batch))
-			 proc-time
-			 (elapsed-time start))
-	(when (dolog? loop-state fifo)
-	  (engine-logger (qc batch) batchsize proc-time (elapsed-time start)
-			 batch-state loop-state state)))
-      (loginfo |FinishedBatch|
-	"Finished batch of " ($batchsize batch count-term batchsize)
-	" in " (secs->string proc-time) " using " iterfn)
-      ;; Free some stuff up, maybe
-      (set! batch #f)
-      (let ((stopval (or (try (get batch-state 'stopval) #f)
-			 (try (get batch-state 'error) #f)
-			 (try (get loop-state 'stopval) #f)
-			 (try (get loop-state 'stopped) #f)
-			 (and (test loop-state 'maxitems)
-			      (test loop-state 'items)
-			      (>= (get loop-state 'items) (get loop-state 'maxitems))
-			      (cons 'maxitems (get loop-state 'maxitems)))
-			 (and (fifo-readonly? fifo) (zero? (fifo/load fifo)) 'fifo-empty)
-			 (and (exists? stopfn) stopfn
-			      (exists stopfn loop-state))))
-	    (load (fifo/load fifo)))
-	(when stopval
-	  (if (zero? load)
-	      (store! loop-state 'stopped (timestamp))
-	      (store! loop-state 'stopping (timestamp)))
-	  (unless (test loop-state 'stopval)
-	    (logwarn |EngineStopping| "Due to circumstance: " stopval)
-	    (store! loop-state 'stopval stopval)))
-	(when (and monitors (not (test loop-state 'stopped)))
-	  (do-choices (monitor monitors)
-	    (cond ((applicable? monitor) (monitor loop-state))
-		  ((and (pair? monitor) (applicable? (car monitor)))
-		   (let ((testval ((car monitor) loop-state)))
-		     (when testval
-		       (do-choices (action (if (pair? (cdr monitor))
-					       (cadr monitor)
-					       (cdr monitor)))
-			 (if (applicable? action)
-			     (action testval loop-state)
-			     (logwarn |BadMonitorAction| action))))))
-		  (else (logwarn |BadMonitor| monitor)))))
-	(unless (test loop-state '{stopped stopping})
-	  (when (checkpointing? loop-state)
-	    (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
-	      (when (or (test loop-state 'checknow) (check/save? loop-state))
-		(thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
-	  (set! batch (get-batch fifo batchsize loop-state fillfn))
-	  (set! batchno (1+ batchno))
-	  (set! start (elapsed-time))
-	  (set! batch-state
-	    `#[loop ,loop-state thread ,threadid batchno ,batchno started ,start]))))
+	  " using " ($fn iterfn))
+	(when (exists? batch-indexes)
+	  (do-choices (indexslot batch-indexes)
+	    (when (test loop-state indexslot)
+	      (store! batch-state indexslot 
+		(index/branch (get loop-state indexslot))))))
+	(when (and (exists? beforefn) beforefn)
+	  (beforefn (qc batch) batch-state loop-state state))
+	(logdetail |EngineStepStarted|
+	  "Applying " ($fn iterfn) " to " ($batchsize batch count-term batchsize)
+	  " in batch#" batchno " of thread " threadid)
+	(set! proc-time (elapsed-time))
+	(onerror
+	    (if batchsize
+		(if batchcall
+		    (cond ((= (procedure-arity iterfn) 1)
+			   (iterfn batch))
+			  ((= (procedure-arity iterfn) 2)
+			   (iterfn batch batch-state))
+			  ((= (procedure-arity iterfn) 3)
+			   (iterfn batch batch-state loop-state))
+			  ((= (procedure-arity iterfn) 4)
+			   (iterfn batch batch-state loop-state state))
+			  (else (iterfn batch)))
+		    (cond ((= (procedure-arity iterfn) 1)
+			   (doseq (item batch) (iterfn item)))
+			  ((= (procedure-arity iterfn) 2)
+			   (doseq (item batch) (iterfn item batch-state)))
+			  ((= (procedure-arity iterfn) 3)
+			   (doseq (item batch) (iterfn item batch-state loop-state)))
+			  ((= (procedure-arity iterfn) 4)
+			   (doseq (item batch)
+			     (iterfn item batch-state loop-state state)))
+			  (else (doseq (item batch) (iterfn item)))))
+		(if (or batchcall (singleton? batch))
+		    (cond ((= (procedure-arity iterfn) 1)
+			   (iterfn (qc batch)))
+			  ((= (procedure-arity iterfn) 2)
+			   (iterfn (qc batch) batch-state))
+			  ((= (procedure-arity iterfn) 3)
+			   (iterfn (qc batch) batch-state loop-state))
+			  ((= (procedure-arity iterfn) 4)
+			   (iterfn (qc batch) batch-state loop-state state))
+			  (else (iterfn (qc batch))))
+		    (cond ((= (procedure-arity iterfn) 1)
+			   (dochoices (item batch) (iterfn item)))
+			  ((= (procedure-arity iterfn) 2)
+			   (dochoices (item batch) (iterfn item batch-state)))
+			  ((= (procedure-arity iterfn) 3)
+			   (dochoices (item batch) (iterfn item batch-state loop-state)))
+			  ((= (procedure-arity iterfn) 4)
+			   (dochoices (item batch)
+				      (iterfn item batch-state loop-state state)))
+			  (else (dochoices (item batch) (iterfn item))))))
+	    (engine-error-handler batch-state loop-state))
+	(set! proc-time (elapsed-time proc-time))
+	(logdetail |EngineStepFinished|
+	  "Took " (secs->string proc-time) " to apply " ($fn iterfn) 
+	  " to " ($batchsize batch count-term batchsize)
+	  " in batch#" batchno " of thread " threadid)
+	(when (exists? batch-indexes)
+	  (do-choices (indexslot batch-indexes)
+	    (branch/commit! (get batch-state indexslot)))
+	  (logdebug |FinishedBranchCommits| (getopt opts 'branchindexes)))
+	(unless (test batch-state 'aborted)
+	  (when (and  (exists? afterfn) afterfn)
+	    (afterfn (qc batch) batch-state loop-state state))
+	  (bump-loop-state batch-state loop-state
+			   (if batchsize (length batch) (|| batch))
+			   proc-time
+			   (elapsed-time start))
+	  (when (dolog? loop-state fifo)
+	    (engine-logger (qc batch) batchsize proc-time (elapsed-time start)
+			   batch-state loop-state state)))
+	(logdebug |FinishedBatch|
+	  "Finished batch of " ($batchsize batch count-term batchsize)
+	  " in " (secs->string proc-time) " using " ($fn iterfn))
+	;; Free some stuff up, maybe
+	(set! batch #f)
+	(let ((stopval (or (try (get batch-state 'stopval) #f)
+			   (try (get batch-state 'error) #f)
+			   (try (get loop-state 'stopval) #f)
+			   (try (get loop-state 'stopped) #f)
+			   (and (test loop-state 'maxitems)
+				(test loop-state 'items)
+				(>= (get loop-state 'items) (get loop-state 'maxitems))
+				(cons 'maxitems (get loop-state 'maxitems)))
+			   (and (fifo-readonly? fifo) (zero? (fifo/load fifo)) 'fifo-empty)
+			   (and (exists? stopfn) stopfn
+				(exists stopfn loop-state))))
+	      (load (fifo/load fifo)))
+	  (when stopval
+	    (if (zero? load)
+		(store! loop-state 'stopped (timestamp))
+		(store! loop-state 'stopping (timestamp)))
+	    (unless (test loop-state 'stopval)
+	      (logwarn |EngineStopping| "Due to circumstance: " stopval)
+	      (store! loop-state 'stopval stopval)))
+	  (when (and monitors (not (test loop-state 'stopped)))
+	    (do-choices (monitor monitors)
+	      (cond ((applicable? monitor) (monitor loop-state))
+		    ((and (pair? monitor) (applicable? (car monitor)))
+		     (let ((testval ((car monitor) loop-state)))
+		       (when testval
+			 (do-choices (action (if (pair? (cdr monitor))
+						 (cadr monitor)
+						 (cdr monitor)))
+			   (if (applicable? action)
+			       (action testval loop-state)
+			       (logwarn |BadMonitorAction| action))))))
+		    (else (logwarn |BadMonitor| monitor)))))
+	  (unless (test loop-state '{stopped stopping})
+	    (when (checkpointing? loop-state)
+	      (when (or (test loop-state 'checknow) (docheck? loop-state fifo))
+		(when (or (test loop-state 'checknow) (check/save? loop-state))
+		  (thread/wait! (thread/call engine/checkpoint loop-state fifo)))))
+	    (set! batch (get-batch fifo batchsize loop-state fillfn))
+	    (set! batchno (1+ batchno))
+	    (set! start (elapsed-time))
+	    (set! batch-state
+	      `#[loop ,loop-state thread ,threadid batchno ,batchno started ,start])))))
     (info%watch "WorkerFinished" "iterfn" (or (procedure-name iterfn) iterfn))
     (deluge%watch "WorkerFinished" "iterfn" (or (procedure-name iterfn) iterfn)))
   (fifo/release! fifo))
@@ -413,24 +411,23 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    vec
 	    (slice vec 0 max)))))
 
-(define (get-engine-threadcount opts n-items fill)
-  (let* ((spec (or (getopt opts 'nthreads)
-		   (config 'engine:threads (config 'nthreads #t))))
+(define (get-engine-threadcount opts init-items fill)
+  (let* ((spec (getopt opts 'nthreads (config 'engine:threads (config 'nthreads #t))))
 	 (nthreads (threadcount spec)))
     (if fill nthreads
-	(if (and nthreads n-items)
-	    (min nthreads n-items)
+	(if (and nthreads init-items)
+	    (min nthreads init-items)
 	    nthreads))))
 
 (defambda (engine/run fcn items-arg (opts #f))
   (let* ((loop-inits (getopt opts 'loop))
 	 (items (get-items-vec items-arg opts))
 	 (fill (if (applicable? items-arg) items-arg (getopt opts 'fill #f)))
-	 (n-items (if (fail? items) 0
-		      (if (vector? items) (length items) (|| items))))
-	 (batchsize (getopt opts 'batchsize))
+	 (init-items (if (fail? items) 0
+			 (if (vector? items) (length items) (|| items))))
 	 ;; How many threads to actually create
-	 (nthreads (get-engine-threadcount opts n-items fill))
+	 (nthreads (get-engine-threadcount opts init-items fill))
+	 (batchsize (get-batchsize opts fill init-items nthreads))
 	 ;; how much to space the launching of threads to reduce racetrack problems
 	 (spacing (pick-spacing opts nthreads))
 	 ;; How long to make the queue
@@ -445,7 +442,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      'name (getopt opts 'name (or (procedure-name fcn) {}))
 	      'size queuelen
 	      'maxlen (getopt opts 'maxlen queuelen)
-	      'readonly (tryif fill #f)))
+	      'readonly (if fill #f #t)))
 	   (fifo (->fifo items fifo-opts))
 	   (name (getopt opts 'name
 			 (getopt loop-inits 'name
@@ -459,7 +456,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	   (logfns (getopt opts 'logfns {}))
 	   (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
 	   (count-term (getopt opts 'count-term "items"))
-	   (max-items (getopt opts 'maxitems (if fill {} n-items)))
+	   (max-items (getopt opts 'maxitems (if fill {} init-items)))
 	   (loop-state (frame-create #f
 			 'name name
 			 'fifo fifo
@@ -467,12 +464,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			 'started (getopt opts 'started (elapsed-time))
 			 'total (getopt opts 'total 0)
 			 'totalmax (getopt opts 'totalmax {})
-			 'batchsize (getopt opts 'batchsize {})
+			 'batchsize batchsize
 			 'maxitems max-items
 			 'nthreads nthreads
 			 'fillsize (getopt opts 'fillsize {})
 			 'logcontext (getopt opts 'logcontext {})
-			 '%loglevel (getopt opts 'loglevel {})
+			 'loglevel (getopt opts 'loglevel {})
 			 'logfreq (getopt opts 'logfreq log-frequency)
 			 'checkfreq (getopt opts 'checkfreq check-frequency)
 			 'checkspace (getopt opts 'checkspace check-spacing)
@@ -488,6 +485,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			 'init (deep-copy state)
 			 'state (deep-copy state)
 			 'count-term count-term
+			 'queued init-items
 			 'opts opts
 			 'items 0
 			 'cycles 1))
@@ -530,7 +528,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
       
     ;;; Check arguments
       (do-choices fcn
-	(unless (and (applicable? fcn) (overlaps? (procedure-arity fcn) {1 2 4}))
+	(unless (and (applicable? fcn) (overlaps? (procedure-arity fcn) {1 2 3 4}))
 	  (irritant fcn |ENGINE/InvalidLoopFn| engine/run)))
       (when (and (exists? before) before)
 	(do-choices before
@@ -549,10 +547,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
       (when (and (exists? logfns) logfns)
 	(do-choices (logfn (difference logfns #t))
 	  (unless (and (applicable? logfn) 
-		       (overlaps? (procedure-arity logfn) {1 3 6}))
+		       (overlaps? (procedure-arity logfn) {1 3 7}))
 	    (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
-      (cond ((and (<= n-items 0) (not fill)))
+      (cond ((and (<= init-items 0) (not fill)))
 	    ((and nthreads (> nthreads 1))
 	     (let ((threads {}))
 	       (dotimes (i nthreads)
@@ -577,9 +575,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
       (when (not fill)
 	(let* ((elapsed (elapsed-time (get loop-state 'started)))
-	       (rate (/ n-items elapsed)))
+	       (rate (/ init-items elapsed)))
 	  (lognotice |Engine| 
-	    "Finished " ($count n-items) " " count-term " "
+	    "Finished " ($count init-items count-term) " "
 	    "in " (secs->string elapsed #t) "  "
 	    "averaging " ($showrate rate count-term) "/sec")))
 
@@ -608,6 +606,24 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    (stringout ($count (choice-size (get loop-state 'errors)) "error")
 	      " occurred running " fifo)))
       loop-state)))
+
+(define (get-batchsize opts fill init-items nthreads)
+  (local spec (getopt opts 'batchsize)
+	 nbatches (getopt opts 'nbatches)
+	 maxitems (if (not fill)
+		      (min (getopt opts 'maxitems init-items) init-items)
+		      (getopt opts 'maxitems)))
+  (when (not nthreads) (set! nthreads 1))
+  (cond ((and (number? nbatches) maxitems)
+	 (->exact (ceiling (/~ maxitems (* nbatches nthreads)))))
+	((and (number? spec) maxitems)
+	 (min spec (->exact (ceiling (/~ maxitems nthreads)))))
+	((number? spec) (->exact spec))
+	((and spec maxitems)
+	 (/~ (ceiling (/~ maxitems nthreads))))
+	(else #f)))
+
+
 
 (define (init-state opts)
   (let* ((state (or (and (getopt opts 'statefile)
@@ -674,7 +690,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (items (try (get loop-state 'items) 0))
 	 (elapsed (elapsed-time (get loop-state 'started)))
 	 (rate (/~ items elapsed))
-	 (%loglevel (getopt loop-state '%loglevel %loglevel))
+	 (%loglevel (getopt loop-state 'loglevel %loglevel))
 	 (fifo (get loop-state 'fifo)))
     (when (exists? batch)
       (loginfo |Batch/Progress| 
@@ -801,45 +817,52 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 (define (engine/fill! fifo fillfn loop-state (opts) (fillthresh)
 		      (%loglevel (or fill-loglevel %loglevel))
-		      (fillsize) (fillstart))
+		      (fillstart))
   (local added 0)
   (default! opts (try (get loop-state 'opts) #f))
   (default! fillthresh
     (try (get loop-state 'fillthresh)
 	 (getopt opts 'fillthresh (quotient (fifo-size fifo) 2))))
-  (default! fillsize (getopt opts 'fillsize #f))
   (default! fillstart (getopt opts 'fillstart (elapsed-time)))
   (set! %loglevel (try (get loop-state 'loglevel) %loglevel))
   (debug%watch "engine/fill!" fifo fillfn fillthresh "\nloop-state" loop-state)
   (unless (or (test loop-state '{stopped stopping}) (> (fifo/load fifo) fillthresh))
-    (let ((need (- (fifo-size fifo) (fifo/load fifo))))
-      (while (and (> need 0) (not (test loop-state '{stopped stopping})))
-	(let ((items (if (= (procedure-arity fillfn) 2)
-			 (fillfn (if fillsize (min fillsize need)) loop-state)
-			 (fillfn (if fillsize (min fillsize need))))))
-	  (debug%watch "engine/fill!" fifo need "got" (|| items))
-	  (when (and (exists? items) items)
-	    (cond ((ambiguous? items)
-		   (loginfo |EngineFill|
-		     "Adding " ($count (|| items) "item") " to queue " fifo " using " fillfn)
-		   (fifo/push/all! fifo (choice->vector items))
-		   (set! added (+ added (|| items))))
-		  ((vector? items)
-		   (loginfo |EngineFill|
-		     "Adding " ($count (length items) "item") " to queue " fifo " using " fillfn)
-		   (fifo/push/n! fifo items)
-		   (set! added (+ added (length items))))
-		  (else (loginfo |EngineFill|
-			  "Adding one item to queue " fifo " using " fillfn)
-			(fifo/push! fifo items [block #f])
-			(set! added (+ added 1))))
-	    (set! need (- (fifo-size fifo) (fifo/load fifo))))))))
-  (lognotice |FinishedFill|
-    "Thread " (threadid) " finished adding " 
-    ($count added (try (get loop-state 'count-term) "item"))
-    " in " (secs->string (elapsed-time fillstart))
-    " to " fifo)
-  (bump-filltime! loop-state (elapsed-time fillstart))
+    (if (and (test loop-state 'maxitems) (test loop-state 'queued)
+	     (>= (get loop-state 'queued) (get loop-state 'maxitems)))
+	(begin (set-fifo-readonly?! fifo #t)
+	       (unless (test loop-state 'stopval)
+		 (store! loop-state 'stopping (timestamp))
+		 (store! loop-state 'stopval (cons 'maxitems (get loop-state 'maxitems)))))
+	(let* ((fillsize (get-fill-size loop-state opts fifo))
+	       (need fillsize))
+	  (while (and (> need 0) (not (test loop-state '{stopped stopping})))
+	    (let ((items (if (= (procedure-arity fillfn) 2)
+			     (fillfn (if fillsize (min fillsize need)) loop-state)
+			     (fillfn (if fillsize (min fillsize need)))))
+		  (count 1))
+	      (debug%watch "engine/fill!" fifo need "got" (|| items))
+	      (when (and (exists? items) items)
+		(cond ((ambiguous? items)
+		       (logdetail |EngineFill|
+			 "Adding " ($count (|| items) "item") " to queue " fifo " using " fillfn)
+		       (fifo/push/all! fifo (choice->vector items))
+		       (set! count (|| items)))
+		      ((vector? items)
+		       (logdetail |EngineFill|
+			 "Adding " ($count (length items) "item") " to queue " fifo " using " fillfn)
+		       (fifo/push/n! fifo items)
+		       (set! count (length items)))
+		      (else (logdetail |EngineFill|
+			      "Adding one item to queue " fifo " using " fillfn)
+			    (fifo/push! fifo items [block #f])))
+		(set! added (+ added count))
+		(set! need (- need count)))))
+	  (bump-fillstate! loop-state (elapsed-time fillstart) (- fillsize need))
+	  (logdebug |FinishedFill|
+	    "Thread " (threadid) " finished adding " 
+	    ($count added (try (get loop-state 'count-term) "item"))
+	    " in " (secs->string (elapsed-time fillstart))
+	    " to " fifo))))
   (drop! loop-state 'fillthread)
   (store! loop-state 'filldone (elapsed-time)))
 
@@ -853,12 +876,19 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(begin
 	  (store! loop-state 'fillthread (threadid))
 	  (store! loop-state 'fillstart (elapsed-time))
-	  (lognotice |StartFill| "Thread " (threadid) " is now filling the fifo " (get loop-state 'fifo))
+	  (logdetail |StartFill| "Thread " (threadid) " is now filling the fifo " (get loop-state 'fifo))
 	  #t))))
 
-(define-init bump-filltime!
-  (slambda (loop-state secs)
-    (store! loop-state 'filltime (+ secs (try (get loop-state 'filltime) 0)))))
+(define (get-fill-size loop-state opts fifo)
+  (smallest {(- (fifo-size fifo) (fifo/load fifo))
+	     (getopt opts 'fillsize {})
+	     (tryif (test loop-state 'maxitems)
+	       (max (- (get loop-state 'maxitems) (try (get loop-state 'queued) 0)) 0))}))
+
+(define-init bump-fillstate!
+  (slambda (loop-state secs queued)
+    (store! loop-state 'filltime (+ secs (try (get loop-state 'filltime) 0)))
+    (store! loop-state 'queued (+ queued (try (get loop-state 'queued) 0)))))
 
 ;;; Checkpointing
 
@@ -922,7 +952,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 (define (engine/checkpoint loop-state (fifo) (force #f))
   (default! fifo (get loop-state 'fifo))
-  (let ((%loglevel (getopt loop-state '%loglevel %loglevel))
+  (let ((%loglevel (getopt loop-state 'loglevel %loglevel))
 	(state (and (test loop-state 'state) (get loop-state 'state)))
 	(opts (get loop-state 'opts))
 	(started (elapsed-time))
