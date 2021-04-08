@@ -531,13 +531,13 @@ static lispval until_opcode(lispval expr,kno_lexenv env,kno_stack stack)
 
 /* Assignment */
 
-#define CURRENT_VALUEP(x)				    \
+#define ACTUAL_VALUEP(x)				    \
   (! ((cur == KNO_DEFAULT_VALUE) || (cur == KNO_UNBOUND) || \
       (cur == VOID) || (cur == KNO_NULL)))
 
 static lispval combine_values(lispval combiner,lispval cur,lispval value)
 {
-  int use_cur=((KNO_ABORTP(cur)) || (CURRENT_VALUEP(cur)));
+  int use_cur=((KNO_ABORTP(cur)) || (ACTUAL_VALUEP(cur)));
   switch (combiner) {
   case VOID: case KNO_FALSE:
     return value;
@@ -564,7 +564,9 @@ static lispval combine_values(lispval combiner,lispval cur,lispval value)
 static lispval assignop(kno_stack stack,kno_lexenv env,
 			lispval var,lispval expr,lispval combiner)
 {
-  if (KNO_LEXREFP(var)) {
+  lispval value = kno_eval(expr,env,stack);
+  if (KNO_ABORTED(value)) return value;
+  else if (KNO_LEXREFP(var)) {
     int up = KNO_LEXREF_UP(var);
     int across = KNO_LEXREF_ACROSS(var);
     kno_lexenv scan = ( (env->env_copy) ? (env->env_copy) : (env) );
@@ -586,50 +588,31 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	    kno_incref_vec(map->table_values,map_len);
 	    KNO_XTABLE_SET_BIT(map,KNO_SCHEMAP_STACK_VALUES,0);}
 	  if ( ( (combiner == KNO_TRUE) || (combiner == KNO_DEFAULT) ) &&
-	       ( (CURRENT_VALUEP(cur)) || (KNO_ABORTED(cur)) ) ) {
+	       ( (ACTUAL_VALUEP(cur)) || (KNO_ABORTED(cur)) ) ) {
 	    if (KNO_ABORTED(cur))
 	      return cur;
 	    else return VOID;}
-	  else {
-	    lispval value = kno_eval(expr,env,stack);
-	    /* This gnarly bit of code handles the case where
-	       evaluating 'expr' changed the environment structure,
-	       by, for instance, creating a lambda which made a
-	       dynamic environment copy. If so, we need to change the
-	       value of 'values' so that we store any resulting values
-	       in the right place. */
-	    if ( (scan->env_copy) && (scan->env_copy != scan) ) {
-	      lispval new_bindings = scan->env_copy->env_bindings;
-	      if ( (new_bindings != bindings) &&
-		   (USUALLY(SCHEMAPP(bindings))) ) {
-		struct KNO_SCHEMAP *new_map =
-		  (struct KNO_SCHEMAP *) new_bindings;
-		values = new_map->table_values;
-		cur = values[across];}}
-	    if (KNO_ABORTED(value))
-	      return value;
-	    else if ( (combiner == KNO_FALSE) || (combiner == VOID) ) {
-	      /* Replace the currnet value */
+	  else if ( (combiner == KNO_FALSE) || (combiner == VOID) ) {
+	    /* Replace the currnet value */
+	    values[across]=value;
+	    kno_decref(cur);}
+	  else if (combiner == KNO_UNION_OPCODE) {
+	    if (KNO_ABORTED(value)) return value;
+	    if ((cur==VOID)||(cur==KNO_UNBOUND)||(cur==EMPTY))
 	      values[across]=value;
-	      kno_decref(cur);}
-	    else if (combiner == KNO_UNION_OPCODE) {
-	      if (KNO_ABORTED(value)) return value;
-	      if ((cur==VOID)||(cur==KNO_UNBOUND)||(cur==EMPTY))
-		values[across]=value;
-	      else {CHOICE_ADD(values[across],value);}}
-	    else {
-	      lispval newv=combine_values(combiner,cur,value);
-	      if (cur != newv) {
-		values[across]=newv;
-		kno_decref(cur);
-		if (newv != value) kno_decref(value);}
-	      else kno_decref(value);}
-	    return VOID;}}}}
+	    else {CHOICE_ADD(values[across],value);}}
+	  else {
+	    lispval newv=combine_values(combiner,cur,value);
+	    if (cur != newv) {
+	      values[across]=newv;
+	      kno_decref(cur);
+	      if (newv != value) kno_decref(value);}
+	    else kno_decref(value);}
+	  return VOID;}}}
     u8_string lexref=u8_mkstring("up%d/across%d",up,across);
     lispval env_copy=(lispval)kno_copy_env(env);
     return kno_err("BadLexref","ASSIGN_OPCODE",lexref,env_copy);}
-  else if ((PAIRP(var)) &&
-	   (KNO_SYMBOLP(KNO_CAR(var))) &&
+  else if ((PAIRP(var)) && (KNO_SYMBOLP(KNO_CAR(var))) &&
 	   (TABLEP(KNO_CDR(var)))) {
     int rv=-1;
     lispval table=KNO_CDR(var), sym=KNO_CAR(var);
@@ -687,6 +670,10 @@ static lispval bindop(lispval op,
     else if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
+    if (QCHOICEP(val)) {
+      lispval choice_val = KNO_QCHOICEVAL(val);
+      kno_incref(choice_val); kno_decref(val);
+      val = choice_val;}
     values[i++]	 = val;}
   lispval result = eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);
@@ -718,6 +705,10 @@ static lispval vector_bindop(lispval op,
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
+    if (QCHOICEP(val)) {
+      lispval choice_val = KNO_QCHOICEVAL(val);
+      kno_incref(choice_val); kno_decref(val);
+      val = choice_val;}
     values[i++]=val;}
   lispval result = eval_body(body,bound,bind_stack,"#VECTOR_BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);

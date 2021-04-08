@@ -47,6 +47,7 @@ kno_lexenv kno_dynamic_lexenv(kno_lexenv env)
       (kno_incref(env->env_bindings));
     KNO_LOCK_PTR((void *)env);
     if (env->env_copy) {
+      /* Someone else copied env behind our backs. Use its copy. */
       kno_decref(bindings);
       kno_decref((lispval)parent);
       KNO_UNLOCK_PTR((void *)env);
