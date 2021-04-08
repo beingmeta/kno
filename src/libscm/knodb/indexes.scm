@@ -261,7 +261,7 @@
 			  maxthresh ,(getopt opts 'maxthresh)
 			  rarethresh ,(and (getopt opts 'rare) (getopt opts 'rarethresh))
 			  minthresh ,(getopt opts 'minthresh)]
-		   count-term "keys"
+		   count-term "key"
 		   onerror {stopall signal}
 		   counters {copied rarekeys values}
 		   logcontext ,(stringout "Copying " (if (index? in) (index-source in) in))

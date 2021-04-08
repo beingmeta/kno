@@ -82,7 +82,7 @@
   (hashindex/mapkeys key-counter index
 		    `#[batchsize 1
 		       loop #[index ,index counts ,counts indexes ,indexes rare ,rare]
-		       count-term "spans"
+		       count-term "span"
 		       counters {keys rarekeys}
 		       logfns ,engine/log
 		       logfreq 45])
@@ -212,7 +212,7 @@
 		rarethresh ,(and rare (getopt opts 'maxthresh))
 		minthresh ,(getopt opts 'minthresh)]
 	 logcontext ,(stringout "Copying " (index-source index))
-	 count-term ,(if span "buckets" "bucket spans")
+	 count-term ,(if span "bucket span" "bucket")
 	 onerror {stopall signal}
 	 counters {keys rarekeys values}
 	 logrates {keys rarekeys values}
