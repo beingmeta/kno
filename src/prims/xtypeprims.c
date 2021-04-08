@@ -329,6 +329,8 @@ static lispval write_xtype_at_prim(lispval object,lispval stream,lispval pos,
   else return KNO_INT(len);
 }
 
+/* File initializations */
+
 static int scheme_xtypeprims_initialized = 0;
 
 KNO_EXPORT void kno_init_xtypeprims_c()

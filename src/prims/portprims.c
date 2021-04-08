@@ -34,6 +34,7 @@
 KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
 
 static lispval refs_symbol, nrefs_symbol, lookup_symbol, embed_symbol;
+static lispval rawxtype_symbol;
 
 u8_condition kno_UnknownEncoding=_("Unknown encoding");
 
@@ -239,6 +240,44 @@ static lispval encode_xtype(lispval object,lispval opts)
       kno_close_outbuf(&out);
       return packet;}}
   else return compress_xtype(compression,&out);
+}
+
+DEFC_PRIM("raw-xtype",raw_xtype,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "returns a packet containing the XType "
+	  "representation of object. *bufsize*, if provided, "
+	  "specifies the initial size of the output buffer "
+	  "to be reserved.",
+	  {"object",kno_any_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_FALSE})
+static lispval raw_xtype(lispval object,lispval opts)
+{
+  size_t size = getposfixopt(opts,KNOSYM_BUFSIZE,8000);
+  struct KNO_OUTBUF out = { 0 };
+  KNO_INIT_BYTE_OUTPUT(&out,size);
+  lispval refs_arg = kno_getxrefs(opts);
+  struct XTYPE_REFS *refs = (KNO_RAW_TYPEP(refs_arg,kno_xtrefs_typetag)) ?
+    (KNO_RAWPTR_VALUE(refs_arg)) : (NULL);
+  ssize_t bytes = kno_write_xtype(&out,object,refs);
+  if (bytes<0) {
+    kno_decref(refs_arg);
+    return KNO_ERROR;}
+  kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);
+  lispval packet = KNO_VOID;
+  if (compression == KNO_NOCOMPRESS) {
+    if ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER )
+      packet = kno_init_packet(NULL,bytes,out.buffer);
+    else {
+      packet = kno_make_packet(NULL,out.bufwrite-out.buffer,out.buffer);
+      kno_close_outbuf(&out);}}
+  else packet = compress_xtype(compression,&out);
+  lispval result = (refs) ?
+    (kno_init_compound(NULL,rawxtype_symbol,0,2,packet,refs_arg)) :
+    (kno_init_compound(NULL,rawxtype_symbol,0,1,packet));
+  if (KNO_ABORTED(result)) {
+    kno_decref(packet);
+    kno_decref(refs_arg);}
+  return result;
 }
 
 static lispval compress_xtype(kno_compress_type compression,
@@ -1797,6 +1836,8 @@ static void init_portprims_symbols()
   nrefs_symbol = kno_intern("nrefs");
   lookup_symbol = kno_intern("lookup");
   embed_symbol = kno_intern("embed");
+  rawxtype_symbol = kno_intern("%rawxtype");
+
 }
 
 /* The init function */
@@ -1840,13 +1881,6 @@ KNO_EXPORT void kno_init_portprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
   KNO_LINK_CPRIMN("pprinter",lisp_pprinter,kno_textio_module);
   KNO_LINK_CPRIMN("pprint",lisp_pprint,kno_textio_module);
   KNO_LINK_CPRIMN("$pprint",lisp_4pprint,kno_textio_module);
@@ -1870,19 +1904,29 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("portid",portid_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("open-input-string",open_input_string,1,kno_textio_module);
   KNO_LINK_CPRIM("open-output-string",open_output_string,0,kno_textio_module);
-  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_textio_module);
-  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
-  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
-  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
-  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_textio_module);
   KNO_LINK_CPRIM("eof-object?",eofp,1,kno_textio_module);
   KNO_LINK_CPRIM("port?",portp,1,kno_textio_module);
   KNO_LINK_CPRIM("input-port?",input_portp,1,kno_textio_module);
   KNO_LINK_CPRIM("output-port?",output_portp,1,kno_textio_module);
 
+  KNO_LINK_CPRIM("dtype->packet",lisp2packet,2,kno_textio_module);
+  KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
+  KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("raw-xtype",raw_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
+  KNO_LINK_CPRIM("xtype/refs/count",xtype_refs_count,1,kno_textio_module);
+
+  KNO_LINK_CPRIM("packet->base16",to_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("base16->packet",from_base16_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("->base64",any_to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("packet->base64",to_base64_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("base64->packet",from_base64_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("listdata",lisp_listdata,3,kno_textio_module);
+
+  KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
   KNO_LINK_CPRIM("compress",compress_prim,2,kno_textio_module);
   KNO_LINK_CPRIM("uncompress",uncompress_prim,3,kno_textio_module);
 
