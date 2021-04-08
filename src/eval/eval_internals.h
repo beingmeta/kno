@@ -152,6 +152,15 @@ INLINE_DEF U8_MAYBE_UNUSED lispval get_body(lispval expr,int i)
   return expr;
 }
 
+static U8_MAYBE_UNUSED lispval unwrap_qchoice(lispval val)
+{
+  if (QCHOICEP(val)) {
+    lispval choice_val = KNO_QCHOICEVAL(val);
+    kno_incref(choice_val); kno_decref(val);
+    return choice_val;}
+  else return val;
+}
+
 INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
 			     kno_stack stack,
 			     int tail)

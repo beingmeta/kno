@@ -565,6 +565,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 			lispval var,lispval expr,lispval combiner)
 {
   lispval value = kno_eval(expr,env,stack);
+  if (KNO_QCHOICEP(value)) value = unwrap_qchoice(value);
   if (KNO_ABORTED(value)) return value;
   else if (KNO_LEXREFP(var)) {
     int up = KNO_LEXREF_UP(var);
@@ -616,10 +617,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	   (TABLEP(KNO_CDR(var)))) {
     int rv=-1;
     lispval table=KNO_CDR(var), sym=KNO_CAR(var);
-    lispval value = kno_eval(expr,env,stack);
-    if (KNO_ABORTED(value))
-      return value;
-    else if ( (combiner == KNO_FALSE) || (combiner == VOID) ) {
+    if ( (combiner == KNO_FALSE) || (combiner == VOID) ) {
       if (KNO_LEXENVP(table))
 	rv=kno_assign_value(sym,value,(kno_lexenv)table);
       else rv=kno_store(table,sym,value);}
@@ -670,10 +668,7 @@ static lispval bindop(lispval op,
     else if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
-    if (QCHOICEP(val)) {
-      lispval choice_val = KNO_QCHOICEVAL(val);
-      kno_incref(choice_val); kno_decref(val);
-      val = choice_val;}
+    if (QCHOICEP(val)) val = unwrap_qchoice(val); 
     values[i++]	 = val;}
   lispval result = eval_body(body,bound,bind_stack,"#BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);
@@ -705,10 +700,7 @@ static lispval vector_bindop(lispval op,
     if ( (env_copy == NULL) && (bound->env_copy) ) {
       env_copy=bound->env_copy; bound=env_copy;
       values=((kno_schemap)(bound->env_bindings))->table_values;}
-    if (QCHOICEP(val)) {
-      lispval choice_val = KNO_QCHOICEVAL(val);
-      kno_incref(choice_val); kno_decref(val);
-      val = choice_val;}
+    if (QCHOICEP(val)) val = unwrap_qchoice(val);
     values[i++]=val;}
   lispval result = eval_body(body,bound,bind_stack,"#VECTOR_BINDOP",NULL,tail);
   kno_pop_stack(bind_stack);
@@ -1192,7 +1184,9 @@ static lispval d1_call(lispval opcode,lispval arg1)
 	break;}
       else {CHOICE_ADD(results,r);}}
     return results;}
-  else return d1_call_base(opcode,arg1);
+  else {
+    if (QCHOICEP(arg1)) arg1=KNO_QCHOICEVAL(arg1);
+    return d1_call_base(opcode,arg1);}
 }
 
 static lispval d2_call_base(lispval opcode,lispval arg1,lispval arg2)
@@ -1242,8 +1236,11 @@ static lispval d2_call(lispval opcode,lispval arg1,lispval arg2)
 	else {CHOICE_ADD(results,r);}}
       if (KNO_ABORTED(results)) break;}
     return results;}
-  else return d2_call_base(opcode,arg1,arg2);}
-
+  else {
+    if (QCHOICEP(arg1)) arg1=KNO_QCHOICEVAL(arg1);
+    if (QCHOICEP(arg2)) arg1=KNO_QCHOICEVAL(arg2);
+    return d2_call_base(opcode,arg1,arg2);}
+}
 
 /* Numeric ops */
 
