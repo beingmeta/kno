@@ -175,6 +175,7 @@ KNO_EXPORT void kno_recycle_xrefs(xtype_refs refs);
 
 /* Converting objects into xrefs */
 KNO_EXPORT lispval kno_wrap_xrefs(struct XTYPE_REFS *refs);
+KNO_EXPORT lispval kno_copy_xrefs(struct XTYPE_REFS *refs);
 KNO_EXPORT lispval kno_getxrefs(lispval arg);
 
 /* Returning error codes */
