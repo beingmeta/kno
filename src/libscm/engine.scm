@@ -735,6 +735,14 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		  ($count count count-term)
 		  (when (overlaps? counter logrates)
 		    (printout " (" ($showrate rate) " " count-term "/sec)"))))))))
+    (when (and (test loop-state 'fill)  (test loop-state 'filltime))
+      (let ((filltime (get loop-state 'filltime))
+	    (clocktime (elapsed-time (get loop-state 'start)))
+	    (queued (get loop-state 'queued))
+	    (count-term (try (get loop-state 'count-term) "item")))
+	(lognotice |Engine/Fill|
+	  ($count queued count-term) " have been queued, taking " (secs->string filltime) 
+	  " or " (show% filltime clocktime) " of total elapsed time (" (secs->string clocktime) ")")))
     (when loopmax
       (let* ((togo (- loopmax count))
 	     (timeleft (/~ togo rate))
