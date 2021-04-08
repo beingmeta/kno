@@ -49,7 +49,7 @@ lispval kno_xtrefs_typetag;
 
 static lispval objid_symbol, mime_symbol, encrypted_symbol,
   compressed_symbol, error_symbol, mime_symbol, knopaque_symbol,
-  xrefs_symbol, rawxtype_symbol;
+  xrefs_symbol;
 
 kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 
@@ -1112,7 +1112,7 @@ KNO_EXPORT ssize_t kno_write_tagged_xtype
 static ssize_t write_compound
 (kno_outbuf out,lispval tag,struct KNO_COMPOUND *cvec,xtype_refs refs)
 {
-  if (tag == rawxtype_symbol) {
+  if (tag == KNOSYM_XTYPE) {
     if ( (cvec->compound_length>=1) &&
 	 (KNO_PACKETP(KNO_COMPOUND_VREF(cvec,0))) ) {
       lispval packet = KNO_COMPOUND_VREF(cvec,0);
@@ -1393,10 +1393,11 @@ KNO_EXPORT lispval kno_copy_xrefs(struct XTYPE_REFS *refs)
   copy->xt_refs_flags = copy_flags;
   copy->xt_refs_max=copy->xt_refs_len=n_refs;
   copy->xt_refs=copycodes;
-  if (copy->xt_lookup) {
+  if (refs->xt_lookup) {
     kno_hashtable lookup = refs->xt_lookup;
-    if (KNO_MALLOCD_CONSP(lookup))
+    if (KNO_MALLOCD_CONSP(lookup)) {
       kno_incref(((lispval)lookup));
+      copy->xt_lookup=lookup;}
     else {
       kno_hashtable lookup_copy = kno_copy_hashtable(NULL,lookup,1);
       if (!(lookup_copy)) {
@@ -1486,7 +1487,6 @@ KNO_EXPORT void kno_init_xtypes_c()
   compressed_symbol = kno_intern("%compressed");
   error_symbol = kno_intern("%error");
   knopaque_symbol = kno_intern("_knopaque");
-  rawxtype_symbol = kno_intern("%rawxtype");
 
   xrefs_symbol = kno_intern("xrefs");
 

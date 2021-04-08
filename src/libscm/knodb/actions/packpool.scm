@@ -111,18 +111,21 @@
 	((config 'ncycles) (/ n (config 'ncycles)))
 	(else 100000)))
 
-(define (copy-block queuefn old new (msg #f))
+(define (copy-block queuefn old new (xopts #f) (report #f))
   (let ((oids (queuefn))
 	(started (elapsed-time)))
     (while (and (exists? oids) oids)
       (let* ((oidvec (choice->vector oids))
-	     (valvec (pool/fetchn old oidvec)))
-	(pool/storen! new oidvec valvec))
-      (when msg (msg (choice-size oids) started))
+	     (valvec (pool/fetchn old oidvec))
+	     (storevec (if xopts
+			   (forseq (val valvec) (raw-xtype val xopts))
+			   valvec)))
+	(pool/storen! new oidvec storevec))
+      (when report (report (choice-size oids) started))
       (set! oids (queuefn))
       (set! started (elapsed-time)))))
 
-(define (copy-oids old new)
+(define (copy-oids old new (opts #f))
   (loginfo |CopyOIDS|
       "Copying OIDs" (if (pool-label old)
 			 (append " for " (pool-label old)))
@@ -138,6 +141,7 @@
 	 (loadsize (config 'loadsize 100000))
 	 (blocksize (config 'blocksize (quotient loadsize threadcount)))
 	 (noids (choice-size oids))
+	 (compression (dbctl new 'compression))
 	 (nblocks (1+ (quotient noids blocksize)))
 	 (blocks-done 0)
 	 (oids-done 0)
@@ -161,21 +165,23 @@
 	   (slambda (count start)
 	     (set! blocks-done (1+ blocks-done))
 	     (set! oids-done (+ oids-done count))
-	     (dbg count)
 	     (loginfo |FinishedOIDs|
 	       "Finished a block of " ($num count) " OIDs "
 	       "in " (secs->string (elapsed-time start)))
 	     (lognotice |CopyOIDs|
 	       "Copied " ($num blocks-done) "/" ($num nblocks) " blocks, "
 	       ($num oids-done) " OIDs (" (show% oids-done noids) ") "
-	       "after " (secs->string (elapsed-time started))))))
+	       "after " (secs->string (elapsed-time started)))))
+	  (xopts (and (eq? (poolctl new 'type) 'kpool)
+		      [xrefs (poolctl new '%xrefs) 
+		       compression (getopt opts 'compresion compression)])))
       (if threadcount
 	  (let ((threads {}))
 	    (dotimes (i threadcount)
 	      (set+! threads 
-		(thread/call copy-block pop-queue old new report-progress)))
+		(thread/call copy-block pop-queue old new xopts report-progress)))
 	    (thread/wait threads))
-	  (copy-block pop-queue old new report-progress)))))
+	  (copy-block pop-queue old new xopts report-progress)))))
 
 (define (existing-xrefs pool (opts #f))
   (let ((refs (poolctl pool 'xrefs))
@@ -233,7 +239,7 @@
       (and (file-directory? (dirname file)) 
 	   (file-writable? (dirname file)))))
 
-(define (repack-pool from to)
+(define (repack-pool from to (opts #f))
   (let* ((base (basename from))
 	 (inplace (equal? from to))
 	 (tmpfile (config 'TMPFILE (CONFIG 'TEMPFILE (glom to ".part"))))
@@ -261,12 +267,12 @@
 	(when inplace
 	  (printout " with backup saved as " bakfile)))
       (let ((new (make-new-pool tmpfile old)))
-	(copy-oids old new)
+	(copy-oids old new opts)
 	(commit new)))
     (when inplace (domove from bakfile))
     (domove tmpfile to)))
 
-(define (copy-pool from to)
+(define (copy-pool from to (opts #f))
   (let* ((base (basename from)))
     (config! 'appid (glom "copy(" (basename to) ")"))
     (when (not (writable? to))
@@ -279,7 +285,7 @@
 	"Copying " ($num (pool-load old)) "/" ($num (pool-capacity old)) " "
 	"OIDs " (if (pool-label old) (glom "for " (pool-label old)))
 	" to " to)
-      (copy-oids old new)
+      (copy-oids old new opts)
       (commit new))))
 
 ;;; Exports
@@ -306,7 +312,7 @@
 	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
 	 (config! 'appid (glom "copy(" (basename from) ")"))
 	 (logwarn |Copying| "Copying OIDs to existing pool " (write to))
-	 (copy-pool from to))
+	 (copy-pool from to #f))
 	((and (file-exists? to) (not (equal? from to)) (not overwrite))
 	 (logwarn |FileExists| "Not overwriting " (write to))
 	 (exit))
@@ -314,7 +320,7 @@
 	 (logwarn |MissingInput| "Can't locate source " (write from))
 	 (exit))
 	(else (config! 'appid (glom "repack(" (basename from) ")"))
-	      (repack-pool (abspath from) (abspath to)))))
+	      (repack-pool (abspath from) (abspath to) #f))))
 
 (define (default-configs)
   (config! 'cachelevel 2)

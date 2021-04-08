@@ -1262,7 +1262,8 @@ static ssize_t kpool_write_value(kno_kpool p,lispval value,
   /* Reset the tmpout stream */
   tmpout->bufwrite = tmpout->buffer;
   kno_write_xtype(tmpout,value,&(p->pool_xrefs));
-  if (p->pool_compression) {
+  if ( (p->pool_compression) &&
+       (!(KNO_RAW_TYPEP(value,KNOSYM_XTYPE))) ) {
     size_t source_length = tmpout->bufwrite-tmpout->buffer;
     size_t compressed_length = 0;
     unsigned char *compressed =
