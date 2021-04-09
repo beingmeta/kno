@@ -247,10 +247,10 @@
 	      (set! i (1+ i))))))
     (index-merge! output headout)
     (when tailout (index-merge! tail tailout))
-    (table-increment! batch-state 'copied copy-count)
-    (table-increment! batch-state 'dropped drop-count)
-    (table-increment! batch-state 'topped over-count)
-    (table-increment! batch-state 'tailed tail-count)
+    (table-increment! batch-state 'keys copy-count)
+    (table-increment! batch-state 'drops drop-count)
+    (table-increment! batch-state 'tops over-count)
+    (table-increment! batch-state 'tails tail-count)
     (table-increment! batch-state 'values value-count)))
 
 (define (index/copy-keys! in out (opts #f))
@@ -260,10 +260,10 @@
 	 (using-counts (or (exists? tail)
 			   (testopt opts '{maxcount mincount tailcount})))
 	 (counters
-	  (vector 'copied 'values
-		  (and (exists? tail) 'tailed)
-		  (and (testopt opts '{mincount maxcount}) 'dropped)
-		  (and (testopt opts 'maxcount) 'topped))))
+	  (vector 'keys 'values
+		  (and (exists? tail) 'tails)
+		  (and (testopt opts '{mincount maxcount}) 'drops)
+		  (and (testopt opts 'maxcount) 'tops))))
     (lognotice |Copying|
       (choice-size keys) " keys"
       " from " (index-source in) 
