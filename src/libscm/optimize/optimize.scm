@@ -1523,8 +1523,7 @@
 		((overlaps? handler set!)
 		 `(#OP_ASSIGN ,loc #f . ,optval))
 		((overlaps? handler local)
-		 (if (and (pair? bound)
-			  (position var (car bound)))
+		 (if (and (pair? bound) (position var (car bound)))
 		     `(#OP_ASSIGN ,loc #f . ,optval)
 		     (begin
 		       (codewarning (cons* '|NotLocal| var expr bound))
