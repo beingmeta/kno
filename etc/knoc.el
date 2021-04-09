@@ -40,7 +40,7 @@
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
     "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
-    "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro\\>"
+    "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro>\\"
     "\\<try\\>" "\\<tryif\\>" "\\<with-log-context\\>"
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\" "\\<set+!>\\"
     "\\<find-frames\\>" "\\<pick\\>" "\\<reject\\>"
@@ -53,7 +53,7 @@
     "\\while\\" "\\until\\" "\\not\\"
     "\\union\\" "\\intersection\\" "\\difference\\"
     "\\pick\\" "\\reject\\"
-    "\\<error>\\" "\\<irritant>\\"))
+    "\\<error>\\" "\\<irritant>\\" "\\<*fn>\\"))
 
 (defvar calculate-lisp-indent-last-sexp)
 
@@ -297,6 +297,7 @@
 (put 'index-frame 'scheme-indent-function 2)
 
 (put '%watch 'scheme-indent-function 1)
+(put '%watchrefs 'scheme-indent-function 2)
 (put 'deluge%watch 'scheme-indent-function 1)
 (put 'detail%watch 'scheme-indent-function 1)
 (put 'debug%watch 'scheme-indent-function 1)

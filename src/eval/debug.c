@@ -282,11 +282,11 @@ static lispval watchptr_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return value;
 }
 
-DEFC_EVALFN("%watchcons",watchcons_evalfn,KNO_EVALFN_DEFAULTS,
+DEFC_EVALFN("%watchrefs",watchrefs_evalfn,KNO_EVALFN_DEFAULTS,
 	    "evaluates *exprs...* "
 	    "reporting any changes to the reference count data for the "
 	    "result of evaluating *ptrval*.");
-static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval watchrefs_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval val_expr = kno_get_arg(expr,1);
   lispval name_spec = kno_get_arg(expr,2);
@@ -297,23 +297,23 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_CONSP(value)) {
     int refcount = KNO_CONS_REFCOUNT((kno_cons)value);
     if (refcount == 0)
-      u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
+      u8_log(U8_LOGWARN,"%WATCHREFS","Not a cons: %q",value);
     else {
-      lispval result = kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
+      lispval result = kno_eval_body(body,env,_stack,"%WATCHREFS",label,0);
       int after = KNO_CONS_REFCOUNT((kno_cons)value);
       if (refcount != after) {
 	if (after == 0)
-	  u8_log(U8_LOGWARN,"%WATCHCONS",
+	  u8_log(U8_LOGWARN,"%WATCHREFS",
 		 "STATIC %d => 0%s%s %q\n    %q",
 		 refcount-1,U8IF(label," "),U8S(label),
 		 value,val_expr);
 	else if (after == 0)
-	  u8_log(U8_LOGWARN,"%WATCHCONS",
+	  u8_log(U8_LOGWARN,"%WATCHREFS",
 		 "FREED %d => 0%s%s %q=>\n    %q",
 		 refcount-1,
 		 U8IF(label," "),U8S(label),
 		 value,val_expr);
-	else u8_log(U8_LOGWARN,"%WATCHCONS",
+	else u8_log(U8_LOGWARN,"%WATCHREFS",
 		    "%s%d (%d => %d)%s%s %q\n	 %q",
 		    (after>refcount)?("+"):(""),
 		    (after-refcount),
@@ -325,8 +325,8 @@ static lispval watchcons_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       else {
 	kno_decref(value);
 	return result;}}}
-  else u8_log(U8_LOGWARN,"%WATCHCONS","Not a cons: %q",value);
-  return kno_eval_body(body,env,_stack,"%WATCHCONS",label,0);
+  else u8_log(U8_LOGWARN,"%WATCHREFS","Not a cons: %q",value);
+  return kno_eval_body(body,env,_stack,"%WATCHREFS",label,0);
 }
 
 DEFC_PRIM("%watchptrval",watchptr_prim,
@@ -1758,7 +1758,7 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,profiled_eval_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watchcall_plus_evalfn);
-  KNO_LINK_EVALFN(kno_scheme_module,watchcons_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,watchrefs_evalfn);
 
   KNO_LINK_EVALFN(kno_scheme_module,watched_cond_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,watched_try_evalfn);

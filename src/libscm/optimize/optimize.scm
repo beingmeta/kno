@@ -1885,6 +1885,14 @@
   |#
   expr)
 
+(define (optimize-watchrefs fcn expr env bound opts)
+  (let ((possible-label (get-arg expr 2)))
+    (if (or (string? possible-label) (symbol? possible-label))
+	`(#OP_EVALFN ,%watchrefs %watchrefs ,(get-arg expr 1) ,(get-arg expr 2)
+		     ,@(optimize-exprs (slice expr 3) env bound opts))
+	`(#OP_EVALFN ,%watchrefs %watchrefs ,(get-arg expr 1)
+		     ,@(optimize-exprs (slice expr 2) env bound opts)))))
+  
 (define (optimize-watch-clauses clauses env bound opts)
   (let ((optimized '())
 	(scan clauses))
@@ -1905,6 +1913,7 @@
 
 (add! special-form-optimizers %watch optimize-watch)
 (add! special-form-optimizers %watchptr optimize-block)
+(add! special-form-optimizers %watchrefs optimize-watchrefs)
 
 ;;; Declare them
 
