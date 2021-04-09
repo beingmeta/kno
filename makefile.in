@@ -1036,6 +1036,20 @@ SCHEMETAGS: ${SCHEME_MODULES} makefile
 	@find src/brico -name "*.scm" -type f | xargs etags -o $@ -a
 	@find tests -name "*.scm" -type f | xargs etags -o $@ -a
 
+LIBSCMTAGS: src/libscm/*.scm src/libscm/*/*.scm makefile
+	@echo Building LIBSCMTAGS file
+	@rm -f LIBSCMTAGS
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names)
+	@find src/libscm -name "*.scm" -type f | xargs etags -o $@ -a
+
+KNODBTAGS: src/libscm/knodb/*.scm src/libscm/knodb/*/*.scm makefile
+	@echo Building KNODBTAGS file
+	@rm -f KNODBTAGS
+	@# We skip module.scm files because they are always links
+	@#  to other files (with more distinctive names)
+	@find src/libscm/knodb -name "*.scm" -type f | xargs etags -o $@ -a
+
 alltags: TAGS CORETAGS CTAGS SCHEMETAGS
 freshtags:
 	rm -f TAGS CORETAGS CTAGS SCHEMETAGS
