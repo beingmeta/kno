@@ -772,7 +772,7 @@
 				    (get-module headvalue)))))))
 	     (annotate
 	      (try (optimizer headvalue expr env bound opts)
-		   (cons* #OP_EVALFN (->evalfcn headvalue) expr))
+		   (cons* #OP_EVALFN (->evalfn headvalue) expr))
 	      expr opts)))
 	  ((exists macro? headvalue)
 	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
@@ -1394,7 +1394,7 @@
 	 (count-var (or (and (pair? bindspec) (get-arg bindspec 2 #f)) '|#|))
 	 (whole-var (or (and (pair? bindspec) (get-arg bindspec 3 #f)) '|@|))
 	 (inner (cons (list item-var count-var whole-var) bound)))
-    `(#OP_EVALFN ,(-.evalfn handler) ,(car expr)
+    `(#OP_EVALFN ,(->evalfn handler) ,(car expr)
 		 (,item-var ,(optimize val-expr env bound opts) ,count-var ,whole-var)
 		 . ,(optimize-body body env inner opts))))
 (define (optimize-do2expression handler expr env bound opts)
@@ -1538,7 +1538,7 @@
 			 (logwarn |NotLocal|
 			   "The variable " var " is not defined in the scope for "
 			   expr ", converting to set!"))
-		       `(#OP_EVALFN ,(-.evalfn set!) 'set! ,var ,optval))))
+		       `(#OP_EVALFN ,(->evalfn set!) 'set! ,var ,optval))))
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
