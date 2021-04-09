@@ -118,7 +118,7 @@
       (let* ((oidvec (choice->vector oids))
 	     (valvec (pool/fetchn old oidvec))
 	     (storevec (if xopts
-			   (forseq (val valvec) (raw-xtype val xopts))
+			   (forseq (val valvec) (precode-xtype val xopts))
 			   valvec)))
 	(pool/storen! new oidvec storevec))
       (when report (report (choice-size oids) started))

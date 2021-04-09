@@ -241,15 +241,14 @@ static lispval encode_xtype(lispval object,lispval opts)
   else return compress_xtype(compression,&out);
 }
 
-DEFC_PRIM("raw-xtype",raw_xtype,
+DEFC_PRIM("precode-xtype",precode_xtype,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "returns a packet containing the XType "
-	  "representation of object. *bufsize*, if provided, "
-	  "specifies the initial size of the output buffer "
-	  "to be reserved.",
+	  "returns a 'precoded' xtype encoded with a particular "
+	  "set of XREFs. Writing out this XTYPE just writes the "
+	  "precoded bytes, which can be much more efficient.",
 	  {"object",kno_any_type,KNO_VOID},
 	  {"opts",kno_any_type,KNO_FALSE})
-static lispval raw_xtype(lispval object,lispval opts)
+static lispval precode_xtype(lispval object,lispval opts)
 {
   size_t size = getposfixopt(opts,KNOSYM_BUFSIZE,8000);
   struct KNO_OUTBUF out = { 0 };
@@ -263,13 +262,14 @@ static lispval raw_xtype(lispval object,lispval opts)
     return KNO_ERROR;}
   kno_compress_type compression = kno_compression_type(opts,KNO_NOCOMPRESS);
   lispval packet = KNO_VOID;
-  if (compression == KNO_NOCOMPRESS) {
-    if ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER )
-      packet = kno_init_packet(NULL,bytes,out.buffer);
-    else {
+  if ( (compression == KNO_NOCOMPRESS) &&
+       ( (BUFIO_ALLOC(&out)) == KNO_HEAP_BUFFER ) )
+    packet = kno_init_packet(NULL,bytes,out.buffer);
+  else {
+    if (compression == KNO_NOCOMPRESS)
       packet = kno_make_packet(NULL,out.bufwrite-out.buffer,out.buffer);
-      kno_close_outbuf(&out);}}
-  else packet = compress_xtype(compression,&out);
+    else packet = compress_xtype(compression,&out);
+    kno_close_outbuf(&out);}
   lispval result = (refs) ?
     (kno_init_compound(NULL,KNOSYM_XTYPE,0,2,packet,refs_arg)) :
     (kno_init_compound(NULL,KNOSYM_XTYPE,0,1,packet));
@@ -317,6 +317,7 @@ static lispval compress_xtype(kno_compress_type compression,
       kno_write_varint(&cmpout,compressed_len);
       kno_write_bytes(&cmpout,compressed,compressed_len);
       str->str_bytelen = cmpout.bufwrite-cmpout.buffer;
+      u8_big_free(compressed);
       return packet;}
 }
 
@@ -1910,7 +1911,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("packet->dtype",packet2dtype,1,kno_textio_module);
   KNO_LINK_CPRIM("encode-xtype",encode_xtype,2,kno_textio_module);
   KNO_LINK_CPRIM("decode-xtype",decode_xtype,2,kno_textio_module);
-  KNO_LINK_CPRIM("raw-xtype",raw_xtype,2,kno_textio_module);
+  KNO_LINK_CPRIM("precode-xtype",precode_xtype,2,kno_textio_module);
   KNO_LINK_CPRIM("xtype/refs",make_xtype_refs,2,kno_textio_module);
   KNO_LINK_CPRIM("xtype/refs/encode",xtype_refs_encode,3,kno_textio_module);
   KNO_LINK_CPRIM("xtype/refs/decode",xtype_refs_decode,2,kno_textio_module);
