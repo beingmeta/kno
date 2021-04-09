@@ -36,16 +36,16 @@
 		     (open-index from (get-read-opts opts))
 		     (irritant from |NotIndex| index/copy!))))
 	 (infile (if (string? from) from (index-source in)))
-	 (outfile (or to (index-source in)))
-	 (rarefile (getopt opts 'rarefile))
+	 (outfile (if to
+		      (if (index? to) (index-source to)
+			  to)
+		      (index-source in)))
 	 (inplace (and (file-exists? outfile)
 		       (equal? (realpath infile) (realpath outfile))))
 	 (out (if (and (file-exists? outfile) (not inplace)
 		       (not (getopt opts 'overwrite (config 'OVERWRITE #f))))
 		  (irritant outfile |OutputAlreadyExists|)
 		  (get-new-index outfile in opts)))
-	 (rare (and rarefile (get-new-index rarefile in opts)))
-	 (copy-opts `(#[rare ,rare] . ,opts))
 	 (copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 		       ((getopt opts 'copier) (getopt opts 'copier))
 		       ((overlaps? (indexctl in 'metadata 'type) {"kindex" "hashindex"})
@@ -54,14 +54,13 @@
 	 (ok #f))
     (onerror (begin (copier in out copy-opts) (set! ok #t)))
     (when ok
-      (index/install! out outfile)
-      (when rare (index/install! rare rarefile)))
+      (index/install! out outfile))
     ok))
 
-(define (merge-index in out (opts #f) (rare) (minthresh))
-  (default! rare (getopt opts 'rare))
-  (default! minthresh (getopt opts 'minthresh (and rare 1)))
-  (let* ((copy-opts `(#[rare ,rare minthresh ,minthresh] . ,opts)) (ok #f))
+(define (merge-index in out (opts #f) (tail) (mincount))
+  (default! tail (getopt opts 'tail))
+  (default! mincount (getopt opts 'mincount (and tail 1)))
+  (let* ((copy-opts `(#[tail ,tail mincount ,mincount] . ,opts)) (ok #f))
     (lognotice |MergeIndexes| "Merging " (index-source in))
     (let ((copier (cond ((testopt opts 'copier 'generic) index/copy-keys!)
 			((getopt opts 'copier) (getopt opts 'copier))
@@ -74,24 +73,24 @@
     ;; 	      (qchoice (indexctl out 'metadata 'merges)
     ;; 		       `#[from ,(if (string? from) from
     ;; 				    (index-source from)from)
-    ;; 			  rare ,rarefile
+    ;; 			  tail ,tailfile
     ;; 			  timestamp ,(gmtimestamp)
     ;; 			  session ,(config 'sessionid)
-    ;; 			  minthresh ,(getopt opts 'minthresh)
-    ;; 			  maxthresh ,(getopt opts 'minthresh)]))
+    ;; 			  mincount ,(getopt opts 'mincount)
+    ;; 			  maxcount ,(getopt opts 'mincount)]))
   in)
 
 (defambda (index/merge! from outfile (opts #f))
-  (let* ((rarefile (getopt opts 'rarefile))
+  (let* ((tailfile (getopt opts 'tailfile))
 	 (merge (open-index from opts))
 	 (out (if (file-exists? outfile)
 		  (open-index outfile opts)
 		  (get-new-index outfile merge opts)))
-	 (rare (and rarefile
-		    (if (file-exists? rarefile)
-			(open-index rarefile opts)
-			(get-new-index rarefile merge opts))))
-	 (copy-opts `(#[rare ,rare] . ,opts))
+	 (tail (and tailfile
+		    (if (file-exists? tailfile)
+			(open-index tailfile opts)
+			(get-new-index tailfile merge opts))))
+	 (copy-opts `(#[tail ,tail] . ,opts))
 	 (ok #f))
     (onerror 
 	(begin
@@ -109,15 +108,15 @@
 	      (qchoice (indexctl out 'metadata 'merges)
 		       `#[from ,(if (string? from) from
 				    (index-source from)from)
-			  rare ,rarefile
+			  tail ,tailfile
 			  timestamp ,(gmtimestamp)
 			  session ,(config 'sessionid)
-			  minthresh ,(getopt opts 'minthresh)
-			  maxthresh ,(getopt opts 'minthresh)]))
+			  mincount ,(getopt opts 'mincount)
+			  maxcount ,(getopt opts 'mincount)]))
     (when ok
       ;; Handle copying of any files in temporary locations
       (index/install! out outfile)
-      (when rare (index/install! rare rarefile)))
+      (when tail (index/install! tail tailfile)))
     ok))
 
 (define (index/install! index file)
@@ -201,21 +200,23 @@
 ;;; Default key copier, uses fetchn
 
 (define (key-copier keys batch-state loop-state task-state)
-  (let* ((rare   (try (get loop-state 'rare) #f))
-	 (minthresh (get loop-state 'minthresh))
-	 (rarethresh (and rare (get loop-state 'rarethresh)))
-	 (maxthresh (get loop-state 'maxthresh))
-	 (input  (get loop-state 'input))
+  (let* ((tail (try (get loop-state 'tail) #f))
+	 (mincount (get loop-state 'mincount))
+	 (tailcount (and tail (get loop-state 'tailcount)))
+	 (maxcount (get loop-state 'maxcount))
+	 (input (get loop-state 'input))
 	 (output (get loop-state 'output))
-	 (outhash (make-hashtable (choice-size keys)))
-	 (rarehash (and rare (make-hashtable (choice-size keys))))
+	 (headout (make-hashtable (choice-size keys)))
+	 (tailout (and tail (make-hashtable (choice-size keys))))
 	 (stopkeys (indexctl output 'metadata 'stopkeys))
+	 (drop-count 0)
 	 (copy-count 0)
-	 (rare-count 0)
+	 (tail-count 0)
+	 (over-count 0)
 	 (value-count 0))
     (let* ((keyvec (choice->vector (difference keys stopkeys)))
 	   (keyvals (index/fetchn input keyvec)))
-      (if (and (not minthresh) (not maxthresh) (not rare))
+      (if (and (not mincount) (not maxcount) (not tail))
 	  (let ((i 0) (nkeys (length keyvec)))
 	    (while (< i nkeys)
 	      (add! output (elt keyvec i) (elt keyvals i))
@@ -229,48 +230,61 @@
 	      (set! nvals (choice-size vals))
 	      (set! copied #t)
 	      (cond ((= nvals 0) (set! copied #f))
-		    ((and maxthresh (> nvals maxthresh)) (set! copied #f))
-		    ((and minthresh (> nvals minthresh)) (set! copied #f))
-		    ((and rarethresh (< nvals rarethresh))
-		     (set! rare-count (1+ rare-count))
-		     (if rarehash
-			 (add! rarehash key vals)
+		    ((and maxcount (> nvals maxcount))
+		     (set! over-count (1+ over-count))
+		     (set! copied #f))
+		    ((and mincount (> nvals mincount)) (set! copied #f))
+		    ((and tailcount (< nvals tailcount))
+		     (set! tail-count (1+ tail-count))
+		     (if tailout
+			 (add! tailout key vals)
 			 (set! copied #f)))
-		    (else (add! outhash key vals)))
-	      (when copied
-		(set! value-count (+ value-count nvals))
-		(set! copy-count (1+ copy-count)))
+		    (else (add! headout key vals)))
+	      (cond (copied
+		     (set! value-count (+ value-count nvals))
+		     (set! copy-count (1+ copy-count)))
+		    (else (set! drop-count (1+ drop-count))))
 	      (set! i (1+ i))))))
-    (index-merge! output outhash)
-    (when rarehash (index-merge! rare rarehash))
+    (index-merge! output headout)
+    (when tailout (index-merge! tail tailout))
     (table-increment! batch-state 'copied copy-count)
-    (table-increment! batch-state 'rarekeys rare-count)
+    (table-increment! batch-state 'dropped drop-count)
+    (table-increment! batch-state 'topped over-count)
+    (table-increment! batch-state 'tailed tail-count)
     (table-increment! batch-state 'values value-count)))
 
 (define (index/copy-keys! in out (opts #f))
-  (let ((started (elapsed-time))
-	(rare (getopt opts 'rare {}))
-	(keys (getkeys in)))
+  (let* ((started (elapsed-time))
+	 (keys (getkeys in))
+	 (tail (getopt opts 'tail {}))
+	 (using-counts (or (exists? tail)
+			   (testopt opts '{maxcount mincount tailcount})))
+	 (counters
+	  (vector 'copied 'values
+		  (and (exists? tail) 'tailed)
+		  (and (testopt opts '{mincount maxcount}) 'dropped)
+		  (and (testopt opts 'maxcount) 'topped))))
     (lognotice |Copying|
       (choice-size keys) " keys"
       " from " (index-source in) 
       " to " (index-source out))
     (engine/run key-copier keys
 		`#[loop #[input ,in output ,out
-			  rare ,(getopt opts 'rare)
-			  maxthresh ,(getopt opts 'maxthresh)
-			  rarethresh ,(and (getopt opts 'rare) (getopt opts 'rarethresh))
-			  minthresh ,(getopt opts 'minthresh)]
+			  tail ,(getopt opts 'tail)
+			  maxcount ,(getopt opts 'maxcount)
+			  tailcount ,(and (getopt opts 'tail) (getopt opts 'tailcount))
+			  mincount ,(getopt opts 'mincount)]
 		   count-term "key"
 		   onerror {stopall signal}
-		   counters {copied rarekeys values}
 		   logcontext ,(stringout "Copying " (if (index? in) (index-source in) in))
-		   logrates {copied rarekeys values}
+		   logcounters ,(remove #f counters)
+		   counters ,(difference (elts counters) #f)
+		   logrates ,(difference (elts counters) #f)
 		   batchsize ,(getopt opts 'batchsize (config 'BATCHSIZE 10000))
 		   batchrange ,(getopt opts 'batchrange (config 'BATCHRANGE 8))
 		   nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
 		   checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
-		   checkpoint {,out ,rare}
+		   checkpoint {,out ,tail}
 		   logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
 		   checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
 		   logchecks #t
