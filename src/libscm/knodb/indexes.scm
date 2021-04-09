@@ -52,7 +52,7 @@
 			hashindex/copy-keys!)
 		       (else index/copy-keys!)))
 	 (ok #f))
-    (onerror (begin (copier in out copy-opts) (set! ok #t)))
+    (onerror (begin (copier in out #f) (set! ok #t)))
     (when ok
       (index/install! out outfile))
     ok))
