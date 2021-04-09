@@ -1655,6 +1655,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_EVALFN_OPCODE: {
     lispval evalfn = KNO_CAR(args);
     lispval expr   = KNO_CDR(args);
+    if (KNO_FCNIDP(evalfn)) evalfn=kno_fcnid_ref(evalfn);
     return call_evalfn(evalfn,expr,env,_stack,tail);}
 
   case KNO_APPLY_OPCODE:
