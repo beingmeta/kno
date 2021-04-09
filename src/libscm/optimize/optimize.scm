@@ -326,6 +326,13 @@
 	     (begin (store! static-refs ref copy)
 	       copy)))))
 
+(define (->evalfn x)
+  (if (fcnid? x)
+      (if (evalfn? (fcnid/ref x)) (fcnid/ref x)
+	  (irritant x '|NotEvalFN|))
+      (if (evalfn? x) x
+	  (irritant x '|NotEvalFN|))))
+
 ;;; Opcode mapping
 
 ;;; When opcodes are introduced, the idea is that a given primitive 
@@ -765,7 +772,7 @@
 				    (get-module headvalue)))))))
 	     (annotate
 	      (try (optimizer headvalue expr env bound opts)
-		   (cons* #OP_EVALFN headvalue expr))
+		   (cons* #OP_EVALFN (->evalfcn headvalue) expr))
 	      expr opts)))
 	  ((exists macro? headvalue)
 	   (annotate (optimize (macroexpand headvalue expr) env bound opts)
@@ -1289,7 +1296,7 @@
 (define (optimize-block handler expr env bound opts)
   (let ((headop (get-headop handler (car expr) (length (cdr expr)) env bound opts)))
     (if (special-form? headop)
-	(cons* #OP_EVALFN headop (cons (car expr) (optimize-exprs (cdr expr))))
+	(cons* #OP_EVALFN (->evalfn headop) (cons (car expr) (optimize-exprs (cdr expr))))
 	(cons (qc headop) (optimize-exprs (cdr expr))))))
 
 (define (optimize-quote handler expr env bound opts)
@@ -1387,13 +1394,13 @@
 	 (count-var (or (and (pair? bindspec) (get-arg bindspec 2 #f)) '|#|))
 	 (whole-var (or (and (pair? bindspec) (get-arg bindspec 3 #f)) '|@|))
 	 (inner (cons (list item-var count-var whole-var) bound)))
-    `(#OP_EVALFN ,handler ,(car expr)
+    `(#OP_EVALFN ,(-.evalfn handler) ,(car expr)
 		 (,item-var ,(optimize val-expr env bound opts) ,count-var ,whole-var)
 		 . ,(optimize-body body env inner opts))))
 (define (optimize-do2expression handler expr env bound opts)
   (let ((bindspec (cadr expr)) 
 	(body (cddr expr)))
-    `(#OP_EVALFN ,handler
+    `(#OP_EVALFN ,(->evalfn handler)
 		 ,(car expr) ,(cond ((symbol? bindspec)
 				     `(,bindspec ,(optimize bindspec env bound opts)))
 				    ((pair? bindspec)
@@ -1445,7 +1452,7 @@
 	       (#f 0 ,(optimize val-expr env (cons '(#f #f #f #f) bound) opts) 0)
 	       . ((#OP_BRANCH 
 		   ,(cons* #OP_ISA #pair_type seq-ref)
-		   (#OP_EVALFN ,doseq . (doseq (,varname ,seq-ref ,iter-var) ,@body))
+		   (#OP_EVALFN ,(->evalfn doseq) . (doseq (,varname ,seq-ref ,iter-var) ,@body))
 		   (#OP_BEGIN
 		    (#OP_ASSIGN ,limit-ref #f #OP_LENGTH . ,seq-ref)
 		    (#OP_UNTIL
@@ -1531,7 +1538,7 @@
 			 (logwarn |NotLocal|
 			   "The variable " var " is not defined in the scope for "
 			   expr ", converting to set!"))
-		       `(#OP_EVALFN ,set! 'set! ,var ,optval))))
+		       `(#OP_EVALFN ,(-.evalfn set!) 'set! ,var ,optval))))
 		((overlaps? handler set+!)
 		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
@@ -1541,9 +1548,9 @@
 		((overlaps? handler default!) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(#OP_EVALFN ,default! ,name ,var ,optval . ,(cdddr expr)))
-		(else `(#OP_EVALFN ,handler ,name ,var ,optval)))
-	  `(#OP_EVALFN ,handler ,name ,var ,optval)))))
+		 `(#OP_EVALFN ,(->evalfn default!) ,name ,var ,optval . ,(cdddr expr)))
+		(else `(#OP_EVALFN ,(->evalfn handler) ,name ,var ,optval)))
+	  `(#OP_EVALFN ,(->evalfn handler) ,name ,var ,optval)))))
 
 (define (optimize-locals handler expr env bound opts)
   (let ((converted (convert-locals (cdr expr) env bound opts)))
@@ -1608,7 +1615,7 @@
 				  (identical? (cadr clause) '=>)))
 			   (cdr expr))))
      (convert-cond (cdr expr) env bound opts))
-   (cons* #OP_EVALFN handler 
+   (cons* #OP_EVALFN (->evalfn handler) 
 	  `(cond 
 	    ,@(forseq (clause (cdr expr) )
 		(cond ((not (pair? clause))
@@ -1675,7 +1682,7 @@
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-evaltest handler expr env bound opts)
-  (cons* #OP_EVALFN handler expr))
+  (cons* #OP_EVALFN (->evalfn handler) expr))
 
 (define (optimize-numeric handler expr env bound opts)
   (cond ((fail? (fcn/lookup numeric-opcodes handler)) (fail))
@@ -1720,7 +1727,7 @@
 		    (optimize subexpr env bound opts))))
 
 (define (optimize-case handler expr env bound opts)
-  `(#OP_EVALFN ,handler ,(car expr)
+  `(#OP_EVALFN ,(->evalfn handler) ,(car expr)
 	       ,(optimize (cadr expr) env bound opts)
 	       ,@(forseq (clause (cddr expr))
 		   (cons (car clause)
@@ -1728,11 +1735,11 @@
 			   (optimize x env bound opts))))))
 
 (define (optimize-unwind-protect handler expr env bound opts)
-  `(#OP_EVALFN ,handler ,(car expr) ,(optimize (cadr expr) env bound opts)
+  `(#OP_EVALFN ,(->evalfn handler) ,(car expr) ,(optimize (cadr expr) env bound opts)
 	       ,@(optimize-body (cddr expr))))
 
 (define (optimize-quasiquote handler expr env bound opts)
-  `(#OP_EVALFN ,handler ,(car expr) ,(optimize-quasiquote-node (cadr expr) env bound opts)))
+  `(#OP_EVALFN ,(->evalfn handler) ,(car expr) ,(optimize-quasiquote-node (cadr expr) env bound opts)))
 (define (optimize-unquote expr env bound opts)
   (if (and (pair? expr) 
 	   (or (eq? (car expr) 'unquote) 
@@ -1887,9 +1894,9 @@
 (define (optimize-watchrefs fcn expr env bound opts)
   (let ((possible-label (get-arg expr 2)))
     (if (or (string? possible-label) (symbol? possible-label))
-	`(#OP_EVALFN ,%watchrefs %watchrefs ,(get-arg expr 1) ,(get-arg expr 2)
+	`(#OP_EVALFN ,(->evalfn %watchrefs) %watchrefs ,(get-arg expr 1) ,(get-arg expr 2)
 		     ,@(optimize-exprs (slice expr 3) env bound opts))
-	`(#OP_EVALFN ,%watchrefs %watchrefs ,(get-arg expr 1)
+	`(#OP_EVALFN ,(->evalfn %watchrefs) %watchrefs ,(get-arg expr 1)
 		     ,@(optimize-exprs (slice expr 2) env bound opts)))))
   
 (define (optimize-watch-clauses clauses env bound opts)
