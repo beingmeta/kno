@@ -14,6 +14,8 @@
 (varconfig! isadjunct isadjunct config:boolean)
 (varconfig! adjunct isadjunct config:boolean)
 
+(when (config 'showsource) (logwarn |Loading| (get-component)))
+
 (define (getflags)
   (choice->list
    (choice ;; (tryif (config 'dtypev2 #f) 'dtypev2)

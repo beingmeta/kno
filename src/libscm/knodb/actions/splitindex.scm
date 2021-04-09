@@ -8,14 +8,14 @@
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
-(define %optimize '{knodb/actions/packindex
+(define %optimize '{knodb/actions/splitindex
 		    knodb/indexes
 		    knodb/hashindexes
 		    ezrecords
 		    fifo
 		    engine})
 
-(logwarn |Loading| (get-component "packindex.scm"))
+(when (config 'showsource) (logwarn |Loading| (get-component)))
 
 (define (->slotid arg)
   (if (not (string? arg))

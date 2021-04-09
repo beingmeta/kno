@@ -15,7 +15,7 @@
 		    fifo
 		    engine})
 
-(logwarn |Loading| (get-component "packindex.scm"))
+(when (config 'showsource) (logwarn |Loading| (get-component)))
 
 (define (->slotid arg)
   (if (not (string? arg))
