@@ -93,7 +93,7 @@ int lambda_setup(kno_stack stack,kno_stack origin,
   u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
   stack->stack_bits |= KNO_STACK_LAMBDA_CALL;
   stack->stack_file = filename;
-  stack->stack_label = label;
+  stack->stack_origin = stack->stack_label = label;
 
   if (proc->fcn_trace) kno_trace_call(stack,(kno_function)proc,n_given,given);
 

@@ -77,7 +77,9 @@ int eval_args(int argc,lispval *into,lispval exprs,
 	      int prune)
 {
   int conses = 0, choices = 0, qchoices = 0, empties = 0, n = 0;
+  u8_string cur_label = stack->stack_label;
   lispval scan = exprs, *write = into;
+  lispval cur_op = stack->stack_op, cur_source = stack->eval_source;
   while (PAIRP(scan)) {
     lispval expr = KNO_CAR(scan); scan = KNO_CDR(scan);
     lispval v = (KNO_CONSP(expr)) ?
@@ -112,7 +114,10 @@ int eval_args(int argc,lispval *into,lispval exprs,
 	return -1;}}
     else NO_ELSE;
     n++; if (RARELY(n>argc)) return -2;;
-    *write++=v;}
+    *write++=v;
+    stack->stack_label = cur_label;
+    stack->eval_source = cur_source;
+    stack->stack_op = cur_op;}
   return (KNO_GOOD_ARGS) |
     ( (empties) ?  (KNO_FAILED_ARGS) : (0) ) |
     ( (conses) ?   (KNO_CONSED_ARGS) : (0)) |
