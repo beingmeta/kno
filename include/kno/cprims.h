@@ -42,6 +42,13 @@ typedef struct KNO_CPRIM_ARGINFO {
     docstring, ((flags)&0x7f), flags, -1};					\
   static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO *cname ## _arginfo = NULL;
 
+#define KNO_DEFC_PRIMNN(pname,cname,flags,docstring,...)		\
+  static struct KNO_CPRIM_INFO cname ## _info = {                        \
+    pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
+    docstring, ((flags)&0x7f), flags, -1};					\
+  static U8_MAYBE_UNUSED struct KNO_CPRIM_ARGINFO cname ## _arginfo[(((flags)>>8)&(0x7F))]  = \
+    { __VA_ARGS__ };
+
 #define KNO_DEFC_PRIMNx(pname,cname,flags,docstring,info_len,...)		\
   static struct KNO_CPRIM_INFO cname ## _info = {                        \
     pname, # cname, _FILEINFO " L#" STRINGIFY(__LINE__),                         \
@@ -69,6 +76,8 @@ typedef struct KNO_CPRIM_ARGINFO {
 
 #define DEFC_PRIM      KNO_DEFC_PRIM
 #define DEFC_PRIMN     KNO_DEFC_PRIMN
+#define DEFC_PRIMNx    KNO_DEFC_PRIMNx
+#define DEFC_PRIMNN    KNO_DEFC_PRIMNN
 #endif
 
 KNO_EXPORT void kno_defcprimN(lispval module,kno_cprimn fn,
