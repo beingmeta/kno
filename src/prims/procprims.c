@@ -70,6 +70,8 @@
 #endif
 
 static u8_condition RedirectFailed = "Redirect failed";
+static u8_condition NotPID = "Not a process identifier (PID)";
+static u8_condition ProcinfoError = "Error getting process info";
 
 static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
@@ -865,6 +867,105 @@ static lispval nice_prim(lispval delta_arg)
   else return KNO_INT(rv);
 }
 
+/* Getting info from PIDs or SUBJOBS */
+
+static pid_t pid_arg(lispval x,u8_context caller,int err)
+{
+  if (KNO_FIXNUMP(x)) {
+    long long ival = KNO_FIX2INT(x);
+    if (ival<0) {
+      if (err) {
+	kno_seterr(NotPID,caller,NULL,x);
+	return -1;}
+      else return 0;}
+    int rv = kill((pid_t)ival,0); errno = 0;
+    if (rv<0) {
+      if (err) {
+	kno_seterr(NotPID,caller,NULL,x);
+	return -1;}
+      else return 0;}
+    else return (pid_t) ival;}
+  else if (KNO_TYPEP(x,kno_subjob_type)) {
+    struct KNO_SUBJOB *sj = (struct KNO_SUBJOB *)x;
+    return sj->subjob_pid;}
+  else if (err) {
+    kno_seterr(NotPID,caller,NULL,x);
+    return -1;}
+  else return 0;
+}
+
+DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
+
+void extract_pid_status(int status,lispval into)
+{
+  if (WIFEXITED(status)) {
+    int details = WEXITSTATUS(status);
+    kno_store(into,KNOSYM(exited),KNO_INT(details));}
+  if (WIFSIGNALED(status)) {
+    int details = WTERMSIG(status);
+    kno_store(into,KNOSYM(terminated),KNO_INT(details));}
+  if (WIFSTOPPED(status)) {
+    int details = WSTOPSIG(status);
+    kno_store(into,KNOSYM(stopped),KNO_INT(details));}
+  if (WIFCONTINUED(status))
+    kno_store(into,KNOSYM(stopped),KNO_INT(SIGCONT));
+}
+
+static lispval pid_error(lispval arg,u8_context caller)
+{
+  int saved_errno = errno; errno = 0;
+  kno_seterr(ProcinfoError,caller,u8_strerror(errno),arg);
+}
+
+DEFC_PRIM("subjob/info",subjob_info,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a table of information about *subjob*, "
+	  "which can be a numeric PID or a subjob object.",
+	  {"subjob",kno_any_type,KNO_VOID})
+static lispval subjob_info(lispval arg)
+{
+  pid_t pid = pid_arg(arg,"pid_getinfo",1);
+  if (pid<0) return KNO_ERROR;
+  int status = -1;
+  int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
+  if (rv<0) return pid_error(arg,"subjob_info");
+  lispval result = kno_make_slotmap(4,0,NULL);
+  extract_pid_status(status,result);
+  return result;
+}
+
+DEFC_PRIM("subjob/live?",subjob_livep,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *subjob* hasn't exited or been terminated",
+	  {"subjob",kno_any_type,KNO_VOID})
+static lispval subjob_livep(lispval arg)
+{
+  pid_t pid = pid_arg(arg,"subjob_livep",1);
+  if (pid<0) return KNO_ERROR;
+  int status = -1;
+  int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
+  if (rv<0) return pid_error(arg,"subjob_livep");
+  if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
+    return KNO_FALSE;
+  else return KNO_TRUE;
+}
+
+DEFC_PRIM("subjob/stopped?",subjob_stoppedp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *subjob* is stopped",
+	  {"subjob",kno_any_type,KNO_VOID})
+static lispval subjob_stoppedp(lispval arg)
+{
+  pid_t pid = pid_arg(arg,"subjob_stoppedp",1);
+  if (pid<0) return KNO_ERROR;
+  int status = -1;
+  int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
+  if (rv<0) return pid_error(arg,"subjob_stoppedp");
+  if (WIFSTOPPED(status))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 /* The init function */
 
 static int scheme_procprims_initialized = 0;
@@ -915,6 +1016,11 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("subjob/stdin",subjob_stdin,1,procprims_module);
   KNO_LINK_CPRIM("subjob/pid",subjob_pid,1,procprims_module);
   KNO_LINK_CPRIMN("subjob/open",subjob_open,procprims_module);
+
+  KNO_LINK_CPRIM("subjob/info",subjob_info,1,procprims_module);
+  KNO_LINK_CPRIM("subjob/live?",subjob_livep,1,procprims_module);
+  KNO_LINK_CPRIM("subjob/stopped?",subjob_stoppedp,1,procprims_module);
+
   KNO_LINK_CPRIMN("knox/fork/wait",knox_fork_wait_prim,procprims_module);
   KNO_LINK_CPRIMN("fork/cmd/wait",fork_cmd_wait_prim,procprims_module);
   KNO_LINK_CPRIMN("fork/wait",fork_wait_prim,procprims_module);
