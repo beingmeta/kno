@@ -33,15 +33,25 @@
 (define (get-keyslot index) (indexctl index 'keyslot))
 (define (get-readonly index) (indexctl index 'readonly))
 
-(define (get-flex-opts spec (opts #f) (files #f))
+(define (get-flex-opts spec (opts #f))
   (when (and (file-exists? spec) (not (file-regular? spec)))
     (if (has-suffix spec ".flexindex")
 	(irritant spec |InvalidFile|)
 	(set! spec (glom spec ".flexindex"))))
   (cond ((file-regular? spec)
-	 (if opts (cons opts (read-xtype spec))
-	     (read-xtype spec)))
-	((or (testopt opts 'create) files)
+	 (let* ((flex-opts (read-xtype spec)))
+	   (cond ((not (testopt opts 'keyslot)))
+		 ((identical? (getopt opts 'keyslot {}) (get flex-opts 'keyslot)))
+		 ((and (fail? (get flex-opts 'keyslot)) (ambiguous? (getopt opts 'keyslot {})))
+		  (logwarn |NoKeySlot|
+		    "The flexindex " spec " doesn't specify any keyslots, but our caller "
+		    "requested " (getopt opts 'keyslot {})))
+		 (else (irritant spec
+			   |InconsistentKeyslots| flex/open-index
+			   (stringout "Requested " (getopt opts 'keyslot {})
+			     ", declared " (get flex-opts 'keyslot)))))
+	   (if opts (cons opts flex-opts) flex-opts)))
+	((testopt opts 'create)
 	 (let* ((metadata (frame-create (getopt opts 'metadata #[])
 			    'partindex  (getopt opts 'partindex (getopt opts 'indextype 'kindex))
 			    'maxsize (getopt opts 'maxsize {})
@@ -49,13 +59,16 @@
 			    'maxload (getopt opts 'maxload (tryif (not (testopt opts 'maxkeys)) 2))
 			    'partsize (getopt opts 'partsize #2mib)))
 		(state (frame-create #f
-			 'path spec
+			 'defpath spec
+			 'defabspath (abspath spec)
+			 'prefix (getopt opts 'prefix (basename spec #t))
 			 'label (getopt opts 'label {})
 			 'partindex  (getopt opts 'partindex (getopt opts 'indextype 'kindex))
 			 'created (timestamp)
 			 'maxsize (get metadata 'maxsize)
 			 'maxkeys (get metadata 'maxkeys)
 			 'maxload (get metadata 'maxload)
+			 'keyslot (getopt opts 'keyslot {})
 			 'partsize (get opts 'partsize)
 			 'metadata metadata)))
 	   (write-xtype state spec)
@@ -63,14 +76,14 @@
 	(else (irritant spec |NoSuchIndex|))))
 
 (define (flex/open-index spec (opts #f))
-  (let* ((prefix (textsubst spec (qc ".flexindex" ".index" flex-suffix) ""))
-	 (fullpath (abspath prefix))
-	 (full-prefix (strip-suffix fullpath prefix))
-	 (directory (dirname fullpath))
+  (let* ((flex-opts (get-flex-opts spec opts))
+	 (prefix (getopt flex-opts 'prefix
+			 (basename (textsubst spec (qc ".flexindex" ".index" flex-suffix) ""))))
+	 (directory (dirname (abspath spec)))
+	 (full-prefix (mkpath directory prefix))
 	 (files (pick (pick (getfiles directory)
-			has-prefix (glom fullpath "."))
+			has-prefix (glom full-prefix "."))
 		  has-suffix ".index"))
-	 (flex-opts (get-flex-opts spec opts (try files #f)))
 	 (include (getopt opts 'include {}))
 	 (serials (get-serial files))
 	 (refpath (textsubst files flex-suffix ""))
@@ -94,15 +107,14 @@
 	   (get flex-indexes `(FRONT ,refpath)))
 	 (get flex-indexes refpath)
 	 (let* ((indexes (if (getopt opts 'justfront)
-			     (open-index (find-front (strip-prefix files full-prefix) partition-opts)
-			       partition-opts)
-			     (open-index (strip-prefix files full-prefix) partition-opts)))
+			     (open-index (find-front files partition-opts) partition-opts)
+			     (open-index files partition-opts)))
 		(keyslots {(get-keyslot indexes) (getopt partition-opts 'keyslot {})})
 		(writable (reject indexes get-readonly))
 		(keyslot (if (fail? keyslots)
 			     (getopt partition-opts 'keyslot)
 			     (singleton keyslots)))
-		(new-partition-opts 
+		(new-partition-opts
 		 (cons (frame-create #f 
 			 'register (getopt opts 'register #t) 'background #f
 			 'type (getopt flex-opts 'partindex 'kindex)
@@ -116,7 +128,7 @@
 	   (let* ((front (tryif (not (getopt opts 'readonly))
 			   (open-index (getopt opts 'front {}) partition-opts)
 			   (pick-front writable partition-opts)
-			   (make-front fullpath
+			   (make-front full-prefix
 				       (if (fail? serials) 0 (1+ (largest serials)))
 				       (try (largest indexes get-serial) #f)
 				       new-partition-opts
@@ -137,8 +149,8 @@
 		 (indexctl aggregate 'readonly #t))
 	     (store! flex-indexes
 		 (if (getopt opts 'justfront)
-		     (cons 'FRONT (glom {fullpath (realpath fullpath)} {".flexindex" ""}))
-		     (glom {fullpath (realpath fullpath)} {".flexindex" ""}))
+		     (cons 'FRONT (glom {full-prefix (realpath full-prefix)} {".flexindex" ""}))
+		     (glom {full-prefix (realpath full-prefix)} {".flexindex" ""}))
 	       aggregate)
 	     aggregate)))))
 
