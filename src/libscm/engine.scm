@@ -14,6 +14,7 @@
 		  engine/checkpoint
 		  engine/getopt
 		  engine/test
+		  engine/stop!
 		  batchup})
 
 (module-export! '{engine/showrates engine/showrusage
@@ -1338,4 +1339,17 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	       (if (number? (car test))
 		   (> (- v past) (car test))
 		   #f))))))
+
+;;;; Stopping engines
+
+(define (engine/stop! loop-state (reason #f) (graceful #t))
+  (unless (test loop-state 'stopval)
+    (store! loop-state 'stopval reason)
+    (store! loop-state 
+	(if graceful 'stopping 'stopped)
+      (timestamp)))
+  (if graceful
+      (fifo/readonly! (get loop-state 'fifo))
+      (fifo/close! (get loop-state 'fifo))))
+
 

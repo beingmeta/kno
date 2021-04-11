@@ -550,6 +550,6 @@
 
 (define (fifo/set-debug! fifo (flag #t)) (set-fifo-debug! fifo flag))
 
-(define (fifo/readonly! fifo flag)
+(define (fifo/readonly! fifo (flag #t))
   (set-fifo-readonly?! fifo flag)
   (condvar/signal (fifo-condvar fifo) #t))
