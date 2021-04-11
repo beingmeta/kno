@@ -427,6 +427,15 @@ define stackvar
   printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
 end
 
+define findval
+  if ($argc == 1)
+     print/x _knodbg_find_stack_var(0,"$arg0")
+  else
+     print/x _knodbg_find_stack_var($arg0,"$arg1")
+  end
+  printf "type of 0x%llx is 0x%x: %s\n",((lispval)$),(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04))),kno_type_names[(((($)&0x03)==2)?(kno_fixnum_type):((($)&0x3)==3)?(kno_oid_type):((($)&0x3)==0)?((enum KNO_LISP_TYPE)(((((struct KNO_CONS *)($))->conshead)&0x7F)+0x84)):((enum KNO_LISP_TYPE)(((($)>>25)&0x7f)+0x04)))]
+end
+
 
 define lexenv
   call _knodbg_show_env($arg0,20)
