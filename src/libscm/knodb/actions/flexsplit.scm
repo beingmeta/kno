@@ -84,7 +84,7 @@
       (unless (index/copy! in head opts)
 	(error "Pack index failed")))))
 
-(define (flexsplit flexindex (tailcount 1))
+(define (do-flexsplit flexindex (tailcount 1))
   (let* ((flex-opts (read-xtype flexindex))
 	 (prefix (try (get flex-opts 'prefix) (basename flexindex ".flexindex")))
 	 (rootdir (dirname (abspath flexindex)))
@@ -119,12 +119,12 @@
 
 (define (main (in #f) (head)
 	      (tail (config 'tailfile #f)) 
-	      (tailcount (config 'TAILCOUNT #f)))
+	      (tailcount (config 'TAILCOUNT 1)))
   (default! head in)
   (when (overlaps? head '{"inplace" "-"}) (set! head in))
   (default-configs)
   (if (and (string? in) (file-exists? in))
-      (do-splitindex in head tail tailcount)
+      (do-flexsplit in tailcount)
       (usage)))
 
 (define configs-done #f)
