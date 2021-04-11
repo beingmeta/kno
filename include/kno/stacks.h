@@ -562,5 +562,7 @@ KNO_FASTOP int __kno_reset_stack(struct KNO_STACK *stack)
 
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 
+KNO_EXPORT void kno_throw_contour(u8_contour c,u8_context cxt);
+
 #endif /* KNO_STACKS_H */
 

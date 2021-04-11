@@ -576,6 +576,29 @@ static int init_thread_stack_limit()
   return 1;
 }
 
+/* Throwing exceptions (and popping the stack) */
+
+KNO_EXPORT void kno_throw_contour(u8_contour c,u8_context cxt)
+{
+  if (c == NULL) c = u8_dynamic_contour;
+  if  (c) {
+    struct KNO_STACK *scan = kno_stackptr;
+    if (scan) {
+      void *stack = (void *) scan;
+      void *contour = (void *) c;
+      while ( (stack) &&
+	      ( (u8_stack_direction>0) ?
+		(stack > contour) :
+		(stack < contour) ) ) {
+	kno_pop_stack(scan);
+	scan = kno_stackptr;
+	stack = (void *) scan;}}
+    u8_throw_contour(c);}
+  else u8_raise("NoContour",cxt,NULL);
+}
+
+
+
 void kno_init_stacks_c()
 {
   u8_register_threadinit(init_thread_stack_limit);
