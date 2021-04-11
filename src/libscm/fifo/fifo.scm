@@ -22,7 +22,6 @@
    fifo/pause!
    fifo/pausing?
    fifo/paused?
-   fifo/nofill
    fifo/exhausted?
    fifo/loop
    fifo/queued

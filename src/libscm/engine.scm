@@ -425,6 +425,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (fill (if (applicable? items-arg) items-arg (getopt opts 'fill #f)))
 	 (init-items (if (fail? items) 0
 			 (if (vector? items) (length items) (|| items))))
+	 (max-items (try (getopt opts 'maxitems (if fill #f init-items)) #f))
 	 ;; How many threads to actually create
 	 (nthreads (get-engine-threadcount opts init-items fill))
 	 (batchsize (get-batchsize opts fill init-items nthreads))
@@ -437,6 +438,11 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 					 (nthreads (* nthreads 16))
 					 (batchsize (* 2 batchsize))
 					 (else 64))))))
+    (when (and init-items (> init-items queuelen)) (set! queuelen init-items))
+    (when (and max-items (> queuelen max-items)) (set! queuelen max-items))
+    (when (and max-items nthreads (> nthreads max-items)) 
+      (set! nthreads max-items)
+      (when batchsize (set! batchsize 1)))
     (let* ((fifo-opts 
 	    (frame-create #f
 	      'name (getopt opts 'name (or (procedure-name fcn) {}))
@@ -456,7 +462,6 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	   (logfns (getopt opts 'logfns {}))
 	   (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
 	   (count-term (getopt opts 'count-term "items"))
-	   (max-items (getopt opts 'maxitems (if fill {} init-items)))
 	   (loop-state (frame-create #f
 			 'name name
 			 'fifo fifo
@@ -465,7 +470,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			 'total (getopt opts 'total 0)
 			 'totalmax (getopt opts 'totalmax {})
 			 'batchsize batchsize
-			 'maxitems max-items
+			 'maxitems (tryif max-items max-items)
 			 'nthreads nthreads
 			 'fillsize (getopt opts 'fillsize {})
 			 'logcontext (getopt opts 'logcontext {})
@@ -498,7 +503,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      ((= nthreads 1) " in a single thread")
 	      (else (printout " across " nthreads " threads")))
 	" to process " 
-	(if (and (exists? max-items) max-items)
+	(if max-items
 	    ($count max-items count-term)
 	    (printout "multiple " count-term)))
 
@@ -825,13 +830,14 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 (define (engine/fill! fifo fillfn loop-state (opts) (fillthresh)
 		      (%loglevel (or fill-loglevel %loglevel))
-		      (fillstart))
+		      (fillstart) (count-term))
   (local added 0)
   (default! opts (try (get loop-state 'opts) #f))
   (default! fillthresh
     (try (get loop-state 'fillthresh)
 	 (getopt opts 'fillthresh (quotient (fifo-size fifo) 2))))
   (default! fillstart (getopt opts 'fillstart (elapsed-time)))
+  (default! count-term (try (get loop-state 'count-term) "items"))
   (set! %loglevel (try (get loop-state 'loglevel) %loglevel))
   (debug%watch "engine/fill!" fifo fillfn fillthresh "\nloop-state" loop-state)
   (unless (or (test loop-state '{stopped stopping}) (> (fifo/load fifo) fillthresh))
@@ -849,15 +855,21 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			     (fillfn (if fillsize (min fillsize need)))))
 		  (count 1))
 	      (debug%watch "engine/fill!" fifo need "got" (|| items))
+	      (when (fail? items)
+		(unless (test loop-state '{stopped stopping})
+		  (logwarn |Engine/Fill/Failed|
+		    "Request for " ($count (if fillsize (min fillsize need)) count-term) " using "
+		    ($fn fillfn)))
+		(break))
 	      (when (and (exists? items) items)
 		(cond ((ambiguous? items)
 		       (logdetail |EngineFill|
-			 "Adding " ($count (|| items) "item") " to queue " fifo " using " fillfn)
+			 "Adding " ($count (|| items) count-term) " to queue " fifo " using " fillfn)
 		       (fifo/push/all! fifo (choice->vector items))
 		       (set! count (|| items)))
 		      ((vector? items)
 		       (logdetail |EngineFill|
-			 "Adding " ($count (length items) "item") " to queue " fifo " using " fillfn)
+			 "Adding " ($count (length items) count-term) " to queue " fifo " using " fillfn)
 		       (fifo/push/n! fifo items)
 		       (set! count (length items)))
 		      (else (logdetail |EngineFill|
@@ -873,7 +885,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      (store! loop-state 'stopval (cons 'maxitems (get loop-state 'maxitems)))))
 	  (logdebug |FinishedFill|
 	    "Thread " (threadid) " finished adding " 
-	    ($count added (try (get loop-state 'count-term) "item"))
+	    ($count added (try (get loop-state 'count-term) count-term))
 	    " in " (secs->string (elapsed-time fillstart))
 	    " to " fifo))))
   (drop! loop-state 'fillthread)
