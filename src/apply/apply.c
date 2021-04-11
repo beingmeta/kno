@@ -278,8 +278,8 @@ static lispval profiled_dcall
 	result = core_call(&stack,fn,f,n,argvec);
       else result = profiled_call(&stack,fn,f,n,argvec,profile);
       if (!(KNO_CHECK_PTR(result))) {
-	result = KNO_ERROR;
-	badptr_err(result,fn);}
+	badptr_err(result,fn);
+	result = KNO_ERROR;}
       if (errno) errno_warning(stack.stack_label);}
     U8_ON_EXCEPTION {
       U8_CLEAR_CONTOUR();
