@@ -215,6 +215,9 @@ typedef struct KNO_SLOTMAP *kno_slotmap;
 
 #define KNO_SLOTMAP_KEYVALS(sm) (KNO_XSLOTMAP_KEYVALS(KNO_XSLOTMAP(sm)))
 
+#define KNO_SLOTMAP_SIZE(x) (KNO_XSLOTMAP_NUSED(KNO_XSLOTMAP(x)))
+#define KNO_SLOTMAP_MODIFIEDP(x) (KNO_XSLOTMAP_MODIFIEDP(KNO_XSLOTMAP(x)))
+
 #define kno_slotmap_size(x) (KNO_XSLOTMAP_NUSED(KNO_XSLOTMAP(x)))
 #define kno_slotmap_modifiedp(x) (KNO_XSLOTMAP_MODIFIEDP(KNO_XSLOTMAP(x)))
 
