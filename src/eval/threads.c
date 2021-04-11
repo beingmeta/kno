@@ -696,13 +696,20 @@ static void *_kno_thread_main(void *data)
     u8_init_mutex(&(tstruct->exit_lock));
     u8_init_condvar(&(tstruct->exit_cvar));
 
-    if (tstruct->flags&KNO_EVAL_THREAD)
-      result = kno_eval
-	(tstruct->evaldata.expr,tstruct->evaldata.env,_stack);
-    else
-      result = kno_dapply(tstruct->applydata.fn,
-			  tstruct->applydata.n_args,
-			  tstruct->applydata.args);
+    _kno_set_current_thread(tstruct);
+
+    {U8_WITH_CONTOUR(label_buf,0) {
+	if (tstruct->flags&KNO_EVAL_THREAD)
+	  result = kno_eval
+	    (tstruct->evaldata.expr,tstruct->evaldata.env,_stack);
+	else
+	  result = kno_dapply(tstruct->applydata.fn,
+			      tstruct->applydata.n_args,
+			      tstruct->applydata.args);}
+      U8_ON_EXCEPTION {
+	U8_CLEAR_CONTOUR();
+	result = KNO_ERROR;}
+      U8_END_EXCEPTION;}
 
     u8_lock_mutex(&(tstruct->exit_lock));
     tstruct->flags = tstruct->flags|KNO_THREAD_DONE;
@@ -744,7 +751,7 @@ static void *_kno_thread_main(void *data)
       u8_exception ex = u8_erreify();
       u8_log(LOG_WARN,kno_ThreadTerminated,"Thread #%d",u8_threadid());
       u8_free_exception(ex,0);
-      result = tstruct->result;
+      if (tstruct->result) result = tstruct->result;
       if (tstruct->resultptr) {
 	kno_incref(result);
 	*(tstruct->resultptr) = result;}}
