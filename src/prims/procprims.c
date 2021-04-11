@@ -377,28 +377,30 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
 
 static u8_string makeid(int n,kno_argvec args);
 
-DEFC_PRIMN("subjob/open",subjob_open,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new process applying *command* to "
-	   "*args* and creates a **subjob** object for the "
-	   "process.\n*opts* control how the subjob is started "
-	   "and how its inputs and outputs are configured.\n"
-	   "Some supported options are:\n* **ID** provides a "
-	   "descriptive string;\n* **STDIN** is either a file "
-	   "to use as the *stdin* to the new process, #f to "
-	   "use the *standard input* of the current process, "
-	   "or #t to create a stream through which the "
-	   "current process can write to the new process.\n* "
-	   "**STDOUT** is either a file to use for the "
-	   "*stdout* from the new process, #f to share the "
-	   "*standard output* of the current process, or #t "
-	   "to create a stream from which the current process "
-	   "can read the standard output of the new process.\n"
-	   "* **STDERR** is either a file to use for the "
-	   "*stderr* for the new process, #f to share the "
-	   "*stderr* of the current process, or #t to create "
-	   "a stream from which the current process can read "
-	   "the error output of the new process.\n")
+KNO_DEFC_PRIMNN("subjob/open",subjob_open,
+	    KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+	    "'forks' a new process applying *command* to "
+	    "*args* and creates a **subjob** object for the "
+	    "process.\n*opts* control how the subjob is started "
+	    "and how its inputs and outputs are configured.\n"
+	    "Some supported options are:\n* **ID** provides a "
+	    "descriptive string;\n* **STDIN** is either a file "
+	    "to use as the *stdin* to the new process, #f to "
+	    "use the *standard input* of the current process, "
+	    "or #t to create a stream through which the "
+	    "current process can write to the new process.\n* "
+	    "**STDOUT** is either a file to use for the "
+	    "*stdout* from the new process, #f to share the "
+	    "*standard output* of the current process, or #t "
+	    "to create a stream from which the current process "
+	    "can read the standard output of the new process.\n"
+	    "* **STDERR** is either a file to use for the "
+	    "*stderr* for the new process, #f to share the "
+	    "*stderr* of the current process, or #t to create "
+	    "a stream from which the current process can read "
+	    "the error output of the new process.",
+	    {"procopts",kno_opts_type,KNO_VOID},
+	    {"program",kno_string_type,KNO_VOID})
 static lispval subjob_open(int n,kno_argvec args)
 {
   lispval opts = args[0];
