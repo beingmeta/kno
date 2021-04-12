@@ -1072,6 +1072,7 @@ KNO_EXPORT unsigned char kno_isfunctionp[];
 
 #include "choices.h"
 #include "tables.h"
+#include "compounds.h"
 #include "sequences.h"
 #include "knoregex.h"
 
@@ -1174,10 +1175,10 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 KNO_EXPORT int _KNO_CHECKTYPE(lispval obj,lispval objtype);
 
 #if KNO_INLINE_CHECKTYPE
-KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
+KNO_FASTOP int KNO_CHECKTYPE(lispval obj,lispval objtype)
 {
   if (KNO_IMMEDIATEP(objtype)) {
-    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) )
+    if ( (KNO_VOIDP(objtype)) || (KNO_FALSEP(objtype)) || (KNO_EMPTYP(objtype)) )
       return 1;
     else if (KNO_IMMEDIATE_TYPEP(objtype,kno_symbol_type))
       return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
@@ -1190,6 +1191,8 @@ KNO_INLINE int KNO_CHECKTYPE(lispval obj,lispval objtype)
     return ( ( (KNO_COMPOUNDP(obj)) && ( (KNO_COMPOUND_TAG(obj)) == objtype) ) ||
 	     ( (KNO_TYPEP(obj,kno_rawptr_type)) && ( (KNO_RAWPTR_TAG(obj)) == objtype) ) );
   else if (KNO_TYPEP(objtype,kno_typeinfo_type))
+    return _KNO_CHECKTYPE(obj,objtype);
+  else if (KNO_CHOICEP(objtype))
     return _KNO_CHECKTYPE(obj,objtype);
   else return 0;
 }

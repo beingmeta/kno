@@ -10,18 +10,14 @@
 
 #define KNO_LANG_CORE		(!(KNO_AVOID_INLINE))
 #define KNO_EVAL_INTERNALS 1
-
-#define INIT_ARGBUF_LEN 7
+#define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
 /* Evaluator defines */
-
-#ifndef KNO_WITH_TAIL_EVAL
-#define KNO_WITH_TAIL_EVAL 1
-#endif
-
-#ifndef KNO_WITH_TAIL_CALLS
-#define KNO_WITH_TAIL_CALLS 1
-#endif
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

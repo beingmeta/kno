@@ -4,6 +4,10 @@
 #include "kno/opcodes.h"
 #include "kno/cprims.h"
 
+#ifndef INIT_ARGBUF_LEN
+#define INIT_ARGBUF_LEN 7
+#endif
+
 extern u8_condition BadExpressionHead;
 
 #define MU U8_MAYBE_UNUSED
@@ -515,3 +519,4 @@ KNO_FASTOP void init_iter_env(kno_schemap bindings,lispval value,
     bindings->schema_length=3;}
   else bindings->schema_length=1;
 }
+

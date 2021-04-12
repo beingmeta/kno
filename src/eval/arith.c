@@ -9,6 +9,7 @@
 #endif
 
 #define KNO_EVAL_INTERNALS 1
+#define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -29,7 +30,8 @@
 
 DEFC_PRIM("complex?",complexp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a complex number, whether it "
+	  "has an imaginary component or not :)",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval complexp(lispval x)
 {
@@ -40,7 +42,7 @@ static lispval complexp(lispval x)
 
 DEFC_PRIM("fixnum?",fixnump,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a fixnum, a fixed precision integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval fixnump(lispval x)
 {
@@ -51,7 +53,8 @@ static lispval fixnump(lispval x)
 
 DEFC_PRIM("bignum?",bignump,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is bignum fixnum, an arbitrary precision "
+	  "integer which can not be represented as a fixnum",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval bignump(lispval x)
 {
@@ -62,7 +65,7 @@ static lispval bignump(lispval x)
 
 DEFC_PRIM("integer?",integerp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval integerp(lispval x)
 {
@@ -84,7 +87,8 @@ static lispval wholep(lispval x)
 
 DEFC_PRIM("rational?",rationalp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a rational number, which includes "
+	  "integers",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval rationalp(lispval x)
 {
@@ -95,7 +99,8 @@ static lispval rationalp(lispval x)
 
 DEFC_PRIM("exact?",exactp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an 'exact' number, which means "
+	  "it doesn't have any inexact (floating point) components.",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval exactp(lispval x)
 {
@@ -113,7 +118,8 @@ static lispval exactp(lispval x)
 
 DEFC_PRIM("inexact?",inexactp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an 'inexact' number, which means "
+	  "it has some inexact (floating point) components.",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval inexactp(lispval x)
 {
@@ -131,7 +137,7 @@ static lispval inexactp(lispval x)
 
 DEFC_PRIM("odd?",oddp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an odd integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval oddp(lispval x)
 {
@@ -151,7 +157,7 @@ static lispval oddp(lispval x)
 
 DEFC_PRIM("even?",evenp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an even integer",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval evenp(lispval x)
 {
@@ -171,7 +177,8 @@ static lispval evenp(lispval x)
 
 DEFC_PRIM("real?",realp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a real number (i.e. has "
+	  "no imaginary component)",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval realp(lispval x)
 {
@@ -182,7 +189,7 @@ static lispval realp(lispval x)
 
 DEFC_PRIM("positive?",positivep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a positive number",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval positivep(lispval x)
 {
@@ -194,7 +201,7 @@ static lispval positivep(lispval x)
 
 DEFC_PRIM("negative?",negativep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a positive number",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval negativep(lispval x)
 {
