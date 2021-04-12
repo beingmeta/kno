@@ -572,7 +572,8 @@ KNO_FASTOP lispval eval_for_assign(lispval expr,kno_lexenv env,kno_stack stack)
 }
 
 static lispval assignop(kno_stack stack,kno_lexenv env,
-			lispval var,lispval expr,lispval combiner)
+			lispval var,lispval expr,lispval combiner,
+			lispval type)
 {
   if (KNO_LEXREFP(var)) {
     int up = KNO_LEXREF_UP(var);
@@ -605,6 +606,15 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	    else return VOID;}
 	  lispval value = eval_for_assign(expr,env,stack);
 	  if (KNO_ABORTED(value)) return value;
+	  if ((!((KNO_VOIDP(type))||(KNO_FALSEP(type))))&&
+	      (!(KNO_CHECKTYPE(value,type)))) {
+	      u8_byte buf[50];
+	      lispval sym = map->table_schema[across];
+	      u8_string details =
+		u8_bprintf(buf,"%s !~ %q",KNO_SYMBOL_NAME(sym),type);
+	      kno_seterr(kno_TypeError,"assignop",details,value);
+	      kno_decref(value);
+	      return KNO_ERROR;}
 	  if (scan->env_copy!=dynamic_env) {
 	    scan = scan->env_copy;
 	    bindings = scan->env_bindings;
@@ -652,6 +662,14 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
       else NO_ELSE;
       lispval value = eval_for_assign(expr,env,stack);
       if (KNO_ABORTED(value)) return value;
+      if ((!((KNO_VOIDP(type))||(KNO_FALSEP(type))))&&
+	  (!(KNO_CHECKTYPE(value,type)))) {
+	u8_byte buf[50];
+	u8_string details =
+	  u8_bprintf(buf,"%s !~ %q",KNO_SYMBOL_NAME(sym),type);
+	kno_seterr(kno_TypeError,"assignop",details,value);
+	kno_decref(value);
+	return KNO_ERROR;}
       if (KNO_LEXENVP(table))
 	rv=kno_assign_value(sym,value,(kno_lexenv)table);
       else rv=kno_store(table,sym,value);}
@@ -1578,9 +1596,10 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     return kno_incref(args);
   case KNO_ASSIGN_OPCODE: {
     lispval var = pop_arg(args);
-    lispval combiner = KNO_CAR(args);
-    lispval val_expr = KNO_CDR(args);
-    return assignop(_stack,env,var,val_expr,combiner);}
+    lispval combiner = pop_arg(args);
+    lispval type_val = pop_arg(args);
+    lispval val_expr = args;
+    return assignop(_stack,env,var,val_expr,combiner,type_val);}
   case KNO_SYMREF_OPCODE: {
     lispval refenv=pop_arg(args);
     lispval sym=pop_arg(args);

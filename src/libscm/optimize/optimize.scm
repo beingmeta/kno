@@ -1434,7 +1434,7 @@
 		  (#OP_GTE ,iter-ref ,limit-ref)
 		  ,@(forseq (clause body) (optimize clause env newbound opts))
 		  (#OP_RESET_ENV)
-		  (#OP_ASSIGN ,iter-ref #t #OP_PLUS ,iter-ref . 1)))))
+		  (#OP_ASSIGN ,iter-ref #t #f #OP_PLUS ,iter-ref . 1)))))
 
 (define (optimize-doseq handler expr env bound opts)
   (let* ((bindspec (cadr expr))
@@ -1454,13 +1454,13 @@
 		   ,(cons* #OP_ISA #pair_type seq-ref)
 		   (#OP_EVALFN ,(->evalfn doseq) . (doseq (,varname ,seq-ref ,iter-var) ,@body))
 		   (#OP_BEGIN
-		    (#OP_ASSIGN ,limit-ref #f #OP_LENGTH . ,seq-ref)
+		    (#OP_ASSIGN ,limit-ref #f #f #OP_LENGTH . ,seq-ref)
 		    (#OP_UNTIL
 		     (#OP_GTE ,iter-ref ,limit-ref)
-		     (#OP_ASSIGN ,elt-ref #f #OP_SEQELT ,seq-ref . ,iter-ref)
+		     (#OP_ASSIGN ,elt-ref #f #f #OP_SEQELT ,seq-ref . ,iter-ref)
 		     ,@(forseq (clause body) (optimize clause env new-bindings  opts))
 		     (#OP_RESET_ENV)
-		     (#OP_ASSIGN ,iter-ref #f #OP_PLUS 1 . ,iter-ref))
+		     (#OP_ASSIGN ,iter-ref #f #f #OP_PLUS 1 . ,iter-ref))
 		    (#OP_VOID)))))))
 
 (define (optimize-dosubsets handler expr env bound opts)
@@ -1528,10 +1528,10 @@
 		 ;; lexical contour or enviroment
 		 `(,handler ,var ,optval))
 		((overlaps? handler set!)
-		 `(#OP_ASSIGN ,loc #f . ,optval))
+		 `(#OP_ASSIGN ,loc #f #f . ,optval))
 		((overlaps? handler local)
 		 (if (and (pair? bound) (position var (car bound)))
-		     `(#OP_ASSIGN ,loc #f . ,optval)
+		     `(#OP_ASSIGN ,loc #f #f . ,optval)
 		     (begin
 		       (codewarning (cons* '|NotLocal| var expr bound))
 		       (when optwarn
@@ -1540,11 +1540,11 @@
 			   expr ", converting to set!"))
 		       `(#OP_EVALFN ,(->evalfn set!) 'set! ,var ,optval))))
 		((overlaps? handler set+!)
-		 `(#OP_ASSIGN ,loc #OP_UNION . ,optval))
+		 `(#OP_ASSIGN ,loc #OP_UNION #f . ,optval))
 		((and (overlaps? handler default!) (= (length expr) 3)) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
-		 `(#OP_ASSIGN ,loc #t . ,optval))
+		 `(#OP_ASSIGN ,loc #t #f . ,optval))
 		((overlaps? handler default!) 
 		 ;; Don't convert default! with a `replace` arg to use
 		 ;; OP_ASSIGN
