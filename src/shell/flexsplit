@@ -1,11 +1,10 @@
 #!/bin/sh
 FLEXFILE=$1
 TAILTHRESH=${2:-1}
-SPLITINDEX_CMD=${SPLITINDEX_CMD:-splitindex}
-
-FLEXBASE=${FLEXFILE/.flexpool//}
-
+FLEXBASE=$(basename ${FLEXFILE} .flexindex)
+#FLEXBASE=${FLEXFILE/.flexindex/}
+SPLITINDEX_CMD=${SPLITINDEX_CMD:-knodb splitindex}
+echo FLEXBASE=${FLEXBASE}
 for partition in ${FLEXBASE}.*.index; do 
-    ${SPLITINDEX_CMD} ${partition} ${FLEXBASE}.index ${FLEXBASE}_tail.flexindex ${TAILTHRESH}};
+    ${SPLITINDEX_CMD} ${partition} ${FLEXBASE}.index ${FLEXBASE}_tail.flexindex ${TAILTHRESH};
 done
-    
