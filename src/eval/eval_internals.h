@@ -15,7 +15,7 @@ extern u8_condition BadExpressionHead;
 #define BAD_ARGP(v) \
   (RARELY ( (KNO_IMMEDIATEP(v)) && ( (KNO_VOIDP(v)) || (KNO_ABORTP(v)) ) ) )
 
-static u8_string opcode_name(lispval opcode)
+static u8_string MU opcode_name(lispval opcode)
 {
   long opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
   if ((opcode_offset<kno_opcodes_length) &&

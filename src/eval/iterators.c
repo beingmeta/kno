@@ -414,4 +414,10 @@ KNO_EXPORT void kno_init_iterators_c()
   kno_def_evalfn(kno_scheme_module,"ONBREAK",onbreak_evalfn,
 		 "*undocumented*");
 
+  link_local_cprims();
+
+}
+
+static void link_local_cprims()
+{
 }

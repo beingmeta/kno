@@ -339,8 +339,6 @@ int do_main(int argc,char **argv,
 	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
 		 n,wait_for_file);}}}
 
-  int using_file = 0;
-
   if (source_spec == NULL) {}
   else if (strcmp(source_spec,"-")==0)
     result = load_stdin(env);
@@ -350,7 +348,7 @@ int do_main(int argc,char **argv,
       result = kno_err("NoExecModule","do_main",source_spec,KNO_VOID);
     else exec_module=1;}
   else if (u8_file_existsp(source_spec) ) {
-    lispval src = kno_wrapstring(u8_realpath(source_spec,NULL)); using_file=1;
+    lispval src = kno_wrapstring(u8_realpath(source_spec,NULL));
     kno_set_config("SOURCE",src);
     result = kno_load_source(source_spec,env,NULL);
     if (KNO_ABORTED(result)) {

@@ -189,8 +189,6 @@ static lispval *aggregate_fetchkeys(kno_index ix,int *n)
   }
 }
 
-DEF_KNOSYM(canonical);
-
 KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
 (lispval opts,int n_allocd,int n,kno_index *indexes)
 {

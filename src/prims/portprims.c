@@ -1143,6 +1143,58 @@ static ssize_t get_more_data(u8_input in,ssize_t lim)
   else return in->u8_fillfn(in);
 }
 
+/* Dumping the stack */
+
+static lispval dumpstack_helper(lispval dest,int concise)
+{
+  U8_OUTPUT *out = NULL; int close_out = 0;
+  struct U8_OUTPUT tmpout;
+  if (KNO_FALSEP(dest)) {
+    U8_INIT_STATIC_OUTPUT(tmpout,10000);
+    out=&tmpout;}
+  else if (STRINGP(dest)) {
+    out = (u8_output) u8_open_output_file(CSTRING(dest),NULL,-1,-1);
+    if (out == NULL) return KNO_ERROR;
+    close_out = 1;}
+  else out = get_output_port(dest);
+  struct KNO_STACK *stack = kno_stackptr, *scan = stack;
+  while (scan) {
+    knodbg_show_stack_frame(out,scan,concise);
+    u8_putc(out,'\n');
+    scan=scan->stack_caller;}
+  u8_flush(out);
+  if (close_out) u8_close_output(out);
+  if (KNO_STRINGP(dest))
+    u8_log(LOGNOTICE,"StackDumped","%s stack dumped to %s",
+	   ((concise)?("Concise"):("Detailed")),
+	   KNO_CSTRING(dest));
+  if (KNO_FALSEP(dest))
+    return kno_init_string(NULL,u8_outbuf_len(&tmpout),tmpout.u8_outbuf);
+  else return KNO_VOID;
+}
+
+DEFC_PRIM("dumpstack",dumpstack_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Concisely writes the current stack, to *dest*, which can be "
+	  "a port, #t for stdout, or a filename. If *dest* is #f, the stack "
+	  "is written to a string and returned, otherwise `dumpstack` "
+	  "returns VOID",
+	  {"dest",kno_any_type,KNO_VOID})
+static lispval dumpstack_prim(lispval dest)
+{
+  return dumpstack_helper(dest,1);
+}
+
+DEFC_PRIM("dumpstack/full",dumpstack_full_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Verbosely dumps the current stack, to *dest*, which can be "
+	  "a port, #t for stdout, or a filename.",
+	  {"dest",kno_any_type,KNO_VOID})
+static lispval dumpstack_full_prim(lispval dest)
+{
+  return dumpstack_helper(dest,0);
+}
+
 /* PPRINT lisp primitives */
 
 static lispval column_symbol, depth_symbol, detail_symbol;
@@ -1925,6 +1977,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("gzip",gzip_prim,3,kno_textio_module);
   KNO_LINK_CPRIM("compress",compress_prim,2,kno_textio_module);
   KNO_LINK_CPRIM("uncompress",uncompress_prim,3,kno_textio_module);
+
+  KNO_LINK_CPRIM("dumpstack",dumpstack_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("dumpstack/full",dumpstack_full_prim,1,kno_textio_module);
 
   KNO_LINK_CPRIM("pathstore?",pathstorep_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_textio_module);

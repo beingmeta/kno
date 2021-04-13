@@ -913,6 +913,7 @@ static lispval pid_error(lispval arg,u8_context caller)
 {
   int saved_errno = errno; errno = 0;
   kno_seterr(ProcinfoError,caller,u8_strerror(errno),arg);
+  return KNO_ERROR;
 }
 
 DEFC_PRIM("subjob/info",subjob_info,

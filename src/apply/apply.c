@@ -877,8 +877,6 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 
 /* Tracing */
 
-static int arg_column = 20;
-
 static void output_args(u8_output out,kno_function f,int n,kno_argvec args)
 {
   lispval *schema = f->fcn_argnames;

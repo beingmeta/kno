@@ -564,5 +564,8 @@ KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 
 KNO_EXPORT void kno_throw_contour(u8_contour c,u8_context cxt);
 
+KNO_EXPORT void knodbg_show_stack_frame(u8_output out,struct KNO_STACK *stack,int concise);
+KNO_EXPORT void knodbg_log_stack(int level,u8_condition c,int concise);
+
 #endif /* KNO_STACKS_H */
 
