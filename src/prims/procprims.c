@@ -75,10 +75,108 @@ static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
 static int handle_procopts(lispval opts);
 
-#define KNO_IS_SCHEME 1
-#define KNO_DO_FORK 2
-#define KNO_DO_WAIT 4
-#define KNO_DO_LOOKUP 8
+#define KNO_IS_SCHEME 0x01
+#define KNO_DO_FORK 0x02
+#define KNO_DO_WAIT 0x04
+#define KNO_DO_LOOKUP 0x08
+#define KNO_BLOCKING 0x10
+
+static int dodup(int from,int to,u8_string stream,u8_string id);
+static int setup_pipe(int fds[2]);
+static int handle_procopts(lispval opts);
+
+static pid_t doexec(int flags,char *id,char *progname,
+		    int *in,int *out,int *err,
+		    cons char **argv,const char **envp,
+		    lispval procopts)
+{
+  int dofork = flags&(KNO_DO_FORK);
+  int dolookup = flags&(KNO_DO_LOOKUP);
+  pid_t pid = (dofork) ? (fork()) : (0);
+  if (pid) return pid;
+  int rv = handle_procopts(opts);
+  if (in) {
+    if (in[1]>0) close(in[1]);
+    if ( (in[0]>0) && (flags&(KNO_DO_BLOCK)) )
+      u8_set_blocking(in[0],1);}
+  if (out) {
+    if (out[0]>0) close(out[0]);
+    if ( (out[1]>0) && (flags&(KNO_DO_BLOCK)) )
+      u8_set_blocking(out[1],1);}
+  if (err) {
+    if (err[0]>0) close(err[0]);
+    if ( (err[1]>0) && (flags&(KNO_DO_BLOCK)) )
+      u8_set_blocking(err[1],1);}
+  if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",id);
+  if ( (out) && ( (rv>=0) && (out[1]>0) ) )
+    rv = dodup(out[1],STDOUT_FILENO,"stdout",id);
+  if ( (err) && ( (rv>=0) && (err[1]>0) ) )
+    rv = dodup(err[1],STDERR_FILENO,"stderr",id);
+  if ( (dolookup) && (env) )
+    rv = execvpe(progname,argv,envp);
+  else if (dolookup)
+    rv = execvp(progname,argv);
+  else if (env)
+    rv = execve(progname,argv,env);
+  else rv = execv(progname,argv);
+  return rv;
+}
+
+#if HAVE_PIPE2
+static int setup_pipe(int fds[2])
+{
+  return pipe2(fds,PIPE_FLAGS);
+}
+#else
+static int setup_pipe(int fds[2])
+{
+  int rv = pipe(fds);
+  return rv;
+}
+#endif
+
+static int dodup(int from,int to,u8_string stream,u8_string id)
+{
+  int rv = dup2(from,to);
+  if (rv<0) {
+    int err = errno; errno=0;
+    u8_log(LOGCRIT,RedirectFailed,
+	   "Couldn't redirect %s for job %s (%d:%s)",
+	   stream,id,err,u8_strerror(err));}
+  close(from);
+  return rv;
+}
+
+static int handle_procopts(lispval opts)
+{
+  if ( (KNO_FALSEP(opts)) || (KNO_VOIDP(opts)) ) return 0;
+  lispval limit_keys = kno_getkeys(kno_rlimit_codes);
+  DO_CHOICES(opt,limit_keys) {
+    lispval optval = kno_getopt(opts,opt,KNO_VOID);
+    if (KNO_VOIDP(optval)) continue;
+    else {
+      lispval setval = setrlimit_prim(opt,optval,KNO_FALSE);
+      if (KNO_ABORTP(setval)) {
+	u8_log(LOGWARN,"RlimitFailed","Couldn't set %q",opt);
+	kno_clear_errors(1);}
+      else u8_log(LOGNOTICE,"RlimitChanged","Set %q to %q",opt,optval);
+      kno_decref(optval);}}
+  kno_decref(limit_keys);
+  lispval niceval = kno_getopt(opts,nice_symbol,KNO_VOID);
+  if (KNO_FIXNUMP(niceval)) {
+    int nv = KNO_FIX2INT(niceval); errno = 0;
+    int rv = nice(nv);
+    if (errno) {
+      u8_string errstring = u8_strerror(errno); errno=0;
+      u8_log(LOGCRIT,"ReNiceFailed","With %s, setting to %d",
+	     errstring,KNO_FIX2INT(niceval));}
+    else u8_log(LOGNOTICE,"Renice","To %d for %d",rv,KNO_FIX2INT(niceval));
+    return 0;}
+  else if (!(KNO_VOIDP(niceval))) {
+    u8_log(LOGWARN,"BadNiceValue","handle_procopts %q",niceval);
+    return -1;}
+  else return 0;
+}
 
 static lispval exec_helper(u8_context caller,
 			   int flags,lispval opts,
@@ -349,31 +447,6 @@ static lispval knox_fork_wait_prim(int n,kno_argvec args)
 #define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define SUBJOB_EXEC_FLAGS KNO_DO_LOOKUP
-
-#if HAVE_PIPE2
-static int setup_pipe(int fds[2])
-{
-  return pipe2(fds,PIPE_FLAGS);
-}
-#else
-static int setup_pipe(int fds[2])
-{
-  int rv = pipe(fds);
-  return rv;
-}
-#endif
-
-static int dodup(int from,int to,u8_string stream,u8_string id)
-{
-  int rv = dup2(from,to);
-  if (rv<0) {
-    int err = errno; errno=0;
-    u8_log(LOGCRIT,RedirectFailed,
-	   "Couldn't redirect %s for job %s (%d:%s)",
-	   stream,id,err,u8_strerror(err));}
-  close(from);
-  return rv;
-}
 
 static u8_string makeid(int n,kno_argvec args);
 
@@ -815,37 +888,6 @@ static void init_rlimit_codes()
 /* Handling procopts */
 
 static lispval nice_symbol = KNO_VOID;
-
-static int handle_procopts(lispval opts)
-{
-  if ( (KNO_FALSEP(opts)) || (KNO_VOIDP(opts)) ) return 0;
-  lispval limit_keys = kno_getkeys(kno_rlimit_codes);
-  DO_CHOICES(opt,limit_keys) {
-    lispval optval = kno_getopt(opts,opt,KNO_VOID);
-    if (KNO_VOIDP(optval)) continue;
-    else {
-      lispval setval = setrlimit_prim(opt,optval,KNO_FALSE);
-      if (KNO_ABORTP(setval)) {
-	u8_log(LOGWARN,"RlimitFailed","Couldn't set %q",opt);
-	kno_clear_errors(1);}
-      else u8_log(LOGNOTICE,"RlimitChanged","Set %q to %q",opt,optval);
-      kno_decref(optval);}}
-  kno_decref(limit_keys);
-  lispval niceval = kno_getopt(opts,nice_symbol,KNO_VOID);
-  if (KNO_FIXNUMP(niceval)) {
-    int nv = KNO_FIX2INT(niceval); errno = 0;
-    int rv = nice(nv);
-    if (errno) {
-      u8_string errstring = u8_strerror(errno); errno=0;
-      u8_log(LOGCRIT,"ReNiceFailed","With %s, setting to %d",
-	     errstring,KNO_FIX2INT(niceval));}
-    else u8_log(LOGNOTICE,"Renice","To %d for %d",rv,KNO_FIX2INT(niceval));
-    return 0;}
-  else if (!(KNO_VOIDP(niceval))) {
-    u8_log(LOGWARN,"BadNiceValue","handle_procopts %q",niceval);
-    return -1;}
-  else return 0;
-}
 
 /* The nice prim */
 
