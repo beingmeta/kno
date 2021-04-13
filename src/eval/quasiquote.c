@@ -380,5 +380,11 @@ KNO_EXPORT void kno_init_quasiquote_c()
   kno_def_evalfn(kno_scheme_module,"QUASIQUOTE",quasiquote_evalfn,
 		 "*undocumented*");
 
+  link_local_cprims();
+
   u8_register_source_file(_FILEINFO);
+}
+
+static void link_local_cprims()
+{
 }

@@ -126,9 +126,13 @@ KNO_EXPORT int kno_init_struct_eval_c()
 		"(vector, slotmap, etc) and return a copy with those "
 		"values.");
   kno_defalias(kno_scheme_module,"STRUCT-EVAL","#.");
+  link_local_cprims();
 
   u8_register_source_file(_FILEINFO);
 
   return 1;
 }
 
+static void link_local_cprims()
+{
+}
