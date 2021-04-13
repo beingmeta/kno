@@ -1997,7 +1997,7 @@
       optimize-quasiquote)
 
 (add! special-form-optimizers logmsg optimize-logmsg)
-(add! special-form-optimizers logif optimize-logif)
+(add! special-form-optimizers logif optimize-logif+)
 (add! special-form-optimizers logif+ optimize-logif+)
 
 (add! special-form-optimizers

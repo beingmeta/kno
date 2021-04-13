@@ -115,8 +115,8 @@ static int get_loglevel(lispval level_arg)
   else return -1;
 }
 
-DEFC_EVALFN("log",log_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(log *priority* *condition* *printout args...*)` generates a "
+DEFC_EVALFN("logmsg",log_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logmsg *priority* *condition* *printout args...*)` generates a "
 	    "log message with priority *priority* (evaluated) and "
 	    "condition name *condition*, which is either a symbol "
 	    "(not evaluated) or anything else (evaluated)")
