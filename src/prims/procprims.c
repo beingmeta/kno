@@ -75,11 +75,198 @@ static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
 static int handle_procopts(lispval opts);
 
+#define PIPE_FLAGS O_NONBLOCK
+#define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
+#define SUBJOB_EXEC_FLAGS KNO_DO_LOOKUP
+
+/* PID functions */
+
+DEFC_PRIM("pid?",ispid_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns #t if it's argument is a current and "
+	  "valid process ID.",
+	  {"pid_arg",kno_fixnum_type,KNO_VOID})
+static lispval ispid_prim(lispval pid_arg)
+{
+  pid_t pid = FIX2INT(pid_arg);
+  int rv = kill(pid,0);
+  if (rv<0) {
+    errno = 0; return KNO_FALSE;}
+  else return KNO_TRUE;
+}
+
+DEFC_PRIM("pid/kill!",pid_kill_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "sends *signal* (default is ) to *process*.",
+	  {"pid_arg",kno_any_type,KNO_VOID},
+	  {"sig_arg",kno_any_type,KNO_VOID})
+static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
+{
+  pid_t pid = FIX2INT(pid_arg);
+  int sig = FIX2INT(sig_arg);
+  if ((sig>0)&&(sig<256)) {
+    int rv = kill(pid,sig);
+    if (rv<0) {
+      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
+      u8_graberrno("os_kill_prim",u8_strdup(buf));
+      return KNO_ERROR;}
+    else return KNO_TRUE;}
+  else return kno_type_error("signal","pid_kill_prim",sig_arg);
+}
+
+/* Generic rlimits */
+
+lispval kno_rlimit_codes = KNO_EMPTY;
+
+DEFC_PRIM("getrlimit",getrlimit_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "gets the *resource* resource limit for the "
+	  "current process. If *getmax* is true, gets the "
+	  "maximum resource limit.",
+	  {"resname",kno_symbol_type,KNO_VOID},
+	  {"which",kno_any_type,KNO_VOID})
+static lispval getrlimit_prim(lispval resname,lispval which)
+{
+  struct rlimit lim;
+  long long resnum = -1;
+  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
+  if (KNO_UINTP(rescode))
+    resnum = KNO_FIX2INT(rescode);
+  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  int rv = getrlimit(resnum,&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return kno_err("RLimitFailed","getrlimit_prim",errstring,resname);}
+  if (KNO_TRUEP(which)) {
+    long long curlim = (long long) lim.rlim_cur;
+    long long maxlim = (long long) lim.rlim_max;
+    return kno_init_pair(NULL,
+			 ( (curlim<0) ? (KNO_FALSE) : (KNO_INT(curlim)) ),
+			 ( (maxlim<0) ? (KNO_FALSE) : (KNO_INT(maxlim)) ));}
+  else {
+    long long curlim = (long long) lim.rlim_cur;
+    if (curlim < 0)
+      return KNO_FALSE;
+    else return KNO_INT(curlim);}
+}
+
+DEFC_PRIM("setrlimit!",setrlimit_prim,
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  "sets the resource limit *resource* (symbol) to "
+	  "*value* for the current process. If *setmax* is "
+	  "true, sets the maximium resource value if allowed.",
+	  {"resname",kno_symbol_type,KNO_VOID},
+	  {"limit_val",kno_any_type,KNO_VOID},
+	  {"setmax_arg",kno_any_type,KNO_VOID})
+static lispval setrlimit_prim(lispval resname,lispval limit_val,
+			      lispval setmax_arg)
+{
+
+  struct rlimit lim;
+  long long resnum = -1;
+  long long resval = -1;
+  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
+  int setmax = (KNO_TRUEP(setmax_arg));
+  if (KNO_UINTP(rescode))
+    resnum = KNO_FIX2INT(rescode);
+  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
+  if (KNO_UINTP(limit_val))
+    resval = KNO_FIX2INT(limit_val);
+  else if ( (KNO_FIXNUMP(limit_val)) || (KNO_FALSEP(limit_val)) )
+    resval = RLIM_INFINITY;
+  else return kno_err(kno_TypeError,"setrlimit_prim",NULL,limit_val);
+  int rv = getrlimit(KNO_FIX2INT(rescode),&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return kno_err("RLimitFailed","setrlimit_prim/getrlimit",errstring,resname);}
+  if (setmax)
+    lim.rlim_max = resval;
+  else lim.rlim_cur = resval;
+  rv = setrlimit(resnum,&lim);
+  if (rv < 0) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return kno_err(_("SetRLIMITFailed"),"setrlimit_prim",errstring,resname);}
+  return KNO_TRUE;
+}
+
+/* RLIMIT tables */
+
+#define DECL_RLIMIT(name)					\
+  kno_store(kno_rlimit_codes,kno_intern(# name),KNO_INT(name))
+#define DECL_RLIMIT_ALIAS(alias,code)				\
+  kno_store(kno_rlimit_codes,kno_intern(alias),KNO_INT(code))
+
+static void init_rlimit_codes()
+{
+  kno_rlimit_codes = kno_empty_slotmap();
+  DECL_RLIMIT(RLIMIT_AS);
+  DECL_RLIMIT_ALIAS("VMEM",RLIMIT_AS);
+  DECL_RLIMIT(RLIMIT_CORE);
+  DECL_RLIMIT_ALIAS("COREFILE",RLIMIT_CORE);
+  DECL_RLIMIT(RLIMIT_CPU);
+  DECL_RLIMIT_ALIAS("CPU",RLIMIT_CPU);
+  DECL_RLIMIT(RLIMIT_DATA);
+  DECL_RLIMIT_ALIAS("HEAP",RLIMIT_DATA);
+  DECL_RLIMIT(RLIMIT_FSIZE);
+  DECL_RLIMIT_ALIAS("FILESIZE",RLIMIT_FSIZE);
+#ifdef RLIMIT_LOCKS
+  DECL_RLIMIT(RLIMIT_LOCKS);
+#endif
+#ifdef RLIMIT_MEMLOCK
+  DECL_RLIMIT(RLIMIT_MEMLOCK);
+#endif
+#ifdef RLIMIT_MSGQUEUE
+  DECL_RLIMIT(RLIMIT_MSGQUEUE);
+#endif
+#ifdef RLIMIT_NICE
+  DECL_RLIMIT(RLIMIT_NICE);
+#endif
+  DECL_RLIMIT(RLIMIT_NOFILE);
+  DECL_RLIMIT_ALIAS("MAXFILES",RLIMIT_NOFILE);
+  DECL_RLIMIT(RLIMIT_NPROC);
+  DECL_RLIMIT_ALIAS("MAXPROCS",RLIMIT_NPROC);
+  DECL_RLIMIT(RLIMIT_RSS);
+  DECL_RLIMIT_ALIAS("RESIDENT",RLIMIT_RSS);
+#ifdef RLIMIT_RTPRIO
+  DECL_RLIMIT(RLIMIT_RTPRIO);
+#endif
+#ifdef RLIMIT_RTIME
+  DECL_RLIMIT(RLIMIT_RTIME);
+#endif
+#ifdef RLIMIT_SIGPENDING
+  DECL_RLIMIT(RLIMIT_SIGPENDING);
+#endif
+  DECL_RLIMIT(RLIMIT_STACK);
+}
+
+/* Handling procopts */
+
+static lispval nice_symbol = KNO_VOID;
+
+/* The nice prim */
+
+DEFC_PRIM("nice",nice_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
+	  "Returns or adjusts the priority for the current "
+	  "process",
+	  {"delta_arg",kno_fixnum_type,KNO_VOID})
+static lispval nice_prim(lispval delta_arg)
+{
+  int delta = (!(KNO_FIXNUMP(delta_arg))) ? (0) : (KNO_FIX2INT(delta_arg));
+  errno = 0;
+  int rv = nice(delta);
+  if (errno) {
+    u8_string errstring = u8_strerror(errno); errno=0;
+    return kno_err("NiceFailed","nice_prim",errstring,delta);}
+  else return KNO_INT(rv);
+}
+
 #define KNO_IS_SCHEME 0x01
 #define KNO_DO_FORK 0x02
 #define KNO_DO_WAIT 0x04
 #define KNO_DO_LOOKUP 0x08
-#define KNO_BLOCKING 0x10
+#define KNO_DONT_BLOCK 0x10
 
 static int dodup(int from,int to,u8_string stream,u8_string id);
 static int setup_pipe(int fds[2]);
@@ -87,37 +274,37 @@ static int handle_procopts(lispval opts);
 
 static pid_t doexec(int flags,char *id,char *progname,
 		    int *in,int *out,int *err,
-		    cons char **argv,const char **envp,
+		    char *const argv[],char *const envp[],
 		    lispval procopts)
 {
   int dofork = flags&(KNO_DO_FORK);
   int dolookup = flags&(KNO_DO_LOOKUP);
   pid_t pid = (dofork) ? (fork()) : (0);
   if (pid) return pid;
-  int rv = handle_procopts(opts);
+  int rv = handle_procopts(procopts);
   if (in) {
     if (in[1]>0) close(in[1]);
-    if ( (in[0]>0) && (flags&(KNO_DO_BLOCK)) )
+    if ( (in[0]>0) && (!(flags&(KNO_DONT_BLOCK))) )
       u8_set_blocking(in[0],1);}
   if (out) {
     if (out[0]>0) close(out[0]);
-    if ( (out[1]>0) && (flags&(KNO_DO_BLOCK)) )
+    if ( (out[1]>0) && (!(flags&(KNO_DONT_BLOCK))) )
       u8_set_blocking(out[1],1);}
   if (err) {
     if (err[0]>0) close(err[0]);
-    if ( (err[1]>0) && (flags&(KNO_DO_BLOCK)) )
+    if ( (err[1]>0) && (!(flags&(KNO_DONT_BLOCK))) )
       u8_set_blocking(err[1],1);}
   if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",id);
   if ( (out) && ( (rv>=0) && (out[1]>0) ) )
     rv = dodup(out[1],STDOUT_FILENO,"stdout",id);
   if ( (err) && ( (rv>=0) && (err[1]>0) ) )
     rv = dodup(err[1],STDERR_FILENO,"stderr",id);
-  if ( (dolookup) && (env) )
+  if ( (dolookup) && (envp) )
     rv = execvpe(progname,argv,envp);
   else if (dolookup)
     rv = execvp(progname,argv);
-  else if (env)
-    rv = execve(progname,argv,env);
+  else if (envp)
+    rv = execve(progname,argv,envp);
   else rv = execv(progname,argv);
   return rv;
 }
@@ -441,12 +628,148 @@ static lispval knox_fork_wait_prim(int n,kno_argvec args)
 		     n,KNO_FALSE,args);
 }
 
-/* SUBJOBs */
+/* Run */
 
-#define PIPE_FLAGS O_NONBLOCK
-#define STDOUT_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
-#define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
-#define SUBJOB_EXEC_FLAGS KNO_DO_LOOKUP
+DEF_KNOSYM(fork); DEF_KNOSYM(exec); DEF_KNOSYM(lookup);
+DEF_KNOSYM(knox); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
+
+static void add_configs(kno_stackvec configs,lispval value,u8_string name);
+
+static lispval runproc_prim(int n,kno_argvec args)
+{
+  u8_string progname = NULL;
+  int args_start = 2, flags = 0;
+  lispval command = args[0], opts = args[1];
+  if (KNO_STRINGP(command))
+    progname=u8_strdup(KNO_CSTRING(command));
+  else if (KNO_SYMBOLP(command)) {
+    lispval config_val = kno_config_get(KNO_SYMBOL_NAME(command));
+    if (KNO_STRINGP(config_val))
+      progname=u8_strdup(KNO_CSTRING(config_val));
+    else progname=u8_strdup(KNO_SYMBOL_NAME(command));
+    kno_decref(config_val);}
+  else return kno_err("BadCommand","runproc_prim",NULL,command);
+
+  /* Handle the case with no options */
+  if ( (KNO_STRINGP(opts)) || (KNO_NUMBERP(opts)) ) {
+    opts = KNO_FALSE; args_start = 1;
+    flags |= KNO_DO_FORK;}
+  else if ( (kno_testopt(opts,KNOSYM(fork),KNO_VOID)) ||
+	    (!(kno_testopt(opts,KNOSYM(exec),KNO_VOID))) )
+    flags |= KNO_DO_FORK;
+  else NO_ELSE;
+
+  if ( (kno_testopt(opts,KNOSYM(lookup),KNO_VOID)) ||
+       (!(u8_file_existsp(progname))) )
+    flags |= KNO_DO_LOOKUP;
+
+  lispval intepreter_opt = kno_getopt(opts,KNOSYM(interpret),KNO_VOID);
+  u8_string interpreter =
+    ( (KNO_VOIDP(interpreter_opt)) || (KNO_FALSEP(interpreter_opt)) ) ? (NULL) :
+    (KNO_STRINGP(interpreter_opt)) ? (KNO_CSTRING(interpreter_opt)) :
+    (U8S(KNO_EXEC));
+  lispval env_spec = kno_getopt(opts,KNOSYM(environment),KNO_VOID);
+  lispval config_spec = (use_knox) ? (kno_getopt(opts,KNOSYM(configs),VOID)) :
+    (KNO_VOID);
+  KNO_DECL_STACKVEC(configs,32);
+  KNO_DECL_STACKVEC(environment,32);
+  if (!(KNO_VOIDP(config_spec))) {
+    KNO_DO_CHOICES(conf,config_spec) {
+      if (KNO_STRINGP(conf)) {
+	if (strchr(CSTRING(conf),'='))
+	  kno_stackvec_push(configs,conf);
+	else {
+	  lispval cval = kno_config_get(KNO_SYMBOL_NAME(conf));
+	  add_configs(configs,cval,CSTRING(conf));
+	  kno_decref(cval);}}
+      else if (KNO_SYMBOLP(conf)) {
+	lispval cval = kno_config_get(KNO_SYMBOL_NAME(conf));
+	add_configs(configs,cval,KNO_SYMBOL_NAME(conf));
+	kno_decref(cval);}
+      else if (KNO_TABLEP(conf)) {
+	lispval keys = kno_getkeys(conf);
+	KNO_DO_CHOICES(key,keys) {
+	  if (KNO_SYMBOLP(key)) {
+	    lispval cval = kno_get(conf,key,KNO_VOID);
+	    add_configs(configs,cval,KNO_SYMBOL_NAME(key));
+	    kno_decref(cval);}}
+	kno_decref(keys);}
+      else NO_ELSE;}}
+  if (!(KNO_VOIDP(env_spec))) {
+    KNO_DO_CHOICES(spec,env_spec) {
+      if (KNO_STRINGP(spec)) {
+	if (strchr(CSTRING(spec),'=')) {
+	  kno_stackvec_push(environment,spec); kno_incref(spec);}
+	else u8_log(LOGWARN,"BadEnvEntry","Couldn't use string %q",spec);}
+      else if (KNO_TABLEP(spec)) {
+	lispval keys = kno_getkeys(spec);
+	KNO_DO_CHOICES(key,keys) {
+	  u8_string env_var = (SYMBOLP(key)) ? (SYMBOL_NAME(key)) :
+	    (STRINGP(key)) ? (CSTRING(key)) : (NULL);
+	  if (env_var) {
+	    lispval val = kno_get(spec,key,KNO_VOID);
+	    u8_string spec = NULL;
+	    if (KNO_STRINGP(val))
+	      spec = u8_mkstring("%s=%s",env_var,CSTRING(val));
+	    else if (KNO_NUMBERP(val))
+	      spec = u8_mkstring("%s=%q",env_var,val);
+	    else if (KNO_OIDP(val))
+	      spec = u8_mkstring("%s=%q",env_var,val);
+	    else spec = u8_mkstring("%s=:%q",env_var,val);
+	    lispval as_lisp = kno_init_string(NULL,-1,spec);
+	    kno_stackvec_push(environment,as_lisp);}}}
+      else NO_ELSE;}}
+
+  int use_argc = n + ((interpeter==NULL)?(0):(1)) + configs->count + 1;
+  int use_envc = environment->count+1;
+  char *argv[use_argc], *envp[use_envc];
+
+  U8_STATIC_OUTPUT(arg,100);
+  int write = 0, read = args_start;
+  if (interpreter) argv[write++]=u8_tolibc(interpreter);
+  while (read<n) {
+    lispval arg = args[read++];
+    u8_string use_string = NULL;
+    if (KNO_STRINGP(arg))
+      use_string = CSTRING(arg);
+    else {
+      kno_unparse(argout,arg);
+      use_string=argout->u8_outbuf;}
+    argv[write++]=u8_tolibc(use_string);
+    u8_reset_output(argout);}
+  u8_close_output(argout);
+
+  lispval *config_args = configs->elts;
+  int config_i, config_max = configs->count;
+  while (config_i<config_max) {
+    lispval arg = config_args[config_i++];
+    if (KNO_STRINGP(arg))
+      argv[write++]=u8_tolibc(CSTRING(arg));}
+  argv[write++]=NULL;
+
+  lispval *elts = environment->elts;
+  int env_i=0, env_max = environment->count;
+  while (env_i<env_max) {
+    lispval spec = elts[env_i];
+    envp[env_i]=u8_tolibc(CSTRING(spec));
+    env_i++;}
+  envp[env_i++]=NULL;
+  /* Do stuff here */
+  kno_free_stackvec(environment);
+  kno_free_stackvec(configs);
+}
+
+static void add_configs(kno_stackvec configs,lispval value,u8_string name)
+{
+  if (KNO_CHOICEP(value)) {
+    KNO_DO_CHOICES(v,value) { add_configs(configs,v,name); }}
+  else {
+    u8_string conf_spec = u8_mkstring("%s=:%q",name,value);
+    lispval as_lisp = kno_init_string(NULL,-1,conf_spec);
+    kno_stackvec_push(configs,as_lisp);}
+}
+
+/* SUBJOBs */
 
 static u8_string makeid(int n,kno_argvec args);
 
@@ -723,188 +1046,6 @@ static lispval fast_exit_prim(lispval arg)
   if (rv<0)
     return kno_err("ExitFailed","exit_prim",NULL,VOID);
   else return VOID;
-}
-
-/* PID functions */
-
-DEFC_PRIM("pid?",ispid_prim,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns #t if it's argument is a current and "
-	  "valid process ID.",
-	  {"pid_arg",kno_fixnum_type,KNO_VOID})
-static lispval ispid_prim(lispval pid_arg)
-{
-  pid_t pid = FIX2INT(pid_arg);
-  int rv = kill(pid,0);
-  if (rv<0) {
-    errno = 0; return KNO_FALSE;}
-  else return KNO_TRUE;
-}
-
-DEFC_PRIM("pid/kill!",pid_kill_prim,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "sends *signal* (default is ) to *process*.",
-	  {"pid_arg",kno_any_type,KNO_VOID},
-	  {"sig_arg",kno_any_type,KNO_VOID})
-static lispval pid_kill_prim(lispval pid_arg,lispval sig_arg)
-{
-  pid_t pid = FIX2INT(pid_arg);
-  int sig = FIX2INT(sig_arg);
-  if ((sig>0)&&(sig<256)) {
-    int rv = kill(pid,sig);
-    if (rv<0) {
-      char buf[128]; sprintf(buf,"pid=%ld;sig=%d",(long int)pid,sig);
-      u8_graberrno("os_kill_prim",u8_strdup(buf));
-      return KNO_ERROR;}
-    else return KNO_TRUE;}
-  else return kno_type_error("signal","pid_kill_prim",sig_arg);
-}
-
-/* Generic rlimits */
-
-lispval kno_rlimit_codes = KNO_EMPTY;
-
-DEFC_PRIM("getrlimit",getrlimit_prim,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "gets the *resource* resource limit for the "
-	  "current process. If *getmax* is true, gets the "
-	  "maximum resource limit.",
-	  {"resname",kno_symbol_type,KNO_VOID},
-	  {"which",kno_any_type,KNO_VOID})
-static lispval getrlimit_prim(lispval resname,lispval which)
-{
-  struct rlimit lim;
-  long long resnum = -1;
-  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
-  if (KNO_UINTP(rescode))
-    resnum = KNO_FIX2INT(rescode);
-  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
-  int rv = getrlimit(resnum,&lim);
-  if (rv < 0) {
-    u8_string errstring = u8_strerror(errno); errno=0;
-    return kno_err("RLimitFailed","getrlimit_prim",errstring,resname);}
-  if (KNO_TRUEP(which)) {
-    long long curlim = (long long) lim.rlim_cur;
-    long long maxlim = (long long) lim.rlim_max;
-    return kno_init_pair(NULL,
-			 ( (curlim<0) ? (KNO_FALSE) : (KNO_INT(curlim)) ),
-			 ( (maxlim<0) ? (KNO_FALSE) : (KNO_INT(maxlim)) ));}
-  else {
-    long long curlim = (long long) lim.rlim_cur;
-    if (curlim < 0)
-      return KNO_FALSE;
-    else return KNO_INT(curlim);}
-}
-
-DEFC_PRIM("setrlimit!",setrlimit_prim,
-	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	  "sets the resource limit *resource* (symbol) to "
-	  "*value* for the current process. If *setmax* is "
-	  "true, sets the maximium resource value if allowed.",
-	  {"resname",kno_symbol_type,KNO_VOID},
-	  {"limit_val",kno_any_type,KNO_VOID},
-	  {"setmax_arg",kno_any_type,KNO_VOID})
-static lispval setrlimit_prim(lispval resname,lispval limit_val,
-			      lispval setmax_arg)
-{
-
-  struct rlimit lim;
-  long long resnum = -1;
-  long long resval = -1;
-  lispval rescode = kno_get(kno_rlimit_codes,resname,KNO_VOID);
-  int setmax = (KNO_TRUEP(setmax_arg));
-  if (KNO_UINTP(rescode))
-    resnum = KNO_FIX2INT(rescode);
-  else return kno_err(_("BadRLIMITKey"),"setrlimit_prim",NULL,resname);
-  if (KNO_UINTP(limit_val))
-    resval = KNO_FIX2INT(limit_val);
-  else if ( (KNO_FIXNUMP(limit_val)) || (KNO_FALSEP(limit_val)) )
-    resval = RLIM_INFINITY;
-  else return kno_err(kno_TypeError,"setrlimit_prim",NULL,limit_val);
-  int rv = getrlimit(KNO_FIX2INT(rescode),&lim);
-  if (rv < 0) {
-    u8_string errstring = u8_strerror(errno); errno=0;
-    return kno_err("RLimitFailed","setrlimit_prim/getrlimit",errstring,resname);}
-  if (setmax)
-    lim.rlim_max = resval;
-  else lim.rlim_cur = resval;
-  rv = setrlimit(resnum,&lim);
-  if (rv < 0) {
-    u8_string errstring = u8_strerror(errno); errno=0;
-    return kno_err(_("SetRLIMITFailed"),"setrlimit_prim",errstring,resname);}
-  return KNO_TRUE;
-}
-
-/* RLIMIT tables */
-
-#define DECL_RLIMIT(name)					\
-  kno_store(kno_rlimit_codes,kno_intern(# name),KNO_INT(name))
-#define DECL_RLIMIT_ALIAS(alias,code)				\
-  kno_store(kno_rlimit_codes,kno_intern(alias),KNO_INT(code))
-
-static void init_rlimit_codes()
-{
-  kno_rlimit_codes = kno_empty_slotmap();
-  DECL_RLIMIT(RLIMIT_AS);
-  DECL_RLIMIT_ALIAS("VMEM",RLIMIT_AS);
-  DECL_RLIMIT(RLIMIT_CORE);
-  DECL_RLIMIT_ALIAS("COREFILE",RLIMIT_CORE);
-  DECL_RLIMIT(RLIMIT_CPU);
-  DECL_RLIMIT_ALIAS("CPU",RLIMIT_CPU);
-  DECL_RLIMIT(RLIMIT_DATA);
-  DECL_RLIMIT_ALIAS("HEAP",RLIMIT_DATA);
-  DECL_RLIMIT(RLIMIT_FSIZE);
-  DECL_RLIMIT_ALIAS("FILESIZE",RLIMIT_FSIZE);
-#ifdef RLIMIT_LOCKS
-  DECL_RLIMIT(RLIMIT_LOCKS);
-#endif
-#ifdef RLIMIT_MEMLOCK
-  DECL_RLIMIT(RLIMIT_MEMLOCK);
-#endif
-#ifdef RLIMIT_MSGQUEUE
-  DECL_RLIMIT(RLIMIT_MSGQUEUE);
-#endif
-#ifdef RLIMIT_NICE
-  DECL_RLIMIT(RLIMIT_NICE);
-#endif
-  DECL_RLIMIT(RLIMIT_NOFILE);
-  DECL_RLIMIT_ALIAS("MAXFILES",RLIMIT_NOFILE);
-  DECL_RLIMIT(RLIMIT_NPROC);
-  DECL_RLIMIT_ALIAS("MAXPROCS",RLIMIT_NPROC);
-  DECL_RLIMIT(RLIMIT_RSS);
-  DECL_RLIMIT_ALIAS("RESIDENT",RLIMIT_RSS);
-#ifdef RLIMIT_RTPRIO
-  DECL_RLIMIT(RLIMIT_RTPRIO);
-#endif
-#ifdef RLIMIT_RTIME
-  DECL_RLIMIT(RLIMIT_RTIME);
-#endif
-#ifdef RLIMIT_SIGPENDING
-  DECL_RLIMIT(RLIMIT_SIGPENDING);
-#endif
-  DECL_RLIMIT(RLIMIT_STACK);
-}
-
-/* Handling procopts */
-
-static lispval nice_symbol = KNO_VOID;
-
-/* The nice prim */
-
-DEFC_PRIM("nice",nice_prim,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	  "Returns or adjusts the priority for the current "
-	  "process",
-	  {"delta_arg",kno_fixnum_type,KNO_VOID})
-static lispval nice_prim(lispval delta_arg)
-{
-  int delta = (!(KNO_FIXNUMP(delta_arg))) ? (0) : (KNO_FIX2INT(delta_arg));
-  errno = 0;
-  int rv = nice(delta);
-  if (errno) {
-    u8_string errstring = u8_strerror(errno); errno=0;
-    return kno_err("NiceFailed","nice_prim",errstring,delta);}
-  else return KNO_INT(rv);
 }
 
 /* Getting info from PIDs or SUBJOBS */
