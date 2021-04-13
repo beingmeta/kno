@@ -80,6 +80,23 @@ static int handle_procopts(lispval opts);
 #define STDERR_FILE_MODE (S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH)
 #define SUBJOB_EXEC_FLAGS KNO_DO_LOOKUP
 
+DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
+
+void extract_pid_status(int status,lispval into)
+{
+  if (WIFEXITED(status)) {
+    int details = WEXITSTATUS(status);
+    kno_store(into,KNOSYM(exited),KNO_INT(details));}
+  if (WIFSIGNALED(status)) {
+    int details = WTERMSIG(status);
+    kno_store(into,KNOSYM(terminated),KNO_INT(details));}
+  if (WIFSTOPPED(status)) {
+    int details = WSTOPSIG(status);
+    kno_store(into,KNOSYM(stopped),KNO_INT(details));}
+  if (WIFCONTINUED(status))
+    kno_store(into,KNOSYM(stopped),KNO_INT(SIGCONT));
+}
+
 /* PID functions */
 
 DEFC_PRIM("pid?",ispid_prim,
@@ -272,7 +289,7 @@ static int dodup(int from,int to,u8_string stream,u8_string id);
 static int setup_pipe(int fds[2]);
 static int handle_procopts(lispval opts);
 
-static pid_t doexec(int flags,u8_string id,char *progname,
+static pid_t doexec(int flags,char *progname,
 		    int *in,int *out,int *err,
 		    char *const argv[],char *const envp[],
 		    lispval procopts)
@@ -294,11 +311,11 @@ static pid_t doexec(int flags,u8_string id,char *progname,
     if (err[0]>0) close(err[0]);
     if ( (err[1]>0) && (!(flags&(KNO_DONT_BLOCK))) )
       u8_set_blocking(err[1],1);}
-  if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",id);
+  if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
   if ( (out) && ( (rv>=0) && (out[1]>0) ) )
-    rv = dodup(out[1],STDOUT_FILENO,"stdout",id);
+    rv = dodup(out[1],STDOUT_FILENO,"stdout",progname);
   if ( (err) && ( (rv>=0) && (err[1]>0) ) )
-    rv = dodup(err[1],STDERR_FILENO,"stderr",id);
+    rv = dodup(err[1],STDERR_FILENO,"stderr",progname);
   if ( (dolookup) && (envp) )
     rv = execvpe(progname,argv,envp);
   else if (dolookup)
@@ -630,6 +647,7 @@ static lispval knox_fork_wait_prim(int n,kno_argvec args)
 
 /* Run */
 
+DEF_KNOSYM(wait);
 DEF_KNOSYM(fork); DEF_KNOSYM(exec); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
 DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
 
@@ -655,8 +673,8 @@ DEFC_PRIMNx("proc/run",proc_run_prim,
 static lispval proc_run_prim(int n,kno_argvec args)
 {
   u8_string progname = NULL;
-  int args_start = 2, flags = 0, error = 0;
-  lispval command = args[0], opts = (n>1) ? (args[1]) : (KNO_FALSE);
+  int args_start = 2, flags = 0;
+  lispval command = args[0], opts = (n>1) ? (args[1]) : (KNO_FALSE), result=VOID;
   pid_t pid = -1;
   if (KNO_STRINGP(command))
     progname=u8_strdup(KNO_CSTRING(command));
@@ -711,19 +729,22 @@ static lispval proc_run_prim(int n,kno_argvec args)
   int use_argc = n + ((interpreter==NULL)?(0):(1)) + configs->count + 1;
   int use_envc = environment->count+1;
   char *argv[use_argc], *envp[use_envc];
+  int arg_write = 0, arg_read = args_start;
+  int env_i=0, env_max = environment->count;
+  char *cprogname = NULL;
 
   U8_STATIC_OUTPUT(arg,100);
-  int write = 0, read = args_start;
-  if (interpreter) argv[write++]=u8_tolibc(interpreter);
-  while (read<n) {
-    lispval arg = args[read++];
+  if (interpreter) argv[arg_write++]=u8_tolibc(interpreter);
+  argv[arg_write++]=cprogname=u8_tolibc(progname);
+  while (arg_read<n) {
+    lispval arg = args[arg_read++];
     u8_string use_string = NULL;
     if (KNO_STRINGP(arg))
       use_string = CSTRING(arg);
     else {
       kno_unparse(argout,arg);
       use_string=argout->u8_outbuf;}
-    argv[write++]=u8_tolibc(use_string);
+    argv[arg_write++]=u8_tolibc(use_string);
     u8_reset_output(argout);}
   u8_close_output(argout);
 
@@ -732,11 +753,10 @@ static lispval proc_run_prim(int n,kno_argvec args)
   while (config_i<config_max) {
     lispval arg = config_args[config_i++];
     if (KNO_STRINGP(arg))
-      argv[write++]=u8_tolibc(CSTRING(arg));}
-  argv[write++]=NULL;
+      argv[arg_write++]=u8_tolibc(CSTRING(arg));}
+  argv[arg_write++]=NULL;
 
   lispval *elts = environment->elts;
-  int env_i=0, env_max = environment->count;
   while (env_i<env_max) {
     lispval spec = elts[env_i];
     envp[env_i]=u8_tolibc(CSTRING(spec));
@@ -759,7 +779,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
       u8_log(LOGCRIT,RedirectFailed,
 	     "Couldn't open %s as stdin (%s:%s)",
 	     KNO_CSTRING(infile),ex->u8x_cond,ex->u8x_details);
-      error=1;
+      result=KNO_ERROR;
       goto err_exit;}
     else {
       inpipe[0]=new_stdin;
@@ -777,7 +797,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
 	     KNO_CSTRING(outfile),ex->u8x_cond,ex->u8x_details);
-      error=1;
+      result=KNO_ERROR;
       goto err_exit;}
     else {
       outpipe[1]=new_stdout;
@@ -796,15 +816,29 @@ static lispval proc_run_prim(int n,kno_argvec args)
       u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
 	     KNO_CSTRING(errfile),
 	     ex->u8x_cond,ex->u8x_details);
-      error=1;
+      result=KNO_ERROR;
       goto err_exit;}
     else {
       errpipe[1]=new_stderr;
       err=errpipe;}}
 
-  pid=doexec(flags,idstring,progname,in,out,err,argv,envp,opts);
+  lispval wait_opt = kno_getopt(opts,KNOSYM(wait),KNO_FALSE);
+
+  pid=doexec(flags,cprogname,in,out,err,argv,envp,opts);
+
+  if (pid>0) {
+    if (!(KNO_FALSEP(wait_opt))) {
+      int status = -1;
+      int rv = waitpid(pid,&status,0);
+      if (rv<0) result=KNO_ERROR;
+      else {
+	result = kno_make_slotmap(4,0,NULL);
+	extract_pid_status(status,result);}}
+    else result = KNO_INT(pid);}
+  else result=KNO_ERROR;
 
  err_exit:
+  u8_free(cprogname);
   kno_decref(infile);
   kno_decref(outfile);
   kno_decref(errfile);
@@ -813,9 +847,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
   kno_decref(env_spec);
   kno_free_stackvec(environment);
   kno_free_stackvec(configs);
-  if (error) return KNO_ERROR;
-  else if (pid<0) {}
-  else return KNO_INT(pid);
+  return result;
 }
 
 static void handle_config_spec(kno_stackvec configs,lispval config_spec)
@@ -1201,23 +1233,6 @@ static pid_t pid_arg(lispval x,u8_context caller,int err)
     kno_seterr(NotPID,caller,NULL,x);
     return -1;}
   else return 0;
-}
-
-DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
-
-void extract_pid_status(int status,lispval into)
-{
-  if (WIFEXITED(status)) {
-    int details = WEXITSTATUS(status);
-    kno_store(into,KNOSYM(exited),KNO_INT(details));}
-  if (WIFSIGNALED(status)) {
-    int details = WTERMSIG(status);
-    kno_store(into,KNOSYM(terminated),KNO_INT(details));}
-  if (WIFSTOPPED(status)) {
-    int details = WSTOPSIG(status);
-    kno_store(into,KNOSYM(stopped),KNO_INT(details));}
-  if (WIFCONTINUED(status))
-    kno_store(into,KNOSYM(stopped),KNO_INT(SIGCONT));
 }
 
 static lispval pid_error(lispval arg,u8_context caller)
