@@ -296,20 +296,25 @@ static pid_t doexec(int flags,char *progname,
 {
   int dofork = flags&(KNO_DO_FORK);
   int dolookup = flags&(KNO_DO_LOOKUP);
+  int doblock = (!(flags&(KNO_DONT_BLOCK)));
   pid_t pid = (dofork) ? (fork()) : (0);
-  if (pid) return pid;
+  if (pid>0) return pid;
+  else if (pid<0) return pid;
+  /* We're in the subjob now */
   int rv = handle_procopts(procopts);
+  /* Close the sockets the parent is using */
+  /* pair[0] is the read end, pair[1] is the write end */
   if (in) {
     if (in[1]>0) close(in[1]);
-    if ( (in[0]>0) && (!(flags&(KNO_DONT_BLOCK))) )
+    if ( (in[0]>0) && (doblock) )
       u8_set_blocking(in[0],1);}
   if (out) {
     if (out[0]>0) close(out[0]);
-    if ( (out[1]>0) && (!(flags&(KNO_DONT_BLOCK))) )
+    if ( (out[1]>0) && (doblock) )
       u8_set_blocking(out[1],1);}
   if (err) {
     if (err[0]>0) close(err[0]);
-    if ( (err[1]>0) && (!(flags&(KNO_DONT_BLOCK))) )
+    if ( (err[1]>0) && (doblock) )
       u8_set_blocking(err[1],1);}
   if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
   if ( (out) && ( (rv>=0) && (out[1]>0) ) )
@@ -647,7 +652,7 @@ static lispval knox_fork_wait_prim(int n,kno_argvec args)
 
 /* Run */
 
-DEF_KNOSYM(wait);
+DEF_KNOSYM(wait); DEF_KNOSYM(return); DEF_KNOSYM(pid);
 DEF_KNOSYM(fork); DEF_KNOSYM(exec); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
 DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
 
@@ -655,25 +660,25 @@ static void handle_config_spec(kno_stackvec configs,lispval config_spec);
 static void handle_env_spec(kno_stackvec configs,lispval env_spec);
 static void add_configs(kno_stackvec configs,lispval value,u8_string name);
 static u8_string mkidstring(u8_string progname,int n,kno_argvec args);
+static lispval cons_subjob(pid_t pid,u8_string id,
+			   lispval in,lispval out,lispval err,
+			   lispval opts);
+static lispval makeout(int fd,u8_string id);
+static lispval makein(int fd,u8_string id);
 
-DEFC_PRIMNx("proc/run",proc_run_prim,
+DEFC_PRIMNx("proc/open",proc_open_prim,
 	    KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	    "'forks' a new Kno process reading the file "
-	    "*scheme_file* and applying the file's `MAIN` "
-	    "definition to the results of parsing *args* (also "
-	    "strings).  It waits for this process to return "
-	    "and returns its exit status.\n*envmap*, if "
-	    "provided, specifies CONFIG settings for the "
-	    "reading and execution of *scheme-file*. "
-	    "Environment variables can also be explicitly "
-	    "provided in the string *command*.",
+	    "invokes *progname*, usually by forking a new child "
+	    "process, and passes the remaining arguments to "
+	    "the program. If the *opts* arg is a string, it is "
+	    "taken as a first argument (instead of specifying options)",
 	    2,
 	    {"progname",kno_string_type,KNO_VOID},
-	    {"opts/arg1",kno_any_type,KNO_VOID})
-static lispval proc_run_prim(int n,kno_argvec args)
+	    {"opts",kno_any_type,KNO_VOID})
+static lispval proc_open_prim(int n,kno_argvec args)
 {
   u8_string progname = NULL;
-  int args_start = 2, flags = 0;
+  int args_start = 2, flags = 0, return_pid = 0;
   lispval command = args[0], opts = (n>1) ? (args[1]) : (KNO_FALSE), result=VOID;
   pid_t pid = -1;
   if (KNO_STRINGP(command))
@@ -688,12 +693,15 @@ static lispval proc_run_prim(int n,kno_argvec args)
 
   /* Handle the case with no options */
   if ( (KNO_STRINGP(opts)) || (KNO_NUMBERP(opts)) ) {
-    opts = KNO_FALSE; args_start = 1;
+    opts = KNO_FALSE; args_start = 1; return_pid=1;
     flags |= KNO_DO_FORK;}
   else if ( (kno_testopt(opts,KNOSYM(fork),KNO_VOID)) ||
 	    (!(kno_testopt(opts,KNOSYM(exec),KNO_VOID))) )
     flags |= KNO_DO_FORK;
   else NO_ELSE;
+
+  if (kno_testopt(opts,KNOSYM(return),KNOSYM(pid)))
+    return_pid = 0;
 
   if ( (kno_testopt(opts,KNOSYM(lookup),KNO_VOID)) ||
        (!(u8_file_existsp(progname))) )
@@ -749,7 +757,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
   u8_close_output(argout);
 
   lispval *config_args = configs->elts;
-  int config_i, config_max = configs->count;
+  int config_i = 0, config_max = configs->count;
   while (config_i<config_max) {
     lispval arg = config_args[config_i++];
     if (KNO_STRINGP(arg))
@@ -763,9 +771,11 @@ static lispval proc_run_prim(int n,kno_argvec args)
     env_i++;}
   envp[env_i++]=NULL;
 
-  lispval infile   = kno_getopt(opts,stdin_symbol,KNO_VOID);
-  lispval outfile  = kno_getopt(opts,stdout_symbol,KNO_VOID);
-  lispval errfile  = kno_getopt(opts,stderr_symbol,KNO_VOID);
+  /* We have these default to empty because we may store
+     them in the record and we don't want to store VOID values. */
+  lispval infile   = kno_getopt(opts,stdin_symbol,KNO_EMPTY);
+  lispval outfile  = kno_getopt(opts,stdout_symbol,KNO_EMPTY);
+  lispval errfile  = kno_getopt(opts,stderr_symbol,KNO_EMPTY);
   int *in=NULL, *out=NULL, *err=NULL;
   int inpipe[2]={-1,-1}, outpipe[2]={-1,-1}, errpipe[2]={-1,-1};
 
@@ -834,8 +844,34 @@ static lispval proc_run_prim(int n,kno_argvec args)
       else {
 	result = kno_make_slotmap(4,0,NULL);
 	extract_pid_status(status,result);}}
-    else result = KNO_INT(pid);}
+    else if (return_pid)
+      result = KNO_INT(pid);
+    else {
+      result = cons_subjob
+	(pid,idstring,
+	 (((in==NULL) || (in[1]<0)) ? (kno_incref(infile)) :
+	  (makeout(in[1],u8_mkstring("(stdin)%s",idstring)))),
+	 (((out==NULL) || (out[0]<0)) ? (kno_incref(outfile)) :
+	  (makein(out[0],u8_mkstring("(stdout)%s",idstring)))),
+	 (((err==NULL) || (err[0]<0)) ? (kno_incref(errfile)) :
+	  (makein(err[0],u8_mkstring("(stderr)%s",idstring)))),
+	 kno_incref(opts));}}
   else result=KNO_ERROR;
+
+  /* Clean up any sockets we created */
+  /* pair[0] is the read end, pair[1] is the write end */
+  if (in) {
+    /* Child's stdin, we use the write end [1] and close the read end [0]. */
+    if (in[1]>=0) u8_set_blocking(in[1],1);
+    if (in[0]>=0) close(in[0]);}
+  if (out) {
+    /* Child's stdout, we use the read end [0] and close the write end [1]. */
+    if (out[0]>=0) u8_set_blocking(out[0],1);
+    if (out[1]>=0) close(out[1]);}
+  if (err) {
+    /* Child's stderr, we use the read end [0] and close the write end [1]. */
+    if (err[0]>=0) u8_set_blocking(err[0],1);
+    if (err[1]>=0) close(err[1]);}
 
  err_exit:
   u8_free(cprogname);
@@ -848,6 +884,30 @@ static lispval proc_run_prim(int n,kno_argvec args)
   kno_free_stackvec(environment);
   kno_free_stackvec(configs);
   return result;
+}
+
+static lispval cons_subjob(pid_t pid,u8_string id,
+			   lispval in,lispval out,lispval err,
+			   lispval opts)
+{
+  struct KNO_SUBJOB *subjob = u8_alloc(struct KNO_SUBJOB);
+  KNO_INIT_CONS(subjob,kno_subjob_type);
+  subjob->subjob_pid = pid;
+  subjob->subjob_id = id;
+  subjob->subjob_stdin = in;
+  subjob->subjob_stdout = out;
+  subjob->subjob_stderr = err;
+  subjob->subjob_opts = opts;
+  return (lispval) subjob;
+}
+
+static lispval makeout(int fd,u8_string id)
+{
+  return kno_make_port(NULL,(u8_output)u8_open_xoutput(fd,NULL),id);
+}
+static lispval makein(int fd,u8_string id)
+{
+  return kno_make_port((u8_input)u8_open_xinput(fd,NULL),NULL,id);
 }
 
 static void handle_config_spec(kno_stackvec configs,lispval config_spec)
@@ -934,29 +994,29 @@ static u8_string mkidstring(u8_string progname,int n,kno_argvec args)
 static u8_string makeid(int n,kno_argvec args);
 
 KNO_DEFC_PRIMNN("subjob/open",subjob_open,
-	    KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	    "'forks' a new process applying *command* to "
-	    "*args* and creates a **subjob** object for the "
-	    "process.\n*opts* control how the subjob is started "
-	    "and how its inputs and outputs are configured.\n"
-	    "Some supported options are:\n* **ID** provides a "
-	    "descriptive string;\n* **STDIN** is either a file "
-	    "to use as the *stdin* to the new process, #f to "
-	    "use the *standard input* of the current process, "
-	    "or #t to create a stream through which the "
-	    "current process can write to the new process.\n* "
-	    "**STDOUT** is either a file to use for the "
-	    "*stdout* from the new process, #f to share the "
-	    "*standard output* of the current process, or #t "
-	    "to create a stream from which the current process "
-	    "can read the standard output of the new process.\n"
-	    "* **STDERR** is either a file to use for the "
-	    "*stderr* for the new process, #f to share the "
-	    "*stderr* of the current process, or #t to create "
-	    "a stream from which the current process can read "
-	    "the error output of the new process.",
-	    {"procopts",kno_opts_type,KNO_VOID},
-	    {"program",kno_string_type,KNO_VOID})
+		KNO_VAR_ARGS|KNO_MIN_ARGS(2),
+		"'forks' a new process applying *command* to "
+		"*args* and creates a **subjob** object for the "
+		"process.\n*opts* control how the subjob is started "
+		"and how its inputs and outputs are configured.\n"
+		"Some supported options are:\n* **ID** provides a "
+		"descriptive string;\n* **STDIN** is either a file "
+		"to use as the *stdin* to the new process, #f to "
+		"use the *standard input* of the current process, "
+		"or #t to create a stream through which the "
+		"current process can write to the new process.\n* "
+		"**STDOUT** is either a file to use for the "
+		"*stdout* from the new process, #f to share the "
+		"*standard output* of the current process, or #t "
+		"to create a stream from which the current process "
+		"can read the standard output of the new process.\n"
+		"* **STDERR** is either a file to use for the "
+		"*stderr* for the new process, #f to share the "
+		"*stderr* of the current process, or #t to create "
+		"a stream from which the current process can read "
+		"the error output of the new process.",
+		{"procopts",kno_opts_type,KNO_VOID},
+		{"program",kno_string_type,KNO_VOID})
 static lispval subjob_open(int n,kno_argvec args)
 {
   lispval opts = args[0];
@@ -1009,6 +1069,8 @@ static lispval subjob_open(int n,kno_argvec args)
 	kno_make_port((u8_input)u8_open_xinput(err[0],NULL),NULL,
 		      u8_mkstring("(err)%s",id));
       if (err) u8_set_blocking(err[0],1);
+
+      subjob->subjob_opts=kno_incref(opts);
 
       kno_decref(infile);
       kno_decref(outfile);
@@ -1099,7 +1161,9 @@ static u8_string makeid(int n,kno_argvec args)
 static int unparse_subjob(u8_output out,lispval x)
 {
   struct KNO_SUBJOB *sj = (struct KNO_SUBJOB *)x;
-  u8_printf(out,"#<SUBJOB/%s>",sj->subjob_id);
+  u8_printf(out,"#<SUBJOB %lld '%s'>",
+	    (long long)(sj->subjob_pid),
+	    sj->subjob_id);
   return 1;
 }
 
@@ -1109,11 +1173,12 @@ static void recycle_subjob(struct KNO_RAW_CONS *c)
   kno_decref(sj->subjob_stdin); sj->subjob_stdin=KNO_VOID;
   kno_decref(sj->subjob_stdout); sj->subjob_stdout=KNO_VOID;
   kno_decref(sj->subjob_stderr); sj->subjob_stderr=KNO_VOID;
+  kno_decref(sj->subjob_opts); sj->subjob_opts=KNO_VOID;
   u8_free(sj->subjob_id);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
-DEFC_PRIM("subjob/pid",subjob_pid,
+DEFC_PRIM("subjob-pid",subjob_pid,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the numeric process ID for the subjob",
 	  {"subjob",kno_any_type,KNO_VOID})
@@ -1123,7 +1188,7 @@ static lispval subjob_pid(lispval subjob)
   return KNO_INT(sj->subjob_pid);
 }
 
-DEFC_PRIM("subjob/stdin",subjob_stdin,
+DEFC_PRIM("subjob-stdin",subjob_stdin,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns an output port for sending to the subjob.",
 	  {"subjob",kno_any_type,KNO_VOID})
@@ -1133,7 +1198,7 @@ static lispval subjob_stdin(lispval subjob)
   return kno_incref(sj->subjob_stdin);
 }
 
-DEFC_PRIM("subjob/stdout",subjob_stdout,
+DEFC_PRIM("subjob-stdout",subjob_stdout,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns an input port for reading the output of "
 	  "subjob.",
@@ -1144,7 +1209,7 @@ static lispval subjob_stdout(lispval subjob)
   return kno_incref(sj->subjob_stdout);
 }
 
-DEFC_PRIM("subjob/stderr",subjob_stderr,
+DEFC_PRIM("subjob-stderr",subjob_stderr,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns an input port for reading the error "
 	  "output (stderr)  of subjob.",
@@ -1238,7 +1303,7 @@ static pid_t pid_arg(lispval x,u8_context caller,int err)
 static lispval pid_error(lispval arg,u8_context caller)
 {
   int saved_errno = errno; errno = 0;
-  kno_seterr(ProcinfoError,caller,u8_strerror(errno),arg);
+  kno_seterr(ProcinfoError,caller,u8_strerror(saved_errno),arg);
   return KNO_ERROR;
 }
 
@@ -1336,17 +1401,18 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("exit/fast",fast_exit_prim,1,procprims_module);
   KNO_LINK_CPRIM("exit",exit_prim,1,procprims_module);
   KNO_LINK_CPRIM("subjob/signal",subjob_signal,2,procprims_module);
-  KNO_LINK_CPRIM("subjob/stderr",subjob_stderr,1,procprims_module);
-  KNO_LINK_CPRIM("subjob/stdout",subjob_stdout,1,procprims_module);
-  KNO_LINK_CPRIM("subjob/stdin",subjob_stdin,1,procprims_module);
-  KNO_LINK_CPRIM("subjob/pid",subjob_pid,1,procprims_module);
-  KNO_LINK_CPRIMN("subjob/open",subjob_open,procprims_module);
 
-  KNO_LINK_CPRIMN("proc/run",proc_run_prim,procprims_module);
+  KNO_LINK_CPRIMN("proc/open",proc_open_prim,procprims_module);
+  KNO_LINK_CPRIM("subjob-stderr",subjob_stderr,1,procprims_module);
+  KNO_LINK_CPRIM("subjob-stdout",subjob_stdout,1,procprims_module);
+  KNO_LINK_CPRIM("subjob-stdin",subjob_stdin,1,procprims_module);
+  KNO_LINK_CPRIM("subjob-pid",subjob_pid,1,procprims_module);
 
-  KNO_LINK_CPRIM("subjob/info",subjob_info,1,procprims_module);
   KNO_LINK_CPRIM("subjob/live?",subjob_livep,1,procprims_module);
   KNO_LINK_CPRIM("subjob/stopped?",subjob_stoppedp,1,procprims_module);
+  KNO_LINK_CPRIM("subjob/info",subjob_info,1,procprims_module);
+
+  KNO_LINK_CPRIMN("subjob/open",subjob_open,procprims_module);
 
   KNO_LINK_CPRIMN("knox/fork/wait",knox_fork_wait_prim,procprims_module);
   KNO_LINK_CPRIMN("fork/cmd/wait",fork_cmd_wait_prim,procprims_module);
