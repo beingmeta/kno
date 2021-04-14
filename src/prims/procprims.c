@@ -306,16 +306,13 @@ static pid_t doexec(int flags,char *progname,
   /* pair[0] is the read end, pair[1] is the write end */
   if (in) {
     if (in[1]>0) close(in[1]);
-    if ( (in[0]>0) && (doblock) )
-      u8_set_blocking(in[0],1);}
+    if ((doblock) && (in[0]>0)) u8_set_blocking(in[0],1);}
   if (out) {
     if (out[0]>0) close(out[0]);
-    if ( (out[1]>0) && (doblock) )
-      u8_set_blocking(out[1],1);}
+    if ((doblock) && (out[1]>0)) u8_set_blocking(out[1],1);}
   if (err) {
     if (err[0]>0) close(err[0]);
-    if ( (err[1]>0) && (doblock) )
-      u8_set_blocking(err[1],1);}
+    /* Setup err[1] here */}
   if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
   if ( (out) && ( (rv>=0) && (out[1]>0) ) )
     rv = dodup(out[1],STDOUT_FILENO,"stdout",progname);
@@ -652,7 +649,7 @@ static lispval knox_fork_wait_prim(int n,kno_argvec args)
 
 /* Run */
 
-DEF_KNOSYM(wait); DEF_KNOSYM(return); DEF_KNOSYM(pid);
+DEF_KNOSYM(wait); DEF_KNOSYM(return); DEF_KNOSYM(pid); DEF_KNOSYM(block);
 DEF_KNOSYM(fork); DEF_KNOSYM(exec); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
 DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
 
@@ -702,6 +699,9 @@ static lispval proc_open_prim(int n,kno_argvec args)
 
   if (kno_testopt(opts,KNOSYM(return),KNOSYM(pid)))
     return_pid = 0;
+
+  if (kno_testopt(opts,KNOSYM(block),KNO_FALSE))
+    flags |= KNO_DONT_BLOCK;
 
   if ( (kno_testopt(opts,KNOSYM(lookup),KNO_VOID)) ||
        (!(u8_file_existsp(progname))) )
@@ -831,6 +831,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
     else {
       errpipe[1]=new_stderr;
       err=errpipe;}}
+  else NO_ELSE;
 
   lispval wait_opt = kno_getopt(opts,KNOSYM(wait),KNO_FALSE);
 
@@ -903,11 +904,15 @@ static lispval cons_subjob(pid_t pid,u8_string id,
 
 static lispval makeout(int fd,u8_string id)
 {
-  return kno_make_port(NULL,(u8_output)u8_open_xoutput(fd,NULL),id);
+  u8_output out = (u8_output) u8_open_xoutput(fd,NULL);
+  out->u8_streaminfo |= U8_STREAM_OWNS_SOCKET;
+  return kno_make_port(NULL,out,id);
 }
 static lispval makein(int fd,u8_string id)
 {
-  return kno_make_port((u8_input)u8_open_xinput(fd,NULL),NULL,id);
+  u8_input in = (u8_input) u8_open_xinput(fd,NULL);
+  in->u8_streaminfo |= U8_STREAM_OWNS_SOCKET;
+  return kno_make_port(in,NULL,id);
 }
 
 static void handle_config_spec(kno_stackvec configs,lispval config_spec)
