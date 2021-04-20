@@ -805,7 +805,7 @@ static lispval unwind_protect_evalfn(lispval uwp,kno_lexenv env,kno_stack _stack
 DEFC_PRIM("test-u8raise",test_u8raise_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Has the kno_consptr macro signal a type error "
-	  "with u8_raise.",
+	  "with kno_raisex.",
 	  {"obj",kno_any_type,KNO_VOID})
 static lispval test_u8raise_prim(lispval obj)
 {

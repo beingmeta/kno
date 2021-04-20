@@ -32,6 +32,10 @@ static lispval repl_module=VOID;
 
 static lispval history_symbol, histref_typetag;
 
+DEFC_EVALFN("with-history",with_history_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(with-history *history* *body...*)` evaluates *body* "
+	    "with the default history bound to the history object "
+	    "*history*.")
 KNO_EXPORT lispval with_history_evalfn
 (lispval expr,kno_lexenv env,kno_stack stack)
 {
@@ -53,13 +57,13 @@ KNO_EXPORT lispval with_history_evalfn
   return value;
 }
 
-DEFC_PRIM("histref",histref_prim,MIN_ARGS(2)|MAX_ARGS(2),
+DEFC_PRIM("histref",history_ref_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	  "returns the history item for "
 	  "*ref*, using the current historical context if *history* is "
 	  "not provided.",
 	  {"ref",kno_any_type,KNO_VOID},
 	  {"history",kno_any_type,KNO_VOID});
-static lispval histref_prim(lispval ref,lispval history)
+static lispval history_ref_prim(lispval ref,lispval history)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
     history = kno_thread_get(history_symbol);
@@ -71,13 +75,13 @@ static lispval histref_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFC_PRIM("histfind",histfind_prim,MIN_ARGS(2)|MAX_ARGS(2),
+DEFC_PRIM("history/find",history_find_prim,MIN_ARGS(2)|MAX_ARGS(2),
 	  "returns the history reference for "
 	  "*value*, using the current historical context if *history* is "
 	  "not provided.",
 	  {"ref",kno_any_type,KNO_VOID},
 	  {"history",kno_any_type,KNO_VOID});
-static lispval histfind_prim(lispval ref,lispval history)
+static lispval history_find_prim(lispval ref,lispval history)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
     history = kno_thread_get(history_symbol);
@@ -89,7 +93,7 @@ static lispval histfind_prim(lispval ref,lispval history)
   else return KNO_EMPTY;
 }
 
-DEFC_PRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
+DEFC_PRIM("history/add!",history_add_prim,MIN_ARGS(1)|MAX_ARGS(3),
 	  "associates *val* with "
 	  "the history reference *ref*, creating a new reference if *ref* "
 	  "is not provided. This uses the current historical context if "
@@ -97,7 +101,7 @@ DEFC_PRIM("histadd!",histadd_prim,MIN_ARGS(1)|MAX_ARGS(3),
 	  {"val",kno_any_type,KNO_VOID},
 	  {"history",kno_any_type,KNO_VOID},
 	  {"ref",kno_any_type,KNO_VOID});
-static lispval histadd_prim(lispval val,lispval history,lispval ref)
+static lispval history_add_prim(lispval val,lispval history,lispval ref)
 {
   if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
     history = kno_thread_get(history_symbol);
@@ -107,6 +111,23 @@ static lispval histadd_prim(lispval val,lispval history,lispval ref)
     kno_decref(history);
     return result;}
   else return KNO_EMPTY;
+}
+
+DEFC_PRIM("history/subst",history_subst_prim,MIN_ARGS(1)|MAX_ARGS(3),
+	  "replaces history references in *expr* from *history*, which "
+	  "defualts to the thread binding for `history`.",
+	  {"expr",kno_any_type,KNO_VOID},
+	  {"history",kno_any_type,KNO_VOID});
+static lispval history_subst_prim(lispval expr,lispval history)
+{
+  if ( (VOIDP(history)) || (FALSEP(history)) || (DEFAULTP(history)) )
+    history = kno_thread_get(history_symbol);
+  else kno_incref(history);
+  lispval result = (KNO_COMPOUND_TYPEP(history,history_symbol)) ?
+    (kno_eval_histrefs(expr,history)) :
+    (kno_incref(expr));
+  kno_decref(history);
+  return result;
 }
 
 static int repl_initialized = 0;
@@ -120,10 +141,7 @@ KNO_EXPORT void kno_init_replc_c()
 
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(repl_module,"with-history",with_history_evalfn,
-		 "creates a new history "
-		 "context and evaluates *body* within that context. "
-		 "This saves any current history context.");
+  KNO_LINK_EVALFN(repl_module,with_history_evalfn);
 
   link_local_cprims();
 
@@ -136,7 +154,12 @@ KNO_EXPORT void kno_init_replc_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("histref",histref_prim,2,repl_module);
-  KNO_LINK_CPRIM("histfind",histfind_prim,2,repl_module);
-  KNO_LINK_CPRIM("histadd!",histadd_prim,3,repl_module);
+  KNO_LINK_CPRIM("history/ref",history_ref_prim,2,repl_module);
+  KNO_LINK_CPRIM("history/find",history_find_prim,2,repl_module);
+  KNO_LINK_CPRIM("history/add!",history_add_prim,3,repl_module);
+  KNO_LINK_CPRIM("history/subst",history_subst_prim,2,repl_module);
+
+  KNO_LINK_CPRIM("histref",history_ref_prim,2,repl_module);
+  KNO_LINK_CPRIM("histfind",history_find_prim,2,repl_module);
+  KNO_LINK_CPRIM("histadd!",history_add_prim,3,repl_module);
 }

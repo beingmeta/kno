@@ -247,7 +247,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 			 bufsize);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
   if (instream == NULL) {
-    u8_raise(kno_FileNotFound,"open_kpool",u8_strdup(fname));
+    kno_seterr(kno_FileNotFound,"open_kpool",fname,KNO_VOID);
     u8_free(realpath);
     u8_free(abspath);
     return NULL;}
@@ -269,7 +269,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 
   if (load > capacity) {
     u8_logf(LOG_CRIT,kno_PoolOverflow,
-	    "The kpool %s specifies a load (%lld) > its capacity (%lld)",
+	    "The kpool %s specifies a load (%_lld) > its capacity (%_lld)",
 	    fname,load,capacity);
     pool->pool_load=load=capacity;}
 
@@ -769,7 +769,7 @@ static lispval read_oid_value_at
     else if (kp->pool_flags & KNO_STORAGE_REPAIR) {
       KNO_OID addr = KNO_OID_ADDR(oid);
       u8_log(LOG_WARN,"BadBlockRef",
-	     "Couldn't read OID %llx/%llx from %lld+%lld in %s",
+	     "Couldn't read OID %llx/%llx from %_lld+%_lld in %s",
 	     KNO_OID_HI(addr),KNO_OID_LO(addr),
 	     ref.off,ref.size,
 	     kp->pool_source);
@@ -783,7 +783,7 @@ static lispval read_oid_value_at
     else if (kp->pool_flags & KNO_STORAGE_REPAIR) {
       KNO_OID addr = KNO_OID_ADDR(oid);
       u8_log(LOG_WARN,"BadBlockRef",
-	     "Couldn't read OID %llx/%llx from %lld+%lld in %s",
+	     "Couldn't read OID %llx/%llx from %_lld+%_lld in %s",
 	     KNO_OID_HI(addr),KNO_OID_LO(addr),
 	     ref.off,ref.size,
 	     kp->pool_source);
@@ -929,7 +929,7 @@ static lispval *kpool_fetchn(kno_pool p,int n,lispval *oids)
 	    lispval oid = oids[value_at];
 	    KNO_OID addr = KNO_OID_ADDR(oid);
 	    u8_log(LOG_WARN,"FatchFailed",
-		   "Couldn't read block for %llx/%llx at %lld+%lld from %s",
+		   "Couldn't read block for %llx/%llx at %_lld+%_lld from %s",
 		   KNO_OID_HI(addr),KNO_OID_LO(addr),
 		   schedule[i].location.off,
 		   schedule[i].location.size,
@@ -946,7 +946,7 @@ static lispval *kpool_fetchn(kno_pool p,int n,lispval *oids)
 	    lispval oid = oids[value_at];
 	    KNO_OID addr = KNO_OID_ADDR(oid);
 	    u8_log(LOG_WARN,"FatchFailed",
-		   "Couldn't read value for %llx/%llx at %lld+%lld from %s",
+		   "Couldn't read value for %llx/%llx at %_lld+%_lld from %s",
 		   KNO_OID_HI(addr),KNO_OID_LO(addr),
 		   schedule[i].location.off,
 		   schedule[i].location.size,
@@ -1063,7 +1063,7 @@ static int kpool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
   if (n>0) { /* There are values to save */
     int new_blocks = 0;
     u8_logf(LOG_DEBUG,"KPoolStore",
-	    "Storing %d oid values in kpool %s",n,p->poolid);
+	    "Storing %_d oid values in kpool %s",n,p->poolid);
 
     /* These are used repeatedly for rendering objects to xtypes */
     struct KNO_OUTBUF tmpout = { 0 };
@@ -1151,7 +1151,7 @@ static int kpool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
   kno_flush_stream(head_stream);
 
   u8_logf(LOG_INFO,"KPoolStore",
-	  "Stored %d oid values in kpool %s in %f seconds",
+	  "Stored %_d oid values in kpool %s in %f seconds",
 	  n,p->poolid,u8_elapsed_time()-started);
 
   /* Unlock the pool */
@@ -1510,7 +1510,7 @@ static ssize_t mmap_write_offdata
   int chunk_ref_size = get_chunk_ref_size(kp);
   int retval = -1;
   u8_logf(LOG_DEBUG,"kpool:write_offdata",
-	  "Finalizing %d oid values for %s",n,kp->poolid);
+	  "Finalizing %_d oid values for %s",n,kp->poolid);
 
   unsigned int *offdata = NULL;
   size_t byte_length = chunk_ref_size*(max_off+1);
@@ -1520,7 +1520,7 @@ static ssize_t mmap_write_offdata
 	 stream->stream_fileno,0);
   if ( (memblock==NULL) || (memblock == MAP_FAILED) ) {
     u8_logf(LOG_CRIT,u8_strerror(errno),
-	    "Failed MMAP of %lld bytes of offdata for kpool %s",
+	    "Failed MMAP of %_lld bytes of offdata for kpool %s",
 	    256+(byte_length),kp->poolid);
     u8_graberrno("kpool_write_offdata",u8_strdup(kp->poolid));
     return -1;}

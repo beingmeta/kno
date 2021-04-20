@@ -578,7 +578,7 @@ DEFC_PRIM("compound-annotations",compound_annotations,
 static lispval compound_annotations(lispval x)
 {
   struct KNO_COMPOUND *co = (kno_compound) x;
-  if (co->compound_istable) {
+  if (co->compound_annotated) {
     if (KNO_TABLEP(co->compound_0))
       return kno_incref(co->compound_0);
     else return KNO_EMPTY;}
@@ -916,7 +916,7 @@ static lispval make_xcompound(int n,kno_argvec args)
   compound->typetag            = typetag;
   compound->compound_ismutable = is_mutable;
   compound->compound_isopaque  = is_opaque;
-  compound->compound_istable   = tablep;
+  compound->compound_annotated   = tablep;
   compound->compound_seqoff    = seqoff;
   if (tablep) *write++ = annotations;
   while (data_i<n) {
@@ -972,7 +972,7 @@ static lispval seq2compound(lispval seq,lispval tag,
   compound->typetag = kno_incref(tag);
   compound->compound_length = compound_len;
   compound->compound_seqoff = seqoff;
-  compound->compound_istable = tablep;
+  compound->compound_annotated = tablep;
   if ( (len==0) || (FALSEP(mutable)) )
     compound->compound_ismutable = 0;
   else {
@@ -1321,6 +1321,19 @@ static lispval type_set_prim(lispval arg,lispval field,lispval value)
   else return KNO_FALSE;
 }
 
+DEFC_PRIM("type-set-schema!",type_set_schema_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Sets the schema (a vector) for the type *tag*",
+	  {"tag",kno_any_type,KNO_VOID},
+	  {"schema",kno_vector_type,KNO_VOID})
+static lispval type_set_schema_prim(lispval tag,lispval schema)
+{
+  if (kno_type_set_schema(tag,schema)<0)
+    return KNO_ERROR;
+  else return kno_incref(tag);
+}
+
+
 /* Setting various compound properties */
 
 static lispval consfn_symbol, stringfn_symbol, tag_symbol;
@@ -1438,6 +1451,7 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("handler!",set_handler_cprim,scheme_module);
 
   KNO_LINK_CPRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("type-set-schema!",type_set_stringfn_prim,2,kno_scheme_module);
   KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
   KNO_LINK_CPRIM("type-set-consfn!",type_set_consfn_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("type-set-restorefn!",type_set_restorefn_prim,2,kno_scheme_module);

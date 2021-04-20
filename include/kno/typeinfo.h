@@ -41,6 +41,7 @@ typedef struct KNO_TYPEINFO {
   kno_type_dumpfn type_dumpfn;
   kno_type_restorefn type_restorefn;
   kno_type_dispatchfn type_dispatchfn;
+  char type_free_tablefns, type_free_seqfns, type_free_defdata;
   struct KNO_TABLEFNS *type_tablefns;
   struct KNO_SEQFNS *type_seqfns;
   void *type_defdata;} KNO_TYPEINFO;

@@ -187,7 +187,7 @@ KNO_FASTOP unsigned int fileindex_hash(struct KNO_FILEINDEX *fx,lispval x)
   case 3:
     return kno_hash_lisp3(x);
   default:
-    u8_raise(_("Bad hash version"),"fileindex_hash",fx->indexid);}
+    kno_raisex(_("Bad hash version"),"fileindex_hash",fx->indexid);}
   /* Never reached */
   return -1;
 }
@@ -243,8 +243,8 @@ static lispval fileindex_fetch(kno_index ix,lispval key)
           while (next_pos) {
             lispval v;
             if (RARELY(i>=n_vals))
-              u8_raise(_("inconsistent file index"),
-                       "fileindex_fetch",u8_strdup(ix->indexid));
+              kno_raisex(_("inconsistent file index"),
+			 "fileindex_fetch",u8_strdup(ix->indexid));
             if (next_pos>1) kno_setpos(stream,next_pos+pos_offset);
             v = kno_read_dtype(instream);
             if ((atomicp) && (CONSP(v))) atomicp = 0;
@@ -1078,7 +1078,7 @@ static int fileindex_save(struct KNO_INDEX *ix,
     u8_big_free(kdata);
 
     u8_logf(LOG_NOTICE,"FileIndexCommit",
-            _("Saved mappings for %d keys to %s in %f secs"),
+            _("Saved mappings for %_d keys to %s in %f secs"),
             n_changes,ix->indexid,u8_elapsed_time()-started);
 
     if (gc_new_offsets) u8_big_free(new_offsets);

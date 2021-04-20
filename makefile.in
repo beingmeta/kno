@@ -181,8 +181,7 @@ SYS_OBJS=						\
 	src/sys/logging.o src/sys/getopt.o		\
 	src/sys/startup.o src/sys/fluid.o 		\
 	src/sys/signals.o src/sys/posix.o 		\
-	src/sys/sourcebase.o src/sys/pathstore.o 	\
-	src/sys/getsource.o				\
+	src/sys/sourcebase.o src/sys/getsource.o	\
 	src/sys/history.o
 
 APPLY_OBJS=\
@@ -215,7 +214,7 @@ DRIVER_OBJS=\
 	src/drivers/kpool.o src/drivers/kindex.o		\
 	src/drivers/netpool.o src/drivers/netindex.o		\
 	src/drivers/filepool.o src/drivers/fileindex.o 		\
-	src/drivers/logindex.o src/drivers/zpathstore.o 	\
+	src/drivers/logindex.o src/drivers/zipsource.o 		\
 	src/drivers/hashindex.o src/drivers/bigpool.o		\
 	src/drivers/zip.o
 
@@ -344,7 +343,7 @@ KNO_SOURCES=									\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c src/sys/pathstore.c		\
+	src/sys/buildinfo.c src/sys/sourcebase.c 				\
 	src/sys/support.c src/sys/config.c src/sys/posix.c			\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
@@ -358,7 +357,7 @@ KNO_SOURCES=									\
 	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
 	src/storage/bloom.c src/storage/ipeval.c				\
 	src/drivers/builtin_drivers.c  						\
-	src/drivers/filepool.c src/drivers/kpool.c src/drivers/zpathstore.c	\
+	src/drivers/filepool.c src/drivers/kpool.c src/drivers/zipsource.c	\
 	src/drivers/fileindex.c src/drivers/kindex.c  				\
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
@@ -2073,4 +2072,4 @@ src/drivers/hashindex.o: src/drivers/headers/hashindex.h  src/drivers/headers/zc
 src/drivers/kindex.o: src/drivers/headers/kindex.h  src/drivers/headers/zcompress.h
 src/drivers/logindex.o: src/drivers/headers/logindex.h
 src/drivers/zip.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
-src/drivers/zpathstore.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h
+src/drivers/zipsource.o: src/drivers/headers/zip.h src/drivers/headers/miniz.h

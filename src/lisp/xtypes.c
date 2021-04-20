@@ -709,7 +709,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	return KNO_ERROR;}
       struct KNO_COMPOUND *cvec = (kno_compound) result;
       if (tablep) {
-	cvec->compound_istable=1;
+	cvec->compound_annotated=1;
 	if (sequencep) cvec->compound_seqoff++;}
       lispval *write = KNO_COMPOUND_ELTS(result);
       lispval *limit = write+n;
@@ -1135,7 +1135,7 @@ static ssize_t write_compound
   ssize_t bytes = 0;
   int n_elts = cvec->compound_length;
   lispval *elts = &(cvec->compound_0), *limit = elts + n_elts;
-  int tablep = (cvec->compound_istable != 0);
+  int tablep = (cvec->compound_annotated != 0);
   int write_elts = n_elts + 4 - tablep;
   ssize_t rv = kno_write_byte(out,xt_compound);
   if (rv<0) return rv; else bytes += rv;

@@ -112,7 +112,7 @@ KNO_EXPORT void kno_push_opstack(struct KNO_FRAMEOP_STACK *op)
 KNO_EXPORT int kno_pop_opstack(struct KNO_FRAMEOP_STACK *op,int normal)
 {
   struct KNO_FRAMEOP_STACK *ops = get_opstack();
-  if (ops != op) u8_raise("Corrupted ops stack","kno_pop_opstack",NULL);
+  if (ops != op) kno_raisex("Corrupted ops stack","kno_pop_opstack",NULL);
   else if (op->dependencies) {
     if (normal) u8_free(op->dependencies);
     else {

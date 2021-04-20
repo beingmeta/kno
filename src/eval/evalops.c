@@ -246,6 +246,56 @@ static lispval callcc(lispval proc)
     return value;}
 }
 
+/* Stack queries */
+
+DEFC_PRIM("%stack",getstack_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(0),
+	  "Returns a subset of the stack",
+	  {"test",kno_any_type,KNO_VOID},
+	  {"count",kno_fixnum_type,KNO_VOID})
+static lispval getstack_prim(lispval test,lispval count)
+{
+  kno_stack cur = kno_stackptr;
+  int depth = cur->stack_depth, n;
+  if ( (KNO_VOIDP(count)) || (KNO_FALSEP(count)) )
+    n = depth;
+  else if (KNO_FIXNUMP(count)) {
+    long long iv = KNO_FIX2INT(count);
+    if ( (iv<=0) || (iv>depth) ) n = depth;
+    else depth=iv;}
+  else NO_ELSE;
+  if ( (KNO_VOIDP(test)) || (KNO_FALSEP(test)) ||
+       (KNO_TRUEP(test)) || (KNO_DEFAULTP(test)) ||
+       (KNO_APPLICABLEP(test)) ) {
+    lispval results[n];
+    int i = 0; kno_stack scan = cur;
+    while ( (scan) && (i<n) ) {
+      lispval stackobj = kno_stack2lisp(scan);
+      if (KNO_APPLICABLEP(test)) {
+	lispval keep = kno_apply(test,1,&stackobj);
+	if (KNO_ABORTED(keep)) {
+	  kno_decref_vec(results,i);
+	  return keep;}
+	else if (KNO_FALSEP(keep))
+	  kno_decref(stackobj);
+	else results[i++]=stackobj;
+	kno_decref(keep);}
+      else results[i++]=stackobj;
+      scan = scan->stack_caller;}
+    return kno_make_vector(i,results);}
+  else return kno_err("StackTestPredicate","%stack",NULL,test);
+}
+
+DEFC_PRIM("%stackdepth",stackdepth_prim,
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns the depth of the Scheme stack")
+static lispval stackdepth_prim()
+{
+  kno_stack cur = kno_stackptr;
+  if (cur) return KNO_INT(cur->stack_depth);
+  else return KNO_INT(0);
+}
+
 /* Environments */
 
 DEFC_PRIM("symbol-bound-in?",symbol_boundin_prim,
@@ -832,6 +882,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("%coderefval",coderef_value_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("coderef?",coderefp_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("make-coderef",make_coderef,1,kno_scheme_module);
+
+  KNO_LINK_CPRIM("%stack",getstack_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("%stackdepth",stackdepth_prim,0,kno_scheme_module);
 
   KNO_LINK_CPRIM("opcode-name",opcode_name_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("name->opcode",name2opcode_prim,1,kno_scheme_module);

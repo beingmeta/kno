@@ -129,7 +129,7 @@ typedef int (*kno_lisp_predicate)(lispval x);
 KNO_EXPORT int kno_init_iobase(void);
 
 KNO_EXPORT int kno_init_errbase(void);
-#define kno_whoops(ex) u8_raise(ex,NULL,NULL)
+#define kno_whoops(ex) kno_raisex(ex,NULL,NULL)
 
 KNO_EXPORT u8_condition kno_UnexpectedEOD, kno_UnexpectedEOF;
 KNO_EXPORT u8_condition kno_ParseError, kno_ParseArgError, kno_TypeError;

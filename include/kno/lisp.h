@@ -82,7 +82,9 @@ KNO_EXPORT lispval kno_string2number(u8_string string,int base);
 KNO_EXPORT int kno_output_number(u8_output output,lispval num,int base,int sep);
 
 KNO_EXPORT int kno_unparse_maxchars, kno_unparse_maxelts;
+KNO_EXPORT int kno_humane_maxchars, kno_humane_maxelts;
 KNO_EXPORT int kno_unparse_hexpacket, kno_packet_outfmt;
+KNO_EXPORT int kno_integer_sepchar;
 
 KNO_EXPORT int kno_register_record_tag
   (lispval symbol,lispval (*recreate)(int n,lispval *v));

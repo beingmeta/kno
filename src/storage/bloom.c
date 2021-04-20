@@ -378,6 +378,7 @@ void kno_init_bloom_c()
   kno_bloom_filter_typetag = kno_intern("bloomfilter");
 
   struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_bloom_filter_typetag);
+  e->type_basetype = kno_rawptr_type;
   e->type_restorefn = restore_bloom;
   e->type_dumpfn = dump_bloom;
   e->type_unparsefn = unparse_bloom;

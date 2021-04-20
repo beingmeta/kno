@@ -89,7 +89,7 @@ KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons
 
 #define KNO_CHECK_TYPE_THROW(x,typecode)		   \
   if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) \
-    u8_raise(kno_TypeError,kno_type_names[typecode],NULL)
+    kno_raisex(kno_TypeError,kno_type_names[typecode],NULL)
 
 #define KNO_CHECK_TYPE_RET(x,typecode)				      \
   if (KNO_RARELY(!((KNO_CONS_TYPEOF(x)) == typecode))) {		\
@@ -108,7 +108,7 @@ KNO_EXPORT u8_condition kno_DoubleGC, kno_UsingFreedCons, kno_FreeingNonHeapCons
 #define KNO_PTR2CONS(x,typecode,typecast)                            \
   (((typecode<0) || (KNO_TYPEP(x,typecode))) ?                       \
    ((typecast)(KNO_CONS_DATA(x))) :				      \
-   ((typecast)(u8_raise(kno_TypeError,kno_type2name(typecode),NULL),  \
+   ((typecast)(kno_raisex(kno_TypeError,kno_type2name(typecode),NULL),  \
 	       NULL)))
 
 /* External functions */
@@ -270,7 +270,7 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
   else {
     kno_consbits cb = atomic_load(&(x->conshead));
     if (cb>0xFFFFFF80) {
-      u8_raise(kno_UsingFreedCons,"kno_incref",NULL);
+      kno_raisex(kno_UsingFreedCons,"kno_incref",NULL);
       return (lispval)NULL;}
     else if ((cb&(~0x7F)) == 0) {
       /* Static cons */
@@ -291,7 +291,7 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
   if (KNO_RARELY(x == NULL)) return;
   kno_consbits cb = atomic_load(&(x->conshead));
   if (cb>=0xFFFFFF80) {
-    u8_raise(kno_DoubleGC,"kno_decref",NULL);}
+    kno_raisex(kno_DoubleGC,"kno_decref",NULL);}
   else if (cb<0x80) {
     /* Static cons */}
   else {
@@ -314,7 +314,7 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 {
   if (KNO_CONSBITS(x)>0xFFFFFF80) {
-    u8_raise(kno_UsingFreedCons,"kno_incref",NULL);
+    kno_raisex(kno_UsingFreedCons,"kno_incref",NULL);
     return (lispval)NULL;}
   else if ((KNO_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */
@@ -329,7 +329,7 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 {
   if (KNO_CONSBITS(x)>=0xFFFFFF80) {
-    u8_raise(kno_DoubleGC,"kno_decref",NULL);}
+    kno_raisex(kno_DoubleGC,"kno_decref",NULL);}
   else if ((KNO_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */}
   else {
@@ -864,6 +864,11 @@ KNO_FASTOP struct KNO_TYPEINFO *__kno_objtype(lispval obj)
       return tagged->typeinfo;
     else {
       struct KNO_TYPEINFO *info = kno_use_typeinfo(tagged->typetag);
+      /* If the declared type for 'typetag' specifies a base type
+	 which doesn't match *obj*, don't catche or return it. */
+      if (info->type_basetype>0) {
+	if (!(KNO_TYPEP(obj,info->type_basetype)))
+	  return NULL;}
       tagged->typeinfo = info;
       return info;}}
   kno_lisp_type ctype = KNO_TYPEOF(obj);
@@ -890,7 +895,7 @@ typedef struct KNO_WRAPPER *kno_wrapper;
   KNO_TAGGED_HEAD;				\
   int compound_length;				\
   char compound_ismutable, compound_isopaque;	\
-  char compound_istable;			\
+  char compound_annotated;			\
   signed char compound_seqoff;                  \
   u8_rwlock compound_rwlock;			\
   lispval elt0

@@ -237,7 +237,7 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
     kno_init_file_stream(&(pool->pool_stream),fname,KNO_FILE_READ,stream_flags,-1);
   struct KNO_INBUF *instream = (stream) ? (kno_readbuf(stream)) : (NULL);
   if (instream == NULL) {
-    u8_raise(kno_FileNotFound,"open_bigpool",u8_strdup(fname));
+    kno_raisex(kno_FileNotFound,"open_bigpool",u8_strdup(fname));
     u8_free(realpath);
     u8_free(abspath);
     return NULL;}
@@ -1086,7 +1086,7 @@ static int bigpool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
   if (n>0) { /* There are values to save */
     int new_blocks = 0;
     u8_logf(LOG_DEBUG,"BigpoolStore",
-            "Storing %d oid values in bigpool %s",n,p->poolid);
+            "Storing %_d oid values in bigpool %s",n,p->poolid);
 
     /* These are used repeatedly for rendering objects to dtypes or to
        compressed dtypes. */
@@ -1177,7 +1177,7 @@ static int bigpool_storen(kno_pool p,struct KNO_POOL_COMMITS *commits,
   kno_flush_stream(head_stream);
 
   u8_logf(LOG_INFO,"BigpoolStore",
-          "Stored %d oid values in bigpool %s in %f seconds",
+          "Stored %_d oid values in bigpool %s in %f seconds",
           n,p->poolid,u8_elapsed_time()-started);
 
   /* Unlock the pool */
@@ -1569,7 +1569,7 @@ static ssize_t mmap_write_offdata
   int chunk_ref_size = get_chunk_ref_size(bp);
   int retval = -1;
   u8_logf(LOG_DEBUG,"bigpool:write_offdata",
-          "Finalizing %d oid values for %s",n,bp->poolid);
+          "Finalizing %_d oid values for %s",n,bp->poolid);
 
   unsigned int *offdata = NULL;
   size_t byte_length = chunk_ref_size*(max_off+1);

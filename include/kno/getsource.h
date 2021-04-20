@@ -24,5 +24,11 @@ KNO_EXPORT void kno_register_sourcefn
 (u8_string (*fn)(int op,lispval,u8_string,u8_string *,time_t *,ssize_t *,void *),
  void *sourcefn_data);
 
+#define KNO_ZIPSOURCEP(x) (KNO_RAW_TYPEP(x,KNOSYM_ZIPSOURCE))
+KNO_EXPORT int kno_zipsource_existsp(lispval zs,u8_string path);
+KNO_EXPORT lispval kno_zipsource_info(lispval zs,u8_string path,int follow);
+KNO_EXPORT lispval kno_zipsource_content
+(lispval zs,u8_string path,u8_string enc,int follow);
+KNO_EXPORT lispval kno_open_zipsource(u8_string path,lispval opts);
 
 #endif

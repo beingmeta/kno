@@ -1794,9 +1794,9 @@ static void thread_sigint(int signum,siginfo_t *info,void *stuff)
     u8_condition interrupt = thread->interrupt;
     thread->interrupt = NULL;
     if (interrupt)
-      u8_raise(interrupt,"thread_sigint",NULL);
-    else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);}
-  else u8_raise(kno_ThreadInterrupted,"thread_sigint",NULL);
+      kno_signal_exception(interrupt,"thread_sigint");
+    else kno_signal_exception(kno_ThreadInterrupted,"thread_sigint");}
+  else kno_signal_exception(kno_ThreadInterrupted,"thread_sigint");
 }
 
 static void init_signal_handling()

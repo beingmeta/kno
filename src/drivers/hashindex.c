@@ -1025,13 +1025,13 @@ static KNO_CHUNK_REF read_value_block
   if (vblock == NULL) {
     if (hx->index_flags & KNO_STORAGE_REPAIR) {
       u8_log(LOG_WARN,"BadBlockRef",
-             "Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+             "Couldn't open value block (%_d/%_d) at %ll_d+%ll_d in %s for %q",
              n_read,n_values,vblock_off,vblock_size,hx->index_source,key);
       result.off=0; result.size=0;
       return result;}
     else {
       u8_seterr("BadBlockRef","read_value_block/hashindex",
-                u8_mkstring("Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+                u8_mkstring("Couldn't open value block (%_d/%_d) at %ll_d+%ll_d in %s for %q",
                             n_read,n_values,vblock_off,vblock_size,hx->index_source,key));
       return result;}}
   kno_off_t next_off;
@@ -1087,7 +1087,7 @@ static lispval read_values
   if (chunk_ref.off<0) {
     u8_byte buf[64];
     kno_seterr("HashIndexError","read_values",
-              u8_sprintf(buf,64,"reading %d values from %s",
+              u8_sprintf(buf,64,"reading %_d values from %s",
                          n_values,hx->indexid),
               key);
     result->choice_size=n_read;
@@ -1232,7 +1232,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
   kno_stream stream = &(hx->index_stream);
   kno_use_slotcodes(& hx->index_slotcodes);
 #if KNO_DEBUG_HASHINDEXES
-  u8_message("Reading %d keys from %s",n,hx->indexid);
+  u8_message("Reading %_d keys from %s",n,hx->indexid);
 #endif
   /* Initialize sized based on assuming 32 bytes per key */
   KNO_INIT_BYTE_OUTPUT(&keysbuf,n*32);
@@ -1325,7 +1325,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
         if (kno_open_block(stream,&keyblock,blockpos,blocksize,1) == NULL) {
           if (hx->index_flags & KNO_STORAGE_REPAIR) {
             u8_log(LOG_WARN,"BadBlockRef",
-                   "Couldn't open bucket %d at %lld+%lld in %s for %q",
+                   "Couldn't open bucket %_d at %ll_d+%ll_d in %s for %q",
                    bucket,blockpos,blocksize,hx->index_source,
                    ksched[j].ksched_key);
             bucket=ksched[j].ksched_bucket;
@@ -1333,7 +1333,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
             continue;}
           else {
             u8_seterr("BadBlockRef","hashindex_fetchn",u8_mkstring
-                      ("Couldn't open bucket %d at %lld+%lld in %s for %q",
+                      ("Couldn't open bucket %_d at %ll_d+%ll_d in %s for %q",
                        bucket,blockpos,blocksize,hx->index_source,
                        ksched[j].ksched_key));
             kno_close_inbuf(&keyblock);
@@ -1463,7 +1463,7 @@ static lispval *fetchn(struct KNO_HASHINDEX *hx,int n,const lispval *keys)
     kno_close_inbuf(&bigvblock);}
   u8_big_free(vsched);
 #if KNO_DEBUG_HASHINDEXES
-  u8_message("Finished reading %d keys from %s",n,hx->indexid);
+  u8_message("Finished reading %_d keys from %s",n,hx->indexid);
 #endif
   kno_close_outbuf(&keysbuf);
   return values;
@@ -1525,7 +1525,7 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
+                  "Bad key count in %s: %_d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1536,7 +1536,7 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
+                  "Bad key count in %s: %_d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1603,7 +1603,7 @@ static lispval *hashindex_fetchkeys(kno_index ix,int *n)
         if ( hx->index_flags & KNO_STORAGE_REPAIR ) {
           kno_clear_errors(0);
           u8_log(LOG_CRIT,"CorruptedHashIndex",
-                 "Error reading %d keys @%lld+%lld in %s",
+                 "Error reading %_d keys @%lld+%lld in %s",
                  n_keys,buckets[i].off,buckets[i].size,hx->index_source);
           j=n_keys;}
         else {
@@ -1671,7 +1671,7 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
+                  "Bad key count in %s: %_d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1682,7 +1682,7 @@ static struct KNO_KEY_SIZE *hashindex_fetchinfo(kno_index ix,kno_choice filter,i
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",ix->indexid,total_keys);
+                  "Bad key count in %s: %_d",ix->indexid,total_keys);
           buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -1804,7 +1804,7 @@ static void hashindex_getstats(struct KNO_HASHINDEX *hx,
       if (ref.size>0) {
         if (n_to_fetch >= buckets_len) {
           u8_logf(LOG_WARN,"BadKeyCount",
-                  "Bad key count in %s: %d",hx->indexid,total_keys);
+                  "Bad key count in %s: %_d",hx->indexid,total_keys);
           buckets=u8_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
           buckets_len=n_buckets;}
         buckets[n_to_fetch++]=ref;}
@@ -2296,7 +2296,7 @@ KNO_FASTOP kno_off_t update_keybucket
           if ( (ke[key_i].ke_values != VOID) &&
                (ke[key_i].ke_values != EMPTY) )
             u8_logf(LOG_WARN,"NotVoid",
-                    "This value for key %d is %q, not VOID/EMPTY as expected",
+                    "This value for key %_d is %q, not VOID/EMPTY as expected",
                     key_i,ke[key_i].ke_values);
           endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
         if (endpos>=maxpos) {
@@ -2445,7 +2445,7 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
   kno_offset_type offtype = hx->index_offtype;
   if (!((offtype == KNO_B32)||(offtype = KNO_B40)||(offtype = KNO_B64))) {
     u8_logf(LOG_WARN,CorruptedHashIndex,
-            "Bad offset type code=%d for %s",(int)offtype,hx->indexid);
+            "Bad offset type code=%_d for %s",(int)offtype,hx->indexid);
     u8_seterr(CorruptedHashIndex,"hashindex_save/offtype",
               u8_strdup(hx->indexid));
     kno_unlock_index(hx);
@@ -2561,7 +2561,7 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
     int j = sched_i, cur_keys = kb->kb_n_keys;
     if (KNO_RARELY(bucket != kb->kb_bucketno)) {
       u8_log(LOG_CRIT,"HashIndexError",
-             "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
+             "Bucket at sched_i=%_d/%_d was %_d != %_d (expected) in %s",
              sched_i,schedule_size,bucket,kb->kb_bucketno,hx->indexid);}
     while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
     /* This may write values to disk, so we use the returned endpos */
@@ -2627,7 +2627,7 @@ static int hashindex_save(struct KNO_HASHINDEX *hx,
     u8_logf(LOG_ERR,"HashIndexCommit",
             "Saving header information failed");
   else u8_logf(LOG_INFO,"HashIndexCommit",
-               "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
+               "Saved mappings for %_d keys (%_d/%_d new/total) to %s in %f secs",
                n_keys,new_keys,total_keys,
                hx->indexid,u8_elapsed_time()-started);
 

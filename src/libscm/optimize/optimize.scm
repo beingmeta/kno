@@ -208,6 +208,20 @@
 	      (or (eq? (car bindlist) var)
 		  (isbound? var (cdr bindlist)))))))
 
+(define (optimize-template expr template env bound opts)
+  (let ((scan-expr expr)
+	(scan-template template)
+	(backwards '()))
+    (while (and (pair? scan-expr) (pair? scan-template))
+      (if (car scan-template)
+	  (set! backwards (cons (optimize (car scan-expr) env bound opts)))
+	  (set! backwards (cons (car scan-expr))))
+      (set! scan-expr (cdr scan-expr))
+      (set! scan-expr (cdr scan-template)))
+    (if (eq? scan-template #t)
+	(append (reverse backwards) (optimize-exprs scan-exprs env bound opts))
+	(append (reverse backwards) scan-exprs))))
+
 ;;; Converting non-lexical function references
 
 (define (fcnref value sym env opts (from))
@@ -1808,14 +1822,6 @@
       `(,handler ,@(optimize-exprs (cdr expr)))))
 
 (define (optimize-logif handler expr env bound opts)
-  (if (or (symbol? (caddr expr))  (number? (caddr expr)))
-      `(,handler ,(optimize (cadr expr) env bound opts)
-		 ,(caddr expr)
-		 ,@(optimize-exprs (cdddr expr)))
-      `(,handler ,(optimize (cadr expr) env bound opts)
-		 ,@(optimize-exprs (cddr expr)))))
-
-(define (optimize-logif+ handler expr env bound opts)
   (let ((test (second expr))
 	(level (third expr))
 	(condition (fourth expr)))
@@ -1979,7 +1985,9 @@
 	optimize-block))
 
 (add! special-form-optimizers
-      (choice printout lineout stringout message notify %wc)
+      (choice printout lineout stringout message notify %wc
+	      logerror logger warning status
+	      indentout)
       optimize-block)
 
 (add! special-form-optimizers unwind-protect optimize-unwind-protect)
@@ -1997,8 +2005,9 @@
       optimize-quasiquote)
 
 (add! special-form-optimizers logmsg optimize-logmsg)
-(add! special-form-optimizers logif optimize-logif+)
-(add! special-form-optimizers logif+ optimize-logif+)
+(add! special-form-optimizers logstack optimize-logmsg)
+(add! special-form-optimizers logif optimize-logif)
+(add! special-form-optimizers logif+ optimize-logif)
 
 (add! special-form-optimizers
       with-log-context
@@ -2012,6 +2021,46 @@
 
 (add! special-form-optimizers getopt optimize-block)
 (add! special-form-optimizers testopt optimize-block)
+
+(define (optimize-irritant handler expr env bound opts)
+  (locals irritant (get-arg expr 1 #f)
+	  condition (get-arg expr 2 #f)
+	  caller (get-arg expr 3 #f)
+	  len (length expr)
+	  body (if (> (length expr) 4) (slice expr 4) '()))
+  (cond ((< len 3) (codewarning (cons '|SyntaxError| expr)) {})
+	((= len 3)
+	 `(#OP_EVALFN ,handler irritant
+		      ,(optimize irritant env bound opts)
+		      ,(if (symbol? condition) condition
+			   (optimize condition env bound opts))))
+	(else `(#OP_EVALFN ,handler irritant
+			   ,(optimize irritant env bound opts)
+			   ,(if (symbol? condition) condition
+				(optimize condition env bound opts))
+			   ,(if (symbol? caller) caller
+				(optimize caller env bound opts))
+			   ,@(optimize-exprs body env bound opts)))))
+(add! special-form-optimizers irritant optimize-irritant)
+
+(define (optimize-error handler expr env bound opts)
+  (locals condition (get-arg expr 1 #f)
+	  caller (get-arg expr 2 #f)
+	  len (length expr)
+	  body (if (> (length expr) 3) (slice expr 3) '()))
+  (cond ((< len 2) (codewarning (cons '|SyntaxError| expr)) {})
+	((= len 2)
+	 `(#OP_EVALFN ,handler error
+		      ,(if (symbol? condition) condition
+			   (optimize condition env bound opts))))
+	(else
+	 `(#OP_EVALFN ,handler error
+		      ,(if (symbol? condition) condition
+			   (optimize condition env bound opts))
+		      ,(if (symbol? caller)  caller
+			   (optimize caller env bound opts))
+		      ,@(optimize-exprs body env bound opts)))))
+(add! special-form-optimizers error optimize-error)
 
 (add! special-form-optimizers (list {"with/request" "with/request/out"} 'webtools) optimize-block)
 (add! special-form-optimizers '("markupblock" webtools) optimize-markup)

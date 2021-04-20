@@ -403,7 +403,7 @@ KNO_FASTOP kno_pool kno_oid2pool(lispval oid)
   if (top == NULL) return top;
   else if (baseoff<top->pool_capacity) return top;
   else if (top->pool_capacity) {
-    u8_raise(_("Corrupted pool table"),"kno_oid2pool",NULL);
+    kno_raisex(_("Corrupted pool table"),"kno_oid2pool",NULL);
     return NULL;}
   else return kno_find_subpool((struct KNO_GLUEPOOL *)top,oid);
 }

@@ -326,7 +326,7 @@ KNO_EXPORT lispval kno_make_ndprim(lispval prim);
 #define KNO_XCPRIM(x)					   \
   ((KNO_CPRIMP(x)) ?						     \
    ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :	     \
-   ((struct KNO_CPRIM *)(u8_raise(kno_TypeError,"function",NULL),NULL)))
+   ((struct KNO_CPRIM *)(kno_raisex(kno_TypeError,"function",NULL),NULL)))
 
 
 /* Definining functions in tables. */

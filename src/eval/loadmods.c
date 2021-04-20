@@ -19,7 +19,7 @@
 #include "kno/numbers.h"
 #include "kno/fileprims.h"
 #include "kno/getsource.h"
-#include "kno/pathstore.h"
+#include "kno/zipsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
@@ -122,15 +122,14 @@ static u8_string check_module_source(u8_string name,lispval path)
 	search_path = search_path+prefix_len+1;}}
     if ( (u8_has_suffix(search_path,".zip",1)) ||
 	 (u8_has_suffix(search_path,".zip/",1)) ) {
-      lispval pathsource = kno_get_zipsource(search_path);
-      if (KNO_TYPEP(pathsource,kno_pathstore_type)) {
-	struct KNO_PATHSTORE *ps = (kno_pathstore) pathsource;
+      lispval zs = kno_get_zipsource(search_path);
+      if (KNO_ZIPSOURCEP(zs)) {
 	u8_string probe = u8_bprintf(buf,"%s/module.scm",name);
-	if (knops_existsp(ps,probe))
-	  return u8_mkstring("%s/%s/module.scm",ps->knops_prefix,name);
+	if (kno_zipsource_existsp(zs,probe))
+	  return u8_mkstring("%s/%s/module.scm",search_path,name);
 	probe = u8_bprintf(buf,"%s.scm",name);
-	if (knops_existsp(ps,probe))
-	  return u8_mkstring("%s/%s.scm",ps->knops_prefix,name);
+	if (kno_zipsource_existsp(zs,probe))
+	  return u8_mkstring("%s/%s.scm",search_path,name);
 	return NULL;}
       else return NULL;}
     else {

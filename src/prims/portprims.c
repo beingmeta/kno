@@ -16,7 +16,7 @@
 #include "kno/indexes.h"
 #include "kno/frames.h"
 #include "kno/streams.h"
-#include "kno/pathstore.h"
+#include "kno/zipsource.h"
 #include "kno/dtypeio.h"
 #include "kno/xtypes.h"
 #include "kno/ports.h"
@@ -28,6 +28,8 @@
 #include <libu8/u8crypto.h>
 
 #include <zlib.h>
+
+#define KNO_ZIPSOURCE_TYPE 0x7fa3dc
 
 KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
 
@@ -672,6 +674,10 @@ static lispval uniscape(lispval arg,lispval excluding)
   return VOID;
 }
 
+DEFC_EVALFN("PRINTOUT-TO",printout_to_evalfn,KNO_EVALFN_NOTAIL,
+	    "`(PRINTOUT-TO *port* ...*args*)` generates output from "
+	    "*args* which is written to *port*. "
+	    "Returns VOID")
 static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval dest_arg = kno_get_arg(expr,1);
@@ -708,10 +714,19 @@ static lispval printout_to_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
+DEFC_EVALFN("PRINTOUT",printout_evalfn,KNO_EVALFN_NOTAIL,
+	    "`(PRINTOUT ...*args*)` generates output from "
+	    "*args* which is written to the standard output. "
+	    "Returns VOID")
 static lispval printout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return kno_printout(kno_get_body(expr,1),env);
 }
+
+DEFC_EVALFN("LINEOUT",lineout_evalfn,KNO_EVALFN_NOTAIL,
+	    "`(LINEOUT ...*args*)` generates output from "
+	    "*args* which is written to the standard output "
+	    "with a trailing newline. Returns VOID.")
 static lispval lineout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   U8_OUTPUT *out = u8_current_output;
@@ -722,6 +737,9 @@ static lispval lineout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return VOID;
 }
 
+DEFC_EVALFN("STRINGOUT",stringout_evalfn,KNO_EVALFN_NOTAIL,
+	    "`(STRINGOUT ...*args*)` generates output from "
+	    "*args* and returns the output as a string.")
 static lispval stringout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   struct U8_OUTPUT out; lispval result; u8_byte buf[256];
@@ -735,6 +753,11 @@ static lispval stringout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return result;
 }
 
+DEFC_EVALFN("INDENTOUT",indentout_evalfn,KNO_EVALFN_NOTAIL,
+	    "`(INDENTOUT *indent* ... *args*)` generates output from "
+	    "*args*, preceding each line of output with either *indent* "
+	    "(if it's a string) or *indent* spaces (if it's a positive "
+	    "integer")
 static lispval indentout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval indent_expr = kno_get_arg(expr,1);
@@ -1760,58 +1783,58 @@ static lispval uncompress_prim(lispval arg,lispval method,
     else return KNO_ERROR;}
 }
 
-/* Pathstore operations */
+/* Zipsource operations */
 
-DEFC_PRIM("pathstore?",pathstorep_prim,
+DEFC_PRIM("zipsource?",zipsourcep_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *arg* is a pathstore.",
+	  "Returns true if *arg* is a zipsource.",
 	  {"arg",kno_any_type,KNO_VOID})
-static lispval pathstorep_prim(lispval arg)
+static lispval zipsourcep_prim(lispval arg)
 {
-  if (KNO_TYPEP(arg,kno_pathstore_type))
+  if (KNO_RAW_TYPEP(arg,KNOSYM_ZIPSOURCE))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("pathstore/exists?",pathstore_existsp_prim,
+DEFC_PRIM("zipsource/exists?",zipsource_existsp_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "Returns *true* if *path* exists in the pathstore *arg*.",
-	  {"arg",kno_pathstore_type,KNO_VOID},
+	  "Returns *true* if *path* exists in the zipsource *arg*.",
+	  {"arg",KNO_ZIPSOURCE_TYPE,KNO_VOID},
 	  {"path",kno_string_type,KNO_VOID})
-static lispval pathstore_existsp_prim(lispval arg,lispval path)
+static lispval zipsource_existsp_prim(lispval arg,lispval path)
 {
-  int rv = knops_existsp((kno_pathstore)arg,KNO_CSTRING(path));
+  int rv = kno_zipsource_existsp(arg,KNO_CSTRING(path));
   if (rv<0) return KNO_ERROR;
   else if (rv) return KNO_TRUE;
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("pathstore/info",pathstore_info_prim,
+DEFC_PRIM("zipsource/info",zipsource_info_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	  "Returns metadata for *path* in the pathstore *arg* or "
+	  "Returns metadata for *path* in the zipsource *arg* or "
 	  "#f i the path doesn't exist",
-	  {"arg",kno_pathstore_type,KNO_VOID},
+	  {"arg",KNO_ZIPSOURCE_TYPE,KNO_VOID},
 	  {"path",kno_string_type,KNO_VOID},
 	  {"follow_arg",kno_any_type,KNO_FALSE})
-static lispval pathstore_info_prim(lispval arg,lispval path,
+static lispval zipsource_info_prim(lispval arg,lispval path,
 				   lispval follow_arg)
 {
   int follow = (KNO_TRUEP(follow_arg));
-  return knops_pathinfo((kno_pathstore)arg,KNO_CSTRING(path),follow);
+  return kno_zipsource_info(arg,KNO_CSTRING(path),follow);
 }
 
-DEFC_PRIM("pathstore/content",pathstore_content_prim,
+DEFC_PRIM("zipsource/content",zipsource_content_prim,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "Returns the content/data for *path* in the pathstore. If "
+	  "Returns the content/data for *path* in the zipsource. If "
 	  "*enc_arg* is defined it is a character encoding for string "
 	  "conversion or \"bytes\" to indicate that a data packet should "
 	  "be returned. If *follow_arg* is specified, this follows symlinks "
-	  "in the pathstore *arg*.",
-	  {"arg",kno_pathstore_type,KNO_VOID},
+	  "in the zipsource *arg*.",
+	  {"arg",KNO_ZIPSOURCE_TYPE,KNO_VOID},
 	  {"path",kno_string_type,KNO_VOID},
 	  {"enc_arg",kno_any_type,KNO_VOID},
 	  {"follow_arg",kno_any_type,KNO_TRUE})
-static lispval pathstore_content_prim(lispval arg,lispval path,
+static lispval zipsource_content_prim(lispval arg,lispval path,
 				      lispval enc_arg,
 				      lispval follow_arg)
 {
@@ -1825,9 +1848,28 @@ static lispval pathstore_content_prim(lispval arg,lispval path,
     enc_name = "bytes";
   else if (KNO_SYMBOLP(enc_arg))
     enc_name = KNO_SYMBOL_NAME(enc_arg);
-  else return kno_err("BadEncodingArg","pathstore_content_prim",
+  else return kno_err("BadEncodingArg","zipsource_content_prim",
 		      KNO_CSTRING(path),enc_arg);
-  return knops_content((kno_pathstore)arg,KNO_CSTRING(path),enc_name,follow);
+  return kno_zipsource_content(arg,KNO_CSTRING(path),enc_name,follow);
+}
+
+DEFC_PRIM("zipsource/get",zipsource_get_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *arg* is a zipsource.",
+	  {"path",kno_string_type,KNO_VOID})
+static lispval zipsource_get_prim(lispval path)
+{
+  return kno_get_zipsource(KNO_CSTRING(path));
+}
+
+DEFC_PRIM("zipsource/open",zipsource_open_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "Returns true if *arg* is a zipsource.",
+	  {"path",kno_string_type,KNO_VOID},
+	  {"opts",kno_opts_type,KNO_VOID})
+static lispval zipsource_open_prim(lispval path,lispval opts)
+{
+  return kno_open_zipsource(KNO_CSTRING(path),opts);
 }
 
 /* Port type operations */
@@ -1894,37 +1936,19 @@ KNO_EXPORT void kno_init_portprims_c()
 {
   u8_register_source_file(_FILEINFO);
 
+  kno_register_tag_type(KNOSYM_ZIPSOURCE,KNO_ZIPSOURCE_TYPE);
+
   kno_unparsers[kno_ioport_type]=unparse_port;
   kno_recyclers[kno_ioport_type]=recycle_port;
 
   init_portprims_symbols();
   link_local_cprims();
 
-  kno_def_xevalfn(kno_textio_module,"PRINTOUT-TO",
-		  printout_to_evalfn,KNO_EVALFN_NOTAIL,
-		  "`(PRINTOUT-TO *port* ...*args*)` generates output from "
-		  "*args* which is written to *port*. "
-		  "Returns VOID");
-  kno_def_xevalfn(kno_textio_module,"PRINTOUT",
-		  printout_evalfn,KNO_EVALFN_NOTAIL,
-		  "`(PRINTOUT ...*args*)` generates output from "
-		  "*args* which is written to the standard output. "
-		  "Returns VOID");
-  kno_def_xevalfn(kno_textio_module,"LINEOUT",
-		  lineout_evalfn,KNO_EVALFN_NOTAIL,
-		  "`(LINEOUT ...*args*)` generates output from "
-		  "*args* which is written to the standard output "
-		  "with a trailing newline. Returns VOID.");
-  kno_def_xevalfn(kno_textio_module,"STRINGOUT",
-		  stringout_evalfn,KNO_EVALFN_NOTAIL,
-		  "`(STRINGOUT ...*args*)` generates output from "
-		  "*args* and returns the output as a string.");
-  kno_def_xevalfn(kno_textio_module,"INDENTOUT",
-		  indentout_evalfn,KNO_EVALFN_NOTAIL,
-		  "`(INDENTOUT *indent* ... *args*)` generates output from "
-		  "*args*, preceding each line of output with either *indent* "
-		  "(if it's a string) or *indent* spaces (if it's a positive "
-		  "integer");
+  KNO_LINK_EVALFN(kno_textio_module,printout_to_evalfn);
+  KNO_LINK_EVALFN(kno_textio_module,printout_evalfn);
+  KNO_LINK_EVALFN(kno_textio_module,lineout_evalfn);
+  KNO_LINK_EVALFN(kno_textio_module,stringout_evalfn);
+  KNO_LINK_EVALFN(kno_textio_module,indentout_evalfn);
 }
 
 static void link_local_cprims()
@@ -1981,10 +2005,13 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("dumpstack",dumpstack_prim,1,kno_textio_module);
   KNO_LINK_CPRIM("dumpstack/full",dumpstack_full_prim,1,kno_textio_module);
 
-  KNO_LINK_CPRIM("pathstore?",pathstorep_prim,1,kno_textio_module);
-  KNO_LINK_CPRIM("pathstore/exists?",pathstore_existsp_prim,2,kno_textio_module);
-  KNO_LINK_CPRIM("pathstore/info",pathstore_info_prim,3,kno_textio_module);
-  KNO_LINK_CPRIM("pathstore/content",pathstore_content_prim,4,kno_textio_module);
+  KNO_LINK_CPRIM("zipsource?",zipsourcep_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("zipsource/exists?",zipsource_existsp_prim,2,kno_textio_module);
+  KNO_LINK_CPRIM("zipsource/info",zipsource_info_prim,3,kno_textio_module);
+  KNO_LINK_CPRIM("zipsource/content",zipsource_content_prim,4,kno_textio_module);
+  KNO_LINK_CPRIM("->zipsource",zipsource_get_prim,1,kno_textio_module);
+  KNO_LINK_CPRIM("zipsource/open",zipsource_open_prim,2,kno_textio_module);
+  KNO_LINK_ALIAS("zipsource/get",zipsource_content_prim,kno_textio_module);
 
   KNO_LINK_ALIAS("eof?",eofp,kno_textio_module);
   KNO_LINK_ALIAS("write-char",putchar_prim,kno_textio_module);

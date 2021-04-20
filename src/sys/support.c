@@ -163,7 +163,6 @@ KNO_EXPORT void kno_init_support()
   kno_init_logging_c();
   kno_init_startup_c();
   kno_init_getopt_c();
-  kno_init_pathstore_c();
   kno_init_fluid_c();
   kno_init_posix_c();
   kno_init_signals_c();
@@ -180,6 +179,16 @@ KNO_EXPORT void kno_init_support()
      _("Max number of elements to show in vectors/lists/choices, etc"),
      kno_intboolconfig_get,kno_intboolconfig_set,
      &kno_unparse_maxelts);
+  kno_register_config
+    ("HUMANE:MAXCHARS",
+     _("Max number of chars for strings/etc on 'humane' output streams"),
+     kno_intboolconfig_get,kno_intboolconfig_set,
+     &kno_humane_maxchars);
+  kno_register_config
+    ("HUMANE:MAXELTS",
+     _("Max number of elements for strings/etc on 'humane' output streams"),
+     kno_intboolconfig_get,kno_intboolconfig_set,
+     &kno_humane_maxelts);
   kno_register_config
     ("NUMVEC:SHOWMAX",_("Max number of elements to show in numeric vectors"),
      kno_intboolconfig_get,kno_intboolconfig_set,

@@ -269,7 +269,7 @@ static int writeall(int fd,const unsigned char *data,int n)
       if (errno == EAGAIN) errno = 0;
       else {
         u8_logf(LOG_ERROR,
-                "write failed","writeall %d errno=%d (%s) written=%d/%d",
+                "write failed","writeall %d errno=%d (%s) written=%_d/%_d",
                 fd,errno,strerror(errno),written,n);
         return delta;}
     else written = written+delta;}
@@ -662,7 +662,7 @@ KNO_EXPORT void kno_close_stream(kno_stream s,int flags)
            (s->buf.out.bufwrite>s->buf.out.buffer)) {
     if (s->stream_fileno<0) {
       u8_logf(LOG_CRIT,_("StreamClosed"),
-              "Stream %s (%p) was closed with %d bytes still buffered",
+              "Stream %s (%p) was closed with %_d bytes still buffered",
               U8ALT(s->streamid,"somestream"),s,
               (s->buf.out.bufwrite-s->buf.out.buffer));}
     else kno_flush_stream(s);}
@@ -1416,7 +1416,7 @@ kno_fetch_chunk_ref(struct KNO_STREAM *stream,
   KNO_INIT_BYTE_INPUT(&_in,buf,chunk_size);
   if (kno_read_block(stream,buf,chunk_size,base+ref_off,1)!=chunk_size) {
     u8_logf(LOG_CRIT,"BlockReadFailed",
-            "Reading %d-byte block from stream %s failed",
+            "Reading %_d-byte block from stream %s failed",
             chunk_size,stream->streamid);
     u8_seterr("Block read failed","fetch_chunk_ref",u8_strdup(stream->streamid));
     return result;}

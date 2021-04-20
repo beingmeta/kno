@@ -41,9 +41,13 @@
 
 u8_condition kno_CantUnparse=_("LISP expression unparse error");
 
-int kno_unparse_maxelts = 100;
-int kno_unparse_maxchars = 150;
+int kno_humane_maxelts = 50;
+int kno_humane_maxchars = 150;
+int kno_unparse_maxelts = -1;
+int kno_unparse_maxchars = -1;
 int kno_packet_outfmt = -1;
+
+int kno_integer_sepchar = -1;
 
 kno_type_unparsefn kno_default_unparsefn = NULL;
 
@@ -109,6 +113,7 @@ static int escape_string(U8_OUTPUT *out,lispval x,int ascii,int max_chars)
   int unparse_maxchars =
     (max_chars > 0) ? (max_chars) :
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    ( (out->u8_streaminfo) & (U8_STREAM_HUMANE) ) ? (kno_humane_maxchars) :
     (kno_unparse_maxchars);
   while (scan < limit) {
     u8_string chunk = scan;
@@ -181,6 +186,7 @@ KNO_EXPORT int kno_unparse_packet
   int i = 0;
   int unparse_maxbytes =
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    ( (out->u8_streaminfo) & (U8_STREAM_HUMANE) ) ? (kno_humane_maxchars) :
     (kno_unparse_maxchars);
   if (base==16) {
     u8_puts(out,"#X\"");
@@ -254,6 +260,7 @@ static int unparse_pair(U8_OUTPUT *out,lispval x)
   lispval car = KNO_CAR(x);
   int unparse_maxelts =
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    ( (out->u8_streaminfo) & (U8_STREAM_HUMANE) ) ? (kno_humane_maxelts) :
     (kno_unparse_maxelts);
   if ((SYMBOLP(car)) && (PAIRP(KNO_CDR(x))) &&
       ((KNO_CDR(KNO_CDR(x))) == NIL)) {
@@ -298,6 +305,7 @@ static int unparse_vector(U8_OUTPUT *out,lispval x)
   int i = 0, len = v->vec_length;
   int unparse_maxelts =
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    ( (out->u8_streaminfo) & (U8_STREAM_HUMANE) ) ? (kno_humane_maxelts) :
     (kno_unparse_maxelts);
   u8_puts(out,"#(");
   while (i < len) {
@@ -318,6 +326,7 @@ static int unparse_choice(U8_OUTPUT *out,lispval x)
   int i = 0, len = KNO_XCHOICE_SIZE(v);
   int unparse_maxelts =
     ( (out->u8_streaminfo) & (U8_STREAM_VERBOSE) ) ? (-1) :
+    ( (out->u8_streaminfo) & (U8_STREAM_HUMANE) ) ? (kno_humane_maxelts) :
     (kno_unparse_maxelts);
   u8_puts(out,"{");
   while (i < len) {
@@ -348,10 +357,15 @@ int kno_unparse(u8_output out,lispval x)
       sprintf(buf,"@%x/%x",hi,lo);
       return u8_puts(out,buf);}
   case kno_fixnum_ptr_type: { /* output fixnum */
-    long long val = FIX2INT(x);
-    char buf[128]; sprintf(buf,"%lld",val);
-    return u8_puts(out,buf);}
-  case kno_immediate_type: { /* output constant */
+    if ( (kno_integer_sepchar==0) ||
+	 (!(U8_BITP(out->u8_streaminfo,U8_HUMAN_OUTPUT))) ) {
+      long long val = FIX2INT(x);
+      char buf[128]; sprintf(buf,"%lld",val);
+      return u8_puts(out,buf);}
+    else if (kno_integer_sepchar>0x20)
+      return kno_output_number(out,x,10,kno_integer_sepchar);
+    else return kno_output_number(out,x,10,'_');}
+  case kno_immediate_type: { /* output contant */
     kno_lisp_type itype = KNO_IMMEDIATE_TYPE(x);
     int data = KNO_GET_IMMEDIATE(x,itype);
     if (itype == kno_symbol_type)

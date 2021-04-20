@@ -219,7 +219,8 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	lispval arg = args[i];
 	u8_string line=u8_bprintf(buf,"#%d %p\t%q",i,arg,arg);
 	fputs(line,stderr); fputc('\n',stderr);
-	i++;}}}
+	i++;}}
+    fputc('\n',stderr);}
   else if (CONSP(stack->stack_op)) {
     u8_fprintf(stderr,"Evaluating in %p %Q\n",stack->eval_env,stack->stack_op);}
   if ( (KNO_STACK_BITP(stack,KNO_STACK_OWNS_ENV)) ) {

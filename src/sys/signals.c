@@ -61,8 +61,7 @@ static void siginfo_raise(int signum,siginfo_t *info,void *stuff)
   if (!(c)) {
     u8_log(LOG_CRIT,ex,"Unexpected signal");
     pthread_exit(NULL);}
-  else {
-    u8_raise(ex,c->u8c_label,NULL);}
+  else kno_signal_exception(ex,c->u8c_label);
 }
 
 static void siginfo_exit(int signum,siginfo_t *info,void *stuff)

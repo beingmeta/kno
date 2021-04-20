@@ -521,7 +521,7 @@ KNO_EXPORT kno_pool _kno_oid2pool(lispval oid)
   if (top == NULL) return NULL;
   else if (baseoff<top->pool_capacity) return top;
   else if (top->pool_capacity) {
-    u8_raise(_("Corrupted pool table"),"kno_oid2pool",NULL);
+    kno_raisex(_("Corrupted pool table"),"kno_oid2pool",NULL);
     return NULL;}
   else return kno_find_subpool((struct KNO_GLUEPOOL *)top,oid);
 }
@@ -912,10 +912,10 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids)
     else kno_reset_hashtable(cache,kno_pool_cache_init,1);
     return rv;}
   else if ((OIDP(oids))||(CHOICEP(oids)))
-    u8_logf(LOG_GLUT,"SwapPool",_("Swapping out %d oids in pool %s"),
+    u8_logf(LOG_GLUT,"SwapPool",_("Swapping out %_d oids in pool %s"),
 	    KNO_CHOICE_SIZE(oids),p->poolid);
   else if (PRECHOICEP(oids))
-    u8_logf(LOG_GLUT,"SwapPool",_("Swapping out ~%d oids in pool %s"),
+    u8_logf(LOG_GLUT,"SwapPool",_("Swapping out ~%_d oids in pool %s"),
 	    KNO_PRECHOICE_SIZE(oids),p->poolid);
   else u8_logf(LOG_GLUT,"SwapPool",_("Swapping out oids in pool %s"),p->poolid);
   int rv = -1;
@@ -944,7 +944,7 @@ KNO_EXPORT int kno_pool_swapout(kno_pool p,lispval oids)
       kno_reset_hashtable(cache,-1,1);
     else kno_reset_hashtable(cache,kno_pool_cache_init,1);}
   u8_logf(LOG_DETAIL,"SwapPool",
-	  "Swapped out %d oids from pool '%s' in %f",
+	  "Swapped out %_d oids from pool '%s' in %f",
 	  rv,p->poolid,u8_elapsed_time()-started);
   return rv;
 }
@@ -1115,13 +1115,13 @@ KNO_EXPORT int kno_pool_finish(kno_pool p,lispval oids)
 
 static int rollback_commits(kno_pool p,struct KNO_POOL_COMMITS *commits)
 {
-  u8_logf(LOG_ERR,"Rollback","commit of %d OIDs%s to %s",
+  u8_logf(LOG_ERR,"Rollback","commit of %_d OIDs%s to %s",
 	  commits->commit_count,
 	  ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
 	  p->poolid);
   int rv = p->pool_handler->commit(p,kno_commit_rollback,commits);
   if (rv<0)
-    u8_logf(LOG_CRIT,"Rollback/Failed","commit of %d OIDs%s to %s",
+    u8_logf(LOG_CRIT,"Rollback/Failed","commit of %_d OIDs%s to %s",
 	    commits->commit_count,
 	    ((KNO_VOIDP(commits->commit_metadata)) ? ("") : (" and metadata") ),
 	    p->poolid);
@@ -1199,14 +1199,14 @@ static int pool_docommit(kno_pool p,lispval oids,
       pick_modified(p,0,&commits);
       if (commits.commit_count)
 	u8_logf(LOG_DEBUG,"PoolCommit/modified",
-		"%d modified OIDs to commit to %s",
+		"%_d modified OIDs to commit to %s",
 		commits.commit_count,p->poolid);}
     else if ((OIDP(oids))||(CHOICEP(oids))||(PRECHOICEP(oids))) {
       /* Commit the designated OIDs (if modified) */
       pick_writes(p,oids,&commits);
       if (commits.commit_count)
 	u8_logf(LOG_DEBUG,"PoolCommit/specified",
-		"%d/%d modified OIDs to commit to %s",
+		"%_d/%_d modified OIDs to commit to %s",
 		commits.commit_count,KNO_CHOICE_SIZE(oids),
 		p->poolid);}
     else if (KNO_TRUEP(oids)) {
@@ -1215,7 +1215,7 @@ static int pool_docommit(kno_pool p,lispval oids,
       pick_modified(p,1,&commits);
       if (commits.commit_count)
 	u8_logf(LOG_DEBUG,"PoolCommit/finalized",
-		"%d modified+finished OIDs to commit to %s",
+		"%_d modified+finished OIDs to commit to %s",
 		commits.commit_count,p->poolid);}
     else pick_writes(p,EMPTY,&commits);
 
@@ -1246,13 +1246,13 @@ static int pool_docommit(kno_pool p,lispval oids,
       written = p->pool_handler->commit(p,kno_commit_write,&commits);}
 
     if (written >= 0)
-      u8_logf(LOG_DEBUG,"PoolCommit/Written","%d OIDs%s to %s",
+      u8_logf(LOG_DEBUG,"PoolCommit/Written","%_d OIDs%s to %s",
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid);
 
     if (written < 0) {
       u8_logf(LOG_ERR,"PoolCommit/WriteFailed",
-	      "Couldn't write %d OIDs%s to %s, rolling back any changes",
+	      "Couldn't write %_d OIDs%s to %s, rolling back any changes",
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid);
       rollback = rollback_commits(p,&commits);
@@ -1261,11 +1261,11 @@ static int pool_docommit(kno_pool p,lispval oids,
       synced = p->pool_handler->commit(p,kno_commit_sync,&commits);
       if (synced < 0) {
 	u8_logf(LOG_ERR,"PoolCommit/SyncFailed",
-		"Couldn't sync %d commits%s to %s",
+		"Couldn't sync %_d commits%s to %s",
 		commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		p->poolid);
 	rollback = rollback_commits(p,&commits);}
-      else u8_logf(LOG_DEBUG,"PoolCommit/Synced","%d OIDs%s to %s",
+      else u8_logf(LOG_DEBUG,"PoolCommit/Synced","%_d OIDs%s to %s",
 		   commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		   p->poolid);}
     else synced = 0;
@@ -1273,23 +1273,23 @@ static int pool_docommit(kno_pool p,lispval oids,
 
     if (rollback<0)
       u8_logf(LOG_CRIT,"Rollback/Failed",
-	      _("Couldn't rollback %d changes%s to %s"),
+	      _("Couldn't rollback %_d changes%s to %s"),
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid);
 
     if (use_commits == NULL)
       u8_logf(LOG_DEBUG,"PoolCommit/Flushing",
-	      "cached changes for %d OIDs%s written to %s",
+	      "cached changes for %_d OIDs%s written to %s",
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid);
     int flushed = p->pool_handler->commit(p,kno_commit_flush,&commits);
     if (flushed<0)
       u8_logf(LOG_WARN,"PoolCommit/Flush/Failed",
-	      "Couldn't flush DB state for %d OIDs%s written to %s",
+	      "Couldn't flush DB state for %_d OIDs%s written to %s",
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid);
     else u8_logf(LOG_DEBUG,"PoolCommit/Flushed",
-		 "DB state for %d OIDs%s written to %s",
+		 "DB state for %_d OIDs%s written to %s",
 		 commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		 p->poolid);
 
@@ -1299,23 +1299,23 @@ static int pool_docommit(kno_pool p,lispval oids,
 	abort_commit(p,&commits);
       else {
 	u8_logf(LOG_DETAIL,"PoolCommit/Unlocking",
-		"Unlocking and flushing changes for %d OIDs%s written to %s",
+		"Unlocking and flushing changes for %_d OIDs%s written to %s",
 		commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		p->poolid);
 	finished = finish_commit(p,&commits);}
       if (finished < 0)
 	u8_logf(LOG_WARN,"PoolCommit/Unlock/Failure",
-		"couldn't unlock changes for %d OIDs%s written to %s",
+		"couldn't unlock changes for %_d OIDs%s written to %s",
 		commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		p->poolid);
       else u8_logf(LOG_DETAIL,"PoolCommit/Unlocked",
-		   "Unlocked and flushed changes for %d OIDs%s written to %s",
+		   "Unlocked and flushed changes for %_d OIDs%s written to %s",
 		   commit_count,((w_metadata) ? (" and metadata") : ("") ),
 		   p->poolid);}
     record_elapsed(commits.commit_times.flush);
 
     u8_logf(LOG_DEBUG,"PoolCommit/Cleanup",
-	    "Cleaning up after saving %d OIDs%s to %s",
+	    "Cleaning up after saving %_d OIDs%s to %s",
 	    commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	    p->poolid);
     int cleanup = p->pool_handler->commit(p,kno_commit_cleanup,&commits);
@@ -1328,13 +1328,13 @@ static int pool_docommit(kno_pool p,lispval oids,
 
     if (synced < 0)
       u8_logf(LOG_WARN,"Pool/Commit/Failed",
-	      "Couldn't commit %d OIDs%s to %s after %f secs",
+	      "Couldn't commit %_d OIDs%s to %s after %f secs",
 	      commit_count,((w_metadata) ? (" and metadata") : ("") ),
 	      p->poolid,u8_elapsed_time()-start_time);
 
     u8_logf(LOG_NOTICE,
 	    ((sync<0) ? ("Pool/Commit/Timing") : ("Pool/Commit/Complete")),
-	    "%s %d OIDs%s to '%s' in %fs\n"
+	    "%s %_d OIDs%s to '%s' in %fs\n"
 	    "total=%f, start=%f, setup=%f, save=%f, "
 	    "finalize=%f, apply=%f, cleanup=%f",
 	    ((sync<0) ? ("for") : ("Committed")),
@@ -1456,8 +1456,8 @@ static int finish_commit(kno_pool p,struct KNO_POOL_COMMITS *commits)
     int retval = p->pool_handler->unlock(p,to_unlock);
     if (retval<0) {
       u8_logf(LOG_CRIT,"UnlockFailed",
-	      "Error unlocking pool %s, all %d values saved "
-	      "but up to %d OIDs may still be locked",
+	      "Error unlocking pool %s, all %_d values saved "
+	      "but up to %_d OIDs may still be locked",
 	      p->poolid,n,unlock_count);
       kno_decref(to_unlock);
       kno_clear_errors(1);
@@ -2265,18 +2265,18 @@ static void display_pool(u8_output out,kno_pool p,lispval lp)
   strcat(addrbuf,"+0x0");
   strcat(addrbuf,u8_uitoa16(p->pool_capacity,numbuf));
   if (p->pool_label)
-    u8_printf(out,"#<%s %s (%s%s) %s cx=%d/%d #!%lx \"%s\">",
+    u8_printf(out,"#<%s %s (%s%s) %s cx=%_d/%_d #!%lx \"%s\">",
 	      tag,p->pool_label,type,
 	      ((is_adjunct)?("/adj"):("")),
 	      addrbuf,n_cached,n_changed,
 	      lp,source);
   else if (strcmp(useid,source))
-    u8_printf(out,"#<%s %s (%s%s%s) %s oids=%d/%d #!%lx \"%s\">",
+    u8_printf(out,"#<%s %s (%s%s%s) %s oids=%_d/%_d #!%lx \"%s\">",
 	      tag,useid,type,
 	      ((is_adjunct)?("/adj"):("")),
 	      ((is_prealloc)?("/pre"):("")),
 	      addrbuf,n_cached,n_changed,lp,source);
-  else u8_printf(out,"#<%s %s (%s%s%s) %s oids=%d/%d #!%lx>",
+  else u8_printf(out,"#<%s %s (%s%s%s) %s oids=%_d/%_d #!%lx>",
 		 tag,useid,type,
 		 ((is_adjunct)?("/adj"):("")),
 		 ((is_prealloc)?("/pre"):("")),
@@ -2326,16 +2326,16 @@ KNO_EXPORT int kno_execute_pool_delays(kno_pool p,void *data)
     /* u8_unlock_mutex(&(kno_ipeval_lock)); */
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval>1)
-      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %d oids from %s: %q",
+      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %_d oids from %s: %q",
 	      KNO_CHOICE_SIZE(todo),p->poolid,todo);
     else if (kno_trace_ipeval)
-      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %d oids from %s",
+      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetching %_d oids from %s",
 	      KNO_CHOICE_SIZE(todo),p->poolid);
 #endif
     kno_pool_prefetch(p,todo);
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval)
-      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetched %d oids from %s",
+      u8_logf(LOG_DEBUG,ipeval_objfetch,"Fetched %_d oids from %s",
 	      KNO_CHOICE_SIZE(todo),p->poolid);
 #endif
     return 0;}

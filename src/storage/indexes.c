@@ -1217,7 +1217,7 @@ static int index_dowrite(kno_index ix,struct KNO_INDEX_COMMITS *commits)
   if (!(KNO_VOIDP(commits->commit_metadata))) n_changes++;
 
   u8_logf(LOG_DEBUG,"IndexCommit/Write",
-	  "Writing %d edits to %s",n_changes,ix->indexid);
+	  "Writing %_d edits to %s",n_changes,ix->indexid);
 
   int rv =ix->index_handler->commit(ix,kno_commit_write,commits);
 
@@ -1225,15 +1225,15 @@ static int index_dowrite(kno_index ix,struct KNO_INDEX_COMMITS *commits)
     u8_exception ex = u8_current_exception;
     if (ex)
       u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
-	      "(after %fsecs) writing %d edits to %s: %m %s %s%s%s",
+	      "(after %fsecs) writing %_d edits to %s: %m %s %s%s%s",
 	      elapsed_time(started),n_changes,ix->indexid,
 	      ex->u8x_cond,ex->u8x_context,
 	      U8OPTSTR("(",ex->u8x_details,")"));
     else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
-		 "(after %fsecs) writing %d edits to %s",
+		 "(after %fsecs) writing %_d edits to %s",
 		 n_changes,ix->indexid,elapsed_time(started));}
   else u8_logf(LOG_DEBUG,"Finished/IndexCommit/Write",
-	       "(after %fsecs) writing %d edits to %s",
+	       "(after %fsecs) writing %_d edits to %s",
 	       elapsed_time(started),n_changes,ix->indexid);
 
   return rv;
@@ -1248,17 +1248,17 @@ static int index_rollback(kno_index ix,struct KNO_INDEX_COMMITS *commits)
   if (!(KNO_VOIDP(commits->commit_metadata))) n_changes++;
 
   u8_logf(LOG_WARN,"IndexRollback",
-	  "Rolling back %d edits to %s",n_changes,ix->indexid);
+	  "Rolling back %_d edits to %s",n_changes,ix->indexid);
 
   int rollback = ix->index_handler->commit(ix,kno_commit_rollback,commits);
   if (rollback < 0) {
     u8_logf(LOG_CRIT,"Failed/IndexRollback",
-	    "(after %fs) Couldn't rollback failed save of %d edits to %s",
+	    "(after %fs) Couldn't rollback failed save of %_d edits to %s",
 	    elapsed_time(started),ix->indexid);
     kno_seterr("IndexRollbackFailed","index_dcommit/rollback",
 	       ix->indexid,KNO_VOID);}
   else u8_logf(LOG_WARN,"Finished/IndexRollback",
-	       "Rolled back %d edits to %s in %f seconds",
+	       "Rolled back %_d edits to %s in %f seconds",
 	       n_changes,ix->indexid,
 	       elapsed_time(started));
 
@@ -1274,18 +1274,18 @@ static int index_dosync(kno_index ix,struct KNO_INDEX_COMMITS *commits)
   if (!(KNO_VOIDP(commits->commit_metadata))) n_changes++;
 
   u8_logf(LOG_DETAIL,"IndexWrite/Sync",
-	  _("Syncing %d changes to %s"),n_changes,ix->indexid);
+	  _("Syncing %_d changes to %s"),n_changes,ix->indexid);
 
   int synced = ix->index_handler->commit(ix,kno_commit_sync,commits);
 
   if (synced < 0) {
     kno_seterr("IndexSync/Error","index_dosync",ix->indexid,KNO_VOID);
     u8_logf(LOG_ERR,"IndexSync/Error",
-	    _("(after %fs) syncing %d changes to %s, rolling back"),
+	    _("(after %fs) syncing %_d changes to %s, rolling back"),
 	    elapsed_time(started),n_changes,ix->indexid);
     index_rollback(ix,commits);}
   else u8_logf(LOG_DETAIL,"IndexWrite/Synced",
-	       _("Synced %d changes to %s in %f secs"),
+	       _("Synced %_d changes to %s in %f secs"),
 	       n_changes,ix->indexid,elapsed_time(started));
 
   return synced;
@@ -1300,7 +1300,7 @@ static int index_doflush(kno_index ix,struct KNO_INDEX_COMMITS *commits)
   if (!(KNO_VOIDP(commits->commit_metadata))) n_changes++;
 
   u8_logf(LOG_DETAIL,"IndexCommit/Flush",
-	  "Flushing %d cached edits from %s",n_changes,ix->indexid);
+	  "Flushing %_d cached edits from %s",n_changes,ix->indexid);
 
   int rv= ix->index_handler->commit(ix,kno_commit_flush,commits);
 
@@ -1308,15 +1308,15 @@ static int index_doflush(kno_index ix,struct KNO_INDEX_COMMITS *commits)
     u8_exception ex = u8_current_exception;
     if (ex)
       u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
-	      "(after %fs) flushing %d cached edits from %s: %m %s %s%s%s",
+	      "(after %fs) flushing %_d cached edits from %s: %m %s %s%s%s",
 	      elapsed_time(started),n_changes,ix->indexid,
 	      ex->u8x_cond,ex->u8x_context,
 	      U8OPTSTR("(",ex->u8x_details,")"));
     else u8_logf(LOG_CRIT,"Failed/IndexCommit/Write",
-		 "(after %fs) flushing %d cached edits from %s",
+		 "(after %fs) flushing %_d cached edits from %s",
 		 elapsed_time(started),n_changes,ix->indexid);}
   else u8_logf(LOG_DEBUG,"Finished/IndexCommit/Flush",
-	       "Flushed %d cached edits from %s in %f secons",
+	       "Flushed %_d cached edits from %s in %f secons",
 	       n_changes,ix->indexid,
 	       elapsed_time(started));
 
@@ -1422,7 +1422,7 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
   int w_metadata = KNO_SLOTMAPP(commits.commit_metadata);
 
   u8_logf(LOG_INFO,kno_IndexCommit,
-	  _("Committing %d %s (+%d-%d:=%d%s) to %s"),
+	  _("Committing %_d %s (+%_d-%_d:=%_d%s) to %s"),
 	  n_changes,((use_commits) ? ("edits") : ("changes")),
 	  commits.commit_n_adds,
 	  commits.commit_n_drops,
@@ -1437,13 +1437,13 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 
   if (written >= 0)
     u8_logf(LOG_DEBUG,"IndexWrite/Written",
-	    _("Wrote %d changes to %s after %f secs"),
+	    _("Wrote %_d changes to %s after %f secs"),
 	    n_changes,ix->indexid,commits.commit_times.write);
 
   if (written < 0) {
     kno_seterr("CommitFailed","index_docommit/write",ix->indexid,KNO_VOID);
     u8_logf(LOG_ERR,"IndexWrite/Error",
-	    _("Error writing %d changes to %s after %f secs, rolling back"),
+	    _("Error writing %_d changes to %s after %f secs, rolling back"),
 	    n_changes,ix->indexid,u8_elapsed_time()-start_time);
     synced = -1;
     index_rollback(ix,&commits);
@@ -1515,7 +1515,7 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 
   if (synced < 0)
     u8_logf(LOG_CRIT,"Index/Commit/Failed",
-	    _("for %d %supdated keys from %s after %f secs"
+	    _("for %_d %supdated keys from %s after %f secs"
 	      "total=%f, start=%f, setup=%f, save=%f, "
 	      "finalize=%f, apply=%f, cleanup=%f"),
 	    n_changes,(w_metadata ? ("(and metadata) ") : ("") ),
@@ -1528,7 +1528,7 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
 	    commits.commit_times.flush,
 	    commits.commit_times.cleanup);
   else u8_logf(LOG_NOTICE,"Index/Commit/Complete",
-	       _("Committed %d changes%s from '%s' in %f\n"
+	       _("Committed %_d changes%s from '%s' in %f\n"
 		 "total=%f, start=%f, setup=%f, save=%f, "
 		 "finalize=%f, apply=%f, cleanup=%f"),
 	       n_changes,
@@ -1678,7 +1678,7 @@ KNO_EXPORT int kno_index_save(kno_index ix,
   if (n_changes) {
     init_cache_level(ix);
     u8_logf(LOG_DEBUG,kno_IndexCommit,
-	    _("Saving %d changes (+%d-%d=%d%s) to %s"),
+	    _("Saving %_d changes (+%_d-%_d=%_d%s) to %s"),
 	    n_changes,n_adds,n_drops,n_stores,
 	    (KNO_VOIDP(metadata)) ? ("") : ("/md"),
 	    ix->indexid);}
@@ -1972,12 +1972,12 @@ static void display_index(u8_output out,kno_index ix,lispval lix)
     u8_byte buf[prefix_len+1];
     strncpy(buf,source,prefix_len);
     buf[prefix_len]='\0';
-    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s...\">"),
+    u8_printf(out,_("#<%s %s (%s) cx=%_d+%_d%s #!%llx \"%s...\">"),
 	      tag,useid,type,cached,added,edits,lix,buf);}
   else if (source)
-    u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx \"%s\">"),
+    u8_printf(out,_("#<%s %s (%s) cx=%_d+%_d%s #!%llx \"%s\">"),
 	      tag,useid,type,cached,added,edits,lix,source);
-  else u8_printf(out,_("#<%s %s (%s) cx=%d+%d%s #!%llx>"),
+  else u8_printf(out,_("#<%s %s (%s) cx=%_d+%_d%s #!%llx>"),
 		 tag,useid,type,cached,added,edits,lix);
 }
 static int unparse_index(u8_output out,lispval x)
@@ -2165,14 +2165,14 @@ KNO_EXPORT int kno_execute_index_delays(kno_index ix,void *data)
     /* u8_unlock_mutex(&(kno_ipeval_lock)); */
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval>1)
-      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetching %d keys from %s: %q",
+      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetching %_d keys from %s: %q",
 	      KNO_CHOICE_SIZE(todo),ix->indexid,todo);
     else
 #endif
       retval = kno_index_prefetch(ix,todo);
 #if KNO_TRACE_IPEVAL
     if (kno_trace_ipeval)
-      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetched %d keys from %s",
+      u8_logf(LOG_DEBUG,ipeval_ixfetch,"Fetched %_d keys from %s",
 	      KNO_CHOICE_SIZE(todo),ix->indexid);
 #endif
     if (retval<0) return retval;

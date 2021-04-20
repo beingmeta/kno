@@ -428,7 +428,7 @@ static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream)
     kno_decref(lisp_ctime);}
   else if ( index->index_flags & KNO_STORAGE_REPAIR ) {
     u8_log(LOG_WARN,"BadMetadata",
-	       "Repairing bad metadata for %s @%lld+%lld = %q",
+	       "Repairing bad metadata for %s @%ll_d+%ll_d = %q",
 	       fname,metadata_loc,metadata_size,metadata);
     if (KNO_ABORTP(metadata)) kno_clear_errors(1);
     kno_decref(metadata);
@@ -444,7 +444,7 @@ static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream)
     index->kx_metadata_pos = metadata_loc;}
   else {
     u8_log(LOG_WARN,"BadMetadata",
-	   "Bad metadata for %s @%lld+%lld: %q",
+	   "Bad metadata for %s @%ll_d+%ll_d: %q",
 	   fname,metadata_loc,metadata_size,metadata);}
   kno_decref(metadata);
   metadata = KNO_VOID;
@@ -793,13 +793,13 @@ static KNO_CHUNK_REF read_value_block
   if (vblock == NULL) {
     if (kx->index_flags & KNO_STORAGE_REPAIR) {
       u8_log(LOG_WARN,"BadBlockRef",
-	     "Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+	     "Couldn't open value block (%_d/%_d) at %ll_d+%ll_d in %s for %q",
 	     n_read,n_values,vblock_off,vblock_size,kx->index_source,key);
       result.off=0; result.size=0;
       return result;}
     else {
       u8_seterr("BadBlockRef","read_value_block/kindex",
-		u8_mkstring("Couldn't open value block (%d/%d) at %lld+%lld in %s for %q",
+		u8_mkstring("Couldn't open value block (%_d/%_d) at %ll_d+%ll_d in %s for %q",
 			    n_read,n_values,vblock_off,vblock_size,kx->index_source,key));
       return result;}}
   kno_off_t next_off;
@@ -855,7 +855,7 @@ static lispval read_values
   if (chunk_ref.off<0) {
     u8_byte buf[64];
     kno_seterr("KIndexError","read_values",
-	      u8_sprintf(buf,64,"reading %d values from %s",
+	      u8_sprintf(buf,64,"reading %_d values from %s",
 			 n_values,kx->indexid),
 	      key);
     result->choice_size=n_read;
@@ -864,7 +864,7 @@ static lispval read_values
   else if (n_read != n_values) {
     u8_logf(LOG_WARN,"InconsistentValueSize",
 	    "In '%s', the number of stored values "
-	    "for %q, %lld != %lld (expected)",
+	    "for %q, %ll_d != %ll_d (expected)",
 	    kx->indexid,key,n_read,n_values);
     /* This makes freeing the pointer work */
     result->choice_size=n_read;
@@ -997,7 +997,7 @@ static lispval *fetchn(struct KNO_KINDEX *kx,int n,const lispval *keys)
   kno_stream stream = &(kx->index_stream);
   ssize_t keybuf_size = ( (n*200) > 8000 ) ? (n*200) : (8000);
 #if KNO_DEBUG_KINDEXES
-  u8_message("Reading %d keys from %s",n,kx->indexid);
+  u8_message("Reading %_d keys from %s",n,kx->indexid);
 #endif
   /* Initialize sized based on assuming 32 bytes per key */
   KNO_INIT_BYTE_OUTPUT(&keysbuf,keybuf_size);
@@ -1087,7 +1087,7 @@ static lispval *fetchn(struct KNO_KINDEX *kx,int n,const lispval *keys)
 	if (kno_open_block(stream,&keyblock,blockpos,blocksize,1) == NULL) {
 	  if (kx->index_flags & KNO_STORAGE_REPAIR) {
 	    u8_log(LOG_WARN,"BadBlockRef",
-		   "Couldn't open bucket %d at %lld+%lld in %s for %q",
+		   "Couldn't open bucket %_d at %ll_d+%ll_d in %s for %q",
 		   bucket,blockpos,blocksize,kx->index_source,
 		   ksched[j].ksched_key);
 	    bucket=ksched[j].ksched_bucket;
@@ -1095,7 +1095,7 @@ static lispval *fetchn(struct KNO_KINDEX *kx,int n,const lispval *keys)
 	    continue;}
 	  else {
 	    u8_seterr("BadBlockRef","kindex_fetchn",u8_mkstring
-		      ("Couldn't open bucket %d at %lld+%lld in %s for %q",
+		      ("Couldn't open bucket %_d at %ll_d+%ll_d in %s for %q",
 		       bucket,blockpos,blocksize,kx->index_source,
 		       ksched[j].ksched_key));
 	    kno_close_inbuf(&keyblock);
@@ -1225,7 +1225,7 @@ static lispval *fetchn(struct KNO_KINDEX *kx,int n,const lispval *keys)
     kno_close_inbuf(&bigvblock);}
   u8_big_free(vsched);
 #if KNO_DEBUG_KINDEXES
-  u8_message("Finished reading %d keys from %s",n,kx->indexid);
+  u8_message("Finished reading %_d keys from %s",n,kx->indexid);
 #endif
   kno_close_outbuf(&keysbuf);
   return values;
@@ -1287,7 +1287,7 @@ static lispval *kindex_fetchkeys(kno_index ix,int *n)
       if (ref.size>0) {
 	if (n_to_fetch >= buckets_len) {
 	  u8_logf(LOG_WARN,"BadKeyCount",
-		  "Bad key count in %s: %d",ix->indexid,total_keys);
+		  "Bad key count in %s: %_d",ix->indexid,total_keys);
 	  buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
 	  buckets_len=n_buckets;}
 	buckets[n_to_fetch++]=ref;}
@@ -1298,7 +1298,7 @@ static lispval *kindex_fetchkeys(kno_index ix,int *n)
       if (ref.size>0) {
 	if (n_to_fetch >= buckets_len) {
 	  u8_logf(LOG_WARN,"BadKeyCount",
-		  "Bad key count in %s: %d",ix->indexid,total_keys);
+		  "Bad key count in %s: %_d",ix->indexid,total_keys);
 	  buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
 	  buckets_len=n_buckets;}
 	buckets[n_to_fetch++]=ref;}
@@ -1365,7 +1365,7 @@ static lispval *kindex_fetchkeys(kno_index ix,int *n)
 	if ( kx->index_flags & KNO_STORAGE_REPAIR ) {
 	  kno_clear_errors(0);
 	  u8_log(LOG_CRIT,"CorruptedKIndex",
-		 "Error reading %d keys @%lld+%lld in %s",
+		 "Error reading %_d keys @%ll_d+%ll_d in %s",
 		 n_keys,buckets[i].off,buckets[i].size,kx->index_source);
 	  j=n_keys;}
 	else {
@@ -1433,7 +1433,7 @@ static struct KNO_KEY_SIZE *kindex_fetchinfo(kno_index ix,kno_choice filter,int 
       if (ref.size>0) {
 	if (n_to_fetch >= buckets_len) {
 	  u8_logf(LOG_WARN,"BadKeyCount",
-		  "Bad key count in %s: %d",ix->indexid,total_keys);
+		  "Bad key count in %s: %_d",ix->indexid,total_keys);
 	  buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
 	  buckets_len=n_buckets;}
 	buckets[n_to_fetch++]=ref;}
@@ -1444,7 +1444,7 @@ static struct KNO_KEY_SIZE *kindex_fetchinfo(kno_index ix,kno_choice filter,int 
       if (ref.size>0) {
 	if (n_to_fetch >= buckets_len) {
 	  u8_logf(LOG_WARN,"BadKeyCount",
-		  "Bad key count in %s: %d",ix->indexid,total_keys);
+		  "Bad key count in %s: %_d",ix->indexid,total_keys);
 	  buckets=u8_big_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
 	  buckets_len=n_buckets;}
 	buckets[n_to_fetch++]=ref;}
@@ -1514,7 +1514,7 @@ static struct KNO_KEY_SIZE *kindex_fetchinfo(kno_index ix,kno_choice filter,int 
 	if ( kx->index_flags & KNO_STORAGE_REPAIR ) {
 	  kno_clear_errors(0);
 	  u8_log(LOG_CRIT,"CorruptedKIndex",
-		 "Error reading key @%lld+%lld in %s",
+		 "Error reading key @%ll_d+%ll_d in %s",
 		 buckets[i].off,buckets[i].size,kx->index_source);
 	  j=n_keys;}
 	else {
@@ -1566,7 +1566,7 @@ static void kindex_getstats(struct KNO_KINDEX *kx,
       if (ref.size>0) {
 	if (n_to_fetch >= buckets_len) {
 	  u8_logf(LOG_WARN,"BadKeyCount",
-		  "Bad key count in %s: %d",kx->indexid,total_keys);
+		  "Bad key count in %s: %_d",kx->indexid,total_keys);
 	  buckets=u8_realloc_n(buckets,n_buckets,KNO_CHUNK_REF);
 	  buckets_len=n_buckets;}
 	buckets[n_to_fetch++]=ref;}
@@ -2013,7 +2013,7 @@ KNO_FASTOP kno_off_t update_keybucket
 	    u8_free(keyoffs);
 	    u8_free(keysizes);
 	    u8_seterr(kno_DataFileOverflow,"update_keybucket",
-		      u8_mkstring("%s: %lld >= %lld",
+		      u8_mkstring("%s: %ll_d >= %ll_d",
 				  kx->indexid,endpos,maxpos));
 	    return -1;}}
 	break;}
@@ -2055,7 +2055,7 @@ KNO_FASTOP kno_off_t update_keybucket
 	  if ( (ke[key_i].ke_values != VOID) &&
 	       (ke[key_i].ke_values != EMPTY) )
 	    u8_logf(LOG_WARN,"NotVoid",
-		    "This value for key %d is %q, not VOID/EMPTY as expected",
+		    "This value for key %_d is %q, not VOID/EMPTY as expected",
 		    key_i,ke[key_i].ke_values);
 	  endpos = ke[key_i].ke_vref.off+ke[key_i].ke_vref.size;}
 	if (endpos>=maxpos) {
@@ -2063,7 +2063,7 @@ KNO_FASTOP kno_off_t update_keybucket
 	    u8_free(keyoffs);
 	    u8_free(keysizes);}
 	  u8_seterr(kno_DataFileOverflow,"update_keybucket",
-		    u8_mkstring("%s: %lld >= %lld",
+		    u8_mkstring("%s: %ll_d >= %ll_d",
 				kx->indexid,endpos,maxpos));
 	  return -1;}
 	break;}}
@@ -2091,7 +2091,7 @@ KNO_FASTOP kno_off_t update_keybucket
 	    u8_free(keyoffs);
 	    u8_free(keysizes);}
 	  u8_seterr(kno_DataFileOverflow,"update_keybucket",
-		    u8_mkstring("%s: %lld >= %lld",
+		    u8_mkstring("%s: %ll_d >= %ll_d",
 				kx->indexid,endpos,maxpos));
 	  return -1;}}
       kb->kb_n_keys++;}
@@ -2127,7 +2127,7 @@ KNO_FASTOP kno_off_t write_keybucket
     i++;}
   if (endpos>=maxpos) {
     u8_seterr(kno_DataFileOverflow,"write_keybucket",
-	      u8_mkstring("%s: %lld >= %lld",kx->indexid,endpos,maxpos));
+	      u8_mkstring("%s: %ll_d >= %ll_d",kx->indexid,endpos,maxpos));
     return -1;}
   return endpos;
 }
@@ -2316,7 +2316,7 @@ static int kindex_save(struct KNO_KINDEX *kx,
     int j = sched_i, cur_keys = kb->kb_n_keys;
     if (KNO_RARELY(bucket != kb->kb_bucketno)) {
       u8_log(LOG_CRIT,"KIndexError",
-	     "Bucket at sched_i=%d/%d was %d != %d (expected) in %s",
+	     "Bucket at sched_i=%_d/%_d was %_d != %_d (expected) in %s",
 	     sched_i,schedule_size,bucket,kb->kb_bucketno,kx->indexid);}
     while ((j<schedule_size) && (schedule[j].commit_bucket == bucket)) j++;
     /* This may write values to disk, so we use the returned endpos */
@@ -2381,7 +2381,7 @@ static int kindex_save(struct KNO_KINDEX *kx,
     u8_logf(LOG_ERR,"KIndexCommit",
 	    "Saving header information failed");
   else u8_logf(LOG_INFO,"KIndexCommit",
-	       "Saved mappings for %d keys (%d/%d new/total) to %s in %f secs",
+	       "Saved mappings for %_d keys (%_d/%_d new/total) to %s in %f secs",
 	       n_keys,new_keys,total_keys,
 	       kx->indexid,u8_elapsed_time()-started);
 

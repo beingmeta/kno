@@ -15,7 +15,7 @@ static int local_loglevel = -1;
 #include "kno/knosource.h"
 #include "kno/defines.h"
 #include "kno/lisp.h"
-#include "kno/pathstore.h"
+#include "kno/zipsource.h"
 #include "kno/getsource.h"
 
 #include <libu8/libu8.h>
@@ -49,6 +49,8 @@ DEF_KNOSYM(symlink); DEF_KNOSYM(directory);
 DEF_KNOSYM(file); DEF_KNOSYM(weird);
 DEF_KNOSYM(content);
 
+#define ZIPSOURCEP(x) (KNO_RAW_TYPEP(x,KNOSYM_ZIPSOURCE))
+
 static u8_string get_string_opt(lispval opts,lispval optname,ssize_t *sizep)
 {
   u8_string result = NULL;
@@ -68,9 +70,12 @@ static u8_string get_string_opt(lispval opts,lispval optname,ssize_t *sizep)
 DEF_KNOSYM(cacheroot); DEF_KNOSYM(cachesize);
 DEF_KNOSYM(prefix); DEF_KNOSYM(mountpoint);
 
-static int zpathstore_exists(struct KNO_PATHSTORE *ps,u8_string path)
+KNO_EXPORT int kno_zipsource_existsp(lispval zs,u8_string path)
 {
-  struct zip_t *zip = (struct zip_t *) ps->knops_data;
+  if (!(ZIPSOURCEP(zs)))
+    return kno_err("NotZipSource","kno_zipsource_existsp",path,zs);
+  struct zip_t *zip = (struct zip_t *) KNO_RAWPTR_VALUE(zs);
+  u8_lock_mutex(&(zip->lock));
   int rv = zip_entry_open(zip,path);
   zip_entry_close(zip);
   if (rv>=0)
@@ -79,13 +84,13 @@ static int zpathstore_exists(struct KNO_PATHSTORE *ps,u8_string path)
 }
 
 static lispval zip_entry_content(struct zip_t *zip,
-				 struct KNO_PATHSTORE *ps,
+				 lispval zipsource,
 				 u8_string path,u8_string enc)
 {
   unsigned char *bytes = NULL; ssize_t n_bytes;
   int rv = zip_entry_read(zip,(void *)&bytes,&n_bytes);
   if (rv<0) {
-    kno_seterr("NoSuchPath","zpathstore_content",path,(lispval)ps);
+    kno_seterr("NoSuchPath","zpathstore_content",path,zipsource);
     return KNO_ERROR;}
   if ( (enc == NULL) || (strcasecmp(enc,"auto")==0) ) {
     lispval result;
@@ -123,7 +128,7 @@ static lispval zip_entry_content(struct zip_t *zip,
     struct U8_TEXT_ENCODING *encoding = u8_get_encoding(enc);
     if (encoding == NULL) {
       kno_seterr("UnknownEncoding","zpathstore/content",
-		 KNO_CSTRING(enc),(lispval)ps);
+		 KNO_CSTRING(enc),zipsource);
       u8_free(bytes);
       return KNO_ERROR;}
     else {
@@ -133,7 +138,7 @@ static lispval zip_entry_content(struct zip_t *zip,
 }
 
 static int zip_entry_follow(struct zip_t *zip,
-			    struct KNO_PATHSTORE *ps,
+			    lispval zipsource,
 			    u8_string path_arg)
 {
   u8_string path = u8_strdup(path_arg);
@@ -159,7 +164,7 @@ static int zip_entry_follow(struct zip_t *zip,
 		 "zip_entry_follow",
 		 u8_bprintf(buf,"%s =...=> %s !=> %s",
 			    path_arg,path,new_path),
-		 (lispval)ps);
+		 zipsource);
       u8_free(path);
       return -1;}
     else {
@@ -171,38 +176,49 @@ static int zip_entry_follow(struct zip_t *zip,
     kno_seterr("ZPathStore/TooManySymlinks",
 	       "zip_entry_follow",
 	       u8_bprintf(buf,"%s =...=> %s",path_arg,path),
-	       (lispval)ps);
+	       zipsource);
     u8_free(path);
     return -1;}
   u8_free(path);
   return 1;
 }
 
-static lispval zpathstore_content
-(struct KNO_PATHSTORE *ps,u8_string path,u8_string enc,int follow)
+KNO_EXPORT lispval kno_zipsource_content
+(lispval zs,u8_string path,u8_string enc,int follow)
 {
-  struct zip_t *zip = (struct zip_t *) ps->knops_data;
+  if (!(ZIPSOURCEP(zs)))
+    return kno_err("NotZipSource","kno_zipsource_content",path,zs);
+  struct zip_t *zip = (struct zip_t *) KNO_RAWPTR_VALUE(zs);
+  u8_lock_mutex(&(zip->lock));
   int rv = zip_entry_open(zip,path);
   if (rv<0) {
-    kno_seterr("ZPathStoreError","zpathstore_content",path,(lispval)ps);
+    kno_seterr("ZPathStoreError","zpathstore_content",path,zs);
+    u8_unlock_mutex(&(zip->lock));
     return KNO_ERROR;}
   else if ( (follow) && (zip_entry_type(zip)==0xA) ) {
-    if (zip_entry_follow(zip,ps,path)<0) goto onerror;}
-  lispval content = zip_entry_content(zip,ps,path,enc);
+    if (zip_entry_follow(zip,zs,path)<0) goto onerror;}
+  lispval content = zip_entry_content(zip,zs,path,enc);
   zip_entry_close(zip);
+  u8_unlock_mutex(&(zip->lock));
   return content;
  onerror:
   zip_entry_close(zip);
+  u8_unlock_mutex(&(zip->lock));
   return KNO_ERROR;
 }
 
-static lispval zpathstore_info(struct KNO_PATHSTORE *ps,u8_string path,int follow)
+KNO_EXPORT lispval kno_zipsource_info(lispval zs,u8_string path,int follow)
 {
-  struct zip_t *zip = (struct zip_t *) ps->knops_data;
+  if (!(ZIPSOURCEP(zs)))
+    return kno_err("NotZipSource","kno_zipsource_info",path,zs);
+  struct zip_t *zip = (struct zip_t *) KNO_RAWPTR_VALUE(zs);
+  u8_lock_mutex(&(zip->lock));
   int rv = zip_entry_open(zip,path);
-  if (rv<0) return KNO_FALSE;
+  if (rv<0) {
+    u8_unlock_mutex(&(zip->lock));
+    return KNO_FALSE;}
   if ( (follow) && (zip_entry_type(zip)==0xA) ) {
-    if (zip_entry_follow(zip,ps,path)<0) goto onerror;}
+    if (zip_entry_follow(zip,zs,path)<0) goto onerror;}
   lispval name = knostring(zip->entry.name);
   lispval size = KNO_INT(zip->entry.uncomp_size);
   lispval mtime = kno_time2timestamp(zip->entry.m_time);
@@ -221,61 +237,33 @@ static lispval zpathstore_info(struct KNO_PATHSTORE *ps,u8_string path,int follo
       { pathtype_symbol, ziptype },
       { content_symbol, content } };
   zip_entry_close(zip);
+  u8_lock_mutex(&(zip->lock));
   return kno_make_slotmap(4,4,kv);
  onerror:
   zip_entry_close(zip);
+  u8_lock_mutex(&(zip->lock));
   return KNO_ERROR;
 }
 
-static void recycle_zpathstore(struct KNO_PATHSTORE *ps)
+static void recycle_zipsource(void *zipval)
 {
-  struct zip_t *zip = (struct zip_t *) (ps->knops_data);
+  struct zip_t *zip = (struct zip_t *) zipval;
   zip_close(zip);
 }
 
-static struct KNO_PATHSTORE_HANDLERS zpathstore_handlers =
-  { "zpathstore", 3,
-    zpathstore_exists,
-    zpathstore_info,
-    zpathstore_content,
-    NULL,
-    NULL,
-    recycle_zpathstore};
-
-KNO_EXPORT lispval kno_open_zpathstore(u8_string path,lispval opts)
+KNO_EXPORT lispval kno_open_zipsource(u8_string path,lispval opts)
 {
   struct zip_t *zip = zip_open(path,9,'r');
   if (zip == NULL) {
-    kno_seterr("ZPathStoreOpenFailed","kno_open_zpathstore",path,opts);
+    kno_seterr("ZPathStoreOpenFailed","kno_open_zipsource",path,opts);
     return KNO_ERROR;}
-  /* Maybe read additional opts data from zip file?? */
-  struct KNO_PATHSTORE *ps = u8_alloc(struct KNO_PATHSTORE);
-  KNO_INIT_FRESH_CONS(ps,kno_pathstore_type);
-  ps->knops_id = u8_strdup(path);
-  ps->knops_config = kno_incref(opts);
-  ps->knops_mountpoint =
-    get_string_opt(opts,KNOSYM(mountpoint),
-		   &(ps->knops_mountpoint_len));
-  ps->knops_prefix =
-    get_string_opt(opts,KNOSYM(prefix),&(ps->knops_prefix_len));
-  if ( ps->knops_prefix == NULL) {
-    ps->knops_prefix = u8_abspath(path,NULL);
-    ps->knops_prefix_len = strlen(ps->knops_prefix);}
-  ps->knops_cacheroot = get_string_opt(opts,KNOSYM(cacheroot),NULL);
-  ps->knops_flags = 0;
-  ps->knops_data = zip;
-  ps->knops_handlers = &zpathstore_handlers;
-  lispval cachesize = kno_getopt(opts,KNOSYM(cachesize),KNO_VOID);
-  struct KNO_HASHTABLE *cache = &(ps->knops_cache);
-  if (KNO_UINTP(cachesize))
-    kno_make_hashtable(cache,KNO_FIX2INT(cachesize));
-  else if (KNO_TRUEP(cachesize))
-    kno_make_hashtable(cache,117);
-  else {
-    kno_make_hashtable(cache,0);
-    kno_decref(cachesize);}
-  u8_logf(LOG_DEBUG,"ZPathOpen","Opened %q",ps);
-  return (lispval) ps;
+  lispval result=
+    kno_wrap_pointer(zip,sizeof(struct zip_t),
+		     recycle_zipsource,
+		     KNOSYM_ZIPSOURCE,
+		     path);
+  u8_logf(LOG_DEBUG,"ZPathOpen","Opened %q",result);
+  return result;
 }
 
 /* Zip pathstore cache */
@@ -299,19 +287,19 @@ static lispval get_zipsource(u8_string zip_path,size_t len,int locked)
     u8_unlock_mutex(&zipsources_lock);
     return known;}
   if (u8_file_existsp(zip_path)) {
-    lispval ps = kno_open_zpathstore(zip_path,KNO_FALSE);
-    if (KNO_TYPEP(ps,kno_pathstore_type))
-      kno_hashtable_store(&zipsources,((lispval)&probe),ps);
+    lispval zs = kno_open_zipsource(zip_path,KNO_FALSE);
+    if (ZIPSOURCEP(zs))
+      kno_hashtable_store(&zipsources,((lispval)&probe),zs);
     else kno_hashtable_store(&zipsources,((lispval)&probe),KNO_FALSE);
-    if (KNO_ABORTED(ps)) {
+    if (KNO_ABORTED(zs)) {
       u8_exception ex = u8_pop_exception();
       u8_log(LOGWARN,"BadZipFile",
 	     "Couldn't open zip file %s: %s <%s> (%s)",
 	     zip_path,ex->u8x_cond,ex->u8x_context,
 	     ex->u8x_details);
       u8_free_exception(ex,0);
-      ps = KNO_FALSE;}
-    return ps;}
+      zs = KNO_FALSE;}
+    return zs;}
   else {
     kno_hashtable_store(&zipsources,((lispval)&probe),KNO_FALSE);
     return KNO_FALSE;}
@@ -336,12 +324,11 @@ static u8_string zip_source_fn(int fetch,lispval pathspec,u8_string encname,
       u8_byte path[path_len+1], *subpath = path+zip_len+1;
       memcpy(path,pathstring,path_len+1);
       path[zip_len]='\0';
-      lispval pathstore = get_zipsource(path,zip_len,0);
-      if (KNO_TYPEP(pathstore,kno_pathstore_type)) {
-	struct KNO_PATHSTORE *ps = (kno_pathstore) pathstore;
-	lispval info = zpathstore_info(ps,subpath,1);
+      lispval zipsource = get_zipsource(path,zip_len,0);
+      if (ZIPSOURCEP(zipsource)) {
+	lispval info = kno_zipsource_info(zipsource,subpath,1);
 	if (KNO_FALSEP(info)) {
-	  kno_decref(pathstore);
+	  kno_decref(zipsource);
 	  return NULL;}
 	lispval real_name = kno_get(info,KNOSYM_NAME,KNO_VOID);
 	lispval data_len = kno_get(info,KNOSYM_SIZE,KNO_VOID);
@@ -359,8 +346,8 @@ static u8_string zip_source_fn(int fetch,lispval pathspec,u8_string encname,
 	kno_decref(data_len); kno_decref(modified);
 	kno_decref(info);
 	if (fetch) {
-	  lispval v = zpathstore_content(ps,subpath,encname,1);
-	  kno_decref(pathstore);
+	  lispval v = kno_zipsource_content(zipsource,subpath,encname,1);
+	  kno_decref(zipsource);
 	  if (KNO_STRINGP(v)) {
 	    result = u8_strdup(KNO_CSTRING(v));
 	    kno_decref(v);}
@@ -373,13 +360,81 @@ static u8_string zip_source_fn(int fetch,lispval pathspec,u8_string encname,
   return (u8_string) result;
 }
 
+int unparse_zipsource(u8_output out,lispval x,kno_typeinfo info)
+{
+  struct zip_t *zip = KNO_RAWPTR_VALUE(x);
+  u8_printf(out,"#%%(ZIPSOURCE \"%s\")",zip->pathname);
+  return 1;
+}
+
+lispval cons_zipsource(int n,lispval *args,kno_typeinfo info)
+{
+  if (n<2) return KNO_VOID;
+  else if ( (STRINGP(args[1])) &&
+	    (u8_file_existsp(CSTRING(args[1]))) ) {
+    lispval restored = kno_get_zipsource(CSTRING(args[1]));
+    if (KNO_ABORTED(restored))
+      return restored;
+    else return restored;}
+  else return KNO_VOID;
+}
+
+static lispval dump_zipsource(lispval x,kno_typeinfo i)
+{
+  struct zip_t *zip = KNO_RAWPTR_VALUE(x);
+  return knostring(zip->pathname);
+}
+
+static lispval restore_zipsource(lispval tag,lispval x,kno_typeinfo e)
+{
+  if (KNO_STRINGP(x))
+    return kno_get_zipsource(KNO_CSTRING(x));
+  else return kno_err("RestoreError","bad zipsource",NULL,x);
+}
+
 /* Initialization */
 
-static int zpathstore_initialized = 0;
+static int zipsource_initialized = 0;
 
-int kno_init_zpathstore_c()
+static lispval zipsource_get(lispval zs,lispval key,lispval dflt)
 {
-  if (zpathstore_initialized) return 0;
+  if (!(KNO_ZIPSOURCEP(zs))) return dflt;
+  if (KNO_STRINGP(key)) {
+    if (kno_zipsource_existsp(zs,KNO_CSTRING(key))) {
+      lispval content = kno_zipsource_content(zs,KNO_CSTRING(key),NULL,1);
+      return content;}
+    else return dflt;}
+  else return dflt;
+}
+
+static struct KNO_TABLEFNS zipsource_tablefns =
+  {
+   zipsource_get,
+   NULL, /* store */
+   NULL, /* add */
+   NULL, /* drop */
+   NULL, /* test */
+   NULL, /* readonly */
+   NULL, /* modified */
+   NULL, /* finished */
+   NULL, /* getsize */
+   NULL, /* getkeys */
+   NULL, /* getkeyvec */
+   NULL, /* getkeyvals */
+   NULL /* tablep */
+  };
+
+int kno_init_zipsource_c()
+{
+  if (zipsource_initialized) return 0;
+
+  struct KNO_TYPEINFO *e = kno_use_typeinfo(KNOSYM_ZIPSOURCE);
+  e->type_basetype = kno_rawptr_type;
+  e->type_restorefn = restore_zipsource;
+  e->type_dumpfn = dump_zipsource;
+  e->type_unparsefn = unparse_zipsource;
+  e->type_consfn = cons_zipsource;
+  /* e->type_tablefns = &zipsource_tablefns; */
 
   u8_init_mutex(&zipsources_lock);
 
@@ -395,7 +450,7 @@ int kno_init_zpathstore_c()
 
   u8_register_source_file(_FILEINFO);
 
-  zpathstore_initialized = u8_millitime();
+  zipsource_initialized = u8_millitime();
 
   return 1;
 }

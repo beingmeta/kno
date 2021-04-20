@@ -18,6 +18,7 @@
 		  pool/getindex pool/getindexes knodb/add-index!
 		  knodb/readonly!
 		  knodb/open-index
+		  knodb/checkpath
 		  knodb/makedb
 		  knodb/index!
 		  knodb/find})
@@ -49,13 +50,17 @@
 ;;; Utility functions
 
 ;;; This makes missing directories
-(define (checkdbpath source opts (suffix #f))
+(define (knodb/checkpath source opts (suffix #f))
   "If *source* looks like a path, this checks that it's intermediate "
   "directories all exist."
   (cond ((exists position {#\@ #\:} source) source)
 	((not (position #\/ source)) (opt-suffix source suffix))
+	((and (has-suffix source "/") (file-directory? source)) source)
+	((has-suffix source "/")
+	 (mkdirs source)
+	 source)
 	((file-directory? (dirname source)) source)
-	((getopt opts 'mkdir #f)
+	((getopt opts 'mkdir (getopt opts 'create #f))
 	 (mkdirs (dirname source))
 	 (opt-suffix source suffix))
 	(else (irritant source |MissingDirectory|))))
@@ -154,13 +159,13 @@
 (define (knodb/id arg (err #f))
   (cond ((pool? arg) (pool-id arg))
 	((index? arg) (index-id arg))
-	(err (irritant db |BadKnoDB|))
+	(err (irritant arg |BadKnoDB|))
 	(else (stringout arg))))
 
 (define (knodb/source arg (err #f))
   (cond ((pool? arg) (pool-source arg))
 	((index? arg) (index-source arg))
-	(err (irritant db |BadKnoDB|))
+	(err (irritant arg |BadKnoDB|))
 	(else #f)))
 
 ;;;; knodb/ref
@@ -193,12 +198,12 @@
 	((textmatch (qc network-source) dbsource)
 	 (irritant dbsource |CantCreateRemoteDB|))
 	((has-suffix dbsource ".pool")
-	 (knodb/pool (make-pool (checkdbpath dbsource opts ".pool")
+	 (knodb/pool (make-pool (knodb/checkpath dbsource opts ".pool")
 		       (make-opts opts 'pool))
 		     opts))
 	((has-suffix dbsource ".index")
 	 (knodb/wrap-index
-	  (make-index (checkdbpath dbsource opts ".index")
+	  (make-index (knodb/checkpath dbsource opts ".index")
 	    (make-opts opts 'index))
 	  opts))
 	(else (let ((dbtype (find-dbtype opts #f)))
@@ -206,12 +211,12 @@
 		       (irritant (cons [source dbsource] opts) 
 			   |CantDetermineDBType| knodb/ref))
 		      ((eq? (car dbtype) 'pooltype)
-		       (knodb/pool (make-pool (checkdbpath dbsource opts ".pool")
+		       (knodb/pool (make-pool (knodb/checkpath dbsource opts ".pool")
 				     (make-opts opts 'pool))
 				   opts))
 		      ((eq? (car dbtype) 'indextype)
 		       (knodb/wrap-index
-			(make-index (checkdbpath dbsource opts ".index")
+			(make-index (knodb/checkpath dbsource opts ".index")
 			  (make-opts opts 'index))
 			opts))
 		      (else (irritant dbtype |CantDetermineDBType| knodb/ref)))))))

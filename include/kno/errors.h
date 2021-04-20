@@ -24,8 +24,12 @@ KNO_EXPORT lispval kno_simple_error
 KNO_EXPORT lispval (*_kno_mkerr)(u8_condition c,u8_context caller,
 				 u8_string details,lispval irritant,
 				 u8_exception *push);
+KNO_EXPORT void (*_kno_raise)(u8_condition c,u8_context caller,
+			      u8_string details,lispval irritant);
 KNO_EXPORT U8_NOINLINE void kno_raise
 (u8_condition c,u8_context cxt,u8_string details,lispval irritant);
+
+#define kno_raisex(c,cxt,details) kno_raise(c,cxt,details,KNO_VOID)
 
 KNO_EXPORT void kno_missing_error(u8_string details);
 

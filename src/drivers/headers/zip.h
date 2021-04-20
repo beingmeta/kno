@@ -93,6 +93,8 @@ struct zip_t {
   mz_zip_archive archive;
   mz_uint level;
   struct zip_entry_t entry;
+  u8_string pathname;
+  u8_mutex lock;
 };
 
 /**

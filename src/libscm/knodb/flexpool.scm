@@ -36,14 +36,13 @@
 (define (get-partition-prefix filename (opts #f) (given))
   (set! given (getopt opts 'prefix (config 'prefix)))
   (if given
-      (if (has-suffix (getopt opts 'prefix) "/")
-	  (mkpath (getopt opts 'prefix) (basename filename #t))
-	  (getopt opts 'prefix))
-      (let ((stripped (textsubst filename (qc pool-suffix) "")))
-	(if (position #\/ stripped)
-	    stripped
-	    (mkpath (textsubst stripped #("." (isalnum+) (eos)) "")
-		    stripped)))))
+      (if (has-suffix given "/")
+	  (mkpath given (basename filename #t))
+	  given)
+      (let ((stripped (textsubst (basename filename) (qc pool-suffix) "")))
+	(if (getopt opts 'partdir #f)
+	    (mkpath (getopt opts 'partdir #f) stripped)
+	    stripped))))
 
 (define (get-partition-type opts)
   (getopt opts 'partition-type 
@@ -678,7 +677,7 @@
 (define (flexpool-fetch pool flexpool oid) (oid-value oid))
 (define (flexpool-storen pool flexpool n oidvec valvec) 
   (error |VirtualPool| flexpool-storen
-	 "Can't store values directly in the flexpool " p))
+	 "Can't store values directly in the flexpool " pool))
 (define (flexpool-load pool flexpool (front))
   (if (getopt (flexpool-partopts flexpool) 'prealloc)
       (* (flexpool-partsize flexpool) (|| (flexpool-partitions flexpool)))

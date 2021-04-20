@@ -127,10 +127,12 @@ static void recycle_typeinfo(struct KNO_RAW_CONS *c)
     kno_decref(typeinfo->type_schema);
     typeinfo->type_schema=KNO_VOID;}
   if (typeinfo->type_tablefns) {
-    u8_free(typeinfo->type_tablefns);
+    if (typeinfo->type_free_tablefns)
+      u8_free(typeinfo->type_tablefns);
     typeinfo->type_tablefns=NULL;}
   if (typeinfo->type_seqfns) {
-    u8_free(typeinfo->type_seqfns);
+    if (typeinfo->type_free_seqfns)
+      u8_free(typeinfo->type_seqfns);
     typeinfo->type_seqfns=NULL;}
   if (typeinfo->type_name) {
     u8_free(typeinfo->type_name);
@@ -139,6 +141,10 @@ static void recycle_typeinfo(struct KNO_RAW_CONS *c)
     u8_free(typeinfo->type_description);
     typeinfo->type_description=NULL;}
   kno_decref(typeinfo->type_usetag);
+  if (typeinfo->type_defdata) {
+    if (typeinfo->type_free_defdata)
+      u8_free(typeinfo->type_defdata);
+    typeinfo->type_defdata=NULL;}
   u8_free(typeinfo);
 }
 
@@ -210,6 +216,27 @@ int kno_set_restorefn(lispval tag,kno_type_restorefn fn)
   struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
   if (info) {
     info->type_restorefn = fn;
+    return 1;}
+  else return 0;
+}
+
+KNO_EXPORT
+int kno_set_type_schema(lispval tag,lispval schema)
+{
+  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
+  if (info) {
+    lispval prev = info->type_schema;
+    if (prev == schema) return 0;
+    if (!(KNO_VECTORP(schema))) {
+      kno_seterr("InvalidSchema","kno_set_type_schema",
+		 (KNO_SYMBOLP(tag))?(KNO_SYMBOL_NAME(tag)):
+		 (KNO_STRINGP(tag))?(KNO_CSTRING(tag)):
+		 (U8S("obj")),
+		 schema);
+      return -1;}
+    kno_incref(schema);
+    if (prev) kno_decref(prev);
+    info->type_schema = schema;
     return 1;}
   else return 0;
 }

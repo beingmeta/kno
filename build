@@ -8,6 +8,7 @@ OFFLINE=
 SUFFIX=
 BUILD=$(pwd)
 SRC=$(dirname $(pwd))
+ECHO=$(which echo)
 doclean=1;
 
 if [ -f ./.offline ]; then
@@ -42,18 +43,18 @@ usage () {
 status () {
     if [ -f ".buildmode" ]; then
 	val=$(cat .buildmode);
-	echo -n "buildmode=${val} ";
+	${ECHO} -n "buildmode=${val} ";
     fi;
     if [ -f ".malloc" ]; then
 	val=$(cat .malloc);
-	echo -n "malloc=${val} ";
+	${ECHO} -n "malloc=${val} ";
     fi;
     if [ -f ".suffix" ]; then
 	val=$(cat .suffix);
-	echo -n "suffix=${val} ";
+	${ECHO} -n "suffix=${val} ";
     fi;
     if [ -f ".offline" ]; then
-	echo -n "offline=yes ";
+	${ECHO} -n "offline=yes ";
     fi;
 }
 
@@ -206,4 +207,4 @@ git submodule update
 make -j ${MAKE_ARGS} $* && 
     if [ ! -z "${TEST_ARGS}" ]; then make -j ${TEST_ARGS}; fi &&
     if [ ! -z "${INSTALL_ARGS}" ]; then make ${INSTALL_ARGS}; fi &&
-    echo -n "All done: "; status; echo;
+    ${ECHO} -n "All done: "; status; echo;

@@ -149,11 +149,21 @@ KNO_EXPORT lispval kno_history_find(lispval history,lispval val)
   return cur;
 }
 
+KNO_EXPORT int kno_history_push(lispval history,lispval value)
+{
+  if (KNO_COMPOUND_TYPEP(history,history_symbol)) {
+    lispval ref = kno_history_add(history,value,KNO_VOID);
+    if (KNO_FIXNUMP(ref))
+      return KNO_FIX2INT(ref);
+    else return -1;}
+  else return 0;
+}
+
 KNO_EXPORT int kno_histpush(lispval value)
 {
   lispval history = kno_thread_get(history_symbol);
   if (KNO_ABORTP(history))
-    return history;
+    return -1;
   else if (VOIDP(history)) {
     kno_seterr("NoActiveHistory","kno_histpush",NULL,value);
     return -1;}
@@ -315,9 +325,8 @@ lispval kno_get_histref(lispval elts)
   return kno_eval_histref(elts,history);
 }
 
-KNO_EXPORT void kno_hist_init(int size)
+KNO_EXPORT lispval kno_make_history(int size)
 {
-  lispval history = kno_thread_get(history_symbol);
   if (size<=0) {
     lispval configval = kno_config_get("HISTORYSIZE");
     if (KNO_UINTP(configval))
@@ -325,25 +334,22 @@ KNO_EXPORT void kno_hist_init(int size)
     else {
       kno_decref(configval);
       size = 128;}}
-  if (VOIDP(history)) {
-    history = kno_init_compound(NULL,history_symbol,
-                               KNO_COMPOUND_USEREF,5,
-                               KNO_INT(1),
-                               kno_make_hashtable(NULL,size),
-                               kno_make_hashtable(NULL,size),
-                               kno_make_hashtable(NULL,size),
-                               kno_make_hashtable(NULL,size));
-    kno_thread_set(history_symbol,history);}
-  kno_decref(history);
+  return kno_init_compound(NULL,history_symbol,
+			   KNO_COMPOUND_USEREF,5,
+			   KNO_INT(1),
+			   kno_make_hashtable(NULL,size),
+			   kno_make_hashtable(NULL,size),
+			   kno_make_hashtable(NULL,size),
+			   kno_make_hashtable(NULL,size));
 }
 
-KNO_EXPORT void kno_histclear(int size)
+KNO_EXPORT lispval kno_hist_init(int size)
 {
-  if (size>0) {
-    kno_thread_set(history_symbol,VOID);
-    kno_hist_init(size);}
-  else kno_thread_set(history_symbol,KNO_FALSE);
+  lispval history = kno_make_history(size);
+  kno_thread_set(history_symbol,history);
+  return history;
 }
+
 
 /* Resolving histrefs in structures */
 
@@ -455,5 +461,3 @@ KNO_EXPORT void kno_init_history_c()
 		      histrefs_parse_config_get,histrefs_parse_config_set,
 		      NULL);
 }
-
-

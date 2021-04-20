@@ -773,7 +773,7 @@ int kno_ptr_debug_density = 1;
 
 KNO_EXPORT void _kno_bad_pointer(lispval badx,u8_context cxt)
 {
-  u8_raise(kno_BadPtr,cxt,NULL);
+  kno_raisex(kno_BadPtr,cxt,NULL);
 }
 
 KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x)

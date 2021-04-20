@@ -247,18 +247,18 @@ int kno_pprinter(u8_output out,lispval x,int indent,int col,int depth,
     struct KNO_COMPOUND *comp = (kno_compound) x;
     int len = KNO_COMPOUND_VECLEN(x);
     int vec_max = pprint_max3(vector_max,maxelts,ppcxt);
-    U8_OUTPUT tmpout; u8_byte buf[200];
-    U8_INIT_OUTPUT_BUF(&tmpout,200,buf);
-    u8_printf(&tmpout,"#%%(%q)",comp->typetag);
-    size_t head_len = tmpout.u8_write-tmpout.u8_outbuf;
+    U8_SUB_STREAM(tmp,200,out);
+    tmp.u8_streaminfo|=U8_STREAM_HUMANE;
+    u8_printf(tmpout,"#%%(%q)",comp->typetag);
+    size_t head_len = tmp.u8_write-tmp.u8_outbuf;
     if (len==0) {
-      u8_putn(out,tmpout.u8_outbuf,head_len);
-      if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
+      u8_putn(out,tmp.u8_outbuf,head_len);
+      if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);
       return col+head_len;}
     else {
       int eltno = 0, base_col = col+4;
-      u8_putn(out,tmpout.u8_outbuf,head_len-1); /* head_len-1 skips the close paren */
-      if (tmpout.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpout.u8_outbuf);
+      u8_putn(out,tmp.u8_outbuf,head_len-1); /* head_len-1 skips the close paren */
+      if (tmp.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmp.u8_outbuf);
       col=col+head_len;
       while (eltno<len) {
         if (OVERFLOWP(eltno,vec_max)) {
@@ -476,6 +476,7 @@ static int unparse(u8_output out,lispval obj,pprint_context ppcxt)
         int total_chars=n_chars;
         while (scan<limit) {total_chars++; u8_sgetc(&scan);}
         U8_FIXED_OUTPUT(tmp,256);
+	tmp.u8_streaminfo|=U8_STREAM_HUMANE;
         u8_printf(tmpout,"… %d/%d chars …\"",
                   total_chars-n_chars,total_chars);
         u8_putn(out,tmp.u8_outbuf,tmp.u8_write-tmp.u8_outbuf);
@@ -555,15 +556,15 @@ int kno_pprint_table(u8_output out,lispval x,
       u8_putc(out,'"');
       col=col+2+strlen(CSTRING(key));}
     else {
-      struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
-      U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
+      U8_SUB_STREAM(tmp,512,out);
+      tmp.u8_streaminfo|=U8_STREAM_HUMANE;
       unparse(&tmp,key,ppcxt);
       u8_puts(out,tmp.u8_outbuf);
       col=col+(tmp.u8_write-tmp.u8_outbuf);
       u8_close_output(&tmp);}
     /* Output value */
-    struct U8_OUTPUT tmp; u8_byte tmpbuf[512];
-    U8_INIT_OUTPUT_BUF(&tmp,512,tmpbuf);
+    U8_SUB_STREAM(tmp,512,out);
+    tmp.u8_streaminfo|=U8_STREAM_HUMANE;
     unparse(&tmp,val,ppcxt);
     size_t len=tmp.u8_write-tmp.u8_outbuf;
     /* Output the margin, indent, etc */
@@ -608,17 +609,16 @@ static int output_keyval(u8_output out,
     return -1;
   else len=0;
   /* Try it out */
-  struct U8_OUTPUT kvout;
-  u8_byte kvbuf[256];
-  U8_INIT_STATIC_OUTPUT_BUF(kvout,256,kvbuf);
-  unparse(&kvout,key,ppcxt);
-  u8_putc(&kvout,' ');
-  unparse(&kvout,val,ppcxt);
-  len=kvout.u8_write-kvout.u8_outbuf;
-  if ((kvout.u8_streaminfo&U8_STREAM_OVERFLOW)||((col+(len))>maxcol))
+  U8_SUB_STREAM(kv,512,out);
+  kv.u8_streaminfo |= U8_HUMAN_OUTPUT;
+  unparse(kvout,key,ppcxt);
+  u8_putc(kvout,' ');
+  unparse(kvout,val,ppcxt);
+  len=kv.u8_write-kv.u8_outbuf;
+  if ((kv.u8_streaminfo&U8_STREAM_OVERFLOW)||((col+(len))>maxcol))
     len=-1;
-  else u8_putn(out,kvout.u8_outbuf,len);
-  u8_close_output(&kvout);
+  else u8_putn(out,kv.u8_outbuf,len);
+  u8_close_output(kvout);
   if (len>=0)
     return col+len;
   else return -1;
@@ -658,10 +658,13 @@ static u8_string lisp_pprintf_handler
     width = strtol(cmd,NULL,10);
     U8_CLEAR_ERRNO();}
   value = va_arg(*args,lispval);
-  U8_INIT_OUTPUT(&tmpout,512);
+  U8_INIT_OUTPUT_BUF(&tmpout,bufsiz,buf);
+  tmpout.u8_streaminfo |=
+    (out->u8_streaminfo&(U8_SUB_STREAM_MASK)) |
+    U8_HUMAN_OUTPUT;
   kno_pprint(&tmpout,value,NULL,0,0,width);
   u8_puts(out,tmpout.u8_outbuf);
-  u8_free(tmpout.u8_outbuf);
+  u8_close_output(&tmpout);
   if (strchr(cmd,'-')) kno_decref(value);
   return NULL;
 }

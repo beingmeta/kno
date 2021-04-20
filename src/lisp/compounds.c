@@ -70,7 +70,7 @@ KNO_EXPORT lispval kno_init_compound_from_elts
   if (issequence)
     p->compound_seqoff = KNO_COMPOUND_HEADER_LENGTH(flags);
   else p->compound_seqoff = -1;
-  p->compound_istable = istable;
+  p->compound_annotated = istable;
   p->compound_length = n;
   write = &(p->compound_0);
   if (n>0) {
@@ -151,25 +151,80 @@ static int compound_sequencep(lispval arg)
 
 /* Table functions */
 
+KNO_FASTOP int get_schema_offset(lispval schema,lispval key)
+{
+  if (KNO_VECTORP(schema)) {
+    int i = 0, n = KNO_VECTOR_LENGTH(schema);
+    lispval *elts = KNO_VECTOR_ELTS(schema);
+    while (i<n) {
+      lispval entry = elts[i];
+      if (entry == key)
+	return i;
+      else if (KNO_PAIRP(entry)) {
+	if (KNO_CAR(entry) == key)
+	  return i;}
+      else if (KNO_TABLEP(entry)) {
+	lispval ekey = kno_get(entry,KNOSYM_KEY,KNO_VOID);
+	if (ekey == key) {
+	  kno_decref(ekey);
+	  return i;}
+	else kno_decref(ekey);}
+      else NO_ELSE;
+      i++;}
+    return -1;}
+  else return -1;
+}
+
 KNO_FASTOP int compound_tablep(lispval arg)
 {
   struct KNO_COMPOUND *co = (kno_compound) arg;
-  return ( (co->compound_istable) &&
+  return ( ( (co->typeinfo) &&
+	     ( (co->typeinfo->type_tablefns) ||
+	       ( (co->typeinfo->type_schema) &&
+		 (KNO_VECTORP(co->typeinfo->type_schema) ) ) ) ) ||
+	   ( (co->compound_annotated) &&
+	     (USUALLY(co->compound_length > 0)) &&
+	     (USUALLY(KNO_TABLEP(co->compound_0))) ) );
+}
+
+KNO_FASTOP int compound_annotatedp(lispval arg)
+{
+  struct KNO_COMPOUND *co = (kno_compound) arg;
+  return ( (co->compound_annotated) &&
 	   (USUALLY(co->compound_length > 0)) &&
 	   (USUALLY(KNO_TABLEP(co->compound_0))) );
 }
 
 static lispval compound_table_get(lispval obj,lispval key,lispval dflt)
 {
-  if (!(compound_tablep(obj)))
-    return kno_type_error("tabular_compound","compound_table_get",obj);
-  struct KNO_COMPOUND *co = (kno_compound) obj;
-  return kno_get(co->compound_0,key,dflt);
+  struct KNO_COMPOUND *compound = (kno_compound) obj;
+  struct KNO_TYPEINFO *type = kno_objtype(obj);
+  if (type->type_tablefns)
+    return type->type_tablefns->get(obj,key,dflt);
+  else if (KNO_VECTORP(type->type_schema)) {
+    if (compound->compound_ismutable) {
+      u8_read_lock(&(compound->compound_rwlock));
+      int offset = get_schema_offset(type->type_schema,key);
+      if (offset<compound->compound_length) {
+	lispval val = KNO_COMPOUND_VREF(compound,offset);
+	kno_incref(val);;
+	u8_rw_unlock(&(compound->compound_rwlock));
+	return val;}}
+    else {
+      int offset = get_schema_offset(type->type_schema,key);
+      if (offset<compound->compound_length) {
+	lispval val = KNO_COMPOUND_VREF(compound,offset);
+	return kno_incref(val);}}}
+  else NO_ELSE;
+  if (compound_annotatedp(obj)) {
+    struct KNO_COMPOUND *co = (kno_compound) obj;
+    return kno_get(co->compound_0,key,dflt);}
+  else return kno_type_error("annotated_compound","compound_table_get",obj);
 }
 
 static int compound_table_store(lispval obj,lispval key,lispval val)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_store",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_store(co->compound_0,key,val);
@@ -177,7 +232,7 @@ static int compound_table_store(lispval obj,lispval key,lispval val)
 
 static int compound_table_add(lispval obj,lispval key,lispval val)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_add",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_add(co->compound_0,key,val);
@@ -185,7 +240,7 @@ static int compound_table_add(lispval obj,lispval key,lispval val)
 
 static int compound_table_drop(lispval obj,lispval key,lispval val)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_drop",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_drop(co->compound_0,key,val);
@@ -193,7 +248,7 @@ static int compound_table_drop(lispval obj,lispval key,lispval val)
 
 static int compound_table_test(lispval obj,lispval key,lispval val)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_test",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_test(co->compound_0,key,val);
@@ -201,7 +256,7 @@ static int compound_table_test(lispval obj,lispval key,lispval val)
 
 static int compound_table_readonly(lispval obj,int op)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_readonly",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   if (op < 0)
@@ -211,7 +266,7 @@ static int compound_table_readonly(lispval obj,int op)
 
 static int compound_table_modified(lispval obj,int op)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_modified",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   if (op < 0)
@@ -221,7 +276,7 @@ static int compound_table_modified(lispval obj,int op)
 
 static int compound_table_finished(lispval obj,int op)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_finished",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   if (op < 0)
@@ -231,7 +286,7 @@ static int compound_table_finished(lispval obj,int op)
 
 static int compound_table_getsize(lispval obj)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_keys",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_getsize(co->compound_0);
@@ -239,7 +294,7 @@ static int compound_table_getsize(lispval obj)
 
 static lispval compound_table_keys(lispval obj)
 {
-  if (!(compound_tablep(obj)))
+  if (!(compound_annotatedp(obj)))
     return kno_type_error("tabular_compound","compound_table_keys",obj);
   struct KNO_COMPOUND *co = (kno_compound) obj;
   return kno_getkeys(co->compound_0);

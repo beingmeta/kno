@@ -50,7 +50,7 @@ int kno_init_bigpool_c(void);
 int kno_init_kpool_c(void);
 
 int kno_init_knosocks_c(void);
-int kno_init_zpathstore_c(void);
+int kno_init_zipsource_c(void);
 
 int dbs_initialized = 0;
 
@@ -72,7 +72,7 @@ KNO_EXPORT int kno_init_drivers()
   kno_init_netindex_c();
   kno_init_logindex_c();
 
-  kno_init_zpathstore_c();
+  kno_init_zipsource_c();
 
   /* Deprecated */
   kno_init_bigpool_c();

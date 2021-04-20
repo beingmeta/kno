@@ -1988,22 +1988,6 @@ static void close_u8stdio()
   u8_close_output((u8_output)&u8stderr);
 }
 
-/* Pathstores */
-
-KNO_EXPORT lispval kno_open_zpathstore(u8_string path,lispval opts);
-
-DEFC_PRIM("zpathstore",zpathstore_prim,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"fname",kno_string_type,KNO_VOID},
-	  {"opts",kno_any_type,KNO_VOID})
-static lispval zpathstore_prim(lispval fname,lispval opts)
-{
-  return kno_open_zpathstore(KNO_CSTRING(fname),opts);
-}
-
-/* The init function */
-
 static int scheme_fileio_initialized = 0;
 
 static lispval fileio_module;
@@ -2135,8 +2119,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("extend-output-file",extend_output_file,3,fileio_module);
 
   KNO_LINK_CPRIM("open-output-file",open_output_file,3,fileio_module);
-
-  KNO_LINK_CPRIM("zpathstore",zpathstore_prim,2,fileio_module);
 
   KNO_LINK_ALIAS("setbuf",setbuf_prim,fileio_module);
   KNO_LINK_ALIAS("remove-file",remove_file_prim,fileio_module);

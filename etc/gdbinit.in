@@ -286,6 +286,9 @@ set $dbgpause = $bpnum
 break u8_debug_wait:waiting
 set $dbgwait = $bpnum
 break u8_raise
+set $dbgu8raise = $bpnum
+break kno_raise
+set $dbgraise = $bpnum
 break __msan_warning
 break __msan_warning_noreturn
 break __asan_report_error
@@ -296,6 +299,8 @@ enable $dbgeval
 enable $dbgexpr
 enable $dbgharderr
 enable $dbgsofterr
+enable $dbgraise
+enable $dbu8graise
 end
 
 define skipsoft

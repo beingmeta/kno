@@ -36,6 +36,10 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
 #endif
 
 #include "headers/miniz.h"
+
+#include <libu8/libu8.h>
+#include <libu8/u8threading.h>
+
 #include "headers/zip.h"
 
 /* From miniz.h */
@@ -182,6 +186,10 @@ struct zip_t *zip_open(const char *zipname, int level, char mode) {
     goto cleanup;
   }
 
+  zip->pathname = u8_strdup(zipname);
+
+  u8_init_mutex(&(zip->lock));
+
   return zip;
 
 cleanup:
@@ -197,6 +205,9 @@ void zip_close(struct zip_t *zip) {
 
     mz_zip_writer_end(&(zip->archive));
     mz_zip_reader_end(&(zip->archive));
+
+    u8_free(zip->pathname);
+    u8_destroy_mutex(&(zip->lock));
 
     CLEANUP(zip);
   }

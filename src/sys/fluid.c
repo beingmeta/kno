@@ -128,7 +128,6 @@ KNO_EXPORT void kno_reset_threadvars()
     kno_decref(init_table);}
 }
 
-
 KNO_EXPORT lispval kno_thread_get(lispval var)
 {
   return kno_get(get_threadtable(),var,VOID);

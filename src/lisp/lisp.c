@@ -256,13 +256,19 @@ lispval (*_kno_mkerr)
 (u8_condition c,u8_context caller,
  u8_string details,lispval irritant,
  u8_exception *push) = kno_simple_error;
+void (*_kno_raise)
+(u8_condition c,u8_context caller,
+ u8_string details,lispval irritant) = NULL;
 
 KNO_EXPORT void kno_raise
 (u8_condition c,u8_context cxt,u8_string details,lispval irritant)
 {
-  u8_exception ex = NULL;
-  _kno_mkerr(c,cxt,details,irritant,&ex);
-  u8_raise_exception(ex);
+  if (_kno_raise)
+    _kno_raise(c,cxt,details,irritant);
+  else {
+    u8_exception ex = NULL;
+    _kno_mkerr(c,cxt,details,irritant,&ex);
+    u8_raise_exception(ex);}
 }
 
 KNO_EXPORT void kno_missing_error(u8_string details)
@@ -402,12 +408,11 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_sqldb_type,_("sqldb"),_("sqldb")},
    { kno_sqlproc_type,_("sqlproc"),_("sqlproc")},
    
-   { kno_pathstore_type,_("pathstore"),_("pathstore")},
     { kno_consed_pool_type,_("raw pool"),
       _("a pointer to an unregistered ('ephemeral') pool")},
-
     { kno_consed_index_type,_("raw index"),
       _("a pointer to an unregistered ('ephemeral') index")},
+
    { kno_subproc_type,_("subprocess"),_("a sub-process (subproc) object")},
 
    { kno_empty_type,_("empty"),_("the empty/fail value")},

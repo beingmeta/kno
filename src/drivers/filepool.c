@@ -499,7 +499,7 @@ static int file_pool_storen(kno_pool p,int n,lispval *oids,lispval *values)
   kno_unlock_stream(stream);
   kno_unlock_pool_struct(p);
   u8_logf(LOG_NOTICE,"FilePoolStore",
-          _("Stored %d oid values in oidpool %s in %f seconds"),
+          _("Stored %_d oid values in oidpool %s in %f seconds"),
           n,p->poolid,u8_elapsed_time()-started);
   return retcode;
 }

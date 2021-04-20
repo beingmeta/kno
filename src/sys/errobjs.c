@@ -519,7 +519,7 @@ KNO_EXPORT void kno_compact_backtrace(u8_output out,lispval stack,int limit)
         count++; i++;
         if ( (i < head_limit) && ((count%4) == 0) )
           u8_puts(out,"\n  ");}
-      u8_printf(out,"\n... %d/%d calls ...\n",len-limit*2,len);
+      u8_printf(out,"\n... %_d/%_d calls ...\n",len-limit*2,len);
       i = len-(limit/2);
       while (i < len) {
         lispval stack_entry = KNO_VECTOR_REF(stack,i);

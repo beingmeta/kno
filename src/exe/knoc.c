@@ -775,13 +775,15 @@ int main(int argc,char **argv)
   kno_init_webtools();
 #endif
 
-  kno_set_config("HISTREFS",KNO_TRUE);
+  /*  kno_set_config("HISTREFS",KNO_TRUE); */
 
   lispval expr = VOID, result = VOID, lastval = VOID;
   u8_encoding enc = u8_get_default_encoding();
   u8_input in = (u8_input)u8_open_xinput(0,enc);
   u8_output out = (u8_output)u8_open_xoutput(1,enc);
   u8_output err = (u8_output)u8_open_xoutput(2,enc);
+  if (out) out->u8_streaminfo |= U8_HUMAN_OUTPUT;
+  if (err) err->u8_streaminfo |= U8_HUMAN_OUTPUT;
 
   /* This is the environment the console will start in */
   lispval init_reqinfo = kno_make_slotmap(7,0,NULL);
@@ -938,6 +940,7 @@ int main(int argc,char **argv)
     u8_free(home_configs);}
   else u8_message("Warning: .knoconfig/.knoc files are suppressed");
 
+  /* Load some standard console modules */
   kno_set_config("APPMODS",kno_intern("kno/sessions"));
   kno_set_config("APPMODS",kno_intern("kno/debug"));
 
@@ -1030,7 +1033,7 @@ int main(int argc,char **argv)
      kno_boolconfig_get,kno_boolconfig_set,&use_void_marker);
 
   /* This is the REPL value history, not the editline history */
-  kno_hist_init(0);
+  lispval history = kno_hist_init(0);
 
   kno_set_config("SIGRAISE",KNO_INT(SIGINT));
 
@@ -1048,6 +1051,7 @@ int main(int argc,char **argv)
     start_icache = kno_index_cache_load();
     u8_flush(out);
     expr = console_read(in,env);
+    expr = kno_eval_histrefs(expr,history);
     if (KNO_COMPOUND_TYPEP(expr,command_tag)) {
       /* Handle commands */
       lispval head = KNO_COMPOUND_REF(expr,0);
@@ -1110,19 +1114,19 @@ int main(int argc,char **argv)
         (KNO_OIDP(expr)) || (KNO_CHOICEP(expr)) ||
         (KNO_VECTORP(expr)) || (KNO_COMPOUNDP(expr)) ||
         (KNO_SLOTMAPP(expr)) || (KNO_SCHEMAPP(expr))) {
-      int ref = kno_histpush(result);
+      int ref = kno_history_push(history,result);
       if (ref>=0) {
         histref = ref;
         u8_sprintf(histref_buf,100,"#%d",ref);
         histref_string = histref_buf;}}
     else if ((SYMBOLP(expr)) && (KNO_CONSP(result))) {
-      int ref = kno_histpush(result);
+      int ref = kno_history_push(history,result);
       if (ref>=0) {
         histref = ref;
         u8_sprintf(histref_buf,100,"#%d",ref);
         histref_string = histref_buf;}}
     else if ( (KNO_EQUALP(expr,result)) && (KNO_CONSP(expr)) ) {
-      int ref = kno_histpush(result);
+      int ref = kno_history_push(history,result);
       if (ref>=0) {
         histref = ref;
         u8_sprintf(histref_buf,100,"#%d",ref);
@@ -1156,7 +1160,7 @@ int main(int argc,char **argv)
 	  if (!(KNO_VOIDP(exo))) {
 	    if (save_backtrace)
 	      u8_fprintf(stderr,";; The exception was saved in #%d\n",
-			 kno_histpush(exo));
+			 kno_history_push(history,exo));
 	    kno_assign_value(_err_symbol,exo,env);
 	    kno_req_store(_err_symbol,exo);
 	    if (console_bugdir) {

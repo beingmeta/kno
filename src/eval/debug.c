@@ -595,6 +595,9 @@ static lispval watched_try_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* Debugging assistance */
 
+#pragma GCC push_options
+#pragma GCC optimize ("O0")
+
 KNO_EXPORT lispval _kno_dbg(lispval x)
 {
   lispval result=_kno_debug(x);
@@ -637,6 +640,8 @@ static lispval dbg_evalfn(lispval dbg_expr,kno_lexenv env,kno_stack stack)
  examine_result:
   return arg;
 }
+
+#pragma GCC pop_options
 
 KNO_EXPORT lispval kno_debug_wait(lispval obj,lispval msg,int global)
 {

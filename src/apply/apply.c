@@ -623,7 +623,7 @@ KNO_EXPORT void kno_defn(lispval table,lispval fcn)
 {
   struct KNO_FUNCTION *f = kno_consptr(struct KNO_FUNCTION *,fcn,kno_cprim_type);
   if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
-    u8_raise(DefnFailed,"kno_defn",NULL);
+    kno_raisex(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
     lispval moduleid = kno_get(table,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}
@@ -633,7 +633,7 @@ KNO_EXPORT void kno_idefn(lispval table,lispval fcn)
 {
   struct KNO_FUNCTION *f = kno_consptr(struct KNO_FUNCTION *,fcn,kno_cprim_type);
   if (kno_store(table,kno_getsym(f->fcn_name),fcn)<0)
-    u8_raise(DefnFailed,"kno_defn",NULL);
+    kno_raisex(DefnFailed,"kno_defn",NULL);
   if ( (KNO_NULLP(f->fcn_moduleid)) || (KNO_VOIDP(f->fcn_moduleid)) ) {
     lispval moduleid = kno_get(table,KNOSYM_MODULEID,KNO_VOID);
     if (!(KNO_VOIDP(moduleid))) f->fcn_moduleid=moduleid;}

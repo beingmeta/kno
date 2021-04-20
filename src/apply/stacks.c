@@ -95,7 +95,7 @@ KNO_EXPORT void _kno_stack_push_error(kno_stack stack,u8_context loc)
     ("OddStackError(push)");
   u8_log(LOGCRIT,cond,
 	 "Push stack %p; caller %p; stackptr %p @ %s",stack,caller,cur,loc);
-  u8_raise(cond,loc,NULL);
+  kno_raisex(cond,loc,NULL);
 }
 
 KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc)
@@ -111,7 +111,7 @@ KNO_EXPORT void _kno_stack_pop_error(kno_stack stack,u8_context loc)
     ("OddStackError(pop)");
   u8_log(LOGCRIT,cond,
 	 "Pop stack %p; caller %p; stackptr %p @ %s",stack,caller,cur,loc);
-  u8_raise(cond,loc,NULL);
+  kno_raisex(cond,loc,NULL);
 }
 
 KNO_EXPORT void kno_stackvec_grow(struct KNO_STACKVEC *sv,int len)
@@ -214,7 +214,7 @@ static void fix_void_bindings(lispval bindings);
 
 static lispval annotate_source(lispval context,lispval point);
 
-static lispval stack2lisp(struct KNO_STACK *stack,struct KNO_STACK *inner)
+KNO_EXPORT lispval kno_stack2lisp(struct KNO_STACK *stack)
 {
   lispval depth	  = KNO_INT(stack->stack_depth);
   lispval origin = (stack->stack_origin) ?
@@ -280,7 +280,7 @@ lispval kno_get_backtrace(struct KNO_STACK *stack)
   lispval result = kno_make_vector(n,NULL);
   struct KNO_STACK *prev = NULL;
   while (stack) {
-    lispval entry = stack2lisp(stack,prev);
+    lispval entry = kno_stack2lisp(stack);
     if (i < n) {
       KNO_VECTOR_SET(result,i,entry);}
     else u8_log(LOG_CRIT,"BacktraceOverflow",
@@ -738,7 +738,75 @@ KNO_EXPORT void kno_throw_contour(u8_contour c,u8_context cxt)
   else u8_raise("NoContour",cxt,NULL);
 }
 
+KNO_EXPORT void kno_raise_exception
+(u8_condition cond,u8_context cxt,u8_string details,
+ lispval irritant)
+{
+  u8_contour contour = u8_dynamic_contour;
+  if (cond == NULL) cond = "Unknown (NULL) condition";
+  if (u8_raise_debug) {
+    struct U8_EXCEPTION ex = { 0 };
+    ex.u8x_cond = cond;
+    ex.u8x_context = cxt;
+    ex.u8x_details = details;
+    u8_debug_wait(&ex,1);}
+  if (contour) {
+    struct KNO_STACK *scan = kno_stackptr;
+    lispval ex = _kno_mkerr(cond,cxt,details,irritant,NULL);
+    if (scan) {
+      /* Pop all of the stack frames below contour */
+      void *stack_loc = (void *) scan;
+      void *contour_loc = (void *) contour;
+      while ( (scan) &&
+	      ( (u8_stack_direction>0) ?
+		(stack_loc > contour_loc) :
+		(stack_loc < contour_loc) ) ) {
+	kno_stack next =scan->stack_caller;
+	kno_pop_stack(scan);
+	scan = kno_stackptr;
+	if (next != scan)
+	  u8_log(LOGPANIC,"CorruptedStack",
+		 "Stack pointer is %p != %p after pop",
+		 next,scan);
+	stack_loc = (void *) scan;}}
+    kno_throw_contour(contour,contour->u8c_label);}
+  else {
+    u8_exception ex = NULL;
+    _kno_mkerr(cond,cxt,details,irritant,&ex);
+    u8_raise_exception(ex);}
+}
 
+KNO_EXPORT void kno_signal_exception(u8_condition cond,u8_context cxt)
+{
+  u8_contour contour = u8_dynamic_contour;
+  if (cond == NULL) cond = "Unknown (NULL) condition";
+  if (u8_raise_debug) {
+    struct U8_EXCEPTION ex = { 0 };
+    ex.u8x_cond = cond;
+    ex.u8x_context = cxt;
+    ex.u8x_details = NULL;
+    u8_debug_wait(&ex,1);}
+  if (contour) {
+    struct KNO_STACK *scan = kno_stackptr;
+    if (scan) {
+      /* Pop all of the stack frames below contour */
+      void *stack_loc = (void *) scan;
+      void *contour_loc = (void *) contour;
+      while ( (scan) &&
+	      ( (u8_stack_direction>0) ?
+		(stack_loc > contour_loc) :
+		(stack_loc < contour_loc) ) ) {
+	kno_stack next =scan->stack_caller;
+	kno_pop_stack(scan);
+	scan = kno_stackptr;
+	if (next != scan)
+	  u8_log(LOGPANIC,"CorruptedStack",
+		 "Stack pointer is %p != %p after pop",
+		 next,scan);
+	stack_loc = (void *) scan;}}
+    u8_raise(cond,cxt,NULL);}
+  else u8_raise(cond,cxt,NULL);
+}
 
 void kno_init_stacks_c()
 {
@@ -750,6 +818,8 @@ void kno_init_stacks_c()
 #else
   kno_stackptr=NULL;
 #endif
+
+  _kno_raise=kno_raise_exception;
 
   stack_entry_symbol = kno_intern("%%stack");
 

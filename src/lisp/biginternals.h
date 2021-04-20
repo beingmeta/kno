@@ -53,7 +53,7 @@ typedef int bigint_length_type;
 #define fast register
 extern void abort ();
 
-#define BIGINT_EXCEPTION() u8_raise(kno_BigIntException,NULL,NULL)
+#define BIGINT_EXCEPTION() kno_raisex(kno_BigIntException,NULL,NULL)
 
 
 #define BIGINT_DIGIT_LENGTH (((sizeof (bigint_digit_type)) * CHAR_BIT) - 2)

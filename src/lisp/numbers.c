@@ -82,8 +82,6 @@ lispval kno_max_fixnum = KNO_INT(KNO_MAX_FIXNUM);
 lispval kno_min_fixnum = KNO_INT(KNO_MIN_FIXNUM);
 #endif
 
-int kno_integer_sepchar = -1;
-
 #pragma clang diagnostic pop
 
 /* These macros come from the original MIT Scheme code */
@@ -2035,7 +2033,7 @@ static kno_bigint tobigint(lispval x)
   else if (KNO_FLONUMP(x))
     return kno_double_to_bigint(KNO_FLONUM(x));
   else {
-    u8_raise(_("Internal error"),"tobigint","numeric");
+    kno_raisex(_("Internal error"),"tobigint","numeric");
     return NULL;}
 }
 static lispval simplify_bigint(kno_bigint bi)

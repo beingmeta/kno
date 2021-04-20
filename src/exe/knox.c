@@ -441,6 +441,7 @@ int do_main(int argc,char **argv,
       // lispval handler = kno_symeval(kno_intern("onerror");
       // if (KNO_APPLICABLEP(handler)) {} else NO_ELSE;
       U8_OUTPUT out; U8_INIT_OUTPUT(&out,10000);
+      out.u8_streaminfo |= U8_HUMAN_OUTPUT;
       kno_unparse_maxchars = debug_maxchars;
       kno_unparse_maxelts = debug_maxelts;
       kno_output_errstack(&out,e);
