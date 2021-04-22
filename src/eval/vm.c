@@ -919,7 +919,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
   lispval args[n], result = KNO_VOID;
   stack->stack_op = fn;
   int rv = eval_args(n,args,exprs,env,stack,prune_call);
-  int free_args = (rv&KNO_CONSED_ARGS);
+  int free_args = ((rv<0)?(0):(rv&KNO_CONSED_ARGS));
   if (RARELY(rv<0)) {
     if (rv == -2)
       result = kno_err(kno_TooManyArgs,"call_op",NULL,fn);

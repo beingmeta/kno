@@ -3700,7 +3700,8 @@ static lispval numeric_atom(u8_string start,int base)
 }
 
 #define STR_EXTRACT(into,start,end) \
-  u8_byte into[(end-start)+1]; \
+  ssize_t into ## _strlen = (end==NULL) ? (strlen(start)) : (end-start); \
+  u8_byte into[into ## _strlen +1]; \
   strncpy(into,start,end-start); \
   into[end-start]='\0'
 

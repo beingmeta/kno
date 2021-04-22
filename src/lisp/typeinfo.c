@@ -220,27 +220,6 @@ int kno_set_restorefn(lispval tag,kno_type_restorefn fn)
   else return 0;
 }
 
-KNO_EXPORT
-int kno_set_type_schema(lispval tag,lispval schema)
-{
-  struct KNO_TYPEINFO *info = kno_use_typeinfo(tag);
-  if (info) {
-    lispval prev = info->type_schema;
-    if (prev == schema) return 0;
-    if (!(KNO_VECTORP(schema))) {
-      kno_seterr("InvalidSchema","kno_set_type_schema",
-		 (KNO_SYMBOLP(tag))?(KNO_SYMBOL_NAME(tag)):
-		 (KNO_STRINGP(tag))?(KNO_CSTRING(tag)):
-		 (U8S("obj")),
-		 schema);
-      return -1;}
-    kno_incref(schema);
-    if (prev) kno_decref(prev);
-    info->type_schema = schema;
-    return 1;}
-  else return 0;
-}
-
 /* Typeinfo table functions */
 
 static lispval typeinfo_get(lispval info,lispval key,lispval dflt)

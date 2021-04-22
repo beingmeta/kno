@@ -11,7 +11,8 @@
 (define %loglevel %notice%)
 (set! %loglevel %debug%)
 
-(module-export! '{filestream/open filestream/read filestream/state 
+(module-export! '{filestream/open filestream/read filestream/read/n
+		  filestream/state 
 		  filestream/save! filestream/log!
 		  filestream/done?})
 
@@ -82,19 +83,25 @@
       stream)))
 
 (define (filestream/read stream (extra #f))
-  (with-lock (filestream-lock stream)
-    (let* ((port (filestream-port stream))
-	   (item ((filestream-readfn stream) port))
-	   (count (filestream-itemcount stream)))
-      (set-filestream-itemcount! stream (1+ count))
-      (set-filestream-filepos! stream (getpos port))
-      (if extra (cons count item) item))))
-
-(define (filestream/read stream (extra #f))
   (let ((port (filestream-port stream))
 	(readfn (filestream-readfn stream)))
     (with-lock (filestream-lock stream)
       (prog1 (readfn port)
+	(set-filestream-itemcount! stream (1+ (filestream-itemcount stream)))
+	(set-filestream-filepos! stream (getpos port))))))
+
+(define (filestream/read/n stream n (extra #f))
+  (let ((port (filestream-port stream))
+	(readfn (filestream-readfn stream)))
+    (with-lock (filestream-lock stream)
+      (prog1 (let ((vec (make-vector n))
+		   (count 0))
+	       (dotimes (i n)
+		 (let ((item (readfn port)))
+		   (when item 
+		     (vector-set! vec i item)
+		     (set! count (1+ count)))))
+	       (if (= count n) vec (slice vec 0 count)))
 	(set-filestream-itemcount! stream (1+ (filestream-itemcount stream)))
 	(set-filestream-filepos! stream (getpos port))))))
 

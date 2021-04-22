@@ -208,7 +208,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
   if (KNO_CONSP(stack->eval_source))
     u8_fprintf(stderr,"\tsource: %Q\n",stack->eval_source);
   if (KNO_APPLICABLEP(stack->stack_op)) {
-    u8_fprintf(stderr,"Applying %q to %d args",
+    u8_fprintf(stderr,"Applying %q to %d args\n",
 	       stack->stack_op,
 	       stack->stack_argc);
     if (stack->stack_argc) {
@@ -217,8 +217,8 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
       int i=0, n = stack->stack_argc;
       while (i<n) {
 	lispval arg = args[i];
-	u8_string line=u8_bprintf(buf,"#%d %p\t%q",i,arg,arg);
-	fputs(line,stderr); fputc('\n',stderr);
+	u8_string line=u8_bprintf(buf,"#%d %p\t%q\n",i,arg,arg);
+	fputs(line,stderr);
 	i++;}}
     fputc('\n',stderr);}
   else if (CONSP(stack->stack_op)) {
@@ -236,8 +236,7 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	  lispval key = schema[i];
 	  lispval val = values[i];
 	  u8_byte buf[256];
-	  fputs(u8_bprintf(buf,"  %q\t%p\t%q",key,val,val),stderr);
-	  fputc('\n',stderr);
+	  fputs(u8_bprintf(buf,"  %q\t%p\t%q\n",key,val,val),stderr);
 	  i++;}}}}
   else NO_ELSE;
 }

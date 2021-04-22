@@ -669,19 +669,17 @@ KNO_EXPORT void knodbg_show_stack_frame
   if (KNO_CONSP(stack->eval_source))
     u8_printf(out,"(%d) source: %Q\n",depth,stack->eval_source);
   if (KNO_APPLICABLEP(stack->stack_op)) {
-    u8_printf(out,"(%d) Applying %q to %d args",
+    u8_printf(out,"(%d) Applying %q to %d args\n",
 	      depth,stack->stack_op,stack->stack_argc);
     if (stack->stack_argc) {
       u8_byte buf[200];
       kno_argvec args = stack->stack_args;
       int i=0, n = stack->stack_argc;
-      u8_putc(out,'\n');
       while (i<n) {
 	lispval arg = args[i];
 	u8_string line=u8_bprintf(buf,"(%d) #%d %p\t%q",depth,i,arg,arg);
 	u8_puts(out,line); u8_putc(out,'\n');
-	i++;}}
-    else u8_putc(out,'\n');}
+	i++;}}}
   else if (CONSP(stack->stack_op)) {
     u8_printf(out,"(%d) Evaluating in %p %Q\n",
 	      depth,stack->eval_env,stack->stack_op);}

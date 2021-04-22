@@ -553,7 +553,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
       (when (and (exists? logfns) logfns)
 	(do-choices (logfn (difference logfns #t))
 	  (unless (and (applicable? logfn) 
-		       (overlaps? (procedure-arity logfn) {1 3 7}))
+		       (overlaps? (procedure-arity logfn) {0 1 3 7}))
 	    (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
       (cond ((and (<= init-items 0) (not fill)))
@@ -674,8 +674,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	     (logwarn |Engine/BadLogFn| 
 	       "Couldn't apply the log function " logfn)
 	     (drop! loop-state 'logfns logfn))
-	    ((= (procedure-arity logfn) 1)
-	     (logfn loop-state))
+	    ((= (procedure-arity logfn) 0) (logfn))
+	    ((= (procedure-arity logfn) 1) (logfn loop-state))
 	    ((= (procedure-arity logfn) 3)
 	     (logfn batch-state loop-state state))
 	    ((= (procedure-arity logfn) 7)
@@ -1003,7 +1003,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		      (lognotice |Engine/Checkpoint| 
 			"Waited " (secs->string (elapsed-time wait-start))
 			" for FIFO to pause")))))
-	      (when (getopt opts 'logchecks #f)
+	      (when (testopt opts 'logchecks 'before)
 		(engine-logger (qc) #f 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
 
@@ -1019,6 +1019,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      (when state (update-task-state loop-state))
 	      (when (and state (testopt opts 'statefile))
 		(dtype->file (get loop-state 'state) (getopt opts 'statefile)))
+
 	      (when (getopt opts 'logchecks #f)
 		(engine-logger (qc) #f 0 (elapsed-time (get loop-state 'started)) 
 			       #[] loop-state (get loop-state 'state)))
@@ -1065,13 +1066,14 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	      ((= (procedure-arity precheck) 0) (precheck))
 	      (else (precheck loop-state (qc dbs))))))
 
-
     (knodb/commit dbs (cons [loglevel %loglevel] opts))
+
     (lognotice |Engine/Checkpoint|
       "Committed " (choice-size modified) " dbs "
       (if (fifo-name fifo)
 	  (printout "for " (fifo-name fifo)))
       " in " (secs->string (elapsed-time started)))
+
     (when (testopt opts 'postcheck)
       (do-choices (postcheck (getopt opts 'postcheck {}))
 	(let ((started (elapsed-time)))

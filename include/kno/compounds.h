@@ -85,5 +85,7 @@ KNO_EXPORT lispval kno_compound_ref(lispval arg,lispval tag,int off,lispval dflt
 
 #define KNO_BIG_COMPOUND_LENGTH 1024
 
+KNO_EXPORT int kno_compound_set_schema(lispval tag,lispval schema);
+
 #endif
 

@@ -504,10 +504,12 @@ static void pool_conflict(kno_pool upstart,kno_pool holder)
     if (!(upstart_id)) upstart_id = upstart->poolid;
     if (!(holder_id)) holder_id = holder->poolid;
     u8_logf(LOG_WARN,kno_PoolConflict,
-	    "%s (from %s) and existing pool %s (from %s)\n",
-	    upstart->pool_label,upstart_id,holder->pool_label,holder_id);
-    u8_seterr(_("Pool confict"),"kno_register_pool",
-	      u8_mkstring("%s w/ %s",upstart_id,holder_id));}
+	    "%s (from %s) and existing pool %s (from %s), "
+	    "declaring %s adjunct\n",
+	    upstart->pool_label,upstart_id,
+	    holder->pool_label,holder_id,
+	    upstart->pool_label);
+    upstart->pool_flags |= KNO_POOL_ADJUNCT;}
 }
 
 

@@ -1,0 +1,61 @@
+;;; -*- Mode: Scheme; -*-
+
+(in-module 'kno/state)
+
+(use-module '{logger varconfig binio})
+
+(define %loglevel %notice%)
+
+(module-export! '{state/read state/write!})
+
+(define default-format #f)
+(varconfig! kno/state:format default-format)
+
+(define (isthunk? x) 
+  (and (applicable? x) (= (procedure-arity x) 0)))
+
+(define (state/read file (opts #f) (format) (generator))
+  (when (isthunk? opts)
+    (set! generator opts)
+    (set! opts #f))
+  (when (overlaps? opts '{xtype dtype lisp})
+    (set! format opts)
+    (set! opts #f))
+  (default! format (getopt opts 'format (guess-format file)))
+  (default! generator (getopt opts 'generator #f))
+  (cond ((and (not (file-exists? file)) generator (isthunk? generator))
+	 (generator))
+	((not (file-exists? file)) (getopt opts 'default #[]))
+	((not (file-exists? file)) #[])
+	((eq? format 'lisp) (read (open-input-file file)))
+	((eq? format 'xtype) (read-xtype file))
+	((eq? format 'dtype) (file->dtype file))
+	(else (irritant file |UnspecifiedFormat|))))
+
+(define (guess-format file)
+  (cond ((has-suffix file {".scm" ".lsp" ".lsd" ".txt"}) 'lisp)
+	((has-suffix file ".xtype") 'xtype)
+	((has-suffix file ".dtype") 'dtype)
+	((file-exists? file)
+	 (let* ((in (open-byte-input file))
+		(c1 (read-byte in))
+		(c2 (read-byte in))
+		(c3 (read-byte in)))
+	   (cond ((= c1 0xa2) 'xtype)
+		 ((or (= c1 0x5b) (and  (= c1 0x23) (= c2 0x5b))) 'lisp)
+		 ((and (= c1 0x42)
+		       (or (= c2 0xc1) (= c2 0x81)
+			   (= c2 0xc5) (= c2 0x85)))
+		  'dtype)
+		 (else (irritant file |UnrecognizedFormat|)))))
+	((overlaps? default-format '{lisp xtype dtype}) default-format)
+	(default-format (irritant default-format |InvalidDefaultFormat|))
+	(else #f)))
+
+(define (state/write! state file (opts #f) (format))
+  (default! format (getopt opts 'format (guess-format file)))
+  (cond ((eq? format 'lisp) (listdata state #f (open-output-file file)))
+	((eq? format 'xtype) (write-xtype state file))
+	((eq? format 'dtype) (dtype->file state file))
+	(else (listdata state #f (open-output-file file)))))
+
