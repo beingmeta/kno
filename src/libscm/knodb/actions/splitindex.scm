@@ -66,14 +66,14 @@
 		    "Specify RESTART=yes to remove.")
 		  (exit))))
     (let* ((head (index/ref head-file (frame-create #f
-					'maxload (config 'HEADLOAD (config 'MAXLOAD 0.5))
+					'maxload (config 'HEADLOAD (config 'MAXLOAD 0.8))
 					'keyslot (tryif keyslot keyslot)
 					'addkeys input-keycount
 					'create #t)))
 	   (tail (and tail-file
 		      (index/ref tail-file (frame-create #f
-					     'maxload (config 'TAILLOAD (CONFIG 'MAXLOAD 0.6))
-					     'maxsize (config 'TAILMAXSIZE (CONFIG 'MAXSIZE #2gib))
+					     'maxload (config 'TAILLOAD (CONFIG 'MAXLOAD 0.8))
+					     ;; 'maxsize (config 'TAILMAXSIZE (CONFIG 'MAXSIZE #2gib))
 					     'keyslot (tryif keyslot keyslot)
 					     'addkeys input-keycount
 					     'create #t))))
