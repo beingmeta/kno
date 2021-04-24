@@ -5,7 +5,7 @@
 (in-module 'knodb/flexindex)
 
 (use-module '{binio texttools})
-(use-module '{ezrecords text/stringfmts logger varconfig})
+(use-module '{ezrecords text/stringfmts kno/statefiles logger varconfig})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 
@@ -39,7 +39,7 @@
 	(irritant spec |InvalidFile|)
 	(set! spec (glom spec ".flexindex"))))
   (cond ((file-regular? spec)
-	 (let* ((flex-opts (read-xtype spec)))
+	 (let* ((flex-opts (statefile/read spec)))
 	   (cond ((not (testopt opts 'keyslot)))
 		 ((identical? (getopt opts 'keyslot {}) (get flex-opts 'keyslot)))
 		 ((and (fail? (get flex-opts 'keyslot)) (ambiguous? (getopt opts 'keyslot {})))
@@ -71,7 +71,7 @@
 			 'keyslot (getopt opts 'keyslot {})
 			 'partsize (get opts 'partsize)
 			 'metadata metadata)))
-	   (write-xtype state spec)
+	   (statefile/save! state spec [useformat 'xtype])
 	   (if opts (cons opts state) state)))
 	(else (irritant spec |NoSuchIndex|))))
 

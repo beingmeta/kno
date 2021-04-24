@@ -5,7 +5,7 @@
 (in-module 'engine)
 
 (use-module '{fifo varconfig kno/threads text/stringfmts binio reflection 
-	      bugjar bugjar/html logger})
+	      bugjar bugjar/html logger kno/statefiles})
 (use-module '{knodb knodb/registry knodb/branches})
 
 (define %loglevel %notice%)
@@ -139,7 +139,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 (defambda (engine/getopt loop-state optname (default #f))
   (getopt loop-state optname
-	  (getopt (getopt loop-state 'state) optname
+	  (getopt (getopt loop-state 'taskstate) optname
 		  (getopt loop-state 'opts) optname
 		  default)))
 
@@ -459,13 +459,14 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	   (before (getopt opts 'before #f))
 	   (after (getopt opts 'after #f))
 	   (stop (getopt opts 'stopfn (getopt opts 'stopfns #f)))
-	   (state (getopt opts 'state (init-state opts)))
+	   (state (getopt opts 'taskstate (init-state opts)))
 	   (logfns (getopt opts 'logfns {}))
 	   (counters {(getopt state 'counters {}) (getopt opts 'counters {})})
 	   (count-term (getopt opts 'count-term "items"))
 	   (loop-state (frame-create #f
 			 'name name
 			 'fifo fifo
+			 'fill (tryif fill fill)
 			 'counters counters
 			 'started (getopt opts 'started (elapsed-time))
 			 'total (getopt opts 'total 0)
@@ -485,11 +486,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			 'checksync (getopt opts 'checksync {})
 			 'monitors (getopt opts 'monitors {})
 			 'onerror (getopt opts 'onerror 'stopall)
+			 'loopdump (getopt opts 'loopdump {})
 			 'logfns logfns
 			 'logcounters (getopt opts 'logcounters {})
 			 'logrates (getopt opts 'logrates {})
 			 'init (deep-copy state)
-			 'state (deep-copy state)
+			 'taskstate (deep-copy state)
 			 'count-term count-term
 			 'queued init-items
 			 'opts opts
@@ -629,13 +631,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (/~ (ceiling (/~ maxitems nthreads))))
 	(else #f)))
 
-
-
 (define (init-state opts)
   (let* ((state (or (and (getopt opts 'statefile)
-			 (if (file-exists? (getopt opts 'statefile))
-			     (file->dtype (getopt opts 'statefile))
-			     #[]))
+			 (statefile/read (getopt opts 'statefile) 
+					 (opt+ 'init #[] opts)))
 		    #[])))
     (do-choices (counter {(getopt opts 'counters) (get state 'counters)
 			  'items 'batches 'cycles})
@@ -644,8 +643,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (unless (test state 'started) (store! state 'started (timestamp)))
     (when (getopt opts 'statefile)
       (store! state 'statefile (getopt opts 'statefile))
-      (store! state 'updated (timestamp))
-      (dtype->file state (getopt opts 'statefile)))
+      (statefile/save! state))
     state))
 
 ;;;; Logging
@@ -665,7 +663,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	  (else #f))))
 
 (define (engine-logger batch batchsize proc-time time batch-state loop-state state)
-  (let ((logfns (get loop-state 'logfns)))
+  (let ((logfns (get loop-state 'logfns))
+	(loopdump (try (get loop-state 'loopdump) #f)))
+    (when loopdump
+      (listdata loop-state #f (open-output-file loopdump)))
     (when (or (fail? logfns) (overlaps? #t logfns))
       (engine/log (qc batch) batchsize proc-time time
 		  batch-state loop-state state))
@@ -743,7 +744,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		    (printout " (" ($showrate rate) " " count-term "/sec)"))))))))
     (when (and (test loop-state 'fill)  (test loop-state 'filltime))
       (let ((filltime (get loop-state 'filltime))
-	    (clocktime (elapsed-time (get loop-state 'start)))
+	    (clocktime (elapsed-time (get loop-state 'started)))
 	    (queued (get loop-state 'queued))
 	    (count-term (try (get loop-state 'count-term) "item")))
 	(lognotice |Engine/Fill|
@@ -849,11 +850,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    (store! loop-state 'stopping (timestamp))
 	    (store! loop-state 'stopval (cons 'maxitems (get loop-state 'maxitems)))))
 	(let* ((fillsize (get-fill-size loop-state opts fifo))
+	       (fillstep (getopt opts 'fillstep fillsize))
 	       (need fillsize))
 	  (while (and (> need 0) (not (test loop-state '{stopped stopping})))
 	    (let ((items (if (= (procedure-arity fillfn) 2)
-			     (fillfn (if fillsize (min fillsize need)) loop-state)
-			     (fillfn (if fillsize (min fillsize need)))))
+			     (fillfn (if fillstep (min fillstep need) need) loop-state)
+			     (fillfn (if fillstep (min fillstep need) need))))
 		  (count 1))
 	      (debug%watch "engine/fill!" fifo need "got" (|| items))
 	      (when (fail? items)
@@ -906,7 +908,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	  #t))))
 
 (define (get-fill-size loop-state opts fifo)
-  (smallest {(- (fifo-size fifo) (fifo/load fifo))
+  (smallest {(- (fifo-size fifo) (fifo/load fifo) (* 2 (getopt opts 'fillstep 1)))
 	     (getopt opts 'fillsize {})
 	     (tryif (test loop-state 'maxitems)
 	       (max (- (get loop-state 'maxitems) (try (get loop-state 'queued) 0)) 0))}))
@@ -965,7 +967,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   copy)
 
 (define (update-task-state loop-state)
-  (let ((state (get loop-state 'state))
+  (let ((state (get loop-state 'taskstate))
 	(init (get loop-state 'init))
 	(opts (get loop-state 'opts)))
     (do-choices (counter {(getopt opts 'counters) (get state 'counters)
@@ -979,7 +981,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 (define (engine/checkpoint loop-state (fifo) (force #f))
   (default! fifo (get loop-state 'fifo))
   (let ((%loglevel (getopt loop-state 'loglevel %loglevel))
-	(state (and (test loop-state 'state) (get loop-state 'state)))
+	(state (and (test loop-state 'taskstate) (get loop-state 'taskstate)))
 	(opts (get loop-state 'opts))
 	(started (elapsed-time))
 	(runtime #f)
@@ -1005,24 +1007,23 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 			" for FIFO to pause")))))
 	      (when (testopt opts 'logchecks 'before)
 		(engine-logger (qc) #f 0 (elapsed-time (get loop-state 'started)) 
-			       #[] loop-state (get loop-state 'state)))
+			       #[] loop-state (get loop-state 'taskstate)))
 
-	      (let ((check-state (get-check-state loop-state))
-		    (last-secs (try (get loop-state 'checkdone)
+	      (set! runtime (elapsed-time (try (get loop-state 'checkdone)
 				    (get loop-state 'started))))
-		(set! runtime (elapsed-time last-secs))
-		(store! loop-state 'lastcheck check-state))
 
 	      (unless (getopt opts 'dryrun)
 		(engine-commit loop-state (get loop-state 'checkpoint)))
 
 	      (when state (update-task-state loop-state))
 	      (when (and state (testopt opts 'statefile))
-		(dtype->file (get loop-state 'state) (getopt opts 'statefile)))
+		(statefile/save! (get loop-state 'taskstate)))
+
+	      (store! loop-state 'lastcheck (get-check-state loop-state))
 
 	      (when (getopt opts 'logchecks #f)
 		(engine-logger (qc) #f 0 (elapsed-time (get loop-state 'started)) 
-			       #[] loop-state (get loop-state 'state)))
+			       #[] loop-state (get loop-state 'taskstate)))
 	      (when paused (fifo/pause! fifo #f))
 	      (set! success #t))
 	  (begin (drop! loop-state 'checkthread) ;; lets check/start! work again
@@ -1328,7 +1329,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (unless (null? spec) (irritant spec-args |BadTestSpec| engine/test))
     (if (null? tests)
 	(fail)
-	(def (engine/tester (loop-state #[]))
+	(defn (engine/tester (loop-state #[]))
 	  (looptest tests loop-state (rusage))))))
 
 (define (engine/delta slot . test)

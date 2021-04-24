@@ -4,7 +4,7 @@
 
 (in-module 'knodb/flexpool)
 
-(use-module '{binio db/drivers texttools})
+(use-module '{binio db/drivers texttools kno/statefiles})
 (use-module '{ezrecords text/stringfmts logger varconfig fifo})
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
@@ -132,7 +132,7 @@
     (set! filename (abspath filename)))
   (try (flexpool/find filename)
        (tryif (and (file-exists? filename) (not (file-directory? filename)))
-	 (let* ((def (file->dtype filename))
+	 (let* ((def (statefile/read filename))
 		(opts (if opts (cons opts def) def)))
 	   (let* ((prefix (getopt def 'prefix (get-partition-prefix filename opts)))
 		  (base (getopt def 'base))
@@ -204,7 +204,7 @@
 	      "Creating a partitions directory " (write (dirname absprefix))
 	      " for " filename)
 	    (mkdirs (dirname absprefix)))
-	  (dtype->file flexdef filename)
+	  (statefile/save! flexdef filename #[useformat xtype])
 	  (logdebug |MakeFlexpool|
 	    "Initialized " filename " with definition:\n"
 	    (listdata flexdef))
@@ -443,7 +443,7 @@
 	((file-exists? (glom file ".flexpool"))
 	 (set! file (realpath (glom file ".flexpool"))))
 	(else (irritant file |NoFlexpool|)))
-  (let* ((info (file->dtype file))
+  (let* ((info (statefile/read file))
 	 (prefix (getopt info 'prefix 
 			 (mkpath (basename file) 
 				 (strip-suffix (basename file) ".flexpool"))))
@@ -510,7 +510,7 @@
 	((file-exists? (glom file ".flexpool"))
 	 (set! file (realpath (glom file ".flexpool"))))
 	(else (irritant file |NoFlexpool|)))
-  (let* ((info (file->dtype file))
+  (let* ((info (statefile/read file))
 	 (cap (get info 'flexcap))
 	 (partsize (get info 'partsize))
 	 (prefix (getopt info 'prefix 
