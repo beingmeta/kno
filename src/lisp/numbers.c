@@ -3699,11 +3699,16 @@ static lispval numeric_atom(u8_string start,int base)
     else return KNO_FALSE;}
 }
 
-#define STR_EXTRACT(into,start,end) \
-  ssize_t into ## _strlen = (end==NULL) ? (strlen(start)) : (end-start); \
-  u8_byte into[into ## _strlen +1]; \
-  strncpy(into,start,end-start); \
-  into[end-start]='\0'
+#define STR_EXTRACT(into,start,end)					\
+  size_t into ## _strlen = (end) ? ((end)-(start)) : (strlen(start));	\
+  u8_byte into[into ## _strlen +1];					\
+  memcpy(into,start,into ## _strlen);					\
+  into[into ## _strlen]='\0'
+#define STR_COPY(into,start)						\
+  size_t into ## _strlen = strlen(start);				\
+  u8_byte into[into ## _strlen +1];					\
+  memcpy(into,start,into ## _strlen);					\
+  into[into ## _strlen]='\0'
 
 static lispval parse_complex_number(const u8_byte *string)
 {
@@ -3733,8 +3738,7 @@ static lispval parse_complex_number(const u8_byte *string)
 
 static lispval read_exponent_notation(u8_string string)
 {
-  int len = strlen(string);
-  STR_EXTRACT(copy,string,string+len);
+  STR_COPY(copy,string);
   u8_byte *dot = strchr(copy,'.'), *scan = dot+1; *dot='\0';
   lispval num = kno_string2number(copy,10), den = KNO_INT(1);
   if (RARELY(!(NUMBERP(num)))) return KNO_FALSE;

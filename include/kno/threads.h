@@ -20,7 +20,7 @@
 #define KNO_THREAD_KEEPENV     0x10000
 
 typedef struct KNO_THREAD {
-  KNO_CONS_HEADER;
+  KNO_ANNOTATED_HEADER;
   pthread_t tid;
   long long threadid;
   lispval opts;

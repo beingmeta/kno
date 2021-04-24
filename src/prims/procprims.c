@@ -1558,14 +1558,11 @@ KNO_EXPORT void kno_init_procprims_c()
 
   init_rlimit_codes();
   link_local_cprims();
-#if 0 /* HAVE_WAITPID */
-  DECL_PRIM_N(fork_wait_prim,procprims_module);
-  DECL_PRIM_N(fork_cmd_wait_prim,procprims_module);
-  DECL_PRIM_N(knox_fork_wait_prim,procprims_module);
-#endif
 
   kno_unparsers[kno_subproc_type] = unparse_subproc;
   kno_recyclers[kno_subproc_type] = recycle_subproc;
+
+  kno_tablefns[kno_subproc_type] = kno_annotated_tablefns;
 
   id_symbol = kno_intern("id");
   stdin_symbol = kno_intern("stdin");

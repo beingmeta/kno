@@ -70,7 +70,7 @@ typedef int kno_stream_flags;
 #define KNO_STREAM_NOTLOCKED 0
 
 typedef struct KNO_STREAM {
-  KNO_CONS_HEADER;
+  KNO_ANNOTATED_HEADER;
   kno_stream_flags stream_flags;
   int stream_fileno;
   kno_off_t stream_filepos, stream_maxpos;

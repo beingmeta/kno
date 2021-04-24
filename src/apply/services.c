@@ -258,6 +258,8 @@ KNO_EXPORT void kno_init_services_c()
   kno_unparsers[kno_service_type]=unparse_service;
   kno_recyclers[kno_service_type]=recycle_service;
 
+  kno_tablefns[kno_service_type]=kno_annotated_tablefns;
+
   kno_unparsers[kno_rpc_type]=unparse_netproc;
   kno_recyclers[kno_rpc_type]=recycle_netproc;
 

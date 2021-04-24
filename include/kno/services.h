@@ -16,7 +16,7 @@
 KNO_EXPORT u8_condition kno_ConnectionFailed, kno_BadServerResponse;
 
 #define KNO_SERVICE_HEADER				\
-  KNO_CONS_HEADER;					\
+  KNO_ANNOTATED_HEADER;					\
   u8_string service_id, service_spec, service_addr;	\
   unsigned int service_bits, struct_size;		\
   lispval spec;						\

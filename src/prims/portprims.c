@@ -1941,6 +1941,8 @@ KNO_EXPORT void kno_init_portprims_c()
   kno_unparsers[kno_ioport_type]=unparse_port;
   kno_recyclers[kno_ioport_type]=recycle_port;
 
+  kno_tablefns[kno_ioport_type]=kno_annotated_tablefns;
+
   init_portprims_symbols();
   link_local_cprims();
 

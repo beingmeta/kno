@@ -15,7 +15,7 @@
 #define KNO_PORTP(x) (KNO_TYPEP((x),kno_ioport_type))
 
 typedef struct KNO_PORT {
-  KNO_CONS_HEADER;
+  KNO_ANNOTATED_HEADER;
   u8_string port_id;
   u8_input port_input;
   u8_output port_output;

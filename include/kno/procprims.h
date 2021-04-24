@@ -11,7 +11,7 @@
 #endif
 
 typedef struct KNO_SUBPROC {
-  KNO_CONS_HEADER;
+  KNO_ANNOTATED_HEADER;
   u8_string proc_id;
   pid_t proc_pid;
   u8_string proc_progname;

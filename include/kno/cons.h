@@ -882,6 +882,17 @@ KNO_FASTOP struct KNO_TYPEINFO *__kno_objtype(lispval obj)
 #define kno_objtype _kno_objtype
 #endif
 
+/* Annotated types */
+
+#define KNO_ANNOTATED_HEADER			\
+  KNO_CONS_HEADER;				\
+  lispval annotations
+
+typedef struct KNO_ANNOTATED {
+  KNO_ANNOTATED_HEADER;} *kno_annotated;
+
+KNO_EXPORT struct KNO_TABLEFNS *kno_annotated_tablefns;
+
 /* Compound types */
 
 typedef struct KNO_WRAPPER {
@@ -909,12 +920,15 @@ typedef void (*kno_raw_recyclefn)(void *);
 
 typedef struct KNO_RAWPTR {
   KNO_TAGGED_HEAD;
+  lispval annotations;
   void *ptrval;
   ssize_t rawlen;
   u8_string idstring;
   lispval raw_annotations, raw_cleanup;
   kno_raw_recyclefn raw_recycler;} KNO_RAWPTR;
 typedef struct KNO_RAWPTR *kno_rawptr;
+
+KNO_EXPORT struct KNO_TABLEFNS *kno_rawptr_tablefns;
 
 KNO_EXPORT lispval kno_wrap_pointer
 (void *ptrval,

@@ -1644,6 +1644,8 @@ KNO_EXPORT void kno_init_streams_c()
   kno_unparsers[kno_stream_type]=unparse_stream;
   kno_recyclers[kno_stream_type]=recycle_stream;
 
+  kno_tablefns[kno_stream_type]=kno_annotated_tablefns;
+
   kno_register_config("STREAMS:LOGLEVEL",_("LOGLEVEL for binary streams"),
                       kno_intconfig_get,kno_loglevelconfig_set,
                       &stream_loglevel);

@@ -1321,7 +1321,7 @@ static lispval type_set_prim(lispval arg,lispval field,lispval value)
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("compound-set-schema!",type_set_schema_prim,
+DEFC_PRIM("compound-set-schema!",compound_set_schema_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "Sets the schema (a vector) for the type *tag*",
 	  {"tag",kno_any_type,KNO_VOID},
@@ -1451,7 +1451,7 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("handler!",set_handler_cprim,scheme_module);
 
   KNO_LINK_CPRIM("type-set-stringfn!",type_set_stringfn_prim,2,kno_scheme_module);
-  KNO_LINK_CPRIM("compound-set-schema!",type_set_stringfn_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("compound-set-schema!",compound_set_schema_prim,2,kno_scheme_module);
   KNO_LINK_ALIAS("compound-set-stringfn!",type_set_stringfn_prim,kno_scheme_module);
   KNO_LINK_CPRIM("type-set-consfn!",type_set_consfn_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("type-set-restorefn!",type_set_restorefn_prim,2,kno_scheme_module);

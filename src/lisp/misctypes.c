@@ -471,6 +471,136 @@ KNO_EXPORT int kno_set_pointer(lispval rawptr,lispval typetag,
   return 1;
 }
 
+/* Rawptr get functions */
+
+static lispval init_rawptr_annotations(struct KNO_RAWPTR *raw)
+{
+  lispval annotations = raw->annotations;
+  if ( (annotations!=KNO_NULL) &&
+       (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP((annotations),kno_coretable_type)) )
+    return annotations;
+  lispval consed = kno_make_slotmap(2,0,NULL);
+  KNO_LOCK_PTR(raw);
+  annotations = raw->annotations;
+  if ( (annotations != KNO_NULL) &&
+       (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP(annotations,kno_coretable_type)) ) {
+    KNO_UNLOCK_PTR(raw);
+    kno_decref(consed);
+    return annotations;}
+  else {
+    raw->annotations=consed;
+    KNO_UNLOCK_PTR(raw);
+    return consed;}
+}
+
+static lispval rawptr_get(lispval x,lispval key,lispval dflt)
+{
+  struct KNO_RAWPTR *a = (kno_rawptr) x;
+  if ( (a->typeinfo) && (a->typeinfo->type_tablefns) )
+    if (a->typeinfo->type_tablefns->get)
+      return (a->typeinfo->type_tablefns->get)(x,key,dflt);
+    else return KNO_EMPTY;
+  else if ( (a->annotations == KNO_NULL) || (a->annotations == KNO_EMPTY) )
+    return KNO_EMPTY;
+  else return kno_get(a->annotations,key,dflt);
+}
+
+static int rawptr_test(lispval x,lispval key,lispval val)
+{
+  struct KNO_RAWPTR *a = (kno_rawptr) x;
+  if ( (a->typeinfo) && (a->typeinfo->type_tablefns) ) {
+    if (a->typeinfo->type_tablefns->test)
+      return (a->typeinfo->type_tablefns->test)(x,key,val);
+    else return 0;}
+  else if ( (a->annotations == KNO_NULL) || (a->annotations == KNO_EMPTY) )
+    return 0;
+  lispval annotations = a->annotations;
+  if ( (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP(annotations,kno_coretable_type)) )
+    return kno_test(annotations,key,val);
+  else return 0;
+}
+
+static int rawptr_store(lispval x,lispval key,lispval val)
+{
+  kno_rawptr raw = (kno_rawptr) x;
+  if ( (raw->typeinfo) && (raw->typeinfo->type_tablefns) ) {
+    if (raw->typeinfo->type_tablefns->store)
+      return (raw->typeinfo->type_tablefns->store)(x,key,val);
+    else return 0;}
+  lispval annotations = init_rawptr_annotations((kno_rawptr)x);
+  return kno_store(annotations,key,val);
+}
+
+static int rawptr_add(lispval x,lispval key,lispval val)
+{
+  kno_rawptr raw = (kno_rawptr) x;
+  if ( (raw->typeinfo) && (raw->typeinfo->type_tablefns) ) {
+    if (raw->typeinfo->type_tablefns->add)
+      return (raw->typeinfo->type_tablefns->add)(x,key,val);
+    else return 0;}
+  lispval annotations = init_rawptr_annotations((kno_rawptr)x);
+  return kno_add(annotations,key,val);
+}
+
+static int rawptr_drop(lispval x,lispval key,lispval val)
+{
+  kno_rawptr raw = (kno_rawptr) x;
+  if ( (raw->typeinfo) && (raw->typeinfo->type_tablefns) ) {
+    if (raw->typeinfo->type_tablefns->drop)
+      return (raw->typeinfo->type_tablefns->drop)(x,key,val);
+    else return 0;}
+  lispval annotations = init_rawptr_annotations((kno_rawptr)x);
+  return kno_drop(annotations,key,val);
+}
+
+static lispval rawptr_getkeys(lispval x)
+{
+  struct KNO_RAWPTR *raw = (kno_rawptr) x;
+  if ( (raw->typeinfo) && (raw->typeinfo->type_tablefns) ) {
+    if (raw->typeinfo->type_tablefns->keys)
+      return (raw->typeinfo->type_tablefns->keys)(x);
+    else return 0;}
+  if ( (raw->annotations == KNO_NULL) || (raw->annotations == KNO_EMPTY) )
+    return KNO_EMPTY;
+  lispval annotations = raw->annotations;
+  if ( (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP((annotations),kno_coretable_type)) )
+    return kno_getkeys(annotations);
+  else return KNO_EMPTY;
+}
+
+static int rawptr_tablep(lispval x)
+{
+  if (KNO_TYPEP(x,kno_rawptr_type)) {
+    struct KNO_RAWPTR *raw = (kno_rawptr) x;
+    return (raw->typeinfo) &&
+      ( (raw->typeinfo->type_tablefns!=NULL) ||
+	(raw->typeinfo->type_istable) );}
+  else return 0;
+}
+
+static struct KNO_TABLEFNS rawptr_tablefns =
+  {
+   rawptr_get, /* get */
+   rawptr_store,/* store */
+   rawptr_add, /* add */
+   rawptr_drop, /* drop */
+   rawptr_test, /* test */
+   NULL, /* readonly */
+   NULL, /* modified */
+   NULL, /* finished */
+   NULL, /*getsize */
+   rawptr_getkeys, /* getkeys */
+   NULL, /* keyvec_n */
+   NULL, /* keyvals */
+   rawptr_tablep};
+
+struct KNO_TABLEFNS *kno_rawptr_tablefns = &rawptr_tablefns;
+
+/* Initializations from this file */
 
 void kno_init_misctypes_c()
 {
@@ -484,6 +614,8 @@ void kno_init_misctypes_c()
 
   kno_unparsers[kno_timestamp_type]=unparse_timestamp;
   kno_hashfns[kno_timestamp_type]=hash_timestamp;
+
+  kno_tablefns[kno_rawptr_type]=kno_rawptr_tablefns;
 
   uuid_tag = kno_intern("uuid");
   {

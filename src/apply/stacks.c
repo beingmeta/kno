@@ -278,7 +278,6 @@ lispval kno_get_backtrace(struct KNO_STACK *stack)
   if (stack == NULL) return KNO_EMPTY_LIST;
   int n = stack->stack_depth+1, i = 0;
   lispval result = kno_make_vector(n,NULL);
-  struct KNO_STACK *prev = NULL;
   while (stack) {
     lispval entry = kno_stack2lisp(stack);
     if (i < n) {
@@ -286,7 +285,6 @@ lispval kno_get_backtrace(struct KNO_STACK *stack)
     else u8_log(LOG_CRIT,"BacktraceOverflow",
 		"Inconsistent depth %d",
 		n-1);
-    prev=stack;
     stack=stack->stack_caller;
     i++;}
   return result;
@@ -750,7 +748,7 @@ KNO_EXPORT void kno_raise_exception
     u8_debug_wait(&ex,1);}
   if (contour) {
     struct KNO_STACK *scan = kno_stackptr;
-    lispval ex = _kno_mkerr(cond,cxt,details,irritant,NULL);
+    _kno_mkerr(cond,cxt,details,irritant,NULL);
     if (scan) {
       /* Pop all of the stack frames below contour */
       void *stack_loc = (void *) scan;

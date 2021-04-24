@@ -1935,6 +1935,8 @@ KNO_EXPORT void kno_init_threads_c()
   kno_recyclers[kno_thread_type]=recycle_thread_struct;
   kno_unparsers[kno_thread_type]=unparse_thread_struct;
 
+  kno_tablefns[kno_thread_type]=kno_annotated_tablefns;
+
   kno_recyclers[kno_synchronizer_type]=recycle_synchronizer;
   kno_unparsers[kno_synchronizer_type]=unparse_synchronizer;
 

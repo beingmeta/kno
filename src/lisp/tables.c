@@ -4448,6 +4448,98 @@ static int hashset_store(lispval x,lispval key,lispval val)
   else return KNO_ERR(-1,kno_RangeError,_("value is not a boolean"),NULL,val);
 }
 
+/* Annotated get functions */
+
+static lispval init_annotations(struct KNO_ANNOTATED *astruct)
+{
+  lispval annotations = astruct->annotations;
+  if ( (annotations!=KNO_NULL) &&
+       (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP((annotations),kno_coretable_type)) )
+    return annotations;
+  lispval consed = kno_make_slotmap(2,0,NULL);
+  KNO_LOCK_PTR(astruct);
+  annotations = astruct->annotations;
+  if ( (annotations != KNO_NULL) &&
+       (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP(annotations,kno_coretable_type)) ) {
+    KNO_UNLOCK_PTR(astruct);
+    kno_decref(consed);
+    return annotations;}
+  else {
+    astruct->annotations=consed;
+    KNO_UNLOCK_PTR(astruct);
+    return consed;}
+}
+
+static lispval annotated_get(lispval x,lispval key,lispval dflt)
+{
+  struct KNO_ANNOTATED *a = (kno_annotated) x;
+  if ( (a->annotations == KNO_NULL) || (a->annotations == KNO_EMPTY) )
+    return KNO_EMPTY;
+  else return kno_get(a->annotations,key,dflt);
+}
+
+static int annotated_test(lispval x,lispval key,lispval val)
+{
+  struct KNO_ANNOTATED *a = (kno_annotated) x;
+  if ( (a->annotations == KNO_NULL) || (a->annotations == KNO_EMPTY) )
+    return 0;
+  lispval annotations = a->annotations;
+  if ( (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP(annotations,kno_coretable_type)) )
+    return kno_test(annotations,key,val);
+  else return 0;
+}
+
+static int annotated_store(lispval x,lispval key,lispval val)
+{
+  lispval annotations = init_annotations((kno_annotated)x);
+  return kno_store(annotations,key,val);
+}
+
+static int annotated_add(lispval x,lispval key,lispval val)
+{
+  lispval annotations = init_annotations((kno_annotated)x);
+  return kno_add(annotations,key,val);
+}
+
+static int annotated_drop(lispval x,lispval key,lispval val)
+{
+  lispval annotations = init_annotations((kno_annotated)x);
+  return kno_drop(annotations,key,val);
+}
+
+static lispval annotated_getkeys(lispval x)
+{
+  struct KNO_ANNOTATED *a = (kno_annotated) x;
+  if ( (a->annotations == KNO_NULL) || (a->annotations == KNO_EMPTY) )
+    return KNO_EMPTY;
+  lispval annotations = a->annotations;
+  if ( (KNO_CONSP(annotations)) &&
+       (KNO_XXCONS_TYPEP((annotations),kno_coretable_type)) )
+    return kno_getkeys(annotations);
+  else return KNO_EMPTY;
+}
+
+static struct KNO_TABLEFNS annotated_tablefns =
+  {
+   annotated_get, /* get */
+   annotated_store,/* store */
+   annotated_add, /* add */
+   annotated_drop, /* drop */
+   annotated_test, /* test */
+   NULL, /* readonly */
+   NULL, /* modified */
+   NULL, /* finished */
+   NULL, /*getsize */
+   annotated_getkeys, /* getkeys */
+   NULL, /* keyvec_n */
+   NULL, /* keyvals */
+   NULL /* tablep */};
+
+struct KNO_TABLEFNS *kno_annotated_tablefns = &annotated_tablefns;
+
 /* Generic table functions */
 
 #define CHECKPTR(arg,cxt)                  \
