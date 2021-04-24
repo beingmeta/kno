@@ -6,7 +6,7 @@
 
 ;;; Provides module-level logging control together with the LOGGER file
 
-(use-module '{logger kno/reflect})
+(use-module '{logger reflection})
 
 (module-export! '{logctl! set-loglevel!
 		  log/debug! log/info! log/detail! log/notice!

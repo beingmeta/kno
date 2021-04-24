@@ -238,6 +238,9 @@ KNO_EXPORT void recycle_thread_struct(struct KNO_RAW_CONS *c)
   u8_destroy_condvar(&(th->exit_cvar));
   u8_destroy_mutex(&(th->exit_lock));
   pthread_attr_destroy(&(th->attr));
+
+  if (th->annotations) kno_decref(th->annotations);
+
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -864,6 +867,7 @@ kno_thread kno_thread_call(lispval *resultptr,
     u8_seterr(u8_MallocFailed,"kno_thread_call",NULL);
     return NULL;}
   KNO_INIT_FRESH_CONS(tstruct,kno_thread_type);
+  tstruct->annotations = KNO_EMPTY;
   lispval *rail = u8_alloc_n(n,lispval);
   int i=0; while (i<n) {rail[i]=args[i]; i++;}
   if (resultptr) {

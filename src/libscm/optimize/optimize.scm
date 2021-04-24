@@ -7,7 +7,7 @@
 (in-module 'optimize)
 
 (define-init standard-modules
-  (choice (get (get-module 'kno/reflect) 'getmodules)
+  (choice (get (get-module 'reflection) 'getmodules)
 	  'scheme 'xscheme 'fileio 'history 'logger))
 (define-init check-module-usage #f)
 
@@ -17,11 +17,11 @@
 ;; anything which will change and so produce an equivalent expression
 ;; or function which just runs faster.
 
-(use-module 'kno/reflect)
+(use-module 'reflection)
 (use-module 'varconfig)
 (use-module 'logger)
 
-(module-proxy! 'kno/reflect
+(module-proxy! 'reflection
 	       lambda-entry lambda-body  lambda-args lambda-env
 	       procedure-fileinfo procedure-filename
 	       reflect/attribs reflect/get)

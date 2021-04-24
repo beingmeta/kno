@@ -4,7 +4,7 @@
 
 (in-module 'knodb/countrefs)
 
-(use-module '{logger varconfig kno/mttools kno/reflect})
+(use-module '{logger varconfig kno/mttools reflection})
 
 (module-export! '{countrefs countrefs/vec countrefs/pool})
 

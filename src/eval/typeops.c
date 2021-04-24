@@ -247,6 +247,83 @@ static lispval fcnidp(lispval x)
   else return KNO_FALSE;
 }
 
+DEFC_PRIM("macro?",macrop,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if its argument is an evaluator macro",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval macrop(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_macro_type)) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("lambda?",lambdap,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if its argument is a lambda (a compound procedure)",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval lambdap(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_LAMBDAP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("evalfn?",evalfnp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if its argument is an interpreter *evalfn* "
+	  "(a special form)",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval evalfnp(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_evalfn_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("primitive?",primitivep,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *x* is a primitive function implemented in C",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval primitivep(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_cprim_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("procedure?",procedurep,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *x* is a `procedure`, an "
+	  "applicable object with standardized calling metadata",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval procedurep(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("thunk?",thunkp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *x* is a `thunk`, an "
+	  "applicable object with standardized calling metadata, "
+	  "which takes no arguments",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval thunkp(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_FUNCTIONP(x)) {
+    kno_function f = (kno_function) x;
+    if (f->fcn_arity==0) return KNO_TRUE;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
 DEFC_PRIM("boolean?",booleanp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns true if *x* is a truth token (#t or #f currently)",
@@ -1390,9 +1467,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("false?",falsep,1,scheme_module);
   KNO_LINK_CPRIM("true?",truep,1,scheme_module);
   KNO_LINK_CPRIM("boolean?",booleanp,1,scheme_module);
-  KNO_LINK_CPRIM("fcnid?",fcnidp,1,scheme_module);
-  KNO_LINK_CPRIM("applicable?",applicablep,1,scheme_module);
-  KNO_LINK_CPRIM("exception?",exceptionp,1,scheme_module);
   KNO_LINK_CPRIM("character?",characterp,1,scheme_module);
   KNO_LINK_CPRIM("ctype?",ctypep_prim,1,scheme_module);
   KNO_LINK_CPRIM("static?",staticp,1,scheme_module);
@@ -1417,9 +1491,22 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("nil?",nullp,kno_scheme_module);
   KNO_LINK_ALIAS("cons?",consp,scheme_module);
   KNO_LINK_ALIAS("char?",characterp,scheme_module);
-  KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
   KNO_LINK_ALIAS("ctype?",ctypep_prim,scheme_module);
   KNO_LINK_ALIAS("typep",hastypep_prim,scheme_module);
+
+  KNO_LINK_CPRIM("fcnid?",fcnidp,1,scheme_module);
+  KNO_LINK_CPRIM("applicable?",applicablep,1,scheme_module);
+  KNO_LINK_CPRIM("procedure?",procedurep,1,scheme_module);
+  KNO_LINK_CPRIM("primitive?",primitivep,1,scheme_module);
+  KNO_LINK_CPRIM("evalfn?",evalfnp,1,scheme_module);
+  KNO_LINK_CPRIM("lambda?",lambdap,1,scheme_module);
+  KNO_LINK_CPRIM("macro?",macrop,1,scheme_module);
+  KNO_LINK_CPRIM("thunk?",thunkp,1,scheme_module);
+  KNO_LINK_ALIAS("compound-procedure?",lambdap,scheme_module);
+  KNO_LINK_ALIAS("special-form?",evalfnp,scheme_module);
+
+  KNO_LINK_CPRIM("exception?",exceptionp,1,scheme_module);
+  KNO_LINK_ALIAS("error?",exceptionp,scheme_module);
 
   KNO_LINK_CPRIM("compound?",compoundp,2,scheme_module);
   KNO_LINK_CPRIM("sequence->compound",seq2compound,6,scheme_module);

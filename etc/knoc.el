@@ -95,7 +95,8 @@
 	(cond ((or (eq method 'defun)
 		   (and (null method)
 			(> (length function) 3)
-			(string-match "\\`def" function)))
+			(or (string-match "\\`def" function)
+			    (string-match ".*fn$" function))))
 	       (lisp-indent-defform state indent-point))
 	      ((integerp method)
 	       (lisp-indent-specform method state
@@ -125,7 +126,6 @@
 (put 'opt+ 'scheme-indent-function 2)
 
 (put 'ambda 'scheme-indent-function 1)
-(put 'sambda 'scheme-indent-function 1)
 (put 'defambda 'scheme-indent-function 1)
 (put 'defslambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
@@ -134,6 +134,12 @@
 (put 'defn 'scheme-indent-function 1)
 (put 'defamb 'scheme-indent-function 1)
 (put 'defsync 'scheme-indent-function 1)
+(put 'defsyncfn 'scheme-indent-function 1)
+(put 'defchoicefn 'scheme-indent-function 1)
+(put 'choicefn 'scheme-indent-function 1)
+(put 'nchoicefn 'scheme-indent-function 1)
+(put 'syncfn 'scheme-indent-function 1)
+(put 'nsyncfn 'scheme-indent-function 1)
 
 (put 'set! 'scheme-indent-function 1)
 (put 'set+! 'scheme-indent-function 1)

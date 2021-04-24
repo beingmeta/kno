@@ -76,6 +76,7 @@ static int max_redirects = -1;
 
 typedef struct KNO_CURL_HANDLE {
   KNO_CONS_HEADER;
+  lispval opts;
   CURL *handle;
   struct curl_slist *headers;
   /* char curl_errbuf[CURL_ERROR_SIZE]; */

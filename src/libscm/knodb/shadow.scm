@@ -4,7 +4,7 @@
 
 (in-module 'knodb/shadow)
 
-(use-module '{kno/reflect ezrecords logger logctl defmacro})
+(use-module '{reflection ezrecords logger logctl defmacro})
 
 (module-export! '{defshadow shadow/get shadow/probe shadow/ref
 		  defshadow!})

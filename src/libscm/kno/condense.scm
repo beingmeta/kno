@@ -2,7 +2,7 @@
 
 (in-module 'kno/condense)
 
-(use-module '{kno/reflect binio varconfig logger})
+(use-module '{reflection binio varconfig logger})
 
 (define %loglevel %debug%)
 

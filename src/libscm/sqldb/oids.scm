@@ -4,7 +4,7 @@
 
 (in-module 'sqldb/oids)
 
-(use-module '{sqldb varconfig kno/reflect logger})
+(use-module '{sqldb varconfig reflection logger})
 
 (define default-sqlmap #[])
 (varconfig! sqldb:sqlmap default-sqlmap)

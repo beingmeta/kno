@@ -4,7 +4,7 @@
 
 (in-module 'text/stringfmts)
 
-(use-module '{defmacro kno/reflect logger})
+(use-module '{defmacro reflection logger})
 
 ;;; Generation of strings from various other kinds of values
 

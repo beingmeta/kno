@@ -4,7 +4,7 @@
 
 (in-module 'knodb/adjuncts)
 
-(use-module '{kno/reflect texttools regex
+(use-module '{reflection texttools regex
 	      logger logctl fifo
 	     kno/mttools text/stringfmts opts})
 (use-module 'knodb)

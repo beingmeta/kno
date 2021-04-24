@@ -195,7 +195,7 @@ static lispval applytest(int n,kno_argvec args)
     else if ( (KNO_FALSEP(pred_result)) || (EMPTYP(pred_result)) ) {
       u8_logf(LOG_WARN,"Tests/PredicateFailed",
 	      "%s:\n  Predicate:\t %q\n  Result:\t%q\n",
-	      testid,result,predicate);
+	      testid,predicate,result);
       return_value = kno_err("Tests/PredicateFailed","applytest",testid,result);}
     else {
       u8_logf(LOG_INFO,"Tests/Passed",

@@ -7,7 +7,7 @@
 ;;; This handles automatic updating of the content of files
 ;;; It is a more flexible version of load-latest
 
-(use-module '{fileio ezrecords varconfig logger kno/reflect})
+(use-module '{fileio ezrecords varconfig logger reflection})
 
 (define-init %loglevel %notice%)
 

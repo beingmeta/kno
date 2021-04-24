@@ -81,7 +81,9 @@ static void recycle_service(struct KNO_RAW_CONS *c)
   struct KNO_SERVICE *s = (kno_service)c;
   struct KNO_SERVICE_HANDLERS *h = s->handlers;
   if ( (h) && (h->recycle) ) h->recycle(s);
-  
+
+  if (s->annotations) kno_decref(s->annotations);
+
   if (!(KNO_STATIC_CONSP(s))) u8_free(s);
 }
 

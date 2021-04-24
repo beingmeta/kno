@@ -4,7 +4,7 @@
 
 (in-module 'engine)
 
-(use-module '{fifo varconfig kno/threads text/stringfmts binio kno/reflect 
+(use-module '{fifo varconfig kno/threads text/stringfmts binio reflection 
 	      bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 

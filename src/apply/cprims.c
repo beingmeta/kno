@@ -587,20 +587,28 @@ KNO_EXPORT void kno_defcprim15(lispval module,kno_cprim15 fn,
 KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100])
 {
   u8_string name = NULL;
-  if (fcn->fcn_doc) {
-    u8_string sig = fcn->fcn_doc, sig_start = sig, sig_end = NULL;
-    if (sig[0] == '`') {
-      sig_start++;
-      sig_end = strchr(sig_start,'`');}
-    else if (sig[0] == '(') {
-      sig_end = strchr(sig_start,')');
-      if (sig_end) sig_end++;}
-    else NO_ELSE;
-    size_t sig_len = (sig_end) ? (sig_end-sig_start) : (strlen(sig_start));
-    if (sig_len < 90) {
-      strncpy(namebuf,sig_start,sig_len);
-      namebuf[sig_len]='\0';
-      name = namebuf;}}
+  struct U8_OUTPUT sigout;
+  U8_INIT_FIXED_OUTPUT(&sigout,100,namebuf);
+  int i = 0;
+  if (fcn->fcn_argnames) {
+    lispval *scan = fcn->fcn_argnames;
+    lispval *limit = scan+fcn->fcn_arginfo_len;
+    while (scan<limit) {
+      lispval arg = *scan++;
+      if (i>0) u8_putc(&sigout,' '); u8_putc(&sigout,'('); i++;
+      if (KNO_SYMBOLP(arg)) {
+	u8_puts(&sigout,KNO_SYMBOL_NAME(arg));}
+      else u8_puts(&sigout,"??");}
+    u8_putc(&sigout,')');}
+  else if ( (fcn->fcn_arity>=0) && (fcn->fcn_min_arity>=0) &&
+	    (fcn->fcn_arity != fcn->fcn_min_arity) )
+    u8_printf(&sigout," [%d,%d] args)",fcn->fcn_min_arity,fcn->fcn_arity);
+  else if (fcn->fcn_arity>=0)
+    u8_printf(&sigout," %d args)",fcn->fcn_arity);
+  else if (fcn->fcn_min_arity>=0)
+    u8_printf(&sigout," %d+... args)",fcn->fcn_min_arity);
+  else u8_puts(&sigout," args...)");
+  name = namebuf;
   return name;
 }
 

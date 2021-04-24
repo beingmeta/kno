@@ -381,6 +381,7 @@ KNO_EXPORT struct KNO_STREAM *kno_init_stream
   if (flags&KNO_STREAM_IS_CONSED) {
     KNO_INIT_FRESH_CONS(stream,kno_stream_type);}
   else {KNO_INIT_STATIC_CONS(stream,kno_stream_type);}
+  stream->annotations = KNO_EMPTY;
   /* Initializing the stream fields */
   stream->stream_fileno = fileno;
   stream->streamid = u8dup(streamid);
@@ -835,6 +836,9 @@ static void recycle_stream(struct KNO_RAW_CONS *c)
   kno_close_stream(stream,KNO_STREAM_FREEDATA);
   if (stream->stream_lisprefs != KNO_NULL)
     kno_decref(stream->stream_lisprefs);
+
+  if (stream->annotations) kno_decref(stream->annotations);
+
   if (KNO_MALLOCD_CONSP(c)) u8_free(c);
 }
 

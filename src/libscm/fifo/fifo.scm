@@ -6,7 +6,7 @@
 
 ;;; Simple FIFO queue gated by a condition variable
 
-(use-module '{ezrecords logger varconfig kno/reflect})
+(use-module '{ezrecords logger varconfig reflection})
 (define %used_modules 'ezrecords)
 
 (module-export!

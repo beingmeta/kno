@@ -27,67 +27,6 @@ static lispval source_symbol, void_symbol;
 
 #define GETEVALFN(x) ((kno_evalfn)(kno_fcnid_ref(x)))
 
-DEFC_PRIM("macro?",macrop,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if its argument is an evaluator macro",
-	  {"x",kno_any_type,KNO_VOID})
-static lispval macrop(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (TYPEP(x,kno_macro_type)) return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFC_PRIM("lambda?",lambdap,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "returns true if its argument is a lambda (a compound procedure)",
-	  {"x",kno_any_type,KNO_VOID})
-static lispval lambdap(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_LAMBDAP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFC_PRIM("evalfn?",evalfnp,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "returns true if its argument is an interpreter *evalfn* "
-	  "(a special form)",
-	  {"x",kno_any_type,KNO_VOID})
-static lispval evalfnp(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (TYPEP(x,kno_evalfn_type))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFC_PRIM("primitive?",primitivep,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "returns true if *x* is a primitive function implemented in C",
-	  {"x",kno_any_type,KNO_VOID})
-static lispval primitivep(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (TYPEP(x,kno_cprim_type))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
-DEFC_PRIM("procedure?",procedurep,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "returns true if *x* is a `procedure`, an "
-	  "applicable object with standardized calling metadata",
-	  {"x",kno_any_type,KNO_VOID})
-static lispval procedurep(lispval x)
-{
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x))
-    return KNO_TRUE;
-  else return KNO_FALSE;
-}
-
 DEFC_PRIM("procedure-name",procedure_name,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "returns the name of the procedure *x*",
@@ -1782,7 +1721,7 @@ static lispval profiling_module;
 
 KNO_EXPORT void kno_init_reflection_c()
 {
-  reflection_module = kno_new_cmodule("kno/reflect",0,kno_init_reflection_c);
+  reflection_module = kno_new_cmodule("reflection",0,kno_init_reflection_c);
   profiling_module  = kno_new_cmodule("kno/profile",0,kno_init_reflection_c);
 
   source_symbol = kno_intern("%source");
@@ -1847,11 +1786,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("procedure-fileinfo",procedure_fileinfo,1,reflection);
   KNO_LINK_CPRIM("procedure-cname",procedure_cname,1,reflection);
   KNO_LINK_CPRIM("procedure-name",procedure_name,1,reflection);
-  KNO_LINK_CPRIM("procedure?",procedurep,1,reflection);
-  KNO_LINK_CPRIM("primitive?",primitivep,1,reflection);
-  KNO_LINK_CPRIM("evalfn?",evalfnp,1,reflection);
-  KNO_LINK_CPRIM("lambda?",lambdap,1,reflection);
-  KNO_LINK_CPRIM("macro?",macrop,1,reflection);
 
   KNO_LINK_CPRIM("set-lambda-source!",set_lambda_source,2,reflection);
   KNO_LINK_CPRIM("optimize-lambda-body!",optimize_lambda_body,2,reflection);
@@ -1873,8 +1807,6 @@ static void link_local_cprims()
 
   KNO_LINK_ALIAS("procedure-env",lambda_env,reflection);
   KNO_LINK_ALIAS("procedure-body",lambda_body,reflection);
-  KNO_LINK_ALIAS("compound-procedure?",lambdap,reflection);
-  KNO_LINK_ALIAS("special-form?",evalfnp,reflection);
   KNO_LINK_ALIAS("procedure-tailable?",procedure_tailablep,reflection);
   KNO_LINK_ALIAS("set-procedure-tailable!",set_tailablep,reflection);
   KNO_LINK_ALIAS("set-procedure-documentation!",set_documentation,reflection);

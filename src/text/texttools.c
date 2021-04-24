@@ -916,7 +916,7 @@ static void convert_offsets
   *off = u8_byteoffset(CSTRING(string),offval,*lim);
 }
 
-DEFC_PRIM("textmatcher",textmatcher,
+DEFC_PRIM("text/matchlen",textmatcher,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -938,7 +938,7 @@ static lispval textmatcher(lispval pattern,lispval string,
     else return return_offsets(CSTRING(string),match_result);}
 }
 
-DEFC_PRIM("textmatch",textmatch,
+DEFC_PRIM("text/match",textmatch,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -960,7 +960,7 @@ static lispval textmatch(lispval pattern,lispval string,
     else return KNO_FALSE;}
 }
 
-DEFC_PRIM("textsearch",textsearch,
+DEFC_PRIM("text/search",textsearch,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -982,7 +982,7 @@ static lispval textsearch(lispval pattern,lispval string,
     else return KNO_INT(u8_charoffset(CSTRING(string),pos));}
 }
 
-DEFC_PRIM("textract",textract,
+DEFC_PRIM("text/extract",textract,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1065,7 +1065,7 @@ static lispval textgather_base(lispval pattern,lispval string,
     else return results;}
 }
 
-DEFC_PRIM("gather",textgather,
+DEFC_PRIM("text/gather",textgather,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1078,7 +1078,7 @@ static lispval textgather(lispval pattern,lispval string,
   return textgather_base(pattern,string,offset,limit,0);
 }
 
-DEFC_PRIM("gather*",textgather_star,
+DEFC_PRIM("text/gather*",textgather_star,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1091,7 +1091,7 @@ static lispval textgather_star(lispval pattern,lispval string,
   return textgather_base(pattern,string,offset,limit,1);
 }
 
-DEFC_PRIM("gather->list",textgather2list,
+DEFC_PRIM("text/gather/list",textgather2list,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1236,7 +1236,7 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
   else return kno_seterr("Bad rewrite args","texttools/rewrite_apply",kno_type_name(fcn),args);
 }
 
-DEFC_PRIM("textrewrite",textrewrite,
+DEFC_PRIM("text/rewrite",textrewrite,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1272,7 +1272,7 @@ static lispval textrewrite(lispval pattern,lispval string,
       return subst_results;}}
 }
 
-DEFC_PRIM("textsubst",textsubst,
+DEFC_PRIM("text/subst",textsubst,
 	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"string",kno_string_type,KNO_VOID},
@@ -1901,7 +1901,7 @@ static int interpret_keep_arg(lispval keep_arg)
   else return 0;
 }
 
-DEFC_PRIM("textslice",textslice,
+DEFC_PRIM("text/slice",textslice,
 	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
 	  "\n"
 	  "Divides *string* (between *start* and *limit*) "
@@ -2917,7 +2917,7 @@ static lispval hmac_sha512_prim(lispval key,lispval input)
 
 /* Match def */
 
-DEFC_PRIM("matchdef!",matchdef_prim,
+DEFC_PRIM("text/matchdef!",matchdef_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"symbol",kno_symbol_type,KNO_VOID},
@@ -2957,7 +2957,49 @@ void kno_init_texttools()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("matchdef!",matchdef_prim,2,texttools_module);
+  KNO_LINK_CPRIM("text/matchdef!",matchdef_prim,2,texttools_module);
+  KNO_LINK_ALIAS("matchdef!",matchdef_prim,texttools_module);
+  KNO_LINK_CPRIM("text/slice",textslice,5,texttools_module);
+  KNO_LINK_ALIAS("textslice",textslice,texttools_module);
+  KNO_LINK_CPRIM("text/getframes",text2frames,4,texttools_module);
+  KNO_LINK_ALIAS("text->frames",text2frames,texttools_module);
+  KNO_LINK_CPRIM("text/getframe",text2frame,4,texttools_module);
+  KNO_LINK_ALIAS("text->frame",text2frame,texttools_module);
+  KNO_LINK_CPRIM("text/filter",textfilter,2,texttools_module);
+  KNO_LINK_ALIAS("textfilter",textfilter,texttools_module);
+  KNO_LINK_CPRIM("text/gather*/subst",gathersubst_star,4,texttools_module);
+  KNO_LINK_ALIAS("gathersubst*",gathersubst_star,texttools_module);
+  KNO_LINK_CPRIM("text/gather/subst",gathersubst,4,texttools_module);
+  KNO_LINK_ALIAS("gathersubst",gathersubst,texttools_module);
+  KNO_LINK_CPRIM("text/subst",textsubst,5,texttools_module);
+  KNO_LINK_ALIAS("textsubst",textsubst,texttools_module);
+  KNO_LINK_CPRIM("text/rewrite",textrewrite,4,texttools_module);
+  KNO_LINK_ALIAS("textrewrite",textrewrite,texttools_module);
+  KNO_LINK_CPRIM("text/gather/list",textgather2list,4,texttools_module);
+  KNO_LINK_ALIAS("gather->list",textgather2list,texttools_module);
+  KNO_LINK_CPRIM("text/gather*",textgather_star,4,texttools_module);
+  KNO_LINK_ALIAS("gather*",textgather_star,texttools_module);
+  KNO_LINK_CPRIM("text/gather",textgather,4,texttools_module);
+  KNO_LINK_ALIAS("gather",textgather,texttools_module);
+  KNO_LINK_CPRIM("text/extract",textract,4,texttools_module);
+  KNO_LINK_ALIAS("textract",textract,texttools_module);
+  KNO_LINK_CPRIM("text/search",textsearch,4,texttools_module);
+  KNO_LINK_ALIAS("textsearch",textsearch,texttools_module);
+  KNO_LINK_CPRIM("text/match",textmatch,4,texttools_module);
+  KNO_LINK_ALIAS("textmatch",textmatch,texttools_module);
+  KNO_LINK_CPRIM("text/matchlen",textmatcher,4,texttools_module);
+  KNO_LINK_ALIAS("text/matcher",textmatcher,texttools_module);
+  KNO_LINK_ALIAS("textmatcher",textmatcher,texttools_module);
+  KNO_LINK_CPRIM("text/read-match",read_match,3,texttools_module);
+  KNO_LINK_ALIAS("read-match",read_match,texttools_module);
+
+  KNO_LINK_CPRIM("string-ends-with?",string_ends_with,4,texttools_module);
+  KNO_LINK_CPRIM("string-starts-with?",string_starts_with,4,texttools_module);
+  KNO_LINK_CPRIM("string-contains?",string_contains,4,texttools_module);
+  KNO_LINK_CPRIM("string-matches?",string_matches,4,texttools_module);
+
+  KNO_LINK_ALIAS("gather->seq",textgather2list,texttools_module);
+
   KNO_LINK_CPRIM("hmac-sha512",hmac_sha512_prim,2,texttools_module);
   KNO_LINK_CPRIM("hmac-sha384",hmac_sha384_prim,2,texttools_module);
   KNO_LINK_CPRIM("hmac-sha256",hmac_sha256_prim,2,texttools_module);
@@ -2967,13 +3009,14 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("sha256",sha256_prim,1,texttools_module);
   KNO_LINK_CPRIM("sha1",sha1_prim,1,texttools_module);
   KNO_LINK_CPRIM("md5",md5_prim,1,texttools_module);
+
   KNO_LINK_CPRIM("metaphone+",metaphone_plus_prim,2,texttools_module);
   KNO_LINK_CPRIM("metaphone",metaphone_prim,2,texttools_module);
   KNO_LINK_CPRIM("soundex",soundex_prim,2,texttools_module);
+
   KNO_LINK_CPRIM("unslashify",unslashify_prim,4,texttools_module);
   KNO_LINK_CPRIM("splitsep",splitsep_prim,5,texttools_module);
   KNO_LINK_CPRIM("findsep",findsep_prim,5,texttools_module);
-  KNO_LINK_CPRIM("read-match",read_match,3,texttools_module);
   KNO_LINK_CPRIM("is-suffix?",is_suffix_prim,2,texttools_module);
   KNO_LINK_CPRIM("is-prefix?",is_prefix_prim,2,texttools_module);
   KNO_LINK_CPRIM("textclosure?",textclosurep,1,texttools_module);
@@ -2982,25 +3025,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("firstword",firstword_prim,2,texttools_module);
   KNO_LINK_CPRIM("has-word-prefix?",has_word_prefix,3,texttools_module);
   KNO_LINK_CPRIM("has-word-suffix?",has_word_suffix,3,texttools_module);
-  KNO_LINK_CPRIM("textslice",textslice,5,texttools_module);
-  KNO_LINK_CPRIM("text->frames",text2frames,4,texttools_module);
-  KNO_LINK_CPRIM("text->frame",text2frame,4,texttools_module);
-  KNO_LINK_CPRIM("string-ends-with?",string_ends_with,4,texttools_module);
-  KNO_LINK_CPRIM("string-starts-with?",string_starts_with,4,texttools_module);
-  KNO_LINK_CPRIM("string-contains?",string_contains,4,texttools_module);
-  KNO_LINK_CPRIM("string-matches?",string_matches,4,texttools_module);
-  KNO_LINK_CPRIM("textfilter",textfilter,2,texttools_module);
-  KNO_LINK_CPRIM("gathersubst*",gathersubst_star,4,texttools_module);
-  KNO_LINK_CPRIM("gathersubst",gathersubst,4,texttools_module);
-  KNO_LINK_CPRIM("textsubst",textsubst,5,texttools_module);
-  KNO_LINK_CPRIM("textrewrite",textrewrite,4,texttools_module);
-  KNO_LINK_CPRIM("gather->list",textgather2list,4,texttools_module);
-  KNO_LINK_CPRIM("gather*",textgather_star,4,texttools_module);
-  KNO_LINK_CPRIM("gather",textgather,4,texttools_module);
-  KNO_LINK_CPRIM("textract",textract,4,texttools_module);
-  KNO_LINK_CPRIM("textsearch",textsearch,4,texttools_module);
-  KNO_LINK_CPRIM("textmatch",textmatch,4,texttools_module);
-  KNO_LINK_CPRIM("textmatcher",textmatcher,4,texttools_module);
   KNO_LINK_CPRIM("columnize",columnize_prim,3,texttools_module);
   KNO_LINK_CPRIM("strip-markup",strip_markup,2,texttools_module);
   KNO_LINK_CPRIM("depunct",depunct,1,texttools_module);
@@ -3020,6 +3044,5 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("decode-entities",decode_entities_prim,1,texttools_module);
   KNO_LINK_CPRIM("segment",segment_prim,2,texttools_module);
 
-  KNO_LINK_ALIAS("gather->seq",textgather2list,texttools_module);
 }
 

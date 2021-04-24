@@ -9,7 +9,7 @@
 ;;; prefetch/execute cycles which can improve performance on many
 ;;; database-intensive operations. 
 
-(use-module '{kno/reflect text/stringfmts varconfig logger})
+(use-module '{reflection text/stringfmts varconfig logger})
 
 (module-export! '{mt-apply mt/threadcount mt/nrange mt/counter
 		  do-choices-mt do-vector-mt for-choices-mt

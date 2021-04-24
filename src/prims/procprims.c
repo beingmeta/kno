@@ -1500,6 +1500,7 @@ static lispval cons_subproc(pid_t pid,u8_string id,
   // TODO: Have a global list/array of subprocesses
   struct KNO_SUBPROC *proc = u8_alloc(struct KNO_SUBPROC);
   KNO_INIT_CONS(proc,kno_subproc_type);
+  proc->annotations = KNO_EMPTY;
   proc->proc_started = u8_elapsed_time();
   proc->proc_pid = pid;
   proc->proc_id = id;
@@ -1538,6 +1539,7 @@ static void recycle_subproc(struct KNO_RAW_CONS *c)
   free_stringvec(sp->proc_argv);
   free_stringvec(sp->proc_envp);
   if (sp->proc_id) u8_free(sp->proc_id);
+  if (sp->annotations) kno_decref(sp->annotations);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 

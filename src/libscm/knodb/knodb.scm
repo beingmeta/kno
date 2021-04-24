@@ -4,7 +4,7 @@
 
 (in-module 'knodb)
 
-(use-module '{texttools kno/reflect})
+(use-module '{texttools reflection})
 (use-module '{gpath fifo kno/mttools ezrecords text/stringfmts logger varconfig})
 (use-module '{knodb/adjuncts knodb/registry knodb/filenames knodb/indexes})
 (use-module '{knodb/flexpool knodb/flexindex})

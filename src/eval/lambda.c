@@ -518,7 +518,8 @@ static lispval scan_body(lispval body,u8_string name,
   return entry;
 }
 
-DEF_KNOSYM(synchronized); DEF_KNOSYM(choiceop);
+DEF_KNOSYM(synchronized); DEF_KNOSYM(sync);
+DEF_KNOSYM(choiceop); DEF_KNOSYM(choicefn);
 
 static lispval
 _make_lambda(u8_string name,
@@ -614,8 +615,11 @@ _make_lambda(u8_string name,
 
   if (KNO_TABLEP(s->fcn_attribs)) {
     lispval attribs = s->fcn_attribs;
-    if (kno_test(attribs,KNOSYM(synchronized),KNO_VOID)) sync=1;
-    if (kno_test(attribs,KNOSYM(choiceop),KNO_VOID)) {
+    if ( (kno_test(attribs,KNOSYM(synchronized),KNO_VOID)) ||
+	 (kno_test(attribs,KNOSYM(sync),KNO_VOID)) )
+      sync=1;
+    if ( (kno_test(attribs,KNOSYM(choiceop),KNO_VOID)) ||
+	 (kno_test(attribs,KNOSYM(choicefn),KNO_VOID)) ) {
       s->fcn_call = (KNO_CALL_NDCALL);
       nd=1;}
     if (name == NULL) {
@@ -868,24 +872,6 @@ static lispval lambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return proc;
 }
 
-DEFC_EVALFN("ambda",ambda_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(ambda *args* *body...*)` returns a "
-	    "choice lambda procedure which doesn't iterate over "
-	    "its arguments.")
-static lispval ambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval arglist = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,2);
-  lispval proc = VOID;
-  if (VOIDP(arglist))
-    return kno_err(kno_TooFewExpressions,"AMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,_stack,1,0);
-  if (KNO_ABORTED(proc))
-    return proc;
-  KNO_SET_LAMBDA_SOURCE(proc,expr);
-  return proc;
-}
-
 DEFC_EVALFN("nlambda",nlambda_evalfn,KNO_EVALFN_DEFAULTS,
 	    "`(nlambda *name* *args* *body...*)` returns a "
 	    "named lambda procedure.")
@@ -918,22 +904,29 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return proc;
 }
 
-static lispval def_helper(lispval expr,
-			  kno_lexenv env,kno_stack stack,
-			  int nd,int sync)
+static lispval lambda_helper(lispval expr,
+			     kno_lexenv env,kno_stack stack,
+			     int named,int nd,int sync)
 {
   lispval template = kno_get_arg(expr,1);
-  if (!(KNO_PAIRP(template)))
-    return kno_err(kno_SyntaxError,"def_evalfn",NULL,template);
-  lispval name = KNO_CAR(template);
-  lispval arglist = KNO_CDR(template);
+  if ( (named) && (!(KNO_PAIRP(template))) )
+    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(expr))),
+		   NULL,template);
+  else if (!( (template==KNO_EMPTY_LIST) || (KNO_PAIRP(template)) ) )
+    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(expr))),
+		   NULL,template);
+  else NO_ELSE;
+  lispval name = (named) ? (KNO_CAR(template)) : (KNO_VOID);
+  lispval arglist = (named) ? (KNO_CDR(template)) : template;
   lispval body = kno_get_body(expr,2);
   lispval proc = VOID;
   u8_string namestring = NULL;
-  if (SYMBOLP(name)) namestring = SYM_NAME(name);
-  else if (STRINGP(name)) namestring = CSTRING(name);
-  else return kno_type_error
-	 ("procedure name (string or symbol)","def_evalfn",name);
+  if (named) {
+    if (SYMBOLP(name)) namestring = SYM_NAME(name);
+    else if (STRINGP(name)) namestring = CSTRING(name);
+    else return kno_type_error
+	   ("procedure name (string or symbol)",KNO_SYMBOL_NAME(KNO_CAR(expr)),
+	    name);}
   proc=make_lambda(namestring,arglist,body,env,stack,nd,sync);
   if (KNO_ABORTED(proc))
     return proc;
@@ -946,65 +939,50 @@ DEFC_EVALFN("defn",defn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "named lambda procedure.")
 static lispval defn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,_stack,0,0);
+  return lambda_helper(expr,env,_stack,1,0,0);
 }
 
 DEFC_EVALFN("choicefn",choicefn_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(choicefn (*name* *..args..*) *body...*)` returns a "
-	    "choice lambda which does not automatically iterate over "
+	    "`(choicefn *args* *body...*)` returns a "
+	    "choicefn (lambda) which does not automatically iterate over "
 	    "non-determinstic arguments, but receives those arguments "
 	    "as a direct value.")
 static lispval choicefn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,_stack,1,0);
+  return lambda_helper(expr,env,_stack,0,1,0);
+}
+
+DEFC_EVALFN("nchoicefn",nchoicefn_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(nchoicefn (*name* *..args..*) *body...*)` returns a "
+	    "choicefn (lambda) which does not automatically iterate over "
+	    "non-determinstic arguments, but receives those arguments "
+	    "as a direct value.")
+static lispval nchoicefn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  return lambda_helper(expr,env,_stack,1,1,0);
 }
 
 DEFC_EVALFN("syncfn",syncfn_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(syncfn (*name* *..args..*) *body...*)` returns a synchronized "
-	    "lambda which can only called by one thread at a time. This "
-	    "differs from `slambda` in that it provides a name for "
-	    "the function.")
+	    "`(syncfn *args* *body...*)` returns a synchronized "
+	    "lambda which can only called by one thread at a time.")
 static lispval syncfn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return def_helper(expr,env,_stack,0,1);
+  return lambda_helper(expr,env,_stack,0,0,1);
 }
 
-DEFC_EVALFN("slambda",slambda_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(slambda *args* *body...*)` returns a synchronized "
-	    "lambda which can only called by one thread at a time.")
-static lispval slambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+DEFC_EVALFN("nsyncfn",nsyncfn_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(nsyncfn (*name* . *args...*) *body...*)` returns a named "
+	    "synchronized lambda which can only called by one thread at a "
+	    "time.")
+static lispval nsyncfn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval arglist = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,2);
-  lispval proc = VOID;
-  if (VOIDP(arglist))
-    return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,_stack,0,1);
-  KNO_SET_LAMBDA_SOURCE(proc,expr);
-  return proc;
+  return lambda_helper(expr,env,_stack,1,0,1);
 }
 
-DEFC_EVALFN("sambda",sambda_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(sambda *args* *body...*)` returns a synchronized "
-	    "non-deterministic lambda which can only called by one thread.")
-static lispval sambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  lispval arglist = kno_get_arg(expr,1);
-  lispval body = kno_get_body(expr,2);
-  lispval proc = VOID;
-  if (VOIDP(arglist))
-    return kno_err(kno_TooFewExpressions,"SLAMBDA",NULL,expr);
-  proc=make_lambda(NULL,arglist,body,env,_stack,1,1);
-  if (KNO_ABORTED(proc))
-    return proc;
-  KNO_SET_LAMBDA_SOURCE(proc,expr);
-  return proc;
-}
-
-DEFC_EVALFN("thunk",thunk_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(thunk *body...*)` returns a procedure of no arguments "
+DEFC_EVALFN("thunkfn",thunkfn_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(thunkfn *body...*)` returns a procedure of no arguments "
 	    "which executes *body*.")
-static lispval thunk_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+static lispval thunkfn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval body = kno_get_body(expr,1);
   lispval proc = make_lambda(NULL,NIL,body,env,_stack,0,0);
@@ -1438,25 +1416,38 @@ KNO_EXPORT void kno_init_lambdas_c()
   link_local_cprims();
 
   LINK_EVALFN(kno_scheme_module,lambda_evalfn);
-  LINK_EVALFN(kno_scheme_module,ambda_evalfn);
+  KNO_LINK_ALIAS("fn",lambda_evalfn,kno_scheme_module);
   LINK_EVALFN(kno_scheme_module,nlambda_evalfn);
-  LINK_EVALFN(kno_scheme_module,slambda_evalfn);
+  LINK_EVALFN(kno_scheme_module,defn_evalfn);
+  KNO_LINK_ALIAS("namedfn",defn_evalfn,kno_scheme_module);
 
-  LINK_EVALFN(kno_scheme_module,sambda_evalfn);
+  LINK_EVALFN(kno_scheme_module,choicefn_evalfn);
+  KNO_LINK_ALIAS("ambda",choicefn_evalfn,kno_scheme_module);
 
-  LINK_EVALFN(kno_scheme_module,thunk_evalfn);
+  LINK_EVALFN(kno_scheme_module,nchoicefn_evalfn);
+  KNO_LINK_ALIAS("defambfn",nchoicefn_evalfn,kno_scheme_module);
+  KNO_LINK_ALIAS("defamb",nchoicefn_evalfn,kno_scheme_module);
+  KNO_LINK_ALIAS("nambda",nchoicefn_evalfn,kno_scheme_module);
+
+  LINK_EVALFN(kno_scheme_module,syncfn_evalfn);
+  KNO_LINK_ALIAS("slambda",syncfn_evalfn,kno_scheme_module);
+
+  LINK_EVALFN(kno_scheme_module,nsyncfn_evalfn);
+  KNO_LINK_ALIAS("defsyncfn",nsyncfn_evalfn,kno_scheme_module);
+  KNO_LINK_ALIAS("nslambda",nsyncfn_evalfn,kno_scheme_module);
+  KNO_LINK_ALIAS("defsync",nsyncfn_evalfn,kno_scheme_module);
+
+  LINK_EVALFN(kno_scheme_module,thunkfn_evalfn);
+  KNO_LINK_ALIAS("thunk",thunkfn_evalfn,kno_scheme_module);
+
   LINK_EVALFN(kno_scheme_module,define_evalfn);
+  KNO_LINK_ALIAS("def",define_evalfn,kno_scheme_module);
+
   LINK_EVALFN(kno_scheme_module,defexport_evalfn);
   LINK_EVALFN(kno_scheme_module,defslambda_evalfn);
   LINK_EVALFN(kno_scheme_module,defambda_evalfn);
+  KNO_LINK_ALIAS("defchoicefn",defambda_evalfn,kno_scheme_module);
 
-  LINK_EVALFN(kno_scheme_module,defn_evalfn);
-  LINK_EVALFN(kno_scheme_module,choicefn_evalfn);
-  LINK_EVALFN(kno_scheme_module,syncfn_evalfn);
-
-  KNO_LINK_ALIAS("def",defn_evalfn,kno_scheme_module);
-  KNO_LINK_ALIAS("defamb",choicefn_evalfn,kno_scheme_module);
-  KNO_LINK_ALIAS("defsync",syncfn_evalfn,kno_scheme_module);
 }
 
 static void link_local_cprims()

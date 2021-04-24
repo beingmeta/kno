@@ -57,6 +57,7 @@ KNO_EXPORT lispval kno_make_port(U8_INPUT *in,U8_OUTPUT *out,u8_string id)
 {
   struct KNO_PORT *port = u8_alloc(struct KNO_PORT);
   KNO_INIT_CONS(port,kno_ioport_type);
+  port->annotations = KNO_EMPTY;
   port->port_input = in;
   port->port_output = out;
   port->port_id = id;
@@ -1902,6 +1903,7 @@ static void recycle_port(struct KNO_RAW_CONS *c)
     u8_close_output(p->port_output);}
   if (p->port_id) u8_free(p->port_id);
   if (p->port_lisprefs != KNO_NULL) kno_decref(p->port_lisprefs);
+  if (p->annotations) kno_decref(p->annotations);
   if (KNO_MALLOCD_CONSP(c)) u8_free(c);
 }
 

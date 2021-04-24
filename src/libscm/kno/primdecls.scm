@@ -2,7 +2,7 @@
 
 (in-module 'kno/primdecls)
 
-(use-module '{kno/reflect texttools logger})
+(use-module '{reflection texttools logger})
 
 (define add-header
   "#include \"kno/cprims.h\"")
