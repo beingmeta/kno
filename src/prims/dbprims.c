@@ -34,6 +34,12 @@ static lispval pools_symbol, indexes_symbol, id_symbol, drop_symbol;
 static lispval flags_symbol, register_symbol, readonly_symbol, phased_symbol;
 static lispval background_symbol, adjunct_symbol, sparse_symbol, repair_symbol;
 
+#define STR_EXTRACT(into,start,end)					\
+  size_t into ## _strlen = (end) ? ((end)-(start)) : (strlen(start));	\
+  u8_byte into[into ## _strlen +1];					\
+  memcpy(into,start,into ## _strlen);					\
+  into[into ## _strlen]='\0'
+
 #define BLOOM_FILTER_TYPE 0x63845e
 
 /* These are called when the lisp version of its pool/index argument
@@ -52,26 +58,49 @@ KNO_FASTOP lispval index_ref(kno_index ix)
 
 #define FALSE_ARGP(x) ( ((x)==KNO_VOID) || ((x)==KNO_FALSE) || ((x)==KNO_FIXZERO) )
 
-static int load_db_module(lispval opts,u8_context context)
+static void maybe_load_modules(lispval modules,u8_context context)
+{
+  if ( (KNO_VOIDP(modules)) || (KNO_FALSEP(modules)) || (KNO_EMPTYP(modules)) )
+    return;
+  else {
+    lispval mod = kno_find_module(modules,0);
+    if (KNO_VOIDP(mod)) {
+      u8_log(LOGWARN,"MissingDBModule",
+	     "Couldn't find %q <%s>",modules,context);}
+    else kno_decref(mod);}
+}
+
+DEF_KNOSYM(indextype); DEF_KNOSYM(pooltype);
+
+static void load_db_module(lispval opts,u8_context context,int index)
 {
   if ( (KNO_VOIDP(opts)) || (KNO_EMPTYP(opts)) ||
        (KNO_FALSEP(opts)) || (KNO_DEFAULTP(opts)) )
-    return 0;
+    return;
   else {
+    lispval optname = (index) ? (KNOSYM(indextype)) : (KNOSYM(pooltype));
+    lispval type = kno_getopt(opts,optname,KNO_VOID);
+    if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_TYPE,KNO_VOID);
+    u8_string typename = (KNO_SYMBOLP(type)) ? (KNO_SYMBOL_NAME(type)) :
+      (KNO_STRINGP(type)) ? (KNO_CSTRING(type)) : (U8S(NULL));
+    if ( typename == NULL) {}
+    else if ( (index) ? (kno_get_index_typeinfo(typename)!=NULL) :
+	      (kno_get_pool_typeinfo(typename)!=NULL) ) {}
+    else if (strchr(typename,':')) {
+      u8_string colon = strchr(typename,':');
+      STR_EXTRACT(modname,typename,colon);
+      lispval modspec = kno_intern(modname);
+      lispval mod = kno_find_module(modspec,0);
+      if (KNO_VOIDP(mod)) {
+	modspec = knostring(modname);
+	mod = kno_find_module(modspec,0);
+	kno_decref(modspec);}
+      kno_decref(mod);}
+    else NO_ELSE;
+    kno_decref(type);
     lispval modules = kno_getopt(opts,KNOSYM_MODULE,KNO_VOID);
-    if ( (KNO_VOIDP(modules)) || (KNO_FALSEP(modules)) || (KNO_EMPTYP(modules)) )
-      return 0;
-    else {
-      lispval mod = kno_find_module(modules,1);
-      kno_decref(modules);
-      if (KNO_ABORTP(mod)) {
-	kno_seterr("MissingDBModule",context,
-		   ((KNO_SYMBOLP(modules)) ? (KNO_SYMBOL_NAME(modules)) : (NULL)),
-		   modules);
-	return -1;}
-      else {
-	kno_decref(mod);
-	return 1;}}}
+    maybe_load_modules(modules,context);
+    kno_decref(modules);}
 }
 
 DEFC_PRIM("prefetch-slotvals!",prefetch_slotvals,
@@ -300,9 +329,8 @@ DEFC_PRIM("use-pool",use_pool,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval use_pool(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"use_pool")<0)
-    return KNO_ERROR;
-  else if (KNO_POOLP(source))
+  load_db_module(opts,"use_pool",0);
+  if (KNO_POOLP(source))
     // TODO: Should check to make sure that it's in the background
     return kno_incref(source);
   else if (!(STRINGP(source)))
@@ -322,9 +350,8 @@ DEFC_PRIM("adjunct-pool",adjunct_pool,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval adjunct_pool(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"adjunct_pool")<0)
-    return KNO_ERROR;
-  else if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
+  load_db_module(opts,"adjunct_pool",0);
+  if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
     // TODO: Should check it's really adjunct, if that's the right thing?
     return kno_incref(source);
   else if (!(STRINGP(source)))
@@ -347,9 +374,8 @@ DEFC_PRIM("try-pool",try_pool,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval try_pool(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"try_pool")<0)
-    return KNO_ERROR;
-  else	if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
+  load_db_module(opts,"try_pool",0);
+  if ( (KNO_POOLP(source)) || (TYPEP(source,kno_consed_pool_type)) )
     return kno_incref(source);
   else if (!(STRINGP(source)))
     return kno_type_error(_("string"),"load_pool",source);
@@ -370,9 +396,8 @@ DEFC_PRIM("use-index",use_index,
 static lispval use_index(lispval source,lispval opts)
 {
   kno_index ixresult = NULL;
-  if (load_db_module(opts,"use_index")<0)
-    return KNO_ERROR;
-  else if (INDEXP(source)) {
+  load_db_module(opts,"use_index",1);
+  if (INDEXP(source)) {
     ixresult = kno_indexptr(source);
     if (ixresult) kno_add_to_background(ixresult);
     else return kno_type_error("index","index_frame_prim",source);
@@ -464,9 +489,8 @@ DEFC_PRIM("open-index",open_index,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval open_index(lispval source,lispval opts)
 {
-  if (load_db_module(opts,"open_index")<0)
-    return KNO_ERROR;
-  else return open_index_helper(source,opts,-1);
+  load_db_module(opts,"open_index",1);
+  return open_index_helper(source,opts,-1);
 }
 
 DEFC_PRIM("register-index",register_index,
@@ -477,9 +501,8 @@ DEFC_PRIM("register-index",register_index,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval register_index(lispval arg,lispval opts)
 {
-  if (load_db_module(opts,"register_index")<0)
-    return KNO_ERROR;
-  else return open_index_helper(arg,opts,1);
+  load_db_module(opts,"register_index",1);
+  return open_index_helper(arg,opts,1);
 }
 
 DEFC_PRIM("cons-index",cons_index,
@@ -490,12 +513,9 @@ DEFC_PRIM("cons-index",cons_index,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval cons_index(lispval arg,lispval opts)
 {
-  if (load_db_module(opts,"cons_index")<0)
-    return KNO_ERROR;
-  else return open_index_helper(arg,opts,0);
+  load_db_module(opts,"cons_index",1);
+  return open_index_helper(arg,opts,0);
 }
-
-DEF_KNOSYM(pooltype);
 
 DEFC_PRIM("make-pool",make_pool,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -504,9 +524,9 @@ DEFC_PRIM("make-pool",make_pool,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval make_pool(lispval path,lispval opts)
 {
-  if (load_db_module(opts,"make_pool")<0) return KNO_ERROR;
+  load_db_module(opts,"make_pool",0);
   kno_pool p = NULL;
- lispval type = kno_getopt(opts,KNOSYM(pooltype),VOID);
+  lispval type = kno_getopt(opts,KNOSYM(pooltype),VOID);
   if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_TYPE,VOID);
   if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_DRIVER,VOID);
   if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_MODULE,VOID);
@@ -533,12 +553,12 @@ DEFC_PRIM("pool-type?",known_pool_typep,
 	  {"string",kno_any_type,KNO_VOID})
 static lispval known_pool_typep(lispval stringy)
 {
-  kno_pool_typeinfo ixtype = (KNO_SYMBOLP(stringy)) ?
+  kno_pool_typeinfo ptype = (KNO_SYMBOLP(stringy)) ?
     (kno_get_pool_typeinfo(KNO_SYMBOL_NAME(stringy))) :
     (KNO_STRINGP(stringy)) ?
     (kno_get_pool_typeinfo(KNO_CSTRING(stringy))) :
     (NULL);
-  if (ixtype) return KNO_TRUE; else return KNO_FALSE;
+  if (ptype) return KNO_TRUE; else return KNO_FALSE;
 }
 
 DEFC_PRIM("pool-type",get_pool_type,
@@ -571,15 +591,13 @@ DEFC_PRIM("open-pool",open_pool,
 	  {"opts",kno_any_type,KNO_FALSE})
 static lispval open_pool(lispval path,lispval opts)
 {
-  if (load_db_module(opts,"open_pool")<0) return KNO_ERROR;
+  load_db_module(opts,"open_pool",0);
   kno_storage_flags flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
   kno_pool p = kno_open_pool(CSTRING(path),flags,opts);
   if (p)
     return kno_pool2lisp(p);
   else return KNO_ERROR;
 }
-
-DEF_KNOSYM(indextype);
 
 DEFC_PRIM("make-index",make_index,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
@@ -588,7 +606,7 @@ DEFC_PRIM("make-index",make_index,
 	  {"opts",kno_any_type,KNO_VOID})
 static lispval make_index(lispval path,lispval opts)
 {
-  if (load_db_module(opts,"make_index")<0) return KNO_ERROR;
+  load_db_module(opts,"make_index",1);
   kno_index ix = NULL;
   lispval type = kno_getopt(opts,KNOSYM(indextype),VOID);
   if (KNO_VOIDP(type)) type = kno_getopt(opts,KNOSYM_TYPE,VOID);
@@ -948,7 +966,7 @@ static lispval make_procpool(lispval label,
 			     lispval opts,lispval state,
 			     lispval load)
 {
-  if (load_db_module(opts,"make_procpool")<0) return KNO_ERROR;
+  load_db_module(opts,"make_procpool",0);
   if (!(KNO_UINTP(cap)))
     return kno_type_error("uint","make_procpool",cap);
   if (KNO_VOIDP(load))
@@ -1071,7 +1089,7 @@ static lispval make_procindex(lispval id,
 			      lispval opts,lispval state,
 			      lispval source,lispval typeid)
 {
-  if (load_db_module(opts,"make_procindex")<0) return KNO_ERROR;
+  load_db_module(opts,"make_procindex",1);
   kno_index ix = kno_make_procindex
     (opts,state,KNO_CSTRING(id),
      ((KNO_VOIDP(source)) ? (NULL) : (KNO_CSTRING(source))),

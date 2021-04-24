@@ -1110,7 +1110,7 @@ void kno_init_module_tables()
 
   if (KNO_VOIDP(kno_binio_module)) {
     kno_binio_module = kno_make_hashtable(NULL,71);}
-  kno_register_module("binio",kno_binio_module,0);
+  kno_register_module("binio",kno_binio_module,(KNO_MODULE_DEFAULT));
 
   if (KNO_VOIDP(kno_sys_module)) {
     kno_sys_module = kno_make_hashtable(NULL,71);}
