@@ -19,7 +19,7 @@
   (default! generator (getopt opts 'generator #f))
   (let* ((state (read-file file opts format generator))
 	 (statefile (get state 'statefile)))
-    (store! 'state 'readtime (timestamp))
+    (store! state 'readtime (timestamp))
     (when (exists? statefile)
       (unless (overlaps? {file (realpath file) (abspath file)}
 			 {statefile (realpath statefile) (abspath statefile)})

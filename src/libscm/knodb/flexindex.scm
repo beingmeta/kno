@@ -71,7 +71,7 @@
 			 'keyslot (getopt opts 'keyslot {})
 			 'partsize (get opts 'partsize)
 			 'metadata metadata)))
-	   (statefile/save! state spec [useformat 'xtype])
+	   (statefile/save! state [useformat 'xtype] spec)
 	   (if opts (cons opts state) state)))
 	(else (irritant spec |NoSuchIndex|))))
 

@@ -204,7 +204,7 @@
 	      "Creating a partitions directory " (write (dirname absprefix))
 	      " for " filename)
 	    (mkdirs (dirname absprefix)))
-	  (statefile/save! flexdef filename #[useformat xtype])
+	  (statefile/save! flexdef #[useformat xtype] filename)
 	  (logdebug |MakeFlexpool|
 	    "Initialized " filename " with definition:\n"
 	    (listdata flexdef))
