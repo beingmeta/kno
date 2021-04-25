@@ -1267,12 +1267,12 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    auto_disabled="${auto_disabled} ffi";
 fi
 
-VSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${vshared_suffix}:${prefix}/lib/%.${vshared_suffix}:${prefix}/lib/libkno%.${vshared_suffix}"
-MMSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mmshared_suffix}:${prefix}/lib/%.${mmshared_suffix}:${prefix}/lib/libkno%.${mmshared_suffix}"
-MSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mshared_suffix}:${prefix}/lib/%.${mshared_suffix}:${prefix}/lib/libkno%.${mshared_suffix}"
-SHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${shared_suffix}:${prefix}/lib/%.${shared_suffix}:${prefix}/lib/libkno%.${shared_suffix}"
-LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix}:${prefix}/lib/lib%.${mmshared_suffix}:${prefix}/lib/lib%.${mshared_suffix}:${prefix}/lib/lib%.${shared_suffix}"
-DEFAULT_DLOADPATH="${VSHARED_LOADPATH}:${MMSHARED_LOADPATH}:${MSHARED_LOADPATH}:${SHARED_LOADPATH}"
+VSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${vshared_suffix};${prefix}/lib/%.${vshared_suffix};${prefix}/lib/libkno%.${vshared_suffix}"
+MMSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mmshared_suffix};${prefix}/lib/%.${mmshared_suffix};${prefix}/lib/libkno%.${mmshared_suffix}"
+MSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mshared_suffix};${prefix}/lib/%.${mshared_suffix};${prefix}/lib/libkno%.${mshared_suffix}"
+SHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${shared_suffix};${prefix}/lib/%.${shared_suffix};${prefix}/lib/libkno%.${shared_suffix}"
+LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix};${prefix}/lib/lib%.${mmshared_suffix};${prefix}/lib/lib%.${mshared_suffix};${prefix}/lib/lib%.${shared_suffix}"
+DEFAULT_DLOADPATH="${VSHARED_LOADPATH};${MMSHARED_LOADPATH};${MSHARED_LOADPATH};${SHARED_LOADPATH}"
 
 dnl For specifying default -arch flags for OSX
 AC_ARG_WITH(arch,--with/out-arch build with particular --arch flags,,with_arch="")
@@ -1389,8 +1389,8 @@ if test "$with_libscm" == "version"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}")
    LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}";
 elif test "$with_libscm" == "zip"; then
-   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
-   LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
+   LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm

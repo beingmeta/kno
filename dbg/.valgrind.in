@@ -1,8 +1,8 @@
 export VG_ENV="\
         LD_LIBRARY_PATH=../lib DYLD_LIBRARY_PATH=../lib			\
 	MEMCHECKING=yes UNDERGDB=yes					\
-	KNO_INIT_LOADPATH=@abs_top_srcdir@/src/stdlib/:@abs_top_srcdir@/src/stdlib/safe/:@default_module_path@ \
-	KNO_LOADPATH=@abs_top_srcdir@/src/stdmods/:@abs_top_srcdir@/src/text/textmods/:@abs_top_srcdir@/src/web/webmods/:@default_module_path@ \
+	KNO_INIT_LOADPATH=",@abs_top_srcdir@/src/stdlib/,@abs_top_srcdir@/src/stdlib/safe/,@default_module_path@" \
+	KNO_LOADPATH=",@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/text/textmods/,@abs_top_srcdir@/src/web/webmods/,@default_module_path@" \
 	KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/ 			\
 	KNO_DLOADPATH=@abs_top_srcdir@/lib/kno					\
 	KNO_TRACECONFIGLOAD=yes KNO_UPDATE_MODULES=5			\

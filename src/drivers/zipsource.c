@@ -44,6 +44,13 @@ static int local_loglevel = -1;
 #include "headers/miniz.h"
 #include "headers/zip.h"
 
+#define STR_EXTRACT(into,start,end)					\
+  u8_string into ## _end = end;						\
+  size_t into ## _strlen = (into ## _end) ? ((into ## _end)-(start)) : (strlen(start)); \
+  u8_byte into[into ## _strlen +1];					\
+  memcpy(into,start,into ## _strlen);					\
+  into[into ## _strlen]='\0'
+
 DEF_KNOSYM(modified); DEF_KNOSYM(pathtype);
 DEF_KNOSYM(symlink); DEF_KNOSYM(directory);
 DEF_KNOSYM(file); DEF_KNOSYM(weird);
@@ -66,9 +73,6 @@ static u8_string get_string_opt(lispval opts,lispval optname,ssize_t *sizep)
 }
 
 #define zip_entry_type(zip) (((zip)->entry.external_attr&0xF0000000) >> 28)
-
-DEF_KNOSYM(cacheroot); DEF_KNOSYM(cachesize);
-DEF_KNOSYM(prefix); DEF_KNOSYM(mountpoint);
 
 KNO_EXPORT int kno_zipsource_existsp(lispval zs,u8_string path)
 {
@@ -318,18 +322,19 @@ static u8_string zip_source_fn(int fetch,lispval pathspec,u8_string encname,
 {
   u8_byte *result = NULL;
   if (KNO_STRINGP(pathspec)) {
-    u8_string pathstring = KNO_CSTRING(pathspec), slash;
-    if ((slash=(strstr(pathstring,".zip/")))) {
-      ssize_t path_len = KNO_STRLEN(pathspec), zip_len = (slash-pathstring)+4;
-      u8_byte path[path_len+1], *subpath = path+zip_len+1;
-      memcpy(path,pathstring,path_len+1);
-      path[zip_len]='\0';
-      lispval zipsource = get_zipsource(path,zip_len,0);
+    u8_string pathstring = KNO_CSTRING(pathspec), zip_suffix;
+    /* Must start with zip: */
+    if (strncasecmp(pathstring,"zip:",4)) return NULL;
+    if ((zip_suffix=(strstr(pathstring+4,".zip/")))) {
+      int zipsource_len = (zip_suffix+4)-pathstring-4;
+      lispval zipsource = get_zipsource(pathstring+4,zipsource_len,0);
+      u8_string subpath = zip_suffix+5;
       if (ZIPSOURCEP(zipsource)) {
 	lispval info = kno_zipsource_info(zipsource,subpath,1);
 	if (KNO_FALSEP(info)) {
 	  kno_decref(zipsource);
 	  return NULL;}
+	STR_EXTRACT(path,pathstring,zip_suffix+5);
 	lispval real_name = kno_get(info,KNOSYM_NAME,KNO_VOID);
 	lispval data_len = kno_get(info,KNOSYM_SIZE,KNO_VOID);
 	lispval modified = kno_get(info,KNOSYM(modified),KNO_VOID);
@@ -442,7 +447,6 @@ int kno_init_zipsource_c()
   KNOSYM(symlink); KNOSYM(directory);
   KNOSYM(file); KNOSYM(weird);
   KNOSYM(content);
-  KNOSYM(prefix);
 
   kno_init_hashtable(&zipsources,17,NULL);
 

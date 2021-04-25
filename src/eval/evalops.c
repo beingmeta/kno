@@ -727,13 +727,12 @@ static lispval get_documentation(lispval x)
 
 /* Apropos */
 
-/* Apropos */
-
-DEFC_PRIM("apropos",apropos_prim,
+DEFC_PRIM("getsyms",getsyms_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns all the symbols which contain a specific string or "
+	  "patter (regex)",
 	  {"arg",kno_any_type,KNO_VOID})
-static lispval apropos_prim(lispval arg)
+static lispval getsyms_prim(lispval arg)
 {
   u8_string seeking; lispval all, results = EMPTY;
   regex_t *regex = NULL; u8_mutex *lock = NULL;
@@ -744,7 +743,7 @@ static lispval apropos_prim(lispval arg)
     regex = &(krx->rxcompiled);
     lock  = &(krx->rx_lock);
     u8_lock_mutex(lock);}
-  else return kno_type_error(_("string or symbol"),"apropos",arg);
+  else return kno_type_error(_("string, symbol, or regex"),"getsyms",arg);
   all = kno_all_symbols();
   {DO_CHOICES(sym,all) {
       u8_string name = SYM_NAME(sym);
@@ -871,7 +870,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("fcn/getalias",fcn_getalias_prim,2,kno_scheme_module);
 
   KNO_LINK_CPRIM("documentation",get_documentation,1,kno_scheme_module);
-  KNO_LINK_CPRIM("apropos",apropos_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("getsyms",getsyms_prim,1,kno_scheme_module);
+  KNO_LINK_ALIAS("apropos",getsyms_prim,kno_scheme_module);
 
   KNO_LINK_CPRIM("environment?",environmentp_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("%lexref",lexref_prim,2,kno_scheme_module);

@@ -234,6 +234,8 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags);
 KNO_EXPORT lispval kno_new_cmodule_x
 (char *name,int flags,void *addr,u8_string filename);
 
+KNO_EXPORT int kno_add_default_module(lispval module);
+
 KNO_EXPORT lispval kno_get_moduleid(lispval x,int err);
 
 #define kno_new_cmodule(name,flags,addr) \

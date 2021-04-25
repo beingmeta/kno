@@ -39,6 +39,8 @@ lispval kno_binio_module = KNO_VOID;
 lispval kno_db_module = KNO_VOID;
 lispval kno_sys_module = KNO_VOID;
 
+static u8_mutex default_env_lock;
+
 KNO_EXPORT lispval kno_dbserv_module;
 
 void clear_module_load_lock(lispval spec);
@@ -154,6 +156,26 @@ static lispval init_modinfo(lispval module)
   return info;
 }
 
+KNO_EXPORT int kno_add_default_module(lispval module)
+{
+  lispval to_add = (KNO_HASHTABLEP(module)) ? (module) :
+    ( (KNO_LEXENVP(module)) &&
+      (!(KNO_VOIDP(((kno_lexenv)module)->env_exports))) ) ?
+    (((kno_lexenv)module)->env_exports) :
+    (module);
+  u8_lock_mutex(&default_env_lock);
+  kno_lexenv scan = default_env;
+  while (scan)
+    if (KNO_EQ(scan->env_bindings,to_add)) {
+      u8_unlock_mutex(&default_env_lock);
+      return 0;}
+    else scan = scan->env_parent;
+  default_env->env_parent=
+    kno_make_env(kno_incref(to_add),default_env->env_parent);
+  u8_unlock_mutex(&default_env_lock);
+  return 1;
+}
+
 KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
 {
   /* int rv = kno_hashtable_op(&&module_map,kno_table_default,name,module); */
@@ -179,14 +201,7 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
   kno_decref(info);
 
   /* Add to the appropriate default environment */
-  if (flags&KNO_MODULE_DEFAULT) {
-    kno_lexenv scan;
-    scan = default_env;
-    while (scan)
-      if (KNO_EQ(scan->env_bindings,module)) return module;
-      else scan = scan->env_parent;
-    default_env->env_parent=
-      kno_make_env(kno_incref(module),default_env->env_parent);}
+  if (flags&KNO_MODULE_DEFAULT) kno_add_default_module(module);
   return module;
 }
 
@@ -209,8 +224,7 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
     kno_decref(module);
     return as_stored;}
   else kno_decref(as_stored);
-  if (flags&KNO_MODULE_DEFAULT) {
-    default_env->env_parent = kno_make_env(module,default_env->env_parent);}
+  if (flags&KNO_MODULE_DEFAULT) kno_add_default_module(module);
   lispval fcnrefs_table = kno_make_hashtable(NULL,19);
   kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
 		   fcnrefs_table);
@@ -1129,6 +1143,7 @@ void kno_init_module_tables()
 
 KNO_EXPORT void kno_init_modules_c()
 {
+  u8_init_mutex(&default_env_lock);
   u8_init_mutex(&exports_lock);
 
   link_local_cprims();

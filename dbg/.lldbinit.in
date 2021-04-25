@@ -2,7 +2,7 @@ command source ../etc/lldbinit
 env DYLD_LIBRARY_PATH=../lib
 env LD_LIBRARY_PATH=../lib
 env KNO_INIT_DLOADPATH ../lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
-env KNO_INIT_LOADPATH=../src/extmods/:@default_module_path@
+env KNO_INIT_LOADPATH=../src/extmods/,@default_module_path@
 env KNO_UPDATEMODULES=5
 env KNO_SKIP_DOTLOAD=yes
 env KNO_TRACECONFIGLOAD=yes
