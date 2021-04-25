@@ -3,5 +3,5 @@ directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@
-set env FD_LOADPATH @abs_top_srcdir@/src/modules/%.scm:@abs_top_srcdir@/src/modules/%/module.scm
-set env FD_SAFELOADPATH @abs_top_srcdir@/src/modules/%.scm:@abs_top_srcdir@/src/modules/%/module.scm
+set env FD_LOADPATH "@abs_top_srcdir@/src/modules/%.scm,@abs_top_srcdir@/src/modules/%/module.scm"
+source ./.gdbinit.local

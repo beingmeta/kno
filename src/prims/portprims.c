@@ -563,16 +563,15 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
   if (STRINGP(x))
     u8_puts(out,CSTRING(x));
   else if ( (out->u8_streaminfo) & (KNO_U8STREAM_HISTORIC) ) {
-    lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
-    if (VOIDP(history))
-      kno_unparse(out,x);
-    else {
+    lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
+    if (KNO_HISTORYP(history))  {
       int num = kno_history_add(history,x,VOID);
       if (num < 0)
 	kno_unparse(out,x);
       else {
 	u8_printf(out,"(#%d=) ",num);
-	kno_unparse(out,x);}}}
+	kno_unparse(out,x);}}
+    else kno_unparse(out,x);}
   else kno_unparse(out,x);
   return 1;
 }
@@ -826,10 +825,8 @@ DEFC_PRIM("$histstring",histstring_prim,
 	  {"label",kno_any_type,KNO_VOID})
 static lispval histstring_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
-  if (VOIDP(history))
-    return KNO_FALSE;
-  else {
+  lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
+  if (KNO_HISTORYP(history)) {
     lispval ref = kno_history_add(history,x,label);
     if ( (KNO_FALSEP(ref)) || (KNO_VOIDP(ref)) || (KNO_EMPTYP(ref)) ) {
       return KNO_FALSE;}
@@ -838,6 +835,7 @@ static lispval histstring_prim(lispval x,lispval label)
       u8_bprintf(buf,"#%q",ref);
       kno_decref(ref);
       return kno_make_string(NULL,-1,buf);}}
+  else return KNO_FALSE;
 }
 
 DEFC_PRIM("$histref",histref_prim,
@@ -849,10 +847,8 @@ DEFC_PRIM("$histref",histref_prim,
 	  {"label",kno_any_type,KNO_VOID})
 static lispval histref_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
-  if (VOIDP(history))
-    return VOID;
-  else {
+  lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
+  if (KNO_HISTORYP(history)) {
     U8_OUTPUT *out = u8_current_output;
     lispval ref = kno_history_add(history,x,label);
     if ( (KNO_FALSEP(ref)) || (KNO_VOIDP(ref)) || (KNO_EMPTYP(ref)) )
@@ -861,6 +857,7 @@ static lispval histref_prim(lispval x,lispval label)
       u8_printf(out,"#%q",ref);
       kno_decref(ref);
       return VOID;}}
+  else return VOID;
 }
 
 DEFC_PRIM("$histval",histval_prim,
@@ -872,12 +869,8 @@ DEFC_PRIM("$histval",histval_prim,
 	  {"label",kno_any_type,KNO_VOID})
 static lispval histval_prim(lispval x,lispval label)
 {
-  lispval history = kno_thread_get(KNOSYM_HISTORY_THREADVAL);
-  if (VOIDP(history)) {
-    U8_OUTPUT *out = u8_current_output;
-    u8_printf(out,"%q",x);
-    return VOID;}
-  else {
+  lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
+  if (KNO_HISTORYP(history))  {
     U8_OUTPUT *out = u8_current_output;
     lispval ref = kno_history_add(history,x,label);
     if ( (KNO_FALSEP(ref)) || (KNO_VOIDP(ref)) || (KNO_EMPTYP(ref)) ) {
@@ -886,6 +879,10 @@ static lispval histval_prim(lispval x,lispval label)
     else {
       u8_printf(out,"(#%q) %q",ref,x);
       return VOID;}}
+  else {
+    U8_OUTPUT *out = u8_current_output;
+    u8_printf(out,"%q",x);
+    return VOID;}
 }
 
 /* Input operations! */

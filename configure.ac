@@ -1402,10 +1402,10 @@ if test -z "$with_stdlibs"; then
    stdlib_search_dir=$stdlib_install_dir;
 else
    usepath=
-   for dir in $(echo ${with_stdlibs} | tr ':' ' '); do
+   for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
      if test ! -d "${dir}"; then
        echo "No stdlib dir ${dir}";
-     else usepath="${usepath}${dir}/:";
+     else usepath="${usepath}${dir}/,";
      fi;
    done;
    if test -z "${usepath}"; then
@@ -1416,18 +1416,18 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-
+bu	
 installed_module_path=$installed_module_dir/
 
 local_module_path=$local_module_dir/
 
-default_module_path=$local_module_path:$installed_module_path:$stdlib_module_path
+default_module_path=$local_module_path,$installed_module_path,$stdlib_module_path
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 module_path=$with_module_path
 
 if test ! -z ${with_loadpath}; then
-   module_path="${with_loadpath}:${module_path}";
+   module_path="${with_loadpath},${module_path}";
 fi;
 
 AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")

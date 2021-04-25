@@ -190,7 +190,7 @@ static void list_table(u8_output out,lispval table,
               indent,(n_keys-show_keys),n_keys,indent);
   else if (label)
     u8_printf(out,"\n%s] ;; %s (%d slots)",indent,label,n_keys);
-  else u8_puts(out," ]");
+  else u8_printf(out,"\n%s]",indent);
   kno_decref(keys);
 }
 

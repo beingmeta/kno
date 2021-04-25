@@ -27,5 +27,7 @@ KNO_EXPORT lispval kno_eval_histrefs(lispval obj,lispval history);
 KNO_EXPORT lispval kno_eval_histref(lispval obj,lispval history);
 KNO_EXPORT lispval kno_get_histref(lispval elts);
 
+#define KNO_HISTORYP(x) (KNO_COMPOUND_TYPEP(x,KNOSYM_HISTORY_TAG))
+
 #endif /* ndf KNO_HISTORY_H */
 

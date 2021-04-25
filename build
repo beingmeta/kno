@@ -59,7 +59,7 @@ status () {
 }
 
 
-LOCAL_STDLIB=${BUILD}/src/stdmods:${BUILD}/src/textmods:${BUILD}/src/webmods
+LOCAL_STDLIB=${BUILD}/src/stdmods,${BUILD}/src/textmods,${BUILD}/src/webmods
 while [ $# -gt 0 ]; do
     arg=$1
     case ${arg} in

@@ -579,6 +579,8 @@ static lispval getsrcpath(u8_string path)
     u8_free(abspath);}
   else if (strchr(path,':'))
     return kno_mkstring(path);
+  else if ((*path)=='\0')
+    return KNO_FALSE;
   else if (!(u8_directoryp(path))) {
     u8_log(LOGERR,"BadSourcePath",
 	   "The source directory '%s' doesn't exist",path);
@@ -635,27 +637,29 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 	while (scan) {
 	  u8_string sep = strchr(scan,sepchar);
 	  STR_EXTRACT(path,scan,sep);
-	  u8_string mountsep = strchr(path,'=');
-	  if (mountsep) {
-	    lispval path_elt = getsrcpath(mountsep+1);
-	    if (KNO_STRINGP(path_elt)) {
-	      STR_EXTRACT(mountpoint,path,mountsep);
-	      u8_string combined =
-		u8_mkstring("%s=%s",mountpoint,KNO_CSTRING(path_elt));
-	      lispval push_elt = kno_mkstring(combined);
-	      add_paths = kno_init_pair(NULL,push_elt,add_paths);
-	      u8_free(combined);}
-	    else if (KNO_ABORTED(path_elt)) {
-	      kno_decref(add_paths);
-	      return path_elt;}
-	    kno_decref(path_elt);}
-	  else {
-	    lispval path_elt = getsrcpath(path);
-	    if (KNO_STRINGP(path_elt))
-	      add_paths = kno_init_pair(NULL,path_elt,add_paths);
-	    else if (KNO_ABORTED(path_elt)) {
-	      kno_decref(add_paths);
-	      return path_elt;}}
+	  if (*path) {
+	    u8_string mountsep = strchr(path,'=');
+	    if (mountsep) {
+	      lispval path_elt = getsrcpath(mountsep+1);
+	      if (KNO_STRINGP(path_elt)) {
+		STR_EXTRACT(mountpoint,path,mountsep);
+		u8_string combined =
+		  u8_mkstring("%s=%s",mountpoint,KNO_CSTRING(path_elt));
+		lispval push_elt = kno_mkstring(combined);
+		add_paths = kno_init_pair(NULL,push_elt,add_paths);
+		u8_free(combined);}
+	      else if (KNO_ABORTED(path_elt)) {
+		kno_decref(add_paths);
+		return path_elt;}
+	      else NO_ELSE;
+	      kno_decref(path_elt);}
+	    else {
+	      lispval path_elt = getsrcpath(path);
+	      if (KNO_STRINGP(path_elt))
+		add_paths = kno_init_pair(NULL,path_elt,add_paths);
+	      else if (KNO_ABORTED(path_elt)) {
+		kno_decref(add_paths);
+		return path_elt;}}}
 	  if (sep) scan=sep+1;
 	  else scan=NULL;}}}
     else if (check_loadpaths) {
