@@ -1,6 +1,1 @@
-For newvm:
-* Have cprim_call do less work
-* Have fast-mode for cprim_call (and other stuff) do even less work contra debugging
-* Move the tail call logic into lambda apply
-* Have eval_apply use eval_args, simpler dispatch
-* Make everything use vm_eval
+
