@@ -14,6 +14,7 @@ typedef struct KNO_SUBPROC {
   KNO_ANNOTATED_HEADER;
   u8_string proc_id;
   pid_t proc_pid;
+  int proc_status;
   u8_string proc_progname;
   char **proc_argv, **proc_envp;
   double proc_started, proc_finished;

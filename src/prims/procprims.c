@@ -68,6 +68,9 @@
 
 #endif
 
+#define SUBPROCP(obj)   (KNO_TYPEP((obj),kno_subproc_type))
+#define SUBPROC_PID(sp) (KNO_INT((sp->proc_pid)))
+
 /* Defined in sysprims.c, used here */
 void extract_rusage(lispval slotmap,
 		    struct rusage *r,
@@ -77,6 +80,8 @@ void extract_rusage(lispval slotmap,
 static u8_condition RedirectFailed = "Redirect failed";
 static u8_condition NotPID = "Not a process identifier (PID)";
 static u8_condition ProcinfoError = "Error getting process info";
+
+static struct KNO_HASHTABLE _proctable, *proctable = NULL;
 
 static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 
@@ -109,9 +114,16 @@ static int stringvec_len(char **vec)
   return scan-vec;
 }
 
-static int needs_scheme_escapep(int c)
+#define ARG_ESCAPE_SCHEME 1
+#define ARG_ESCAPE_CONFIGS 2
+
+static int needs_scheme_escapep(u8_string s,int escape_flags)
 {
-  return ((strchr("@{#(\"",c)) || (isdigit(c)));
+  if ( (escape_flags&ARG_ESCAPE_CONFIGS) && (strchr(s,'=')) )
+    return 1;
+  else if (escape_flags&ARG_ESCAPE_SCHEME)
+    return ((strchr("@{#(\"",s[0])) || (isdigit(s[0])));
+  else return 0;
 }
 
 #if ! HAVE_EXECVPE
@@ -124,6 +136,26 @@ static int execvpe(char *prog,char *const argv[],char *const envp[])
 #endif
 
 DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
+DEF_KNOSYM(outdir); DEF_KNOSYM(chdir);
+DEF_KNOSYM(wait); DEF_KNOSYM(pid); DEF_KNOSYM(block);
+DEF_KNOSYM(fork); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
+DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
+DEF_KNOSYM(procid); DEF_KNOSYM(progname); DEF_KNOSYM(started);
+DEF_KNOSYM(finished); DEF_KNOSYM(runtime); DEF_KNOSYM(keepenv);
+DEF_KNOSYM(keepconfigs); DEF_KNOSYM(file); DEF_KNOSYM(temp);
+DEF_KNOSYM(onfinish); DEF_KNOSYM(deleted);
+
+static int remove_output(u8_string file,u8_string kind)
+{
+  int rv = u8_removefile(file);
+  if (rv<0) {
+    int err = errno; errno=0;
+    u8_log(LOGERR,"RemoveFailed",
+	   "Couldn't remove (%s) %s file '%s'",
+	   u8_strerror(err),kind,file);
+    return 0;}
+  else return 1;
+}
 
 void extract_pid_status(int status,lispval into)
 {
@@ -140,6 +172,48 @@ void extract_pid_status(int status,lispval into)
     kno_store(into,KNOSYM(stopped),KNO_INT(SIGCONT));
 }
 
+static void finish_subproc(struct KNO_SUBPROC *p)
+{
+  if (p->proc_finished>0) return;
+  lispval pidval = KNO_INT((long long)(p->proc_pid));
+  int rv = kno_hashtable_drop(proctable,pidval,KNO_VOID);
+  if (rv) { /* if rv!=0, it was already deleted */ 
+    p->proc_finished = u8_elapsed_time();
+    int status = p->proc_status;
+    if ( (WIFEXITED(status)) && (WEXITSTATUS(status)==0) ) {
+      lispval opts = p->proc_opts;
+      lispval out = p->proc_stdout, err = p->proc_stderr;
+      u8_string outfilename = NULL, errfilename = NULL;
+      if (KNO_STRINGP(out)) {
+	if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
+	  if (remove_output(KNO_CSTRING(out),"stdout")) {
+	    p->proc_stdout=KNOSYM(deleted);
+	    kno_decref(out);}}
+	else outfilename = KNO_CSTRING(out);}
+      if (KNO_STRINGP(err)) {
+	if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
+	  if (remove_output(KNO_CSTRING(err),"stderr")) {
+	    p->proc_stderr=KNOSYM(deleted);
+	    kno_decref(err);}}
+	else errfilename = KNO_CSTRING(err);}
+      int loglevel  = ( (outfilename) || (errfilename) ) ? (LOG_WARN) :
+	(LOG_NOTICE);
+      u8_log(loglevel,"SubprocFinished","PID=%lld %s%s%s%s%s",
+	     (long long)(p->proc_pid),p->proc_id,
+	     ((outfilename)?("\n\tsaved stdout="):("")),
+	     ((outfilename)?(outfilename):(U8S(""))),
+	     ((errfilename)?("\n\tsaved stderr="):("")),
+	     ((errfilename)?(errfilename):(U8S(""))));}
+    lispval onfinish = kno_get(p->annotations,KNOSYM(onfinish),KNO_VOID);
+    if (!(KNO_VOIDP(onfinish))) {
+      lispval sj = (lispval)p;
+      DO_CHOICES(handler,onfinish) {
+	lispval v = kno_call(NULL,handler,1,&sj);
+	if (KNO_ABORTED(v)) {kno_clear_errors(1);}
+	else kno_decref(v);}
+      kno_decref(onfinish);}}
+}
+
 static int check_finished(struct KNO_SUBPROC *p)
 {
   pid_t pid = p->proc_pid;
@@ -150,14 +224,17 @@ static int check_finished(struct KNO_SUBPROC *p)
   else {
     int status = 0;
     int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
-    if  ( (rv>=0) || (!( (WIFEXITED(status)) || (WIFSIGNALED(status)) )) )
-      return 0;
     if (rv<0) {
       int saved_errno = errno; errno = 0;
       u8_log(LOGERR,"FailedWait",
 	     "waitpid for %lld unexpectedly failed with errno %d (%s)",
 	     (long long)pid,saved_errno,u8_strerror(saved_errno));}
-    p->proc_finished = u8_elapsed_time();
+    else p->proc_status = status;
+    if (rv<0) return 0;
+    else if (rv!=pid) return 0;
+    else if (!( (WIFEXITED(status)) || (WIFSIGNALED(status)) ))
+      return 0;
+    finish_subproc(p);
     return 1;}
 }
 
@@ -343,7 +420,7 @@ static lispval nice_prim(lispval delta_arg)
 /* THe core exec routine */
 
 #define KNO_IS_SCHEME 0x01
-#define KNO_DO_FORK 0x02
+#define KNO_NO_FORK 0x02
 #define KNO_DO_WAIT 0x04
 #define KNO_DO_LOOKUP 0x08
 #define KNO_DONT_BLOCK 0x10
@@ -352,19 +429,17 @@ static int dodup(int from,int to,u8_string stream,u8_string id);
 static int setup_pipe(int fds[2]);
 static int handle_procopts(lispval opts);
 
-static pid_t doexec(int flags,char *progname,
+static pid_t doexec(int flags,char *progname,char *cwd,
 		    int *in,int *out,int *err,
 		    char *const argv[],char *const envp[],
 		    lispval procopts)
 {
-  int dofork = flags&(KNO_DO_FORK);
   int dolookup = flags&(KNO_DO_LOOKUP);
   int doblock = (!(flags&(KNO_DONT_BLOCK)));
-  pid_t pid = (dofork) ? (fork()) : (0);
-  if (pid>0) return pid;
-  else if (pid<0) return pid;
   /* We're in the proc now */
   int rv = handle_procopts(procopts);
+  /* Change directory if specified */
+  if (rv>=0) rv = (cwd) ? (chdir(cwd)) : (0);
   /* Close the sockets the parent is using */
   /* pair[0] is the read end, pair[1] is the write end */
   if (in) {
@@ -376,12 +451,18 @@ static pid_t doexec(int flags,char *progname,
   if (err) {
     if (err[0]>0) close(err[0]);
     /* Setup err[1] here */}
-  if ( (in) && (in[0]>=0) ) rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
-  if ( (out) && ( (rv>=0) && (out[1]>0) ) )
+  if ( (rv>=0) && (in) && (in[0]>=0) )
+    rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
+  if ( (rv>=0) && (out) && ( (rv>=0) && (out[1]>0) ) )
     rv = dodup(out[1],STDOUT_FILENO,"stdout",progname);
-  if ( (err) && ( (rv>=0) && (err[1]>0) ) )
+  if ( (rv>=0) && (err) && ( (rv>=0) && (err[1]>0) ) )
     rv = dodup(err[1],STDERR_FILENO,"stderr",progname);
-  if ( (dolookup) && (envp) )
+  if (rv<0) {
+    int saved_errno = errno; errno=0;
+    u8_log(LOGCRIT,"ForkExecFailed","errno=%d (%s)",
+	   saved_errno,u8_strerror(saved_errno));
+    exit(1);}
+  else if ( (dolookup) && (envp) )
     rv = execvpe(progname,argv,envp);
   else if (dolookup)
     rv = execvp(progname,argv);
@@ -447,288 +528,16 @@ static int handle_procopts(lispval opts)
   else return 0;
 }
 
-/* Legacy exec functions, now in scheme using proc/open */
-
-#if 0
-static lispval exec_helper(u8_context caller,
-			   int flags,lispval opts,
-			   int n,kno_argvec args)
-{
-  if (!(STRINGP(args[0])))
-    return kno_type_error("pathname",caller,args[0]);
-  else if ((!(flags&(KNO_DO_LOOKUP|KNO_IS_SCHEME)))&&
-	   (!(u8_file_existsp(CSTRING(args[0])))))
-    return kno_type_error("real file",caller,args[0]);
-  else {
-    pid_t pid;
-    char **argv;
-    u8_byte *arg1 = (u8_byte *)CSTRING(args[0]);
-    u8_byte *filename = NULL;
-    int i = 1, argc = 0, max_argc = n+2, retval = 0;
-    if (strchr(arg1,' ')) {
-      const char *scan = arg1; while (scan) {
-	const char *brk = strchr(scan,' ');
-	if (brk) {max_argc++; scan = brk+1;}
-	else break;}}
-    else {}
-    if ( (n>1) && (SLOTMAPP(args[1])) ) {
-      lispval keys = kno_getkeys(args[1]);
-      max_argc = max_argc+KNO_CHOICE_SIZE(keys);}
-    argv = u8_alloc_n(max_argc,char *);
-    if (flags&KNO_IS_SCHEME) {
-      argv[argc++]=filename = ((u8_byte *)u8_strdup(KNO_EXEC));
-      argv[argc++]=(u8_byte *)u8_tolibc(arg1);}
-    else if (strchr(arg1,' ')) {
-#ifndef KNO_EXEC_WRAPPER
-      u8_free(argv);
-      return kno_err(_("No exec wrapper to handle env args"),
-		     caller,NULL,args[0]);
-#else
-      char *argcopy = u8_tolibc(arg1), *start = argcopy;
-      char *scan = strchr(start,' ');
-      argv[argc++] = filename = (u8_byte *)u8_strdup(KNO_EXEC_WRAPPER);
-      while (scan) {
-	*scan='\0'; argv[argc++]=start;
-	start = scan+1; while (isspace(*start)) start++;
-	scan = strchr(start,' ');}
-      argv[argc++]=(u8_byte *)u8_tolibc(start);
-#endif
-    }
-    else {
-#ifdef KNO_EXEC_WRAPPER
-      argv[argc++]=filename = (u8_byte *)u8_strdup(KNO_EXEC_WRAPPER);
-#endif
-      if (filename)
-	argv[argc++]=u8_tolibc(arg1);
-      else argv[argc++]=filename = (u8_byte *)u8_tolibc(arg1);}
-    if ((n>1)&&(SLOTMAPP(args[1]))) {
-      lispval params = args[1];
-      lispval keys = kno_getkeys(args[1]);
-      DO_CHOICES(key,keys) {
-	if ((SYMBOLP(key))||(STRINGP(key))) {
-	  lispval value = kno_get(params,key,VOID);
-	  if (!(VOIDP(value))) {
-	    struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-	    u8_string stringval = NULL;
-	    if (SYMBOLP(key)) stringval = SYM_NAME(key);
-	    else stringval = CSTRING(key);
-	    if (stringval) u8_puts(&out,stringval);
-	    u8_putc(&out,'=');
-	    if (STRINGP(value)) u8_puts(&out,CSTRING(value));
-	    else kno_unparse(&out,value);
-	    argv[argc++]=out.u8_outbuf;
-	    kno_decref(value);}}}
-      i++;}
-    while (i<n) {
-      if (STRINGP(args[i]))
-	argv[argc++]=u8_tolibc(CSTRING(args[i++]));
-      else {
-	u8_string as_string = kno_lisp2string(args[i++]);
-	char *as_libc_string = u8_tolibc(as_string);
-	argv[argc++]=as_libc_string; u8_free(as_string);}}
-    argv[argc++]=NULL;
-    if ((flags&KNO_DO_FORK)&&((pid = (fork())))) {
-      i = 0; while (i<argc) {
-	if (argv[i]) u8_free(argv[i++]); else i++;}
-      u8_free(argv);
-#if HAVE_WAITPID
-      if (flags&KNO_DO_WAIT) {
-	unsigned int retval = -1;
-	waitpid(pid,&retval,0);
-	return KNO_INT(retval);}
-#endif
-      return KNO_INT(pid);}
-    handle_procopts(opts);
-    if (flags&KNO_IS_SCHEME)
-      retval = execvp(KNO_EXEC,argv);
-    else if (flags&KNO_DO_LOOKUP)
-      retval = execvp(filename,argv);
-    else retval = execvp(filename,argv);
-    u8_log(LOG_CRIT,caller,"Fork exec failed (%d/%d:%s) with %s %s (%d)",
-	   retval,errno,strerror(errno),
-	   filename,argv[0],argc);
-    /* We call abort in this case because we've forked but couldn't
-       exec and we don't want this Kno executable to exit normally. */
-    if (flags&KNO_DO_FORK) {
-      u8_graberrno(caller,filename);
-      return KNO_ERROR;}
-    else {
-      kno_clear_errors(1);
-      abort();}}
-}
-
-DEFC_PRIMN("exec",exec_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "replaces the current application with an "
-	   "execution of *command* (a string) to *args* (also "
-	   "strings).\n*envmap*, if provided, is a slotmap "
-	   "specifying environment variables for execution of "
-	   "the command. Environment variables can also be "
-	   "explicitly provided in the string *command*.\nThe "
-	   "last word of *command* (after any environment "
-	   "variables) should be the path of an executable "
-	   "program file.")
-static lispval exec_prim(int n,kno_argvec args)
-{
-  return exec_helper("exec_prim",0,n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("exec/cmd",exec_cmd_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "replaces the current application with an "
-	   "execution of *command* (a string) to *args* (also "
-	   "strings).\n*envmap*, if provided, is a slotmap "
-	   "specifying environment variables for execution of "
-	   "the command. Environment variables can also be "
-	   "explicitly provided in the string *command*.\nThe "
-	   "last word of *command* (after any environment "
-	   "variables) should be either a command in the "
-	   "default search path or the path of an executable "
-	   "program file.")
-static lispval exec_cmd_prim(int n,kno_argvec args)
-{
-  return exec_helper("exec_cmd_prim",KNO_DO_LOOKUP,n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("knox",knox_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "replaces the current application with a Kno "
-	   "process reading the file *scheme_file* and "
-	   "applying the file's `MAIN` definition to the "
-	   "results of parsing *args* (also strings).\n"
-	   "*envmap*, if provided, specifies CONFIG settings "
-	   "for the reading and execution of *scheme-file*. "
-	   "Environment variables can also be explicitly "
-	   "provided in the string *command*.\n")
-static lispval knox_prim(int n,kno_argvec args)
-{
-  return exec_helper("knox_prim",KNO_IS_SCHEME,n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("fork",fork_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new process executing *command* (a "
-	   "string) for *args* (also strings). It returns the "
-	   "PID of the new process.\n*envmap*, if provided, is "
-	   "a slotmap specifying environment variables for "
-	   "execution of the command. Environment variables "
-	   "can also be explicitly provided in the string "
-	   "*command*.\nThe last word of *command* (after any "
-	   "environment variables) should be the path of an "
-	   "executable program file.")
-static lispval fork_prim(int n,kno_argvec args)
-{
-  if (n==0) {
-    pid_t pid = fork();
-    if (pid) {
-      long long int_pid = (long long) pid;
-      return KNO_INT2LISP(int_pid);}
-    else return KNO_FALSE;}
-  else return exec_helper("fork_prim",KNO_DO_FORK,n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("fork/cmd",fork_cmd_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new process executing *command* (a "
-	   "string) with *args* (also strings). It returns "
-	   "the PID of the new process.\n*envmap*, if "
-	   "provided, is a slotmap specifying environment "
-	   "variables for execution of the command. "
-	   "Environment variables can also be explicitly "
-	   "provided in the string *command*.\nThe last word "
-	   "of *command* (after any environment variables) "
-	   "should be either a command in the default search "
-	   "path or the path of an executable program file.")
-static lispval fork_cmd_prim(int n,kno_argvec args)
-{
-  return exec_helper("fork_cmd_prim",(KNO_DO_FORK|KNO_DO_LOOKUP),n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("knox/fork",knox_fork_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new Kno process reading the file "
-	   "*scheme_file* and applying the file's `MAIN` "
-	   "definition to the results of parsing *args* (also "
-	   "strings).  It returns the PID of the new process.\n"
-	   "*envmap*, if provided, specifies CONFIG settings "
-	   "for the reading and execution of *scheme-file*. "
-	   "Environment variables can also be explicitly "
-	   "provided in the string *command*.\n")
-static lispval knox_fork_prim(int n,kno_argvec args)
-{
-  return exec_helper("knofork_prim",(KNO_IS_SCHEME|KNO_DO_FORK),n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("fork/wait",fork_wait_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new process executing *command* (a "
-	   "string) for *args* (also strings). It waits for "
-	   "this process to return and returns its exit "
-	   "status.\n*envmap*, if provided, is a slotmap "
-	   "specifying environment variables for execution of "
-	   "the command. Environment variables can also be "
-	   "explicitly provided in the string *command*.\nThe "
-	   "last word of *command* (after any environment "
-	   "variables) should be the path of an executable "
-	   "program file.")
-static lispval fork_wait_prim(int n,kno_argvec args)
-{
-  return exec_helper("fork_wait_prim",(KNO_DO_FORK|KNO_DO_WAIT),n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("fork/cmd/wait",fork_cmd_wait_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new process executing *command* (a "
-	   "string) with *args* (also strings). It waits for "
-	   "this process to return and returns its exit "
-	   "status.\n*envmap*, if provided, is a slotmap "
-	   "specifying environment variables for execution of "
-	   "the command. Environment variables can also be "
-	   "explicitly provided in the string *command*.\nThe "
-	   "last word of *command* (after any environment "
-	   "variables) should be either a command in the "
-	   "default search path or the path of an executable "
-	   "program file.")
-static lispval fork_cmd_wait_prim(int n,kno_argvec args)
-{
-  return exec_helper("fork_cmd_wait_prim",
-		     (KNO_DO_FORK|KNO_DO_LOOKUP|KNO_DO_WAIT),n,KNO_FALSE,args);
-}
-
-DEFC_PRIMN("knox/fork/wait",knox_fork_wait_prim,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "'forks' a new Kno process reading the file "
-	   "*scheme_file* and applying the file's `MAIN` "
-	   "definition to the results of parsing *args* (also "
-	   "strings).  It waits for this process to return "
-	   "and returns its exit status.\n*envmap*, if "
-	   "provided, specifies CONFIG settings for the "
-	   "reading and execution of *scheme-file*. "
-	   "Environment variables can also be explicitly "
-	   "provided in the string *command*.\n")
-static lispval knox_fork_wait_prim(int n,kno_argvec args)
-{
-  return exec_helper("knox_fork_wait_prim",
-		     (KNO_IS_SCHEME|KNO_DO_FORK|KNO_DO_WAIT),
-		     n,KNO_FALSE,args);
-}
-#endif
-
 /* Run */
-
-DEF_KNOSYM(wait); DEF_KNOSYM(pid); DEF_KNOSYM(block);
-DEF_KNOSYM(fork); DEF_KNOSYM(exec); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
-DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
-DEF_KNOSYM(procid); DEF_KNOSYM(progname); DEF_KNOSYM(started);
-DEF_KNOSYM(finished); DEF_KNOSYM(runtime); DEF_KNOSYM(keepenv);
-DEF_KNOSYM(keepconfigs);
 
 static void handle_config_spec(kno_stackvec c,lispval spec,lispval keep);
 static void handle_env_spec(kno_stackvec e,lispval spec,lispval keep);
+static int handle_arg_spec(kno_stackvec a,lispval arg,int flags);
 static void add_configs(kno_stackvec configs,lispval value,u8_string name);
 static u8_string mkidstring(u8_string progname,int n,kno_argvec args);
 static lispval makeout(int fd,u8_string id);
 static lispval makein(int fd,u8_string id);
+static u8_string get_outdir(lispval opts);
 
 DEFC_PRIMNx("proc/open",proc_open_prim,
 	    KNO_VAR_ARGS|KNO_MIN_ARGS(1),
@@ -742,26 +551,30 @@ DEFC_PRIMNx("proc/open",proc_open_prim,
 static lispval proc_open_prim(int n,kno_argvec args)
 {
   u8_string progname = NULL;
-  int args_start = 2, flags = 0;
+  int args_start = 2, flags = 0, exec_mod = 0;
   lispval command = args[0], opts = (n>1) ? (args[1]) : (KNO_FALSE), result=VOID;
-  pid_t pid = -1;
   if (KNO_STRINGP(command))
-    progname=u8_strdup(KNO_CSTRING(command));
+    progname=KNO_CSTRING(command);
   else if (KNO_SYMBOLP(command)) {
-    lispval config_val = kno_config_get(KNO_SYMBOL_NAME(command));
-    if (KNO_STRINGP(config_val))
-      progname=u8_strdup(KNO_CSTRING(config_val));
-    else progname=u8_strdup(KNO_SYMBOL_NAME(command));
-    kno_decref(config_val);}
+    if (strchr(KNO_SYMBOL_NAME(command),'/')) {
+      lispval mod = kno_find_module(command,0);
+      if (!(KNO_VOIDP(mod))) {
+	exec_mod = 1;
+	progname=KNO_SYMBOL_NAME(command);
+	kno_decref(mod);}}
+    if (!exec_mod) {
+      lispval config_val = kno_config_get(KNO_SYMBOL_NAME(command));
+      if (KNO_STRINGP(config_val))
+	progname=KNO_CSTRING(config_val);
+      else progname=KNO_SYMBOL_NAME(command);
+      kno_decref(config_val);}}
   else return kno_err("BadCommand","runproc_prim",NULL,command);
 
   /* Handle the case with no options */
   if ( (KNO_STRINGP(opts)) || (KNO_NUMBERP(opts)) ) {
-    opts = KNO_FALSE; args_start = 1;
-    flags |= KNO_DO_FORK;}
-  else if ( (kno_testopt(opts,KNOSYM(fork),KNO_VOID)) ||
-	    (!(kno_testopt(opts,KNOSYM(exec),KNO_VOID))) )
-    flags |= KNO_DO_FORK;
+    opts = KNO_FALSE; args_start = 1;}
+  else if (kno_testopt(opts,KNOSYM(fork),KNO_FALSE))
+    flags |= KNO_NO_FORK;
   else NO_ELSE;
 
   if (kno_testopt(opts,KNOSYM(block),KNO_FALSE))
@@ -781,67 +594,71 @@ static lispval proc_open_prim(int n,kno_argvec args)
   lispval knox_opt = kno_getopt(opts,KNOSYM(knox),KNO_VOID);
   lispval interpreter_opt = kno_getopt(opts,KNOSYM(interpreter),KNO_VOID);
   u8_string interpreter =
-    (KNO_FALSEP(interpreter_opt)) ? (NULL) :
-    (KNO_STRINGP(knox_opt)) ? (KNO_CSTRING(knox_opt)) :
+    ( (!(exec_mod)) && (KNO_FALSEP(interpreter_opt)) ) ? (NULL) :
     (KNO_STRINGP(interpreter_opt)) ? (KNO_CSTRING(interpreter_opt)) :
+    (KNO_STRINGP(knox_opt)) ? (KNO_CSTRING(knox_opt)) :
     ((!(KNO_VOIDP(knox_opt))) && (!(KNO_FALSEP(knox_opt)))) ? (U8S(KNO_EXEC)) :
     (KNO_VOIDP(interpreter_opt)) ?
     ((u8_has_suffix(progname,".scm",1)) ? (U8S(KNO_EXEC)) : (NULL)) :
     (U8S(KNO_EXEC));
-  int kno_exec = (KNO_FALSEP(knox_opt)) ? (0) :
+  int kno_exec = (exec_mod) ? (exec_mod) :
+    (KNO_FALSEP(knox_opt)) ? (0) :
     (!(KNO_VOIDP(knox_opt))) ? (1) :
     ( (interpreter) && (strcmp(interpreter,KNO_EXEC)==0) );
 
   if (kno_exec) flags |= KNO_IS_SCHEME;
 
+  KNO_DECL_STACKVEC(exec_args,32);
+  KNO_DECL_STACKVEC(environment,32);
+  KNO_DECL_STACKVEC(configs,32);
+  char *cprogname = NULL;
+
+  if (interpreter) {
+    kno_stackvec_push(exec_args,knostring(interpreter));
+    cprogname = u8_tolibc(interpreter);}
+  else cprogname = u8_tolibc(progname);
+  kno_stackvec_push(exec_args,knostring(progname));
+
+  kno_argvec scan = args+args_start, limit = args+n;
+  while (scan<limit) {
+    lispval arg = *scan++;
+    int arg_flags = (kno_exec) ? (ARG_ESCAPE_SCHEME|ARG_ESCAPE_CONFIGS) :
+      (0);
+    int rv = handle_arg_spec(exec_args,arg,arg_flags);
+    if (rv<0) {
+      kno_free_stackvec(exec_args);
+      if (cprogname) u8_free(cprogname);
+      return KNO_ERROR;}}
+
   lispval env_spec = kno_getopt(opts,KNOSYM(environment),KNO_VOID);
   lispval keep_env = kno_getopt(opts,KNOSYM(keepenv),KNO_VOID);
-  lispval keep_configs = kno_getopt(opts,KNOSYM(keepconfigs),KNO_VOID);
-  lispval config_spec = (kno_exec) ? (kno_getopt(opts,KNOSYM(configs),VOID)) :
-    (KNO_VOID);
-
-  KNO_DECL_STACKVEC(configs,32);
-  KNO_DECL_STACKVEC(environment,32);
-  if ( (!(KNO_VOIDP(config_spec))) || (!(KNO_VOIDP(keep_configs))) )
-    handle_config_spec(configs,config_spec,keep_configs);
   if ( (!(KNO_VOIDP(env_spec))) || (!(KNO_VOIDP(keep_env))) )
     handle_env_spec(environment,env_spec,keep_env);
 
-  int use_argc = n + ((interpreter==NULL)?(0):(1)) + configs->count + 1;
-  int use_envc = environment->count+1;
-  char **argv = (use_argc) ? (u8_alloc_n(use_argc,char *)) : (NULL);
-  char **envp = (use_envc) ? (u8_alloc_n(use_envc,char *)) : (NULL);
-  int arg_write = 0, arg_read = args_start;
-  int env_i=0, env_max = environment->count;
-  char *cprogname = NULL;
+  lispval config_spec = kno_getopt(opts,KNOSYM(configs),VOID);
+  if ( (!(KNO_VOIDP(config_spec))) && (kno_exec) ) {
+    lispval keep_configs = kno_getopt(opts,KNOSYM(keepconfigs),KNO_VOID);
+    if ( (!(KNO_VOIDP(config_spec))) || (!(KNO_VOIDP(keep_configs))) )
+      handle_config_spec(configs,config_spec,keep_configs);
+    else NO_ELSE;
+    kno_decref(keep_configs);}
+  else if (!(KNO_VOIDP(config_spec)))
+    u8_log(LOGWARN,"IgnoredConfigs",
+	   "Ignoring the provided configs because the program "
+	   "is not a KNO application.");
+  else NO_ELSE;
 
-  U8_STATIC_OUTPUT(arg,100);
-  if (interpreter) argv[arg_write++]=u8_tolibc(interpreter);
-  argv[arg_write++]=cprogname=u8_tolibc(progname);
-  while (arg_read<n) {
-    lispval arg = args[arg_read++];
-    u8_string use_string = NULL;
-    if (KNO_STRINGP(arg)) {
-      u8_string s = CSTRING(arg);
-      if ( (kno_exec) && (needs_scheme_escapep(s[0])) ) {
-	u8_putc(argout,'\\'); u8_puts(argout,CSTRING(arg));
-	use_string=argout->u8_outbuf;}
-      else use_string = s;}
-    else if (kno_exec) {
-      if (OIDP(arg)) {
-	KNO_OID addr = KNO_OID_ADDR(arg);
-	u8_printf(argout,"@%x/%x",KNO_OID_HI(addr),KNO_OID_LO(addr));}
-      else if ( (KNO_FIXNUMP(arg)) || (KNO_BIGINTP(arg)) || (KNO_FLONUMP(arg)) )
-	kno_unparse(argout,arg);
-      else {
-	u8_putc(argout,':'); kno_unparse(argout,arg);}
-      use_string=argout->u8_outbuf;}
-    else {
-      kno_unparse(argout,arg);
-      use_string=argout->u8_outbuf;}
-    argv[arg_write++]=u8_tolibc(use_string);
-    u8_reset_output(argout);}
-  u8_close_output(argout);
+  int use_argc = ((interpreter==NULL)?(0):(1)) +
+    exec_args->count + configs->count + 1;
+  char **argv = u8_alloc_n(use_argc,char *);
+  int arg_write = 0;
+
+  lispval *scan_args = exec_args->elts;
+  int arg_i = 0, arg_max = exec_args->count;
+  while (arg_i<arg_max) {
+    lispval arg = scan_args[arg_i++];
+    if (KNO_STRINGP(arg))
+      argv[arg_write++]=u8_tolibc(CSTRING(arg));}
 
   lispval *config_args = configs->elts;
   int config_i = 0, config_max = configs->count;
@@ -851,6 +668,9 @@ static lispval proc_open_prim(int n,kno_argvec args)
       argv[arg_write++]=u8_tolibc(CSTRING(arg));}
   argv[arg_write++]=NULL;
 
+  int use_envc = environment->count+1;
+  char **envp = (use_envc) ? (u8_alloc_n(use_envc,char *)) : (NULL);
+  int env_i=0, env_max = environment->count;
   lispval *elts = environment->elts;
   while (env_i<env_max) {
     lispval spec = elts[env_i];
@@ -858,119 +678,193 @@ static lispval proc_open_prim(int n,kno_argvec args)
     env_i++;}
   envp[env_i++]=NULL;
 
+  lispval dir_opt = kno_getopt(opts,KNOSYM(chdir),KNO_EMPTY);
+  char *cwd = (KNO_STRINGP(dir_opt)) ? (u8_tolibc(KNO_CSTRING(dir_opt))) :
+    (NULL);
+
   /* We have these default to empty because we may store
      them in the record and we don't want to store VOID values. */
   lispval infile   = kno_getopt(opts,stdin_symbol,KNO_EMPTY);
   lispval outfile  = kno_getopt(opts,stdout_symbol,KNO_EMPTY);
   lispval errfile  = kno_getopt(opts,stderr_symbol,KNO_EMPTY);
+  int create_outfile = 0, create_errfile = 0;
   int *in=NULL, *out=NULL, *err=NULL;
   int inpipe[2]={-1,-1}, outpipe[2]={-1,-1}, errpipe[2]={-1,-1};
+  u8_string out_dir = get_outdir(opts);
 
-  if (KNO_TRUEP(infile)) {
-    if (setup_pipe(inpipe)<0) {}
-    else in = inpipe;}
+  if (infile == stdin_symbol) {}
   else if (KNO_STRINGP(infile)) {
-    int new_stdin = u8_open_fd(KNO_CSTRING(infile),O_RDONLY,0);
+    u8_string use_file = u8_abspath(KNO_CSTRING(infile),NULL);
+    kno_decref(infile); infile = kno_init_string(NULL,-1,use_file);
+    int new_stdin = u8_open_fd(use_file,O_RDONLY,0);
     if (new_stdin<0) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,RedirectFailed,
 	     "Couldn't open %s as stdin (%s:%s)",
 	     KNO_CSTRING(infile),ex->u8x_cond,ex->u8x_details);
       result=KNO_ERROR;
-      goto err_exit;}
+      goto do_exit;}
     else {
       inpipe[0]=new_stdin;
       in=inpipe;}}
-  else NO_ELSE;
+  else {
+    if (setup_pipe(inpipe)<0) {}
+    else in = inpipe;}
 
-  if (KNO_TRUEP(outfile)) {
-    if (setup_pipe(outpipe)<0) {}
-    else out = outpipe;}
+  if (outfile == stdout_symbol) {}
   else if (KNO_STRINGP(outfile)) {
-    int new_stdout = u8_open_fd(KNO_CSTRING(outfile),
-				O_WRONLY|O_CREAT,
-				STDOUT_FILE_MODE);
+    u8_string use_file = u8_abspath(KNO_CSTRING(outfile),out_dir);
+    kno_decref(outfile); outfile = kno_init_string(NULL,-1,use_file);
+    int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
     if (new_stdout<0) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
 	     KNO_CSTRING(outfile),ex->u8x_cond,ex->u8x_details);
       result=KNO_ERROR;
-      goto err_exit;}
+      goto do_exit;}
     else {
       outpipe[1]=new_stdout;
       out=outpipe;}}
-  else NO_ELSE;
+  else if ( (outfile == KNOSYM(temp)) ||
+	    (outfile == KNOSYM(file)) )
+    create_outfile = 1;
+  else {
+    if (setup_pipe(outpipe)<0) {}
+    else out = outpipe;}
 
-  if (KNO_TRUEP(errfile)) {
-    if (setup_pipe(errpipe)<0) {}
-    else out = errpipe;}
+  if ( (KNO_EMPTYP(errfile)) && (!(KNO_EMPTYP(outfile))) ) {
+    errpipe[1]=outpipe[1];
+    err=errpipe;}
+  else if (KNO_EMPTYP(errfile)) {}
+  else if (errfile == stderr_symbol) {}
   else if (KNO_STRINGP(errfile)) {
-    int new_stderr = u8_open_fd(KNO_CSTRING(errfile),
-				O_WRONLY|O_CREAT,
-				STDERR_FILE_MODE);
+    u8_string use_file = u8_abspath(KNO_CSTRING(errfile),out_dir);
+    kno_decref(errfile); errfile = kno_init_string(NULL,-1,use_file);
+    int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
     if (new_stderr<0) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
 	     KNO_CSTRING(errfile),
 	     ex->u8x_cond,ex->u8x_details);
       result=KNO_ERROR;
-      goto err_exit;}
+      goto do_exit;}
     else {
       errpipe[1]=new_stderr;
       err=errpipe;}}
-  else NO_ELSE;
+  else if ( (errfile == KNOSYM(temp)) ||
+	    (errfile == KNOSYM(file)) )
+    create_errfile = 1;
+  else {
+    if (setup_pipe(errpipe)<0) {}
+    else out = errpipe;}
 
   lispval wait_opt = kno_getopt(opts,KNOSYM(wait),KNO_FALSE);
+  int nofork = flags&(KNO_NO_FORK);
+  pid_t pid = (nofork) ? (0) : (fork());
 
-  pid=doexec(flags,cprogname,in,out,err,argv,envp,opts);
+  /* Once we have a PID, we can generate stdout/stderr files with the
+     PID in the filename. */
+  pid_t child_pid = (pid == 0) ? (getpid()) : (pid);
+  if (create_outfile) {
+    u8_string name =
+      u8_mkstring("%s_%lld.stdout",progname,(long long)child_pid);
+    u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
+      (u8_abspath(name,NULL));
+    int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
+    if (new_stdout<0) {
+      u8_exception ex = u8_current_exception;
+      u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
+	     KNO_CSTRING(errfile),
+	     ex->u8x_cond,ex->u8x_details);
+      result=KNO_ERROR;
+      goto do_exit;}
+    else if (pid)
+      outfile=kno_wrapstring(use_file);
+    else {
+      outpipe[1]=new_stdout;
+      out=outpipe;}}
+  if (create_errfile) {
+    u8_string name =
+      u8_mkstring("%s_%lld.stderr",progname,(long long)child_pid);
+    u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
+      (u8_abspath(name,NULL));
+    int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
+    if (new_stderr<0) {
+      u8_exception ex = u8_current_exception;
+      u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
+	     KNO_CSTRING(errfile),
+	     ex->u8x_cond,ex->u8x_details);
+      result=KNO_ERROR;
+      goto do_exit;}
+    else if (pid)
+      errfile=kno_wrapstring(use_file);
+    else {
+      errpipe[1]=new_stderr;
+      err=errpipe;}}
 
-  if (pid>0) {
+  if (pid == 0) {
+    doexec(flags,cprogname,cwd,in,out,err,argv,envp,opts);
+    result=kno_seterr("ExecFailed","proc_open",progname,VOID);}
+  else if (pid>0) {
+    result = cons_subproc
+      (pid,idstring,cprogname,argv,envp,
+       (((in==NULL) || (in[1]<0)) ? (kno_incref(infile)) :
+	(makeout(in[1],u8_mkstring("(stdin)%s",idstring)))),
+       (((out==NULL) || (out[0]<0)) ? (kno_incref(outfile)) :
+	(makein(out[0],u8_mkstring("(stdout)%s",idstring)))),
+       (((err==NULL) || (err[0]<0)) ? (kno_incref(errfile)) :
+	(makein(err[0],u8_mkstring("(stderr)%s",idstring)))),
+       kno_incref(opts));
+    struct KNO_SUBPROC *subproc = (kno_subproc) result;
     if (!(KNO_FALSEP(wait_opt))) {
       int status = -1;
       int rv = waitpid(pid,&status,0);
-      if (rv<0) result=KNO_ERROR;
-      else {
-	result = kno_make_slotmap(4,0,NULL);
-	extract_pid_status(status,result);}}
-    else {
-      result = cons_subproc
-	(pid,idstring,cprogname,argv,envp,
-	 (((in==NULL) || (in[1]<0)) ? (kno_incref(infile)) :
-	  (makeout(in[1],u8_mkstring("(stdin)%s",idstring)))),
-	 (((out==NULL) || (out[0]<0)) ? (kno_incref(outfile)) :
-	  (makein(out[0],u8_mkstring("(stdout)%s",idstring)))),
-	 (((err==NULL) || (err[0]<0)) ? (kno_incref(errfile)) :
-	  (makein(err[0],u8_mkstring("(stderr)%s",idstring)))),
-	 kno_incref(opts));
-      cprogname=NULL; envp=NULL; argv=NULL;}}
-  else result=KNO_ERROR;
+      if (rv>=0) subproc->proc_status = status;
+      if (rv<0) {
+	lispval err = kno_err("WaitFailed","proc_open",progname,result);
+	kno_decref(result);
+	result=err;}
+      else if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
+	finish_subproc(subproc);
+      else NO_ELSE;}
+    errno = 0;}
+  else {
+    int err = errno; errno=0;
+    result = kno_err(u8_strerror(err),"proc_open/wait",progname,KNO_VOID);}
 
   /* Clean up any sockets we created */
   /* pair[0] is the read end, pair[1] is the write end */
   if (in) {
     /* Child's stdin, we use the write end [1] and close the read end [0]. */
-    if (in[1]>=0) u8_set_blocking(in[1],1);
+    if (in[1]>=0) {
+      if (KNO_ABORTED(result)) close(in[1]);
+      else {u8_set_blocking(in[1],1);}}
     if (in[0]>=0) close(in[0]);}
   if (out) {
     /* Child's stdout, we use the read end [0] and close the write end [1]. */
-    if (out[0]>=0) u8_set_blocking(out[0],1);
+    if (out[0]>=0) {
+      if (KNO_ABORTED(result)) close(out[0]);
+      else u8_set_blocking(out[0],1);}
     if (out[1]>=0) close(out[1]);}
   if (err) {
     /* Child's stderr, we use the read end [0] and close the write end [1]. */
-    if (err[0]>=0) u8_set_blocking(err[0],1);
+    if (err[0]>=0) {
+      if (KNO_ABORTED(result)) close(err[0]);
+      else u8_set_blocking(err[0],1);}
     if (err[1]>=0) close(err[1]);}
 
- err_exit:
-  if (cprogname) u8_free(cprogname);
-  free_stringvec(argv);
-  free_stringvec(envp);
+ do_exit:
+  if (KNO_ABORTED(result)) {
+    if (cprogname) u8_free(cprogname);}
+  if (out_dir) u8_free(out_dir);
+  /* free_stringvec(argv); free_stringvec(envp); */
   kno_decref(infile);
   kno_decref(outfile);
   kno_decref(errfile);
+  kno_decref(dir_opt);
   kno_decref(knox_opt);
   kno_decref(interpreter_opt);
   kno_decref(config_spec);
-  kno_decref(keep_configs);
   kno_decref(env_spec);
   kno_decref(keep_env);
   kno_free_stackvec(environment);
@@ -989,6 +883,100 @@ static lispval makein(int fd,u8_string id)
   u8_input in = (u8_input) u8_open_xinput(fd,NULL);
   in->u8_streaminfo |= U8_STREAM_OWNS_SOCKET;
   return kno_make_port(in,NULL,id);
+}
+
+static u8_string get_outdir(lispval opts)
+{
+  lispval outdir_opt = kno_getopt(opts,KNOSYM(outdir),KNO_VOID);
+  lispval outdir_conf = KNO_VOID;
+  u8_string outdir = NULL;
+  if (KNO_STRINGP(outdir_opt)) {
+    outdir = KNO_CSTRING(outdir_opt);
+    goto cleanup;}
+  else if (KNO_SYMBOLP(outdir_opt)) {
+    lispval outdir_conf = kno_config_get(KNO_SYMBOL_NAME(outdir_opt));
+    if (KNO_STRINGP(outdir_conf)) {
+      outdir = KNO_CSTRING(outdir_conf);
+      goto cleanup;}
+    else if (KNO_UNSPECIFIEDP(outdir_conf)) {}
+    else u8_log(LOGWARN,"BadOutdir",
+		"Value of OUTDIR for proc/run config option was %q",
+		outdir_conf);}
+  else if (KNO_UNSPECIFIEDP(outdir_opt)) {}
+  else u8_log(LOGWARN,"BadOutdir","Outdir option (for proc/run) was %q",
+	      outdir_opt);
+
+  if (outdir == NULL) {}
+  else if (!(u8_directoryp(outdir))) {
+    u8_log(LOGERR,"BadOutputDirectory",
+	   "The path '%s' is not a directory",outdir);
+    outdir = NULL;}
+  else if (!(u8_file_writablep(outdir))) {
+    u8_log(LOGERR,"BadOutputDirectory",
+	   "The directory '%s' is not writable",outdir);
+    outdir = NULL; }
+  else NO_ELSE;
+
+ cleanup:
+  if (outdir) outdir = u8_strdup(outdir);
+  kno_decref(outdir_conf);
+  kno_decref(outdir_opt);
+  return outdir;
+}
+
+static int handle_arg_spec(kno_stackvec args,lispval spec,
+			   int escape_flags)
+{
+  if (KNO_EMPTY_LISTP(spec))
+    return 0;
+  else if (KNO_STRINGP(spec)) {
+    u8_string s = CSTRING(spec);
+    if ( (escape_flags) && (needs_scheme_escapep(s,escape_flags)) ) {
+      U8_STATIC_OUTPUT(arg,100);
+      u8_putc(argout,'\\');
+      u8_puts(argout,KNO_CSTRING(spec));
+      kno_stackvec_push
+	(args,kno_make_string(NULL,u8_outlen(argout),u8_outstring(argout)));
+      u8_close_output(argout);
+      return 1;}
+    else {
+      kno_incref(spec);
+      kno_stackvec_push(args,spec);
+      return 1;}}
+  else if (KNO_PACKETP(spec)) {
+    kno_incref(spec);
+    kno_stackvec_push(args,spec);
+    return 1;}
+  else if (KNO_VECTORP(spec)) {
+    lispval *elts = KNO_VECTOR_ELTS(spec), *scan=elts;
+    lispval *limit = scan + KNO_VECTOR_LENGTH(spec);
+    while (scan<limit) {
+      lispval elt = *scan++;
+      int rv = handle_arg_spec(args,elt,escape_flags);
+      if (rv<0) return rv;}
+    return limit-elts;}
+  else if (KNO_PAIRP(spec)) {
+    lispval scan = spec; int count = 0;
+    while (PAIRP(scan)) {
+      int rv = handle_arg_spec(args,KNO_CAR(scan),escape_flags);
+      if (rv<0) return rv;
+      scan = KNO_CDR(scan);
+      count++;}
+    return count;}
+  else {
+    U8_STATIC_OUTPUT(arg,100);
+    if (OIDP(spec)) {
+      KNO_OID addr = KNO_OID_ADDR(spec);
+      u8_printf(argout,"@%x/%x",KNO_OID_HI(addr),KNO_OID_LO(addr));}
+    else if ( (KNO_FIXNUMP(spec)) || (KNO_BIGINTP(spec)) || (KNO_FLONUMP(spec)) )
+      kno_unparse(argout,spec);
+    else {
+      u8_putc(argout,':');
+      kno_unparse(argout,spec);}
+    kno_stackvec_push
+      (args,kno_make_string(NULL,u8_outlen(argout),u8_outstring(argout)));
+    u8_close_output(argout);
+    return 1;}
 }
 
 static void handle_config_spec(kno_stackvec configs,lispval config_spec,lispval keep_spec)
@@ -1365,12 +1353,8 @@ static void init_proc_result(lispval result,lispval arg,pid_t pid)
     kno_decref(started);}
 }
 
-DEFC_PRIM("proc/status",proc_status,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns a table of information about *proc*, "
-	  "which can be a numeric PID or a proc object.",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_status(lispval arg)
+/* Getting PID information */
+static lispval pid_status(lispval arg)
 {
   pid_t pid = pid_arg(arg,"proc_status",1);
   if (pid<0) return KNO_ERROR;
@@ -1387,12 +1371,7 @@ static lispval proc_status(lispval arg)
   return result;
 }
 
-DEFC_PRIM("proc/wait",proc_wait,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Waits for *proc* to exit and returns a table of information "
-	  "about how it exited.",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_wait(lispval arg)
+static lispval pid_wait(lispval arg)
 {
   pid_t pid = pid_arg(arg,"proc_wait",1);
   if (pid<0) return KNO_ERROR;
@@ -1409,13 +1388,7 @@ static lispval proc_wait(lispval arg)
   return result;
 }
 
-DEFC_PRIM("proc/info",proc_info,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns a detailed table of information about *proc*, "
-	  "which can be a numeric PID or a proc object. Unlike proc/status "
-	  "this returns rusage data if available.",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_info(lispval arg)
+static lispval pid_info(lispval arg)
 {
   pid_t pid = pid_arg(arg,"proc_info",1);
   if (pid<0) return KNO_ERROR;
@@ -1440,33 +1413,25 @@ static lispval proc_info(lispval arg)
   return result;
 }
 
-DEFC_PRIM("proc/live?",proc_livep,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *proc* hasn't exited or been terminated",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_livep(lispval arg)
+static lispval pid_livep(lispval arg)
 {
-  pid_t pid = pid_arg(arg,"proc_livep",1);
+  pid_t pid = pid_arg(arg,"pid_livep",1);
   if (pid<0) return KNO_ERROR;
   int status = -1;
   int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
-  if (rv<0) return pid_error(arg,"proc_livep");
+  if (rv<0) return pid_error(arg,"pid_livep");
   if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
     return KNO_FALSE;
   else return KNO_TRUE;
 }
 
-DEFC_PRIM("proc/running?",proc_runningp,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *proc* hasn't exited or been terminated",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_runningp(lispval arg)
+static lispval pid_runningp(lispval arg)
 {
-  pid_t pid = pid_arg(arg,"proc_livep",1);
+  pid_t pid = pid_arg(arg,"pid_runningp",1);
   if (pid<0) return KNO_ERROR;
   int status = -1;
   int rv = waitpid(pid,&status,WNOHANG|WUNTRACED|WCONTINUED);
-  if (rv<0) return pid_error(arg,"proc_livep");
+  if (rv<0) return pid_error(arg,"pid_runningp");
   if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
     return KNO_FALSE;
   else if ( (WIFSTOPPED(status)) && (! (WIFCONTINUED(status)) ) )
@@ -1474,11 +1439,7 @@ static lispval proc_runningp(lispval arg)
   else return KNO_TRUE;
 }
 
-DEFC_PRIM("proc/stopped?",proc_stoppedp,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *proc* is stopped",
-	  {"proc",kno_any_type,KNO_VOID})
-static lispval proc_stoppedp(lispval arg)
+static lispval pid_stoppedp(lispval arg)
 {
   pid_t pid = pid_arg(arg,"proc_stoppedp",1);
   if (pid<0) return KNO_ERROR;
@@ -1488,6 +1449,128 @@ static lispval proc_stoppedp(lispval arg)
   if (WIFSTOPPED(status))
     return KNO_TRUE;
   else return KNO_FALSE;
+}
+
+/* Generic PROC primitives */
+
+DEFC_PRIM("proc/status",proc_status,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a table of information about *proc*, "
+	  "which can be a numeric PID or a proc object.",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_status(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_info(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp)) {
+      int status = sp->proc_status;
+      lispval result = kno_make_slotmap(5,0,NULL);
+      init_proc_result(result,arg,sp->proc_pid);
+      extract_pid_status(status,result);
+      return result;}
+    else return pid_status(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/status",NULL,arg);
+}
+
+DEFC_PRIM("proc/wait",proc_wait,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Waits for *proc* to exit and returns a table of information "
+	  "about how it exited.",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_wait(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_info(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp)) {
+      int status = sp->proc_status;
+      lispval result = kno_make_slotmap(5,0,NULL);
+      init_proc_result(result,arg,sp->proc_pid);
+      extract_pid_status(status,result);
+      return result;}
+    else return pid_wait(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/wait",NULL,arg);
+}
+
+DEFC_PRIM("proc/info",proc_info,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a detailed table of information about *proc*, "
+	  "which can be a numeric PID or a proc object. Unlike proc/status "
+	  "this returns rusage data if available.",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_info(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_info(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp)) {
+      int status = sp->proc_status;
+      lispval result = kno_make_slotmap(5,0,NULL);
+      init_proc_result(result,arg,sp->proc_pid);
+      extract_pid_status(status,result);
+      return result;}
+    else return pid_info(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/info",NULL,arg);
+}
+
+DEFC_PRIM("proc/live?",proc_livep,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *proc* hasn't exited or been terminated",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_livep(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_livep(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp)) {
+      int status = sp->proc_status;
+      if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
+	return KNO_FALSE;
+      return KNO_TRUE;}
+    else return pid_livep(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/live?",NULL,arg);
+}
+
+DEFC_PRIM("proc/running?",proc_runningp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *proc* hasn't exited or been terminated",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_runningp(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_runningp(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp)) {
+      int status = sp->proc_status;
+      if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
+	return KNO_FALSE;
+      else if ( (WIFSTOPPED(status)) && (! (WIFCONTINUED(status)) ) )
+	return KNO_FALSE;
+      else return KNO_TRUE;}
+    else return pid_runningp(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/running?",NULL,arg);
+}
+
+DEFC_PRIM("proc/stopped?",proc_stoppedp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if *proc* isn't running but exited",
+	  {"proc",kno_any_type,KNO_VOID})
+static lispval proc_stoppedp(lispval arg)
+{
+  if (KNO_INTEGERP(arg))
+    return pid_stoppedp(arg);
+  else if (SUBPROCP(arg)) {
+    kno_subproc sp = (kno_subproc)arg;
+    if (check_finished(sp))
+      return KNO_FALSE;
+    else return pid_runningp(SUBPROC_PID(sp));}
+  else return kno_err("NotAProc","proc/running?",NULL,arg);
 }
 
 /* SUBPROC object */
@@ -1512,7 +1595,15 @@ static lispval cons_subproc(pid_t pid,u8_string id,
   proc->proc_argv = argv;
   proc->proc_envp = envp;
   proc->proc_finished = -1;
-  return (lispval) proc;
+  lispval pid_val = KNO_INT((long long)pid);
+  lispval procval = (lispval) proc;
+  int rv = kno_hashtable_store(proctable,pid_val,procval);
+  if (rv<0) {
+    kno_decref(pid_val);
+    kno_seterr("FailedRegisterProc","cons_subproc",NULL,procval);
+    kno_decref(procval);
+    return KNO_ERROR;}
+  else return (lispval) proc;
 }
 
 static int unparse_subproc(u8_output out,lispval x)
@@ -1520,11 +1611,14 @@ static int unparse_subproc(u8_output out,lispval x)
   struct KNO_SUBPROC *sj = (struct KNO_SUBPROC *)x;
   int argc = stringvec_len(sj->proc_argv);
   int envc = stringvec_len(sj->proc_envp);
+  u8_string status = (sj->proc_finished>0) ? (" (finished)") :
+    (sj->proc_pid<0) ? (" (finishing)") :
+    (" (running)");
   if (envc)
-    u8_printf(out,"#<SUBPROC %lld '%s' %d... env=%d...>",
-	      (long long)(sj->proc_pid),sj->proc_id,argc,envc);
-  else u8_printf(out,"#<SUBPROC %lld '%s' %d..>",
-		 (long long)sj->proc_pid,sj->proc_id,argc);
+    u8_printf(out,"#<SUBPROC %lld '%s' %s%d... env=%d...>",
+	      (long long)(sj->proc_pid),sj->proc_id,status,argc,envc);
+  else u8_printf(out,"#<SUBPROC %lld '%s' $s%d..>",
+		 (long long)sj->proc_pid,sj->proc_id,status,argc);
   return 1;
 }
 
@@ -1543,6 +1637,22 @@ static void recycle_subproc(struct KNO_RAW_CONS *c)
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
+/* Handle sigchld */
+
+
+static void handle_sigchld(int sig)
+{
+  int status;
+  pid_t pid = waitpid(-1, &status, WNOHANG);
+  if ( (pid>0) && ( (WIFEXITED(status)) || (WIFSIGNALED(status)) ) ) {
+    lispval pidval = KNO_INT(pid);
+    lispval proc = kno_hashtable_get(proctable,pidval,KNO_VOID);
+    if (!(KNO_VOIDP(proc))) {
+      finish_subproc((kno_subproc)proc);
+      kno_decref(proc);}
+    kno_decref(pidval);}
+}
+
 /* The init function */
 
 static int scheme_procprims_initialized = 0;
@@ -1557,6 +1667,11 @@ KNO_EXPORT void kno_init_procprims_c()
   procprims_module = kno_new_cmodule
     ("procprims",(KNO_MODULE_DEFAULT),kno_init_procprims_c);
   u8_register_source_file(_FILEINFO);
+
+  KNO_INIT_STATIC_CONS(&_proctable,kno_hashtable_type);
+  u8_init_rwlock(&(_proctable.table_rwlock));
+  kno_make_hashtable(&_proctable,73);
+  proctable = &_proctable;
 
   init_rlimit_codes();
   link_local_cprims();
@@ -1573,6 +1688,8 @@ KNO_EXPORT void kno_init_procprims_c()
   nice_symbol = kno_intern("nice");
 
   kno_finish_cmodule(procprims_module);
+
+  sigset(SIGCHLD,handle_sigchld);
 }
 
 static void link_local_cprims()
@@ -1608,16 +1725,4 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("proc/status",proc_status,1,procprims_module);
   KNO_LINK_CPRIM("proc/info",proc_info,1,procprims_module);
   KNO_LINK_CPRIM("proc/wait",proc_wait,1,procprims_module);
-
-#if 0
-  KNO_LINK_CPRIMN("knox/fork/wait",knox_fork_wait_prim,procprims_module);
-  KNO_LINK_CPRIMN("fork/cmd/wait",fork_cmd_wait_prim,procprims_module);
-  KNO_LINK_CPRIMN("fork/wait",fork_wait_prim,procprims_module);
-  KNO_LINK_CPRIMN("knox/fork",knox_fork_prim,procprims_module);
-  KNO_LINK_CPRIMN("fork/cmd",fork_cmd_prim,procprims_module);
-  KNO_LINK_CPRIMN("fork",fork_prim,procprims_module);
-  KNO_LINK_CPRIMN("knox",knox_prim,procprims_module);
-  KNO_LINK_CPRIMN("exec/cmd",exec_cmd_prim,procprims_module);
-  KNO_LINK_CPRIMN("exec",exec_prim,procprims_module);
-#endif
 }
