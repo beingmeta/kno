@@ -22,6 +22,8 @@ KNO_EXPORT int kno_thread_sigint;
 #define KNO_CONFIG_ALREADY_MODIFIED 0x01
 #define KNO_CONFIG_SINGLE_VALUE     0x02
 
+KNO_EXPORT u8_string kno_logdir, kno_rundir, kno_sharedir, kno_datadir;
+
 typedef lispval (*kno_config_getfn)(lispval var,void *data);
 typedef int (*kno_config_setfn)(lispval var,lispval val,void *data);
 

@@ -113,7 +113,6 @@ int kno_notice_error(u8_condition c,u8_context caller,
   hard:
     harderr = 1;}
 
-
   KNO_DO_CHOICES(handler,onerror_hooks) {
     if (KNO_APPLICABLEP(handler)) {
       lispval result = kno_call(curstack,handler,1,&errobj);

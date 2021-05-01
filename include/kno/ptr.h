@@ -807,6 +807,10 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 
 #define KNO_CONSTANTP(x) (KNO_IMMEDIATE_TYPEP(x,kno_constant_type))
 
+/* Various ways to say 'no value' */
+#define KNO_UNSPECIFIEDP(x) \
+  ( (KNO_VOIDP(x)) || (KNO_FALSEP(x)) || (KNO_EMPTYP(x)) || (KNO_DEFAULTP(x)) )
+
 #define KNO_NIL (KNO_EMPTY_LIST)
 
 /* Characters */

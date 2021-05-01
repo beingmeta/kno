@@ -553,6 +553,8 @@ static lispval newline_prim(lispval portarg)
 
 /* PRINTOUT handlers */
 
+#define HISTORICP(x) ((KNO_CONSP(x)))
+
 static int printout_helper(U8_OUTPUT *out,lispval x)
 {
   if (KNO_ABORTED(x))
@@ -562,15 +564,16 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
   if (out == NULL) out = u8_current_output;
   if (STRINGP(x))
     u8_puts(out,CSTRING(x));
-  else if ( (out->u8_streaminfo) & (KNO_U8STREAM_HISTORIC) ) {
+  else if ( (HISTORICP(x)) &&
+	    ( (out->u8_streaminfo) & (KNO_U8STREAM_HISTORIC) ) ) {
     lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
     if (KNO_HISTORYP(history))  {
-      int num = kno_history_add(history,x,VOID);
+      int num = kno_history_push(history,x);
       if (num < 0)
 	kno_unparse(out,x);
       else {
-	u8_printf(out,"(#%d=) ",num);
-	kno_unparse(out,x);}}
+	kno_unparse(out,x);
+	u8_printf(out,"(=#%d) ",num);}}
     else kno_unparse(out,x);}
   else kno_unparse(out,x);
   return 1;

@@ -65,12 +65,13 @@ int kno_logcmd    = 0;
 int kno_exiting   = 0;
 int kno_exited    = 0;
 
-/* This determines whether to memory should be freed while exiting */
-int kno_fast_exit = 0;
-
 u8_string kno_exe_name = NULL;
 
-static u8_string logdir = NULL, sharedir = NULL, datadir = NULL;
+u8_string kno_logdir = NULL, kno_rundir = NULL;
+u8_string kno_sharedir = NULL, kno_datadir = NULL;
+
+/* This determines whether to memory should be freed while exiting */
+int kno_fast_exit = 0;
 
 int kno_be_vewy_quiet = 0;
 static int boot_message_delivered = 0;
@@ -627,7 +628,8 @@ KNO_EXPORT u8_string kno_runbase_filename(u8_string suffix)
 {
   if (runbase == NULL) {
     if (runbase_config == NULL) {
-      u8_string wd = u8_getcwd(), appid = u8_string_subst(u8_appid(),"/",":");
+      u8_string wd = (kno_rundir) ? (u8_strdup(kno_rundir)) : (u8_getcwd());
+      u8_string appid = u8_string_subst(u8_appid(),"/",":");
       runbase = u8_mkpath(wd,appid);
       u8_free(wd);
       u8_free(appid);}
@@ -1050,7 +1052,7 @@ static void remove_pidfile()
   else NO_ELSE;
 }
 
-/* Full startup */
+/* Full p */
 
 void kno_init_startup_c()
 {
@@ -1214,18 +1216,22 @@ void kno_init_startup_c()
 
 #endif
 
-  if (!(logdir)) logdir = u8_strdup(KNO_LOG_DIR);
+  if (!(kno_logdir)) kno_logdir = u8_strdup(KNO_LOG_DIR);
   kno_register_config("LOGDIR",_("Root Kno logging directories"),
-                      kno_sconfig_get,kno_sconfig_set,&logdir);
+		      kno_sconfig_get,kno_sconfig_set,&kno_logdir);
 
-  if (!(sharedir)) sharedir = u8_strdup(KNO_SHARE_DIR);
+  if (!(kno_rundir)) kno_rundir = u8_strdup(KNO_RUN_DIR);
+  kno_register_config("RUNDIR",_("Run state directory"),
+                      kno_sconfig_get,kno_sconfig_set,&kno_rundir);
+
+  if (!(kno_sharedir)) kno_sharedir = u8_strdup(KNO_SHARE_DIR);
   kno_register_config("SHAREDIR",_("Shared config/data directory for Kno"),
-                      kno_sconfig_get,kno_sconfig_set,&sharedir);
+                      kno_sconfig_get,kno_sconfig_set,&kno_sharedir);
 
-  if (!(datadir)) datadir = u8_strdup(KNO_DATA_DIR);
+  if (!(kno_datadir)) kno_datadir = u8_strdup(KNO_DATA_DIR);
   kno_register_config("DATADIR",_("Data directory for Kno"),
-                      kno_sconfig_get,kno_sconfig_set,&datadir);
-
+		      kno_sconfig_get,kno_sconfig_set,&kno_datadir);
+  
   kno_register_config("SOURCES",_("Registered source files"),
                       config_get_source_files,config_add_source_file,
                       &u8_log_show_procinfo);

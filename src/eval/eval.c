@@ -80,6 +80,8 @@ lispval lisp_eval(lispval head,lispval expr,
     (KNO_OPCODEP(head)) ? (opcode_name(head)) : \
     (NULL) )
 
+static u8_string default_scheme_modules[] = { "kno/exec", NULL };
+
 /* Top level functions */
 
 KNO_EXPORT lispval kno_tail_eval(lispval x,kno_lexenv env,kno_stack stack)
@@ -1621,6 +1623,16 @@ static void init_eval_core()
   kno_finish_cmodule(kno_binio_module);
   kno_finish_cmodule(kno_db_module);
   kno_finish_cmodule(kno_sys_module);
+
+  u8_string *modules = default_scheme_modules;
+  while (*modules) {
+    u8_string modname = *modules;
+    lispval modsym = kno_intern(modname);
+    lispval module = kno_find_module(modsym,0);
+    if (!(KNO_VOIDP(module)))
+      kno_add_default_module(module);
+    else u8_log(LOGERR,"BadModule","Couldn't load module %s",modname);
+    modules++;}
 }
 
 KNO_EXPORT int kno_load_scheme()
