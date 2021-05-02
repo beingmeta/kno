@@ -24,6 +24,7 @@ static int kpool_loglevel = -1;
 #include "kno/indexes.h"
 #include "kno/drivers.h"
 #include "kno/xtypes.h"
+#include "kno/apply.h"
 
 #include "headers/kpool.h"
 
@@ -273,10 +274,12 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 	    fname,load,capacity);
     pool->pool_load=load=capacity;}
 
-  if ((U8_BITP(kpool_format,KNO_KPOOL_READ_ONLY))&&
-      (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE)))) {
+  if ( (read_only==0) &&
+       (U8_BITP(kpool_format,KNO_KPOOL_READ_ONLY)) &&
+       (!(kno_testopt(opts,KNOSYM_READONLY,KNO_FALSE)))) {
     /* If the pool is intrinsically read-only make it so. */
-    open_flags |= KNO_STORAGE_READ_ONLY;}
+    open_flags |= KNO_STORAGE_READ_ONLY;
+    read_only = 1;}
 
   pool->pool_offtype =
     (kno_offset_type)((kpool_format)&(KNO_KPOOL_OFFMODE));
@@ -391,6 +394,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
   u8_free(realpath);
   u8_free(abspath);
 
+  /* Get open flags which might have been modified by kno_init_pool */
   open_flags = pool->pool_flags;
   kno_decref(metadata);
   if (metadata_modified) {
@@ -1907,9 +1911,11 @@ static void kpool_setbuf(kno_pool p,ssize_t bufsize)
 
 static int kpool_set_compression(kno_kpool kp,kno_compress_type cmptype)
 {
-  struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
+  struct KNO_STREAM _stream, *stream =
+    kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
-  unsigned int format = kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
+  unsigned int format =
+    kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   format = format & (~(KNO_KPOOL_COMPRESSION));
   format = format | (cmptype<<3);
   ssize_t v = kno_write_4bytes_at(stream,format,KNO_KPOOL_FORMAT_POS);
@@ -1924,9 +1930,16 @@ static int kpool_set_compression(kno_kpool kp,kno_compress_type cmptype)
 
 static int kpool_set_read_only(kno_kpool kp,int read_only)
 {
-  struct KNO_STREAM _stream, *stream = kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
+  unsigned int cur_format = kp->kpool_format;
+  if ( (read_only) ?
+       ( (cur_format) && (KNO_KPOOL_READ_ONLY) ) :
+       (!( (cur_format) && (KNO_KPOOL_READ_ONLY) )) )
+    return 0;
+  struct KNO_STREAM _stream, *stream =
+    kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
-  unsigned int format = kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
+  unsigned int format =
+    kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   if (read_only)
     format = format | (KNO_KPOOL_READ_ONLY);
   else format = format & (~(KNO_KPOOL_READ_ONLY));
@@ -2083,27 +2096,42 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
 	    ( ( op == kno_metadata_op ) && (n == 1) &&
 	      ( args[0] == compression_symbol ) ) )
     return kno_compression_name(kp->pool_compression);
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
-	    ( ( op == kno_metadata_op ) && (n == 1) &&
-	      ( args[0] == KNOSYM_READONLY ) ) ) {
-    if ( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) )
-      return KNO_TRUE;
+  else if (op == KNOSYM_READONLY) {
+    if (n == 0)
+      return ( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) ) ?
+	(KNO_TRUE) : (KNO_FALSE);
+    else if (n!=1) {
+      u8_log(LOGWARN,kno_TooManyArgs,
+	     "For kpool_ctl/readonly on %s: %q",
+	     kp->poolid,(lispval)kp);
+      return KNO_FALSE;}
+    lispval val = args[0];
+    if ( (KNO_FALSEP(val)) ? (!( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) )) :
+	 ( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) ) )
+      return KNO_FALSE;
+    else if (!(KNO_FALSEP(val))) {
+      kp->pool_flags |= KNO_STORAGE_READ_ONLY;
+      return KNO_TRUE;}
+    else if (!( (kp->kpool_format) & (KNO_KPOOL_READ_ONLY) )) {
+      kp->pool_flags &= (~KNO_STORAGE_READ_ONLY);
+      return KNO_TRUE;}
     else return KNO_FALSE;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
-	    ( ( op == kno_metadata_op ) && (n == 2) &&
-	      ( args[0] == KNOSYM_READONLY ) ) ) {
-    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
-    int rv = (KNO_FALSEP(arg)) ? (kpool_set_read_only(kp,0)) :
+  else if ( ( op == kno_metadata_op ) && (n >= 1) &&
+	    ( args[0] == KNOSYM_READONLY ) ) {
+    if (n == 1)
+      return ( (kp->kpool_format) & (KNO_KPOOL_READ_ONLY) ) ?
+	(KNO_TRUE) : (KNO_FALSE);
+    int rv = (KNO_FALSEP(args[0])) ? (kpool_set_read_only(kp,0)) :
       (kpool_set_read_only(kp,1));
     if (rv<0)
       return KNO_ERROR;
-    else return kno_incref(arg);}
+    else if (rv==0) return KNO_FALSE;
+    else return KNO_TRUE;}
   else if ( ( ( op == compression_symbol ) && (n == 1) ) ||
 	    ( ( op == kno_metadata_op ) && (n == 2) &&
 	      ( args[0] == compression_symbol ) ) ) {
     lispval arg = (op == compression_symbol) ? (args[0]) : (args[1]);
-    int rv = kpool_set_compression
-      (kp,kno_compression_type(arg,KNO_NOCOMPRESS));
+    int rv = kpool_set_compression(kp,kno_compression_type(arg,KNO_NOCOMPRESS));
     if (rv<0) return KNO_ERROR;
     else return KNO_TRUE;}
   else if (op == kno_load_op) {
