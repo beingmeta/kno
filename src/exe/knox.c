@@ -406,21 +406,21 @@ int do_main(int argc,char **argv,
       if (source_spec == NULL) {
 	int i = 0;
 	if (main_symbol == real_main)
-	  fprintf(stderr,"Error: %s no filename specified or (MAIN) defined",
+	  fprintf(stderr,"Error: %s no filename or (MAIN) specified",
 		  exe_name);
-	else fprintf(stderr,"Error: %s no filename specified or main (%s) defined",
+	else fprintf(stderr,"Error: %s no filename or main (%s) specified",
 		     exe_name,KNO_SYMBOL_NAME(main_symbol));
 	while (i<argc) {
 	  fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
 	  i++;}
-	fprintf(stderr,"Usage: %s filename [config = val]*\n",exe_name);
+	fprintf(stderr,"Usage: %s [action|execfile] [config=val|arg]*\n",exe_name);
 	result = kno_err("No MAIN","main()",NULL,main_symbol);}
       else {
 	/* Nothing to do */
 	kno_decref(result);
 	result = KNO_VOID;}}
     else if (KNO_ABORTED(main_proc))
-      result = kno_incref(main_proc);
+      result = kno_incref(main_proc); /* Probably not necessary */
     else if (KNO_APPLICABLEP(main_proc)) {
       kno_decref(result);
       result = kno_apply(main_proc,n_args,args);}

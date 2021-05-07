@@ -132,7 +132,7 @@ static void _concise_stack_frame(struct KNO_STACK *stack)
        ( (stack->stack_origin) != (stack->stack_label) ) )
     fprintf(stderr,"(%d) 0x%llx %s:%s%s%s%s %d/%d args, %d/%d%s refs",
 	    stack->stack_depth,KNO_LONGVAL(stack),
-	    stack->stack_origin,stack->stack_label,
+	    stack->stack_label,stack->stack_origin,
 	    U8OPTSTR("(",file,")"),
 	    stack->stack_argc,stack->stack_width,
 	    refs->count,KNO_STACKVEC_LEN(refs),
@@ -217,8 +217,9 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
       int i=0, n = stack->stack_argc;
       while (i<n) {
 	lispval arg = args[i];
-	u8_string line=u8_bprintf(buf,"#%d %p\t%q\n",i,arg,arg);
+	u8_string line=u8_bprintf(buf,"#%d %p\t%q",i,arg,arg);
 	fputs(line,stderr);
+	fputc('\n',stderr);
 	i++;}}
     fputc('\n',stderr);}
   else if (CONSP(stack->stack_op)) {
@@ -236,7 +237,8 @@ KNO_EXPORT void _knodbg_show_stack_frame(void *arg)
 	  lispval key = schema[i];
 	  lispval val = values[i];
 	  u8_byte buf[256];
-	  fputs(u8_bprintf(buf,"  %q\t%p\t%q\n",key,val,val),stderr);
+	  fputs(u8_bprintf(buf,"  %q\t%p\t%q",key,val,val),stderr);
+	  fputc('\n',stderr);
 	  i++;}}}}
   else NO_ELSE;
 }

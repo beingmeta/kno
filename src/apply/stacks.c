@@ -590,7 +590,7 @@ static void concise_stack_frame(u8_output out,struct KNO_STACK *stack)
        ( (stack->stack_origin) != (stack->stack_label) ) )
     u8_printf(out,"(%d) 0x%llx %s:%s%s%s%s %d/%d args, %d/%d%s refs",
 	      stack->stack_depth,KNO_LONGVAL(stack),
-	      stack->stack_origin,stack->stack_label,
+	      stack->stack_label,stack->stack_origin,
 	      U8OPTSTR("(",file,")"),
 	      stack->stack_argc,stack->stack_width,
 	      refs->count,KNO_STACKVEC_LEN(refs),

@@ -1675,8 +1675,14 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
   case KNO_EVALFN_OPCODE: {
     lispval evalfn = KNO_CAR(args);
     lispval expr   = KNO_CDR(args);
+    lispval result = KNO_VOID;
     if (KNO_FCNIDP(evalfn)) evalfn=kno_fcnid_ref(evalfn);
-    return call_evalfn(evalfn,expr,env,_stack,tail);}
+    struct KNO_EVALFN *handler = (kno_evalfn) evalfn;
+    _stack->stack_label=handler->evalfn_name;
+    KNO_PUSH_EVAL(evalfn_stack,handler->evalfn_name,evalfn,env);
+    result = call_evalfn(evalfn,expr,env,evalfn_stack,tail);
+    kno_pop_stack(evalfn_stack);
+    return result;}
 
   case KNO_APPLY_OPCODE:
     return kno_err("OpcodeError",opname(opcode),NULL,expr);

@@ -55,7 +55,7 @@
       "#" (stack-depth frame) " "
       (if (and (stack-origin frame)
 	       (not (equal? (stack-origin frame) (stack-label frame))))
-	  (printout (stack-origin frame) "/" (stack-label frame))
+	  (printout  (stack-label frame) ":" (stack-origin frame))
 	  (printout (stack-label frame)))
       (if (or (applicable? fcn) (special-form? fcn) (macro? fcn))
 	  (printout " " (or (procedure-name fcn) fcn)))

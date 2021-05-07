@@ -798,7 +798,10 @@ static lispval path_location(lispval arg)
 {
   u8_string path = CSTRING(arg);
   u8_string slash = strrchr(path,'/');
-  if (slash[1]=='\0') return kno_incref(arg);
+  if (slash==NULL)
+    return knostring(".");
+  else if (slash[1]=='\0')
+    return kno_incref(arg);
   else return kno_substring(path,slash+1);
 }
 
