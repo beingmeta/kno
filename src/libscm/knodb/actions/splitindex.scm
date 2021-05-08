@@ -8,12 +8,12 @@
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
-(define %optimize '{knodb/actions/splitindex
-		    knodb/indexes
-		    knodb/hashindexes
-		    ezrecords
-		    fifo
-		    engine})
+(define %optmods '{knodb/actions/splitindex
+		   knodb/indexes
+		   knodb/hashindexes
+		   ezrecords
+		   engine
+		   fifo})
 
 (when (config 'showsource) (logwarn |Loading| (get-component)))
 

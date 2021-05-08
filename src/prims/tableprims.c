@@ -898,7 +898,7 @@ DEFC_PRIM("hashset-add!",hashset_add,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "adds *keys* to *hashset*(s). Returns the number "
 	  "of new values added.",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"key",kno_any_type,KNO_VOID})
 static lispval hashset_add(lispval hs,lispval key)
 {
@@ -928,7 +928,7 @@ static lispval hashset_add(lispval hs,lispval key)
 DEFC_PRIM("hashset+",hashset_plus,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "adds *keys* to *hashset*",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"values",kno_any_type,KNO_VOID})
 static lispval hashset_plus(lispval hs,lispval values)
 {
@@ -940,7 +940,7 @@ static lispval hashset_plus(lispval hs,lispval values)
 DEFC_PRIM("hashset-drop!",hashset_drop,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "removes *key* from *hashset*.",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"key",kno_any_type,KNO_VOID})
 static lispval hashset_drop(lispval hs,lispval key)
 {
@@ -953,7 +953,7 @@ static lispval hashset_drop(lispval hs,lispval key)
 DEFC_PRIM("hashset-get",hashset_get,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "returns true if *key* is in *hashsets*",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"key",kno_any_type,KNO_VOID})
 static lispval hashset_get(lispval hs,lispval key)
 {
@@ -967,7 +967,7 @@ DEFC_PRIM("hashset-test",hashset_test,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "returns true if any *keys* are in any of "
 	  "*hashsets*",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"keys",kno_any_type,KNO_VOID})
 static lispval hashset_test(lispval hs,lispval keys)
 {
@@ -997,7 +997,7 @@ DEFC_PRIM("hashset-elts",hashset_elts,
 	  "Returns the elements of a hashset.\nWith a "
 	  "non-false second argument, resets the hashset "
 	  "(removing all values).",
-	  {"hs",kno_any_type,KNO_VOID},
+	  {"hs",kno_hashset_type,KNO_VOID},
 	  {"clean",kno_any_type,KNO_VOID})
 static lispval hashset_elts(lispval hs,lispval clean)
 {
@@ -1009,7 +1009,7 @@ static lispval hashset_elts(lispval hs,lispval clean)
 DEFC_PRIM("reset-hashset!",reset_hashset,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "removes all of the elements of *hashset*.",
-	  {"hs",kno_any_type,KNO_VOID})
+	  {"hs",kno_hashset_type,KNO_VOID})
 static lispval reset_hashset(lispval hs)
 {
   int rv=kno_reset_hashset((kno_hashset)hs);

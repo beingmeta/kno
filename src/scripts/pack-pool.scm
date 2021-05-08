@@ -2,5 +2,5 @@
 
 (use-module '{optimize knodb/actions/packpool})
 
-(when (config 'optimized #t) (optimize-module! (get (get-module 'knodb/actions/packpool) '%optimize)))
+(when (config 'optimized #t) (optimize*! 'knodb/actions/packpool))
 

@@ -50,14 +50,12 @@
 (define (flexindex-spec? spec (opts #f))
   (or (and (string? spec) (has-suffix spec ".flexindex"))
       (and (testopt opts 'flexindex) (getopt opts 'flexindex))
-      (testopt opts 'type 'flexindex)
-      (and (string? spec) (exists? (knodb/partition-files spec "index")))))
+      (testopt opts 'type 'flexindex)))
 
 (define (flexpool-spec? spec (opts #f))
   (or (and (string? spec) (has-suffix spec ".flexpool"))
       (and (testopt opts 'flexpool) (getopt opts 'flexpool))
-      (testopt opts 'type 'flexpool)
-      (and (string? spec) (exists? (knodb/partition-files spec "pool")))))
+      (testopt opts 'type 'flexpool)))
 
 ;;; Utility functions
 

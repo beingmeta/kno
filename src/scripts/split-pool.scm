@@ -108,5 +108,5 @@
   (message " LABEL=kilroy        ; The flexpool is labelled 'kilroy' and subpools 'kilroy.XXX"))
 
 (optimize! '{knodb/flexpools knodb/filenames knodb/adjuncts})
-(optimize!)
+(optimize-locals!)
 

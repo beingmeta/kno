@@ -19,6 +19,7 @@
 
 (use-module 'reflection)
 (use-module 'varconfig)
+(use-module 'text/stringfmts)
 (use-module 'logger)
 
 (module-proxy! 'reflection
@@ -45,6 +46,10 @@
 (varconfig! optimize:reckless ignore-warnings)
 (define-init just-warn #f)
 (varconfig! optimize:justwarn just-warn)
+
+(define-init optmod-loglevel %notice%)
+(varconfig! optmod:loglevel optmod-loglevel)
+(varconfig! optimize:logmods optmod-loglevel)
 
 (define-init fcnrefs-default {})
 (define-init pfcnrefs-default {})
@@ -154,9 +159,10 @@
 ;;; What we export
 
 (module-export! '{optimize! optimized optimized? use+
-		  optimize*! optimize* optimize-locals!
+		  optimize-locals! deoptimize-locals!
 		  optimize-procedure! optimize-module!
 		  reoptimize! optimize-bindings!
+		  optimize*! optimize*
 		  optimize/list-warnings
 		  optimize/count-warnings
 		  deoptimize! 
@@ -1022,10 +1028,10 @@
 
 (define (optimize-module! module (opts #f) (module) 
 			  (warnings (make-hashtable))
-			  (old-warnings (thread/get 'threadwarnings)))
+			  (old-warnings (thread/get 'threadwarnings))
+			  (%loglevel optmod-loglevel))
   (when (symbol? module)
     (set! module (optimize-get-module module)))
-  (loginfo |OptimizeModule| module)
   (set! opts
     (if opts
 	(try (cons (get module '%optimize_options) opts)
@@ -1037,11 +1043,14 @@
 	(modinfo (get module '%modinfo))
 	(optimized {})
 	(count 0))
+    (logdebug |Optimizing|
+      (picksyms (get module 'moduleids)) " "
+      (if (test module '%source) (write (get module '%source))))
     (when bindings
       (do-choices (var bindings)
 	(let ((value (get module var)))
 	  (when (and (exists? value) (optimizable? value))
-	    (loginfo |OptimizeModule|
+	    (logdebug |OptimizeModule|
 	      "Optimizing procedure " var " in " module)
 	    (set! count (1+ count))
 	    (set+! optimized var)
@@ -1052,7 +1061,7 @@
     (store! modinfo 'optimized optimized)
     (store! modinfo 'fcnids (try (table-size (get module '%fcnids)) 0))
     (cond ((hashtable? module)
-	   (lognotice |OpaqueModule| 
+	   (loginfo |OpaqueModule| 
 	     "Not optimizing opaque module " (get module '%moduleid)))
 	  ((exists symbol? (get module '%moduleid))
 	   (let* ((referenced-modules (get module '%modrefs))
@@ -1074,6 +1083,12 @@
 		 (do-choices (um unused i)
 		   (printout (if (> i 0) ", ") um))))))
 	  (else))
+    (loginfo |Optimized|
+      ($count count "definition")
+      (when (> (table-size warnings) 0)
+	(printout " with " ($count (table-size warnings) "warning")))
+      " from " (picksyms (get module '%moduleid)) " "
+      (if (test module '%source) (write (get module '%source))))
     (when (> (table-size warnings) 0) (store! modinfo 'warnings warnings))
     (when (and module-warnings (> (table-size warnings) 0))
       (store! warnings '%moduleid (get module '%moduleid))
@@ -1133,45 +1148,29 @@
 	   (or (eq? (car arg) 'quote) (eq? (car arg) #op_quote)))
       (and (ambiguous? arg) (fail? (reject arg module-arg?)))))
 
-(define (optimize*! . args)
+(define (optimize! . args)
   (dolist (arg args)
     (cond ((symbol? arg) (optimize-module! arg))
 	  ((optimizable? arg) (optimize-procedure! arg))
 	  ((table? arg) (optimize-module! arg))
-	  (else (error '|TypeError| 'optimize*
+	  (else (error '|TypeError| 'optimize!
 		       "Invalid optimize argument: " arg)))))
-(define optimize* (fcn/alias optimize*!))
 
-(define (deoptimize*! . args)
+(define (deoptimize! . args)
   (dolist (arg args)
     (cond ((optimizable? arg) (deoptimize-procedure! arg))
 	  ((table? arg) (deoptimize-module! arg))
-	  (else (error '|TypeError| 'optimize*
+	  (else (error '|TypeError| 'deoptimize!
 		       "Invalid optimize argument: " arg)))))
 
 (define optimize-locals!
   (macro expr `(,optimize-bindings! (,%bindings))))
-
-;;; This will be replaced to be the regular function optimize*!
-(define optimize!
+(define deoptimize-locals!
+  (macro expr `(,deoptimize-bindings! (,%bindings))))
+(define optimize-main!
   (macro expr
-    (if (null? (cdr expr))
-	`(,optimize-bindings! (,%bindings))
-	(cons optimize*!
-	      (forseq (x (cdr expr))
-		(if (module-arg? x)
-		    `(,optimize-get-module ,x)
-		    x))))))
-
-(define deoptimize!
-  (macro expr
-    (if (null? (cdr expr))
-	`(,deoptimize-bindings! (,%bindings))
-	(cons deoptimize*!
-	      (forseq (x (cdr expr))
-		(if (module-arg? x)
-		    `(,optimize-get-module ,x)
-		    x))))))
+    `(begin (,optimize-bindings! (,%bindings))
+       (when (bound? %optmods) (optimize! %optmods)))))
 
 (define use!
   (macro expr
@@ -1258,6 +1257,33 @@
 	(else (irritant arg |TypeError| OPTIMIZED
 			"Not a compound procedure, environment, or module")))
   arg)
+
+;;; OPTIMIZE*
+
+(define (find-optimize-targets! module seen)
+  (unless (hashset-get seen module)
+    (hashset-add! seen module)
+    (do-choices (mod (reject (get-module (get module '%optmods)) seen))
+      (when (module? mod)
+	(find-optimize-targets! mod seen)))))
+
+(defambda (optimize*! modname)
+  (let ((seen (make-hashset))
+	(%loglevel optmod-loglevel)
+	(count 0))
+    (find-optimize-targets!
+     (if (or (symbol? modname) (string? modname))
+	 (get-module modname)
+	 modname)
+     seen)
+    (unless (zero? (table-size seen))
+      (lognotice |Optimizing|
+	($count (table-size seen) "module")
+	" for " modname))
+    (do-choices (mod (hashset-elts seen))
+      (set! count (+ count (optimize-module! mod))))
+    count))
+(define optimize* (fcn/alias optimize*!))
 
 ;;; Procedure optimizers
 
@@ -2109,3 +2135,46 @@
 	    (set! total (+ total (|| (get warnings fn))))))
 	total)
       (error |NoOptimizeLog|)))
+
+;;;; Autoloading
+
+(define-init optimize-modules {})
+
+(define (config-optmods var (val))
+  (cond ((not (bound? val)) optimize-modules)
+	((not (or (symbol? val) (string? val)))
+	 (irritant val |NotAModuleName|))
+	(else (let ((loaded (get-loaded-module val)))
+		(when loaded (optimize*! loaded))
+		(set+! optimize-modules val)))))
+(config-def! 'optmods config-optmods)
+
+(define (optimize-onload module)
+  (when (or (overlaps? optimize-modules module)
+	    (and (table? module) (overlaps? optimize-modules (get module '%moduleid))))
+    (logwarn |OptimizingModule| module)
+    (optimize*! module)))
+(config! 'module:loadhooks optimize-onload)
+
+(define-init optimize-all-setup #f)
+(define-init optimize-all #f)
+
+(define-init handle-optimize-all
+  (slambda (module) (when optimize-all (optimize! module))))
+
+(define-init setup-optimize-all
+  (slambda ()
+    (unless optimize-all-setup
+      (config! 'module:loadhooks handle-optimize-all)
+      (set! optimize-all-setup #t))))
+
+(define-init config-optimize:all
+  (slambda (var (val))
+    (cond ((unbound? val) optimize-all)
+	  ((not val) (set! optimize-all #f))
+	  (optimize-all)
+	  (else  (unless optimize-all-setup (setup-optimize-all))
+		 (set! optimize-all #t)))))
+
+(config-def! 'optimize:all config-optimize:all)
+

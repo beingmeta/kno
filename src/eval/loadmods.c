@@ -199,6 +199,7 @@ static int load_module_source(lispval spec,void *ignored)
       kno_decref(module_filename);
       kno_decref(module_info);
       u8_free(module_source);
+      kno_run_loadmod_hooks(load_result);
       kno_decref(load_result);
       return 1;}}
   else return 0;
@@ -407,7 +408,8 @@ KNO_EXPORT int kno_update_file_modules(int force)
 	  u8_log(LOG_WARN,"kno_update_file_modules","Reloaded %q from %s",
 		 this->loadarg,filename);
 	kno_decref(load_result); n_reloads++;
-	this->file_modtime = mtime;}}
+	this->file_modtime = mtime;
+	kno_run_loadmod_hooks((lispval)env);}}
     u8_lock_mutex(&load_record_lock);
     /* Update the load records with the new modtimes, freeing along
        the way */
@@ -485,6 +487,7 @@ KNO_EXPORT int kno_update_file_module(u8_string module_source,int force)
       scan->file_modtime = mtime; scan->reloading = 0;
       u8_unlock_mutex(&load_record_lock);
       u8_unlock_mutex(&update_modules_lock);
+      kno_run_loadmod_hooks((lispval)(scan->loadenv));
       return 1;}}
   else return 0;
 }

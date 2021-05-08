@@ -24,7 +24,7 @@
 	 (module (get-module modname)))
     (cond ((not module)
 	   (logerr |UnknownCommand| op ", the module " modname " doesn't exist"))
-	  (else (optimize-module! (get module '%optimize))
+	  (else (optimize*! module)
 		(apply (get module 'main) args)))))
 
 (define (usage)

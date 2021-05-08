@@ -119,6 +119,7 @@
 
 ;;; Plural stuff (automatic stuff is just English)
 
+;;; TODO: Generalize singular/plural/etc stuff into 'measurements'
 (define ($count n (singular #f) (plural #f) (spellout #t))
   ;; This may be too hairy, but it simplifies some things
   (when (symbol? singular) (set! singular (downcase singular)))
@@ -170,6 +171,18 @@
 (defambda ($nelts values (word #f) (plural #f))
   ($count (choice-size values) word plural))
 
+;;; Displaying Rates
+
+;;; TODO: Add ability to generate labels (e.g. bytes/sec)
+;;; TODO: Add ability to scale ticks to coarser units, e.g. minutes, hours, etc
+;;; TODO: Add ability to scale count to coarser units, e.g. MB, MiB, etc
+(define ($rate count ticks (precision 2))
+  "Returns an inexact ratio of *count* to *ticks* limited by precision"
+  (let ((ratio (/~ count ticks)))
+    (if (> ratio (/~ (pow 10 precision)))
+	(inexact->string ratio precision)
+	(inexact->string ratio))))
+
 ;;; Byte sizes
 
 (define KiB 1024)
@@ -213,12 +226,6 @@
 		  (if (< rate (* 2 TiB))
 		      (printout (printnum (/~ bytes TiB) 1) " TiB/sec")
 		      (printout (printnum (/~ bytes PiB) 1) " PiB/sec")))))))
-
-(define ($rate count ticks (precision 2))
-  (let ((ratio (/~ count ticks)))
-    (if (> ratio (/~ (pow 10 precision)))
-	(inexact->string ratio precision)
-	(inexact->string ratio))))
 
 ;; Temporal intervals
 

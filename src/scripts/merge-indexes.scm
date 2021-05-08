@@ -97,4 +97,4 @@
 (when (config 'optimize #t)
   (optimize! '{logger ezrecords fifo engine})
   (optimize! '{knodb/indexes knodb/hashindexes})
-  (optimize!))
+  (optimize-locals!))

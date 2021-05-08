@@ -221,6 +221,8 @@ KNO_EXPORT lispval kno_register_module(u8_string name,lispval module,int flags);
 KNO_EXPORT lispval kno_get_module(lispval name);
 KNO_EXPORT int kno_discard_module(lispval name);
 
+KNO_EXPORT void kno_run_loadmod_hooks(lispval module);
+
 KNO_EXPORT int kno_load_module(u8_string modname);
 
 KNO_EXPORT lispval kno_all_modules(void);

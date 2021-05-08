@@ -8,12 +8,12 @@
 (use-module '{knodb/indexes})
 
 (define %loglevel (config 'loglevel %notice%))
-(define %optimize '{knodb/actions/packindex
-		    knodb/indexes
-		    knodb/hashindexes
-		    ezrecords
-		    fifo
-		    engine})
+(define %optmods '{knodb/actions/packindex
+		   knodb/indexes
+		   knodb/hashindexes
+		   ezrecords
+		   engine
+		   fifo})
 
 (when (config 'showsource) (logwarn |Loading| (get-component)))
 
@@ -108,7 +108,7 @@
 (define (main (in #f) (out))
   (default! out in)
   (when (overlaps? out '{"inplace" "-"}) (set! out in))
-  (when (config 'optimized #t) (optimize-module! %optimize))
+  (when (config 'optimized #t) (optimize*! 'knodb/actions/packindex))
   (packindex in out))
 
 (define configs-done #f)

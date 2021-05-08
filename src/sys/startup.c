@@ -1216,13 +1216,71 @@ void kno_init_startup_c()
 
 #endif
 
-  if (!(kno_logdir)) kno_logdir = u8_strdup(KNO_LOG_DIR);
+  if (!(kno_rundir)) {
+    if ( (u8_directoryp(KNO_RUN_DIR)) &&
+	 (u8_file_writablep(KNO_RUN_DIR)) )
+      kno_rundir = u8_strdup(KNO_RUN_DIR);
+    else {
+      u8_string use_rundir = u8_getenv("USE_RUNDIR");
+      if ( (use_rundir) &&
+	   (u8_directoryp(use_rundir)) &&
+	   (u8_file_writablep(use_rundir)) )
+	kno_rundir = use_rundir;
+      else {
+	if (use_rundir) {
+	  u8_log(LOGERR,"BadRunDir",
+		 "The specified rundir '%s' isn't a writable directory",
+		 use_rundir);
+	  u8_free(use_rundir);
+	  use_rundir = u8_getcwd();}
+	else use_rundir = u8_getcwd();
+	if (u8_file_writablep(use_rundir))
+	  kno_rundir = use_rundir;
+	else {
+	  u8_free(use_rundir);
+	  u8_string temproot = u8_getenv("KNO_TEMPROOT");
+	  if (!(temproot)) temproot = u8_getenv("TEMPROOT");
+	  if (!(temproot)) temproot = u8_getenv("TEMPDIR");
+	  pid_t pid = getpid();
+	  use_rundir =
+	    u8_mkstring("%s/kno_%lld",U8ALT(temproot,"/tmp/"),(long long)pid);
+	  int rv = u8_mkdir(use_rundir,-1);
+	  if (rv<0) {
+	    u8_free(use_rundir);
+	    use_rundir=NULL;
+	    kno_rundir = u8_strdup("/tmp");}
+	  else kno_rundir=use_rundir;
+	  if (temproot) u8_free(temproot);
+	  u8_log(LOGWARN,"UsingRunDir",
+		 "Using %s as the KNO run state directory",
+		 kno_rundir);}}}}
+  kno_register_config("RUNDIR",_("Run state directory"),
+		      kno_sconfig_get,kno_sconfig_set,&kno_rundir);
+
+  if (!(kno_logdir)) {
+    if ( (u8_directoryp(KNO_LOG_DIR)) &&
+	 (u8_file_writablep(KNO_LOG_DIR)) )
+      kno_logdir = u8_strdup(KNO_LOG_DIR);
+    else {
+      u8_string use_logdir = u8_getenv("USE_LOGDIR");
+      if ( (use_logdir) &&
+	   (u8_directoryp(use_logdir)) &&
+	   (u8_file_writablep(use_logdir)) )
+	kno_logdir=use_logdir;
+      else if (use_logdir) {
+	u8_log(LOGERR,"BadLogDir",
+	       "The specified logdir '%s' isn't a writable directory",
+	       use_logdir);
+	  u8_free(use_logdir);
+	  use_logdir = u8_getcwd();}
+      else use_logdir = u8_getcwd();
+      if (u8_file_writablep(use_logdir))
+	kno_logdir = use_logdir;
+      else {
+	if (use_logdir) u8_free(use_logdir);
+	kno_logdir = u8_strdup(kno_rundir);}}}
   kno_register_config("LOGDIR",_("Root Kno logging directories"),
 		      kno_sconfig_get,kno_sconfig_set,&kno_logdir);
-
-  if (!(kno_rundir)) kno_rundir = u8_strdup(KNO_RUN_DIR);
-  kno_register_config("RUNDIR",_("Run state directory"),
-                      kno_sconfig_get,kno_sconfig_set,&kno_rundir);
 
   if (!(kno_sharedir)) kno_sharedir = u8_strdup(KNO_SHARE_DIR);
   kno_register_config("SHAREDIR",_("Shared config/data directory for Kno"),

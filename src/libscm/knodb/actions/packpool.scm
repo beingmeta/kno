@@ -8,7 +8,7 @@
 (use-module '{knodb/countrefs})
 
 (define %loglevel (config 'loglevel %notice%))
-(define %optimize '{knodb/actions/packpool knodb knodb/countrefs})
+(define %optmods '{knodb knodb/actions/packpool knodb/countrefs})
 
 (define isadjunct #f)
 (varconfig! isadjunct isadjunct config:boolean)
@@ -333,7 +333,7 @@
 
 (define (main (from #f) (to))
   (default! to from)
-  (when (config 'optimized #t) (optimize-module! %optimize))
+  (when (config 'optimized #t) (optimize*! 'knodb/actions/packpool))
   (if (and from (file-exists? from))
       (packpool from to)
       (usage)))

@@ -320,5 +320,5 @@
     (commit new)
     new))
 
-(optimize!)
+(optimize-locals!)
 

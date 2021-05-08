@@ -26,7 +26,6 @@
 static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
 static lispval fcnids_symbol, modinfo_symbol;
 
-
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
 u8_condition OpaqueModule=_("Can't switch to opaque module");
@@ -1094,6 +1093,26 @@ static lispval make_env_prim(lispval use_mods,
   return (lispval) env;
 }
 
+/* Load module hooks */
+
+static lispval loadmod_hooks = KNO_EMPTY_LIST;
+
+KNO_EXPORT void kno_run_loadmod_hooks(lispval module)
+{
+  lispval root = kno_incref(loadmod_hooks), scan = root;
+  while (PAIRP(scan)) {
+    lispval hook = KNO_CAR(scan);
+    lispval v = kno_apply(hook,1,&module);
+    if (KNO_ABORTED(v)) {
+      kno_clear_errors(1);}
+    else kno_incref(v);
+    scan = KNO_CDR(scan);}
+  kno_decref(root);
+}
+
+
+/* Initializations */
+
 static volatile int module_tables_initialized = 0;
 
 void kno_init_module_tables()
@@ -1148,9 +1167,12 @@ KNO_EXPORT void kno_init_modules_c()
 
   link_local_cprims();
 
-  kno_register_config("MODULE",
-		      "Specify modules to be used by the default live environment",
-		      config_used_modules,config_use_module,NULL);
+  kno_register_config
+    ("MODULE","Specify modules to be used by the default live environment",
+     config_used_modules,config_use_module,NULL);
+  kno_register_config
+    ("MODULE:LOADHOOKS","Functions to be applied to loaded modules",
+     kno_lconfig_get,kno_lconfig_push,&loadmod_hooks);
 }
 
 static void link_local_cprims()

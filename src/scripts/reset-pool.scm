@@ -79,5 +79,5 @@
   (lineout "    if specified, [to] must not exist unless OVERWRITE=yes.")
   (lineout "    POOLTYPE=kpool|filepool"))
 
-(optimize!)
+(optimize-locals!)
 
