@@ -114,6 +114,8 @@ static int stringvec_len(char **vec)
   return scan-vec;
 }
 
+static int subproc_loglevel = LOG_NOTICE;
+
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
 
@@ -197,7 +199,7 @@ static void finish_subproc(struct KNO_SUBPROC *p)
 	    kno_decref(err);}}
 	else errfilename = KNO_CSTRING(err);}
       int loglevel  = ( (outfilename) || (errfilename) ) ? (LOG_WARN) :
-	(LOG_NOTICE);
+	(subproc_loglevel);
       u8_log(loglevel,"SubprocFinished","PID=%lld %s%s%s%s%s",
 	     (long long)(p->proc_pid),p->proc_id,
 	     ((outfilename)?("\n\tsaved stdout="):("")),
@@ -806,6 +808,9 @@ static lispval proc_open_prim(int n,kno_argvec args)
     doexec(flags,cprogname,cwd,in,out,err,argv,envp,opts);
     result=kno_seterr("ExecFailed","proc_open",progname,VOID);}
   else if (pid>0) {
+    int loglevel  = subproc_loglevel;
+    u8_log(subproc_loglevel+1,"SubprocStarted",
+	   "%s pid=%lld %s",idstring,(long long)pid,progname);
     result = cons_subproc
       (pid,idstring,cprogname,argv,envp,
        (((in==NULL) || (in[1]<0)) ? (kno_incref(infile)) :
@@ -1680,6 +1685,10 @@ KNO_EXPORT void kno_init_procprims_c()
   kno_recyclers[kno_subproc_type] = recycle_subproc;
 
   kno_tablefns[kno_subproc_type] = kno_annotated_tablefns;
+
+  kno_register_config
+    ("SUBPROC:LOGLEVEL","Loglevel to use for subprocs",
+     kno_intconfig_get,kno_loglevelconfig_set,NULL);
 
   id_symbol = kno_intern("id");
   stdin_symbol = kno_intern("stdin");

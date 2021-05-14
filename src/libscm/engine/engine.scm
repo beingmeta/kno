@@ -267,9 +267,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(batchcall (if batchsize (getopt opts 'batchcall #f)
 		       (getopt opts 'batchcall (non-deterministic? iterfn))))
 	(batchno 1))
-    (let* ((batch (if fillfn
-		      (get-batch fifo batchsize loop-state fillfn)
-		      (if batchsize (fifo/popvec fifo batchsize) (fifo/pop fifo))))
+    (let* ((batch (get-batch fifo batchsize loop-state fillfn))
 	   (batch-state `#[loop ,loop-state 
 			   thread ,threadid
 			   batchno ,batchno
@@ -418,7 +416,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	     (<= (fifo/load fifo) fillthresh)
 	     (fill/start! loop-state))
     (engine/fill! fifo fillfn loop-state))
-  (if batchsize (fifo/popvec fifo batchsize) (fifo/pop fifo batchsize)))
+  (tryif (and (not (test loop-state '{stopped done}))
+	      (or fillfn (> (fifo/load fifo) 0)))
+    (if batchsize (fifo/popvec fifo batchsize) (fifo/pop fifo batchsize))))
 
 (define (pick-spacing opts nthreads)
   (let ((spacing (getopt opts 'spacing 0.1)))
@@ -934,11 +934,13 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(set! added (+ added count))
 		(set! need (- need count)))))
 	  (bump-fillstate! loop-state (elapsed-time fillstart) (- fillsize need))
-	  (when (and (test loop-state 'maxitems) (>= (get loop-state 'queued) (get loop-state 'maxitems)))
-	    (fifo/readonly! fifo #t)
-	    (unless (test loop-state 'stopval)
-	      (store! loop-state 'stopping (timestamp))
-	      (store! loop-state 'stopval (cons 'maxitems (get loop-state 'maxitems)))))
+	  (if (test loop-state '{stopping stopped done})
+	      (fifo/readonly! fifo #t)
+	      (when (and (test loop-state 'maxitems) (>= (get loop-state 'queued) (get loop-state 'maxitems)))
+		(fifo/readonly! fifo #t)
+		(unless (test loop-state 'stopval)
+		  (store! loop-state 'stopping (timestamp))
+		  (store! loop-state 'stopval (cons 'maxitems (get loop-state 'maxitems))))))
 	  (logdebug |FinishedFill|
 	    "Thread " (threadid) " finished adding " 
 	    ($count added (try (get loop-state 'count-term) count-term))
