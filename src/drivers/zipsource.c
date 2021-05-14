@@ -58,20 +58,6 @@ DEF_KNOSYM(content);
 
 #define ZIPSOURCEP(x) (KNO_RAW_TYPEP(x,KNOSYM_ZIPSOURCE))
 
-static u8_string get_string_opt(lispval opts,lispval optname,ssize_t *sizep)
-{
-  u8_string result = NULL;
-  lispval val = kno_getopt(opts,optname,KNO_VOID);
-  if (KNO_STRINGP(val)) {
-    result = u8_strdup(KNO_CSTRING(val));
-    if (sizep) *sizep = KNO_STRLEN(val);}
-  else {
-    result = NULL;
-    if (sizep) *sizep = -1;}
-  kno_decref(val);
-  return result;
-}
-
 #define zip_entry_type(zip) (((zip)->entry.external_attr&0xF0000000) >> 28)
 
 KNO_EXPORT int kno_zipsource_existsp(lispval zs,u8_string path)
@@ -439,7 +425,7 @@ int kno_init_zipsource_c()
   e->type_dumpfn = dump_zipsource;
   e->type_unparsefn = unparse_zipsource;
   e->type_consfn = cons_zipsource;
-  /* e->type_tablefns = &zipsource_tablefns; */
+  e->type_tablefns = &zipsource_tablefns;
 
   u8_init_mutex(&zipsources_lock);
 

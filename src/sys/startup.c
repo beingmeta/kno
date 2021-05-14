@@ -570,9 +570,13 @@ static unsigned int randomseed = 1736352760;
 
 static lispval config_getrandomseed(lispval var,void *data)
 {
+#if (SIZEOF_LISPVAL > SIZEOF_INT)
+  return KNO_INT(randomseed);
+#else
   if (randomseed<KNO_MAX_FIXNUM)
     return KNO_INT(randomseed);
   else return (lispval)kno_long_long_to_bigint(randomseed);
+#endif
 }
 
 static int config_setrandomseed(lispval var,lispval val,void *data)

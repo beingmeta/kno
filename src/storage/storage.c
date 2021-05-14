@@ -217,8 +217,8 @@ static lispval dbparse_oid(u8_string start,int len)
       U8_STATIC_OUTPUT(id,len*2);
       scan = start+1; c = u8_sgetc(&scan);
       while (c>0) {
-	int dc = u8_tolower(dc);
-	u8_putc(idout,c);
+	int dc = u8_tolower(c);
+	u8_putc(idout,dc);
 	c = u8_sgetc(&scan);}
       struct KNO_STRING _idstring;
       lispval idstring = kno_init_string(&_idstring,u8_outlen(idout),id.u8_outbuf);

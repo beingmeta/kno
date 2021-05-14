@@ -113,11 +113,6 @@ lispval eval_body_error(u8_context cxt,u8_string label,lispval body)
 
 #define ND_ARGP(v) ((CHOICEP(v))||(QCHOICEP(v)))
 
-KNO_FASTOP int commentp(lispval arg)
-{
-  return (RARELY((PAIRP(arg)) && (KNO_EQ(KNO_CAR(arg),comment_symbol))));
-}
-
 KNO_EXPORT lispval kno_bad_arg(lispval arg,u8_context cxt,lispval source_expr)
 {
   return kno_err((arg == KNO_TAIL) ? (kno_TailArgument) :

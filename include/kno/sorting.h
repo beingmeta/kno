@@ -82,8 +82,8 @@ U8_MAYBE_UNUSED static int _kno_sort_helper(const void *vx,const void *vy)
              (xtype == kno_flonum_type) || (xtype == kno_rational_type) ||
              (xtype == kno_complex_type)) {
       lispval x = sx->sortkey, y = sy->sortkey;
-      if ( ((xtype == kno_fixnum_type) && (xtype == kno_bigint_type)) ||
-           ((xtype == kno_bigint_type) && (xtype == kno_fixnum_type)) ) {
+      if ( ((xtype == kno_fixnum_type) && (ytype == kno_bigint_type)) ||
+           ((xtype == kno_bigint_type) && (ytype == kno_fixnum_type)) ) {
         int xneg = ((xtype == kno_fixnum_type) ? (KNO_FIX2INT(x)<0) :
                     (kno_bigint_negativep((kno_bigint)x)));
         int yneg = ((ytype == kno_fixnum_type) ? (KNO_FIX2INT(y)<0) :

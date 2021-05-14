@@ -1028,7 +1028,7 @@ static void handle_env_spec(kno_stackvec environment,
     kno_stackvec_push(environment,knostring("PROCPRIMS_ENV_RESET=yes"));
     return;}
   else {
-    char **scan = environ;
+    char *const *scan = environ;
     while (*scan) {
       u8_string use_string = u8_fromlibc(*scan);
       lispval stringval = kno_init_string(NULL,-1,use_string);

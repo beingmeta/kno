@@ -1932,8 +1932,8 @@ static int kpool_set_read_only(kno_kpool kp,int read_only)
 {
   unsigned int cur_format = kp->kpool_format;
   if ( (read_only) ?
-       ( (cur_format) && (KNO_KPOOL_READ_ONLY) ) :
-       (!( (cur_format) && (KNO_KPOOL_READ_ONLY) )) )
+       ( (cur_format) & (KNO_KPOOL_READ_ONLY) ) :
+       (!( (cur_format) & (KNO_KPOOL_READ_ONLY) )) )
     return 0;
   struct KNO_STREAM _stream, *stream =
     kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);

@@ -341,7 +341,7 @@ U8_MAYBE_UNUSED static kno_index __kno_get_writable_index(kno_index ix)
 #if KNO_INLINE_INDEXES
 KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
 {
-  lispval cached, cache = KNO_VOID;
+  lispval cached = KNO_VOID, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
   KNOTC *knotc = kno_threadcache;
   if (knotc) {

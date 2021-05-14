@@ -254,16 +254,6 @@ static ssize_t get_chunk_ref_size(kno_kindex ix)
   return -1;
 }
 
-/* Opening database blocks */
-
-KNO_FASTOP lispval read_xtype_at_pos(kno_stream s,xtype_refs refs,kno_off_t off)
-{
-  kno_off_t retval = kno_setpos(s,off);
-  kno_inbuf ins = kno_readbuf(s);
-  if (retval<0) return KNO_ERROR;
-  else return kno_read_xtype(ins,refs);
-}
-
 /* Opening a hash index */
 
 static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream);

@@ -844,7 +844,7 @@ KNO_EXPORT lispval kno_index_sizes(kno_index ix)
 
 KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
 {
-  lispval cached, cache = KNO_VOID;
+  lispval cached = KNO_VOID, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
   KNOTC *knotc = (KNO_USE_THREADCACHE) ? (kno_threadcache) : (NULL);
   if (knotc) {

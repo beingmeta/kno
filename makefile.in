@@ -7,11 +7,12 @@ XCFLAGS           =
 OPTFLAGS          = "@OPTFLAGS@"
 XOPTFLAGS         = "@XOPTFLAGS@"
 ARCHFLAGS         = @archflags@
-EXECFLAGS         = @CFLAGS@ ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
+WARNFLAGS	  = -Wno-unused-label -Wno-multichar
+EXECFLAGS         = @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
 		    @PROFILING@ @GCOV_CFLAGS@ \
 		    -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG     = @dynamic_cflag@
-CFLAGS            = -I./include @CFLAGS@ ${OPTFLAGS} \
+CFLAGS            = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} \
 		    @MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
 		    @PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
 		    -I./include $(XCFLAGS)  $(ARCHFLAGS)
@@ -516,7 +517,9 @@ debugging:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@debugcflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) -DKNO_DEBUGGING_BUILD=1"	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 $(XCFLAGS) 	\
+		  -Wall ${WARNFLAGS} -Wno-unknown-pragmas 	\
+		  -DKNO_DEBUGGING_BUILD=1"			\
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
@@ -1075,7 +1078,7 @@ clean: tidy
 	rm -f lib/*.a lib/*.so lib/*.dylib
 	rm -f lib/*.so lib/*.so.* lib/*.dylib lib/*.dylib.*
 	rm -f lib/kno/*.so lib/kno/*.so.* lib/kno/*.dylib lib/kno/*.dylib.*
-	rm -f exe/kno* dbg/kno* static/kno* static/stripped/kno*
+	rm -rf exe/kno* dbg/kno* static/kno* static/stripped/kno*
 	rm -f TAGS
 	cd tests/libtests; make -s clean
 	cd tests; make -s clean

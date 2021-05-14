@@ -1,6 +1,8 @@
-AC_PREREQ(2.50)
-AC_INIT(include/kno/lisp.h)
+AC_PREREQ([2.68])
+AC_INIT
+AC_CONFIG_SRCDIR([include/kno/lisp.h])
 AC_PREFIX_PROGRAM(autoconf)
+AC_USE_SYSTEM_EXTENSIONS
 
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
@@ -161,7 +163,7 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP="none"
-CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC -Wno-unused-label -Wno-multichar"
+CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -233,7 +235,7 @@ if (test "$rpath_default" = "NONE") || (test "$rpath_default" = ""); then
 fi
 
 AC_CONFIG_AUX_DIR(etc)
-AC_CONFIG_HEADER(include/kno/knosource.h include/kno/config.h)
+AC_CONFIG_HEADERS([include/kno/knosource.h include/kno/config.h])
 
 AC_SUBST(DEFAULTMAKETARGET)
 AC_SUBST(install_dir_opts)
@@ -440,6 +442,10 @@ else
    ZIPCMD="nozipcommand";
 fi;
 
+AC_CANONICAL_HOST
+AC_CANONICAL_TARGET
+AC_PROG_CC([${CC} cc gcc clang])
+
 AC_ARG_WITH(execwrapper,--with-execwrapper program to use when calling exec(),,with_execwrapper=$binenv)
 if test "$with_execwrapper" != ""; then
   AC_DEFINE_UNQUOTED(KNO_EXEC_WRAPPER,"$with_execwrapper")
@@ -499,12 +505,6 @@ fi;
 
 AC_ARG_WITH(default-target,--with-default-target default-make-target,with_default_target=$withval,with_default_target=update)
 DEFAULTMAKETARGET=$with_default_target
-
-AC_CANONICAL_HOST
-AC_CANONICAL_TARGET
-AC_PROG_CC([${CC} cc gcc clang])
-AC_USE_SYSTEM_EXTENSIONS
-AC_AIX
 
 AC_PROG_INSTALL
 AC_PROG_RANLIB
@@ -742,45 +742,42 @@ dnl ***********************************
 dnl *** Checks for working __builtin_expect ***
 dnl ***********************************
 AC_MSG_CHECKING(for working __builtin_expect)
-AC_TRY_COMPILE([],[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 	     int main (int argc,char *argv[]) {
                 if (__builtin_expect((argc>2),1)) return 0;
                 else return 1;
 		}
-	    ], [
+	    ]])],[
 		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_BUILTIN_EXPECT)],
-	       [AC_MSG_RESULT(no)])
+		AC_DEFINE(HAVE_BUILTIN_EXPECT)],[AC_MSG_RESULT(no)])
 
 
 dnl ***********************************
 dnl *** Checks for working __builtin_prefetch ***
 dnl ***********************************
 AC_MSG_CHECKING(for working __builtin_prefetch)
-AC_TRY_COMPILE([],[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
 	     static int data[]={0,1,2,3};
 
 	     int main (int argc,char *argv[]) {
                 __builtin_prefetch(&data[2],0,3);
 		return 0;
 		}
-	    ], [
+	    ]])],[
 		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_BUILTIN_PREFETCH)],
-	       [AC_MSG_RESULT(no)])
+		AC_DEFINE(HAVE_BUILTIN_PREFETCH)],[AC_MSG_RESULT(no)])
 
 
 dnl ***********************************
 dnl *** Checks for working constructor attributes ***
 dnl ***********************************
 AC_MSG_CHECKING(for working __constructor_attributes)
-AC_TRY_COMPILE([],[
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[]], [[
              int tmpinit(void) __attribute__ ((constructor));
 
-	    ], [
+	    ]])],[
 		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_CONSTRUCTOR_ATTRIBUTES)],
-	       [AC_MSG_RESULT(no)])
+		AC_DEFINE(HAVE_CONSTRUCTOR_ATTRIBUTES)],[AC_MSG_RESULT(no)])
 
 ### What flavor of malloc() to use
 
@@ -1303,7 +1300,6 @@ dnl LDFLAGS="-L${libdir} ${LDFLAGS}"
 
 dnl Some system headers and members
 
-AC_HEADER_STDC
 AC_HEADER_STAT
 
 AC_CHECK_HEADERS(fcntl.h malloc.h mcheck.h sys/resource.h malloc/malloc.h)
@@ -1618,11 +1614,11 @@ dnl ***********************************
 dnl *** Checks for working __thread ***
 dnl ***********************************
 AC_MSG_CHECKING(for working __thread)
-AC_TRY_COMPILE([
+AC_COMPILE_IFELSE([AC_LANG_PROGRAM([[
             #include <pthread.h>
             __thread int i;
 	    static int res1, res2;
-	],[
+	]], [[
 	     void thread_main (void *arg)
 	     {
 		i = arg;
@@ -1641,10 +1637,9 @@ AC_TRY_COMPILE([
 		pthread_join (t2, NULL);
 		return !(res1 + res2 == 2);
 		}
-	    ], [
+	    ]])],[
 		AC_MSG_RESULT(yes)
-		AC_DEFINE(HAVE_THREAD_STORAGE_CLASS)],
-	       [AC_MSG_RESULT(no)])
+		AC_DEFINE(HAVE_THREAD_STORAGE_CLASS)],[AC_MSG_RESULT(no)])
 
 
 ### Use editline in kno console
@@ -1891,7 +1886,7 @@ fi;
 
 ### Here's where stuff gets made
 
-AC_OUTPUT([makefile etc/version etc/makefile.include
+AC_CONFIG_FILES([makefile etc/version etc/makefile.include
            src/extmods/makefile DIY/makefile 
 	   tests/libtests/makefile
            etc/gdbinit
@@ -1930,8 +1925,9 @@ AC_OUTPUT([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   etc/getbuildopt
 	   dist/alpine/APKBUILD
-	   dist/kno-4.3.spec],
-	   [chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig])
+	   dist/kno-4.3.spec])
+AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig],[])
+AC_OUTPUT
 
 if test ! -z "$gperftools"; then
    echo  "Built with malloc=$using_malloc, gperftools=${gperftools}";
