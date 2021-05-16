@@ -234,8 +234,12 @@ static lispval do_intersection(lispval body,kno_lexenv env,kno_stack stack,int t
       result = kno_err(kno_VoidArgument,"intersection",NULL,expr);
       goto early_exit;}
     else if (!(CHOICEP(arg))) {
-      if (n_choices == 0)
-	single = arg;
+      if (n_choices == 0) {
+	if (KNO_VOIDP(single))
+	  single = arg;
+	else if (KNO_EQUALP(single,arg))
+	  kno_decref(arg);
+	else return KNO_EMPTY;}
       else {
 	int i = 0; while (i<n_choices) {
 	  if (inchoicep(arg,choices[i])) i++;
@@ -773,18 +777,15 @@ static lispval docall(lispval fn,int n,kno_argvec args,kno_stack stack,
   kno_lisp_type fntype = KNO_CONS_TYPEOF(fn);
   if (fntype == kno_cprim_type) {
     struct KNO_CPRIM *prim = (kno_cprim) fn;
-    if (free_args) {
-      lispval result = cprim_call(prim->fcn_name,prim,n,args,stack);
-      kno_decref_vec((lispval *)args,n);
-      return result;}
-    else return cprim_call(prim->fcn_name,prim,n,args,stack);}
+    lispval result = cprim_call(prim->fcn_name,prim,n,args,stack);
+    if (free_args) kno_decref_vec((lispval *)args,n);
+    return kno_simplify_choice(result);}
   else if (fntype == kno_lambda_type)
     return lambda_call(stack,(kno_lambda)fn,n,args,free_args,tail);
-  else if (free_args) {
+  else {
     lispval result = kno_dcall(stack,fn,n,args);
-    kno_decref_vec((lispval *)args,n);
-    return result;}
-  else return kno_dcall(stack,fn,n,args);
+    if (free_args) kno_decref_vec((lispval *)args,n);
+    return kno_simplify_choice(result);}
 }
 
 /* Apply ops */

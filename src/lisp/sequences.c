@@ -86,6 +86,7 @@ KNO_FASTOP int seq_length(lispval x)
 }
 
 struct KNO_SEQFNS *kno_seqfns[KNO_TYPE_MAX];
+
 KNO_EXPORT int kno_seq_length(lispval x)
 {
   ssize_t len = seq_length(x);

@@ -2057,27 +2057,31 @@ KNO_EXPORT lispval kno_hashtable_get
     (eq_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,NULL)) :
     (hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,NULL));
   if (result) {
-    lispval rv=kno_incref(result->kv_val);
-    if (VOIDP(rv)) {
+    lispval values=kno_incref(result->kv_val);
+    if (VOIDP(values)) {
       if (unlock) kno_unlock_table(ht);
       return kno_incref(dflt);}
-    else if (PRECHOICEP(rv)) {
-      if (unlock) kno_unlock_table(ht); kno_decref(rv);
-      if (unlock) kno_write_lock_table(ht);
+    else if (PRECHOICEP(values)) {
+      if (unlock) {
+	kno_unlock_table(ht);
+	kno_decref(values);
+	values=KNO_VOID;
+	kno_write_lock_table(ht);}
       if (eq_cmp)
 	result = eq_hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,NULL);
       else result = hashvec_get(key,ht->ht_buckets,ht->ht_n_buckets,NULL);
       if (result) {
-        rv = result->kv_val;
-        if (KNO_PRECHOICEP(rv)) {
-          lispval norm = kno_make_simple_choice(result->kv_val);
-          if (unlock) kno_unlock_table(ht);
-          return norm;}
-        else return kno_incref(rv);}
-      else return KNO_EMPTY;}
+        values = result->kv_val;
+        if (KNO_PRECHOICEP(values)) {
+          lispval norm = kno_make_simple_choice(values);
+	  values = norm;}
+	else kno_incref(values);}
+      else values= KNO_EMPTY;
+      if (unlock) kno_unlock_table(ht);
+      return values;}
     else {
       if (unlock) kno_unlock_table(ht);
-      return rv;}}
+      return values;}}
   else {
     if (unlock) kno_unlock_table(ht);
     return kno_incref(dflt);}
@@ -3908,12 +3912,22 @@ KNO_EXPORT int kno_for_hashtable_kv
     struct KNO_HASH_BUCKET **scan=ht->ht_buckets, **lim=scan+ht->ht_n_buckets;
     while (scan < lim)
       if (*scan) {
-        struct KNO_HASH_BUCKET *e=*scan;
-        int n_keyvals=e->bucket_len;
-        struct KNO_KEYVAL *kvscan=&(e->kv_val0);
+	struct KNO_HASH_BUCKET *e=*scan;
+	int n_keyvals=e->bucket_len;
+	struct KNO_KEYVAL *kvscan=&(e->kv_val0);
         struct KNO_KEYVAL *kvlimit=kvscan+n_keyvals;
         while (kvscan<kvlimit) {
-          if (f(kvscan,data)) {
+	  if (PRECHOICEP(kvscan->kv_val)) {
+	    struct KNO_KEYVAL kv;
+	    kv.kv_key = kvscan->kv_key;
+	    kv.kv_val = kno_normalize_choice(kvscan->kv_val,0);
+	    int rv = f(&kv,data);
+	    kno_decref(kv.kv_val);
+	    if (rv) {
+	      if (unlock) kno_unlock_table(ht);
+	      return ht->ht_n_buckets;}
+	    else kvscan++;}
+	  else if (f(kvscan,data)) {
             if (unlock) kno_unlock_table(ht);
             return ht->ht_n_buckets;}
           else kvscan++;}

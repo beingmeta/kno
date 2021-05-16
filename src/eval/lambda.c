@@ -336,7 +336,7 @@ lispval lambda_call(kno_stack stack,
 		       stack->stack_argc,stack->stack_args);
       break;}}
   kno_pop_stack(lambda_stack);
-  return result;
+  return kno_simplify_choice(result);
 }
 
 /* Evaluating a lambda template */

@@ -3409,9 +3409,9 @@ KNO_EXPORT lispval kno_hashindex_keyinfo(lispval lix,
   u8_big_free(buckets);
   u8_big_free(bucket_no);
   return kno_init_choice(choice,key_count,NULL,
-                        KNO_CHOICE_REALLOC|
-                        KNO_CHOICE_ISCONSES|
-                        KNO_CHOICE_DOSORT);
+			 KNO_CHOICE_REALLOC|
+			 KNO_CHOICE_ISCONSES|
+			 KNO_CHOICE_DOSORT);
 }
 
 static lispval get_hashbuckets(struct KNO_HASHINDEX *hx)

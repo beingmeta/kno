@@ -260,10 +260,12 @@ static void log_ptr(lispval val,lispval label_arg,lispval expr)
     kno_lisp_type ptype = KNO_CONS_TYPEOF(c);
     u8_string type_name = kno_lisp_typename(ptype);
     unsigned int refcount = KNO_CONS_REFCOUNT(c);
+    int choicep = KNO_CHOICEP(val);
     u8_log(U8_LOG_MSG,"Pointer/Consed",
-	   "%s%s%s0x%llx [ T0x%x(%s) refs=%d ] %q <= %q",
+	   "%s%s%s%s%p [ T0x%x(%s) refs=%d ] %q <= %q",
 	   U8OPTSTR("",label,": "),
-	   (KNO_LONGVAL(val)),
+	   val,
+	   (choicep)?("-16"):(""),
 	   ptype,type_name,refcount,
 	   val,expr);}
   else {}

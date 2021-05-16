@@ -1326,6 +1326,16 @@ void kno_init_config_c()
 		      features_config_get,features_config_set,
 		      NULL);
 
+  kno_register_config("BIGCHOICE",
+		      "When to use a merge sort (bigsort) to sort choices",
+		      kno_sizeconfig_get,kno_sizeconfig_set,
+		      &kno_bigchoice_threshold);
+  kno_register_config("BIGSORT:BLOCKSIZE",
+		      "Size of chunk size for bigsort (merge sort) of choices",
+		      kno_sizeconfig_get,kno_sizeconfig_set,
+		      &kno_bigsort_blocksize);
+
+
   kno_register_config
     ("TRACECONFIG",_("whether to trace configuration"),
      kno_boolconfig_get,kno_boolconfig_set,&kno_trace_config);

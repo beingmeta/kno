@@ -16,10 +16,17 @@
 #define MYSTERIOUS_MULTIPLIER 2654435769U
 #define KNO_HASHSET_THRESHOLD 200000
 
-ssize_t kno_choicemerge_threshold=KNO_CHOICEMERGE_THRESHOLD;
+#define USE_REFS 1
+#define DONT_USE_REFS 0
+
+ssize_t kno_smallchoice_threshold  = KNO_SMALLCHOICE_THRESHOLD;
+ssize_t kno_bigchoice_threshold      = KNO_BIGCHOICE_THRESHOLD;
+unsigned int kno_bigsort_blocksize = KNO_BIGSORT_BLOCKSIZE;
 
 #define lock_prechoice(ach) u8_lock_mutex(&((ach)->prechoice_lock))
 #define unlock_prechoice(ach) u8_unlock_mutex(&((ach)->prechoice_lock))
+
+lispval merge_choices(struct KNO_CHOICE **choices,int n_choices);
 
 /* Basic operations on PRECHOICES */
 
@@ -33,22 +40,38 @@ static void recycle_prechoice(struct KNO_RAW_CONS *c)
 	lispval v = *read++;
 	kno_decref(v);}
     if (ch->prechoice_mallocd) {
-      kno_free_choice(ch->prechoice_choicedata);
-      ch->prechoice_choicedata = NULL;
+      u8_big_free(ch->prechoice_data);
       ch->prechoice_mallocd = 0;}}
   kno_decref(ch->prechoice_normalized);
   u8_destroy_mutex(&(ch->prechoice_lock));
   if (!(KNO_STATIC_CONSP(ch))) u8_free(ch);
 }
 
-static void recycle_prechoice_wrapper(struct KNO_PRECHOICE *ch)
+static void cache_norm(struct KNO_PRECHOICE *pch,lispval norm)
 {
-  kno_decref(ch->prechoice_normalized);
-  u8_destroy_mutex(&(ch->prechoice_lock));
-  ch->prechoice_data = NULL;
-  ch->prechoice_choicedata = NULL;
-  if (!(KNO_STATIC_CONSP(ch))) u8_free(ch);
+  lispval *data = pch->prechoice_data, *write_point = pch->prechoice_write;
+  pch->prechoice_normalized = norm; kno_incref(norm); kno_incref(norm);
+  if ( (pch->prechoice_nested) || (!(pch->prechoice_atomic)) ) {
+    lispval *scan = data; while (scan<write_point) {
+      lispval v = *scan; *scan++=KNO_VOID; kno_decref(v);}}
+  data[0]=norm;
+  pch->prechoice_write=data+1;
+  if (CONSP(norm)) {
+    if (CHOICEP(norm)) {
+      pch->prechoice_nested=1;
+      pch->prechoice_size=KNO_XCHOICE_SIZE((kno_choice)norm);
+      pch->prechoice_atomic=KNO_XCHOICE_ATOMICP((kno_choice)norm);
 }
+    else {
+      pch->prechoice_atomic=0;
+      pch->prechoice_nested=0;
+      pch->prechoice_size=1;}}
+  else {
+    pch->prechoice_atomic=1;
+    pch->prechoice_size=1;
+    pch->prechoice_nested=0;}
+}
+
 static ssize_t write_prechoice_dtype(struct KNO_OUTBUF *s,lispval x)
 {
   lispval sc = kno_make_simple_choice(x);
@@ -218,6 +241,7 @@ int kno_choice_containsp(lispval key,lispval x)
     if (CHOICEP(sv))
       flag = choice_containsp(key,(struct KNO_CHOICE *)sv);
     else if (LISP_EQUAL(key,sv)) flag = 1;
+    else flag = 0;
     kno_decref(sv);
     return flag;}
   else if (LISP_EQUAL(x,key)) return 1;
@@ -225,7 +249,7 @@ int kno_choice_containsp(lispval key,lispval x)
 }
 
 KNO_EXPORT
-struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags)
+struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,kno_choice_flags flags)
 {
   if (ch == NULL) {
     u8_log(LOG_CRIT,"kno_cleanup_choice",
@@ -260,15 +284,19 @@ static void copy_static(lispval *vec,size_t n)
 
 KNO_EXPORT
 lispval kno_init_choice
-(struct KNO_CHOICE *ch,int n,const lispval *data,int flags)
+(struct KNO_CHOICE *ch,int n,const lispval *data,kno_choice_flags flags)
 {
   int atomicp = 1, newlen = n;
   const lispval *base, *scan, *limit;
+  /* xdata is set to NULL if the data value is really the data field of `ch` */
+  const lispval *xdata = data;
   if (RARELY((n==0) && (flags&KNO_CHOICE_REALLOC))) {
+    /* Empty choice, free arguments if requested */
     if ( (data) && (flags&KNO_CHOICE_FREEDATA) ) u8_free(data);
     if (ch) kno_free_choice(ch);
     return EMPTY;}
   else if ( (n==1) &&  (flags&KNO_CHOICE_REALLOC) ) {
+    /* One value, free data if requested */
     lispval elt = (data!=NULL) ? (data[0]) :
       (ch!=NULL) ? ((KNO_XCHOICE_DATA(ch))[0]) :
       (KNO_NULL);
@@ -276,8 +304,8 @@ lispval kno_init_choice
     if ((data) && (flags&KNO_CHOICE_FREEDATA)) u8_free(data);
     if (elt == KNO_NULL)
       return kno_err2(_("BadInitData"),"kno_init_choice");
-    else {
-      return elt;}}
+    if (flags&KNO_CHOICE_INCREF) kno_incref(elt);
+    return elt;}
   else if (ch == NULL) {
     ch = kno_alloc_choice(n);
     if (ch == NULL) {
@@ -289,12 +317,11 @@ lispval kno_init_choice
     else {
       lispval *write = &(ch->choice_0), *writelim = write+n;
       while (write<writelim) *write++=VOID;}}
-  else if ((data) && (data!=KNO_XCHOICE_DATA(ch)))
-    memcpy((lispval *)KNO_XCHOICE_DATA(ch),data,LISPVEC_BYTELEN(n));
+  else if ((data) && (data!=KNO_XCHOICE_DATA(ch))) {
+    lspcpy((lispval *)KNO_XCHOICE_DATA(ch),data,n);
+    xdata=NULL;}
   else {}
   /* Free the original data vector if requested. */
-  if ((data) && (flags&KNO_CHOICE_FREEDATA)) {
-    u8_free((lispval *)data);}
   /* Copy the data unless its yours. */
   base = KNO_XCHOICE_DATA(ch); scan = base; limit = scan+n;
   /* Determine if the choice is atomic. */
@@ -309,12 +336,27 @@ lispval kno_init_choice
   else copy_static(((lispval *)(KNO_XCHOICE_DATA(ch))),n);
   /* Now sort and compress it if requested */
   if (flags&KNO_CHOICE_DOSORT) {
-    if (atomicp) atomic_sort((lispval *)base,n);
-    else cons_sort((lispval *)base,n);
-    newlen = compress_choice((lispval *)base,n,atomicp);}
+    if ( (kno_bigchoice_threshold>0) && (n>kno_bigchoice_threshold) ) {
+      int free_input = 0;
+      const lispval *input  = xdata;
+      if (input == NULL) {
+	lispval *copy = u8_big_alloc(n*SIZEOF_LISPVAL);
+	if (data)
+	  lspcpy(copy,data,n);
+	else lspcpy(copy,KNO_XCHOICE_DATA(ch),n);
+	input = (const lispval *) copy;
+	free_input=1;}
+      lispval *output = (lispval *)KNO_XCHOICE_DATA(ch);
+      newlen = kno_big_sort(input,output,n,flags,-1);
+      if (free_input) u8_big_free((lispval *)input);}
+    else {
+      if (atomicp) atomic_sort((lispval *)base,n);
+      else cons_sort((lispval *)base,n);
+      newlen = compress_choice((lispval *)base,n,atomicp);}}
   else if (flags&KNO_CHOICE_COMPRESS)
     newlen = compress_choice((lispval *)base,n,atomicp);
   else newlen = n;
+  if ( (data) && (flags&KNO_CHOICE_FREEDATA) ) u8_free((lispval *)data);
   if (newlen == 0) {
     if (flags&KNO_CHOICE_REALLOC) kno_free_choice(ch);
     return KNO_EMPTY;}
@@ -346,9 +388,7 @@ lispval kno_make_prechoice(lispval x,lispval y)
   struct KNO_PRECHOICE *ch = u8_alloc(struct KNO_PRECHOICE);
   lispval nx = kno_simplify_choice(x), ny = kno_simplify_choice(y);
   KNO_INIT_FRESH_CONS(ch,kno_prechoice_type);
-  ch->prechoice_choicedata = kno_alloc_choice(64);
-  ch->prechoice_write = ch->prechoice_data =
-    (lispval *)KNO_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data = u8_big_alloc(64*SIZEOF_LISPVAL);
   ch->prechoice_limit = ch->prechoice_data+64;
   ch->prechoice_normalized = VOID;
   ch->prechoice_mallocd = 1;
@@ -392,9 +432,7 @@ lispval kno_init_prechoice(struct KNO_PRECHOICE *ch,int lim,int uselock)
 {
   if (ch == NULL) ch = u8_alloc(struct KNO_PRECHOICE);
   KNO_INIT_FRESH_CONS(ch,kno_prechoice_type);
-  ch->prechoice_choicedata = kno_alloc_choice(lim);
-  ch->prechoice_write = ch->prechoice_data =
-    (lispval *)KNO_XCHOICE_DATA(ch->prechoice_choicedata);
+  ch->prechoice_write = ch->prechoice_data = u8_big_alloc(lim*SIZEOF_LISPVAL);
   ch->prechoice_limit = ch->prechoice_data+lim;
   ch->prechoice_size = 0;
   ch->prechoice_nested = 0;
@@ -453,123 +491,126 @@ int _kno_contains_atomp(lispval x,lispval ch)
 
 static lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice);
 
-KNO_EXPORT lispval kno_normalize_choice(lispval x,int free_prechoice)
+KNO_EXPORT lispval kno_normalize_choice(lispval x,int destructive)
 {
-  if (!(PRECHOICEP(x))) { if (free_prechoice) return x; else return kno_incref(x); }
+  if (!(PRECHOICEP(x))) { if (destructive) return x; else return kno_incref(x); }
   struct KNO_PRECHOICE *ch=
     kno_consptr(struct KNO_PRECHOICE *,x,kno_prechoice_type);
   /* Double check that it's really okay to free it. */
-  if (free_prechoice) {
+  if (destructive) {
     if (KNO_CONS_REFCOUNT(ch)>1) {
-      free_prechoice = 0;
+      destructive = 0;
       kno_decref(x);}}
   if (ch->prechoice_uselock) lock_prechoice(ch);
   /* If you have a normalized value, use it. */
   if (!(VOIDP(ch->prechoice_normalized))) {
-    lispval v = kno_incref(ch->prechoice_normalized);
-    if (ch->prechoice_uselock) unlock_prechoice(ch);
-    if (free_prechoice) recycle_prechoice((kno_raw_cons)ch);
+    lispval v = ch->prechoice_normalized;
+    if (destructive) {
+      ch->prechoice_normalized=KNO_VOID;
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      recycle_prechoice((kno_raw_cons)ch);}
+    else {
+      kno_incref(v);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);}
     return v;}
   /* If it's really empty, just return the empty choice. */
   else if ((ch->prechoice_write-ch->prechoice_data) == 0) {
     ch->prechoice_normalized = EMPTY;
-    unlock_prechoice(ch);
     if (ch->prechoice_uselock) unlock_prechoice(ch);
-    if (free_prechoice) recycle_prechoice((kno_raw_cons)ch);
+    if (destructive) recycle_prechoice((kno_raw_cons)ch);
     return EMPTY;}
   /* If it's only got one value, return it. */
   else if ((ch->prechoice_write-ch->prechoice_data) == 1) {
-    lispval value = kno_incref(*(ch->prechoice_data));
-    if (ch->prechoice_uselock) unlock_prechoice(ch);
-    if (free_prechoice) recycle_prechoice((kno_raw_cons)ch);
-    else ch->prechoice_normalized = kno_incref(value);
-    return value;}
-  /* If you're going to free the prechoice and it's not nested, you
-     can just use the choice you've been depositing values in,
-     appropriately initialized, sorted etc.  */
-  else if ((free_prechoice) && (ch->prechoice_nested==0)) {
-    struct KNO_CHOICE *nch = ch->prechoice_choicedata;
-    int flags = KNO_CHOICE_REALLOC, n = ch->prechoice_size;
-    if (ch->prechoice_atomic) flags = flags|KNO_CHOICE_ISATOMIC;
-    else flags = flags|KNO_CHOICE_ISCONSES;
-    if (ch->prechoice_muddled) flags = flags|KNO_CHOICE_DOSORT;
-    else flags = flags|KNO_CHOICE_COMPRESS;
-    if (ch->prechoice_uselock) unlock_prechoice(ch);
-    /* This recycles the prechoice but not its data */
-    recycle_prechoice_wrapper(ch);
-    return kno_init_choice(nch,n,NULL,flags);}
-  else if (ch->prechoice_nested==0) {
-    /* If it's not nested, we can mostly just call kno_make_choice. */
-    int flags = 0, n_elts = ch->prechoice_write-ch->prechoice_data;
-    lispval result;
-    if (ch->prechoice_atomic) flags = flags|KNO_CHOICE_ISATOMIC; else {
-      /* Incref everything */
-      const lispval *scan = ch->prechoice_data, *write = ch->prechoice_write;
-      while (scan<write) {kno_incref(*scan); scan++;}
-      flags = flags|KNO_CHOICE_ISCONSES;}
-    if (ch->prechoice_muddled) flags = flags|KNO_CHOICE_DOSORT;
-    else flags = flags|KNO_CHOICE_COMPRESS;
-    result = kno_make_choice(n_elts,ch->prechoice_data,flags);
-    ch->prechoice_normalized = kno_incref(result);
-    if (ch->prechoice_uselock) unlock_prechoice(ch);
-    return result;}
-  else if (ch->prechoice_nested == (ch->prechoice_write-ch->prechoice_data) ) {
-    /* They're all choices */
-    int n_choices = ch->prechoice_nested;
-    struct KNO_CHOICE **choices = (struct KNO_CHOICE **) ch->prechoice_data;
-    lispval combined = kno_merge_choices(choices,n_choices);
-    if (free_prechoice) {
+    lispval norm = (ch->prechoice_data)[0];
+    if (destructive) {
+      /* The return value use the incref from the data[0] pointer */
+      (ch->prechoice_data)[0]=KNO_VOID;
       if (ch->prechoice_uselock) unlock_prechoice(ch);
       recycle_prechoice((kno_raw_cons)ch);}
     else {
-      ch->prechoice_normalized = kno_incref(combined);
+      kno_incref(norm); /* incref for return value */
+      ch->prechoice_normalized = kno_incref(norm);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);}
+    return norm;}
+  else if (ch->prechoice_nested==0) {
+    /* If it's not nested, we can mostly just call kno_make_choice on the elements */
+    int flags = 0;
+    int n_elts = ch->prechoice_write-ch->prechoice_data;
+    if (ch->prechoice_atomic) flags |= KNO_CHOICE_ISATOMIC;
+    else flags |= KNO_CHOICE_ISCONSES;
+    if (ch->prechoice_muddled) flags |= KNO_CHOICE_DOSORT;
+    else flags |= KNO_CHOICE_COMPRESS;
+    lispval norm = kno_make_choice(n_elts,ch->prechoice_data,flags);
+    /* We've now freed or copied all of the elements in prechoice_data */
+    ch->prechoice_write=ch->prechoice_data;
+    if (destructive) {
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      recycle_prechoice((kno_raw_cons)ch);}
+    else {
+      cache_norm(ch,norm);
+      if (ch->prechoice_uselock) unlock_prechoice(ch);}
+    return norm;}
+  else if (ch->prechoice_nested == (ch->prechoice_write-ch->prechoice_data) ) {
+    /* They're all choices, so we just merge them */
+    int n_choices = ch->prechoice_nested;
+    struct KNO_CHOICE **choices = (struct KNO_CHOICE **) ch->prechoice_data;
+    lispval combined = merge_choices(choices,n_choices);
+    if (destructive) {
+      if (ch->prechoice_uselock) unlock_prechoice(ch);
+      recycle_prechoice((kno_raw_cons)ch);}
+    else {
+      cache_norm(ch,combined);
       if (ch->prechoice_uselock) unlock_prechoice(ch);}
     return combined;}
-  else if (ch->prechoice_size > kno_choicemerge_threshold) {
+  else if (ch->prechoice_size > kno_smallchoice_threshold) {
     int is_atomic = 1, nested = ch->prechoice_nested,
-      n_loners = (ch->prechoice_write-ch->prechoice_data)-nested;
-    struct KNO_CHOICE *loners = kno_alloc_choice(n_loners);
+      n_singletons = (ch->prechoice_write-ch->prechoice_data)-nested;
+    struct KNO_CHOICE *singletons = kno_alloc_choice(n_singletons);
     struct KNO_CHOICE **choices = u8_alloc_n(nested+1,struct KNO_CHOICE *);
     struct KNO_CHOICE **write_choices = choices;
-    *write_choices++=loners;
-    lispval *xdata = (lispval *) (KNO_XCHOICE_ELTS(loners)), *write = xdata;
+    *write_choices++=singletons;
+    lispval *sdata = (lispval *) (KNO_XCHOICE_ELTS(singletons));
+    lispval *write_singletons = sdata;
     lispval *scan = ch->prechoice_data, *limit = ch->prechoice_write;
     while (scan<limit) {
-      lispval v = *scan++;
+      lispval v = *scan;
       if (KNO_CHOICEP(v))
 	*write_choices++ = (kno_choice)v;
       else {
-	if (KNO_CONSP(v)) is_atomic=0;
-	*write++=v;}}
-    kno_init_choice(loners,write-xdata,NULL,
-		    KNO_CHOICE_INCREF|KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
+	if (KNO_CONSP(v)) {
+	  is_atomic=0;
+	  kno_incref(v);}
+	*write_singletons++=v;}
+      scan++;}
+    ssize_t singletons_len = write_singletons-sdata;
+    kno_init_choice(singletons,singletons_len,NULL,
+		    /* No realloc option because we're hanging onto the pointer for the merge */
+		    KNO_CHOICE_DOSORT|KNO_CHOICE_COMPRESS|
 		    ((is_atomic) ? (KNO_CHOICE_ISATOMIC) :
 		     (KNO_CHOICE_ISCONSES)));
-    lispval combined = kno_merge_choices(choices,nested+1);
-    if (free_prechoice) {
+    lispval norm = merge_choices(choices,nested+1);
+    if (destructive) {
       if (ch->prechoice_uselock) unlock_prechoice(ch);
       recycle_prechoice((kno_raw_cons)ch);}
     else {
-      ch->prechoice_normalized = kno_incref(combined);
+      cache_norm(ch,norm);
       if (ch->prechoice_uselock) unlock_prechoice(ch);}
     u8_free(choices);
-    kno_decref(((lispval)loners));
-    return combined;}
+    kno_decref((lispval)singletons);
+    return norm;}
   else {
-    /* If the choice is small enough, we can call prechoice_append,
-       which just appends the choices together and relies on sort
-       and compression to remove duplicates.  We don't want to do
-       this if the choice is really huge, because we don't want to
-       sort the huge vector. */
-    lispval converted = prechoice_append(ch,free_prechoice);
-    if (free_prechoice) {
+    /* If the choice is small enough, we can call prechoice_append, which just appends the data
+       elements into one vector.  We don't want to do this if the choice is big, because we don't
+       want to sort the huge vector. */
+    lispval norm = prechoice_append(ch,destructive);
+    if (destructive) {
       if (ch->prechoice_uselock) unlock_prechoice(ch);
-      kno_decref(x);
-      return converted;}
+      recycle_prechoice((kno_raw_cons)ch);
+      return norm;}
     else {
-      ch->prechoice_normalized = kno_incref(converted);
+      cache_norm(ch,norm);
       if (ch->prechoice_uselock) unlock_prechoice(ch);
-      return converted;}}
+      return norm;}}
 }
 
 KNO_EXPORT
@@ -610,7 +651,7 @@ struct KNO_CHOICE_SCANNER {
   lispval top;
   const lispval *ptr, *lim;};
 
-static int resort_scanners(struct KNO_CHOICE_SCANNER *v,int n,int atomic)
+static int shuffle_scanners(struct KNO_CHOICE_SCANNER *v,int n,int atomic)
 {
   const lispval *ptr = v[0].ptr, *lim = v[0].lim;
   if (ptr == lim) {
@@ -629,30 +670,14 @@ static int resort_scanners(struct KNO_CHOICE_SCANNER *v,int n,int atomic)
     return n;}
 }
 
-static int scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
-			int n_scanners,
-			lispval *vals)
+static const lispval atomic_pop(struct KNO_CHOICE_SCANNER *scanner,lispval last)
 {
-  lispval *write = vals, last = KNO_NEVERSEEN;
-  while (n_scanners>1) {
-    lispval top = scanners[0].top;
-    if (!(LISP_EQUAL(last,top))) {*write++=kno_incref(top); last = top;}
-    scanners[0].ptr++;
-    if (scanners[0].ptr == scanners[0].lim)
-      if (n_scanners==1) n_scanners--;
-      else n_scanners = resort_scanners(scanners,n_scanners,0);
-    else {
-      top = scanners[0].top = scanners[0].ptr[0];
-      if (n_scanners==1) {}
-      else if (__kno_cons_compare(top,scanners[1].top)<0) {}
-      else n_scanners = resort_scanners(scanners,n_scanners,0);}}
-  if (n_scanners==1) {
-    const lispval top = scanners[0].top, *read, *limit;
-    if (LISP_EQUAL(top,last)) scanners[0].ptr++;
-    read = scanners[0].ptr; limit = scanners[0].lim;
-    while (read<limit) {
-      *write = kno_incref(*read); write++; read++;}}
-  return write-vals;
+  const lispval *scan = scanner->ptr+1, *lim = scanner->lim;
+  while ( (scan<lim) && (*scan==last) ) scan++;
+  scanner->ptr=scan;
+  if (scan<lim)
+    return (scanner->top=*scan);
+  else return KNO_NULL;
 }
 
 static int atomic_scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
@@ -662,24 +687,62 @@ static int atomic_scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
   lispval *write = vals, last = KNO_NEVERSEEN;
   while (n_scanners>1) {
     lispval top = scanners[0].top;
-    if (top!=last) {*write++=top; last = top;}
-    scanners[0].ptr++;
-    if (scanners[0].ptr == scanners[0].lim)
-      if (n_scanners==1) n_scanners--;
-      else n_scanners = resort_scanners(scanners,n_scanners,1);
-    else {
-      top = scanners[0].top = scanners[0].ptr[0];
-      if (n_scanners==1) {}
-      else if (top<scanners[1].top) {}
-      else n_scanners = resort_scanners(scanners,n_scanners,1);}}
+    if (top!=last) { *write++=top; last = top; }
+    if ((top=atomic_pop(&(scanners[0]),last))) {
+      if (top<scanners[1].top) {}
+      else n_scanners = shuffle_scanners(scanners,n_scanners,1);}
+    else n_scanners = shuffle_scanners(scanners,n_scanners,1);}
   if (n_scanners==1) {
-    lispval top = scanners[0].top; int len;
-    if (top == last) scanners[0].ptr++;
-    len = scanners[0].lim-scanners[0].ptr;
-    memcpy(write,scanners[0].ptr,len*LISPVAL_LEN);
-    write = write+len;}
+    const lispval *scan = scanners[0].ptr, *lim = scanners[0].lim;
+    while (scan<lim) {
+      lispval elt = *scan++;
+      if (elt == last) continue;
+      *write++=elt;
+      last=elt;}}
   return write-vals;
 }
+
+static const lispval cons_pop(struct KNO_CHOICE_SCANNER *scanner,lispval last)
+{
+  const lispval *scan = scanner->ptr+1, *lim = scanner->lim;
+  while ( (scan<lim) && (LISP_EQUAL((*scan),last)) ) scan++;
+  scanner->ptr=scan;
+  if (scan<lim)
+    return (scanner->top=*scan);
+  else return KNO_NULL;
+}
+
+static int scanner_loop(struct KNO_CHOICE_SCANNER *scanners,
+			int n_scanners,
+			lispval *vals,
+			int use_refs)
+{
+  lispval *write = vals, last = KNO_NEVERSEEN;
+  while (n_scanners>1) {
+    lispval top = scanners[0].top;
+    if (LISP_EQUAL(last,top)) {
+      if (use_refs) kno_decref(top);}
+    else {
+      *write++=top;
+      if (!use_refs) {kno_incref(top);}
+      last = top;}
+    if ((top=cons_pop(&(scanners[0]),last))) {
+      if (__kno_cons_compare(top,scanners[1].top)<0) {}
+      else n_scanners = shuffle_scanners(scanners,n_scanners,0);}
+    else n_scanners = shuffle_scanners(scanners,n_scanners,0);}
+  if (n_scanners==1) {
+    const lispval *scan = scanners[0].ptr, *lim = scanners[0].lim;
+    while (scan<lim) {
+      lispval elt = *scan++;
+      if (LISP_EQUAL(elt,last)) {
+	if (use_refs) kno_decref(elt);
+	continue;}
+      *write++=elt;
+      if (!(use_refs)) kno_incref(elt);
+      last=elt;}}
+  return write-vals;
+}
+
 
 static int compare_scanners(const void *x,const void *y)
 {
@@ -698,15 +761,17 @@ static int compare_scanners_atomic(const void *x,const void *y)
   else return 1;
 }
 
-KNO_EXPORT
-/* kno_merge_choices:
+/* merge_choices:
    Arguments: a vector of pointers to choice structures and a length
    Returns: a lisp pointer
    Combines the elements of all of the choices into a single sorted choice.
    It does this in linear time by marching along all the choices together.
 */
-lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices)
+lispval merge_choices(struct KNO_CHOICE **choices,int n_choices)
 {
+  // TODO: There is another potential optimization here for non-atomic choices.
+  //  If some the choices are due to be recycled, we can reuse the references of
+  //  their elements and avoid a pair of incref/decref operations for each item.
   int n_scanners = n_choices, max_space = 0, atomicp = 1, new_size, flags = 0;
   lispval *write;
   struct KNO_CHOICE *new_choice;
@@ -732,7 +797,7 @@ lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices)
 	     compare_scanners);
   if (atomicp)
     new_size = atomic_scanner_loop(scanners,n_scanners,write);
-  else new_size = scanner_loop(scanners,n_scanners,write);
+  else new_size = scanner_loop(scanners,n_scanners,write,DONT_USE_REFS);
   u8_free(scanners);
   if (atomicp) flags = flags|KNO_CHOICE_ISATOMIC;
   else flags = flags|KNO_CHOICE_ISCONSES;
@@ -760,32 +825,26 @@ lispval prechoice_append(struct KNO_PRECHOICE *ch,int freeing_prechoice)
       abort();}
     else if (CHOICEP(v)) {
       struct KNO_CHOICE *each = (struct KNO_CHOICE *)v;
-      int freed = ((freeing_prechoice) && (KNO_CONS_REFCOUNT(each)==1));
       if (write+KNO_XCHOICE_SIZE(each)>write_limit) {
 	u8_log(LOG_WARN,"prechoice_inconsistency",
 	       "total size is more than the recorded %d",ch->prechoice_size);
 	abort();}
-      else if (KNO_XCHOICE_ATOMICP(each)) {
-	memcpy(write,KNO_XCHOICE_DATA(each),
-	       LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
-	write = write+KNO_XCHOICE_SIZE(each);}
-      else if (freed) {
-	memcpy(write,KNO_XCHOICE_DATA(each),
-	       LISPVEC_BYTELEN(KNO_XCHOICE_SIZE(each)));
-	write = write+KNO_XCHOICE_SIZE(each);}
-      else {
-	const lispval *vscan = KNO_XCHOICE_DATA(each),
-	  *vlimit = vscan+KNO_XCHOICE_SIZE(each);
-	while (vscan < vlimit) {
-	  lispval ev = *vscan++; *write++=kno_incref(ev);}}
-      if (freed) {
-	kno_free_choice(each);
-	*scan = VOID;}}
-    else if (freeing_prechoice) {
-      *write++=v; *scan = VOID;}
-    else if (ATOMICP(v)) *write++=v;
-    else {*write++=kno_incref(v);}
-    scan++;}
+      int n_elts = KNO_XCHOICE_SIZE(each);
+      const lispval *elts = KNO_XCHOICE_DATA(each);
+      memcpy(write,KNO_XCHOICE_DATA(each),n_elts*SIZEOF_LISPVAL);
+      write = write+n_elts;
+      if (!(KNO_XCHOICE_ATOMICP(each))) {
+	if (KNO_REFCOUNT(v)==1) {
+	  /* If we're going to free `v` it anyway, we don't need to incref the
+	     elements we've copied, providing we set choice_isatomic to keep
+	     them from being freed by decref(v); */
+	  ((struct KNO_CHOICE *)v)->choice_isatomic=1;}
+	else {
+	  const lispval *read=elts, *limit = read+n_elts; while (read<limit) {
+	    lispval v = *read++; kno_incref(v);}}}
+      kno_decref(v);}
+    else *write++=v;
+    *scan++=KNO_VOID;}
   if ((write-base)>1)
     return kno_init_choice(result,write-base,NULL,
 			   (KNO_CHOICE_DOSORT|
@@ -1287,6 +1346,81 @@ lispval *kno_natsort_choice(kno_choice ch,lispval *tmpbuf,ssize_t tmp_len)
   return natsorted;
 }
 
+/* Big sort */
+
+ssize_t merge_scanners(lispval *output,ssize_t output_len,
+		       kno_choice_flags flags,
+		       struct KNO_CHOICE_SCANNER *scanners,
+		       int n_scanners)
+{
+  /* Where we write */
+  lispval *write = output;
+  struct KNO_CHOICE_SCANNER *scan = scanners, *lim = scanners+n_scanners;
+  int atomicp = flags & KNO_CHOICE_ISATOMIC;
+  /* Sort each range */
+  if (atomicp) while (scan<lim) {
+    ssize_t n = scan->lim-scan->ptr;
+    atomic_sort((lispval *)(scan->ptr),n);
+    scan->top=scan->ptr[0];
+    scan++;}
+  else while (scan<lim) {
+    ssize_t n = scan->lim-scan->ptr;
+    cons_sort((lispval *)(scan->ptr),n);
+    scan->top=scan->ptr[0];
+    scan++;}
+  if (atomicp)
+    qsort(scanners,n_scanners,sizeof(struct KNO_CHOICE_SCANNER),
+	  compare_scanners_atomic);
+  else qsort(scanners,n_scanners,sizeof(struct KNO_CHOICE_SCANNER),
+	     compare_scanners);
+  if (atomicp)
+    return atomic_scanner_loop(scanners,n_scanners,write);
+  else return scanner_loop(scanners,n_scanners,write,USE_REFS);
+}
+
+static ssize_t test_big_sort(const lispval *input,const lispval *output,
+			     ssize_t n_items,ssize_t out_len,
+			     kno_choice_flags flags)
+{
+  int atomicp = (flags&KNO_CHOICE_ISATOMIC);
+  lispval *testdata = u8_big_alloc(n_items*sizeof(lispval));
+  lspcpy(testdata,input,n_items);
+  if (atomicp) atomic_sort(testdata,n_items); else cons_sort(testdata,n_items);
+  ssize_t cmp_len = compress_choice(testdata,n_items,atomicp);
+  if ( (cmp_len != out_len) ||
+       (memcmp(testdata,output,cmp_len*sizeof(lispval)) != 0) ) {
+    kno_seterr("BadBigSort","bigsort",NULL,KNO_VOID);
+    u8_big_free(testdata);
+    return -1;}
+  u8_big_free(testdata);
+  return out_len;
+}
+
+KNO_EXPORT
+ssize_t kno_big_sort(const lispval *items,lispval *out,ssize_t n_items,
+		     kno_choice_flags flags,
+		     int span_size)
+{
+  if (span_size<0) span_size = kno_bigsort_blocksize;
+  int n_scanners = n_items/span_size;
+  struct KNO_CHOICE_SCANNER *scanners =
+    u8_alloc_n(n_scanners+1,struct KNO_CHOICE_SCANNER);
+  struct KNO_CHOICE_SCANNER *scan=scanners;
+  int i = 0; while (i<n_scanners) {
+    const lispval *batch = items+(i*span_size);
+    scan->ptr = batch;
+    scan->lim = batch+span_size;
+    scan++;
+    i++;}
+  if (n_items>(n_scanners*span_size)) {
+    scan->ptr = items+(i*span_size);
+    scan->lim = items+n_items;
+    n_scanners++;}
+  size_t out_len = merge_scanners(out,n_items,flags,scanners,n_scanners);
+  u8_free(scanners);
+  /* return test_big_sort(items,out,n_items,out_len,flags); */
+  return out_len;
+}
 
 /* Type initializations */
 

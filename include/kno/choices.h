@@ -147,6 +147,8 @@ KNO_FASTOP void kno_free_choice(struct KNO_CHOICE *ch)
 
 /* Flags to pass to kno_init_choice (and kno_make_choice) */
 
+typedef int kno_choice_flags;
+
 /* Sort the results into canonical order. */
 #define KNO_CHOICE_DOSORT 1
 /* Compress (remove identical elements) from the choice.
@@ -166,8 +168,8 @@ KNO_FASTOP void kno_free_choice(struct KNO_CHOICE *ch)
 #define KNO_NO_CHOICE_FLAGS 0
 
 KNO_EXPORT lispval kno_init_choice
-  (struct KNO_CHOICE *ch,int n,const lispval *data,int flags);
-KNO_FASTOP lispval kno_make_choice(int n,const lispval *data,int flags)
+  (struct KNO_CHOICE *ch,int n,const lispval *data,kno_choice_flags flags);
+KNO_FASTOP lispval kno_make_choice(int n,const lispval *data,kno_choice_flags flags)
 {
   struct KNO_CHOICE *ch = kno_alloc_choice(n);
   return kno_init_choice(ch,n,data,flags);
@@ -182,7 +184,6 @@ typedef struct KNO_PRECHOICE {
     prechoice_atomic:1, prechoice_uselock:1;
   lispval *prechoice_data, *prechoice_write, *prechoice_limit;
   lispval prechoice_normalized;
-  struct KNO_CHOICE *prechoice_choicedata;
 #if U8_THREADS_ENABLED
   u8_mutex prechoice_lock;
 #endif
@@ -198,11 +199,10 @@ typedef struct KNO_PRECHOICE *kno_prechoice;
   (((KNO_XPRECHOICE(x))->prechoice_write)-((KNO_XPRECHOICE(x))->prechoice_data))
 KNO_EXPORT lispval kno_make_prechoice(lispval x,lispval y);
 KNO_EXPORT lispval kno_init_prechoice(struct KNO_PRECHOICE *ch,int lim,int uselock);
-KNO_EXPORT struct KNO_CHOICE *kno_cleanup_choice(struct KNO_CHOICE *ch,unsigned int flags);
+KNO_EXPORT kno_choice kno_cleanup_choice(kno_choice ch,kno_choice_flags flags);
 KNO_EXPORT lispval _kno_add_to_choice(lispval current,lispval add);
 KNO_EXPORT void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v);
 KNO_EXPORT int _kno_contains_atomp(lispval x,lispval ch);
-KNO_EXPORT lispval kno_merge_choices(struct KNO_CHOICE **choices,int n_choices);
 KNO_EXPORT int _kno_choice_size(lispval x);
 KNO_EXPORT lispval kno_normalize_choice(lispval x,int free_prechoice);
 KNO_EXPORT lispval _kno_make_simple_choice(lispval x);
@@ -259,11 +259,36 @@ KNO_FASTOP U8_MAYBE_UNUSED lispval __kno_make_simple_choice(lispval x)
 
 #define KNO_SIMPLIFY_CHOICE(ref) ((ref)=kno_simplify_choice(ref))
 
-#ifndef KNO_CHOICEMERGE_THRESHOLD
-#define KNO_CHOICEMERGE_THRESHOLD 32
+/* Settings for choice sorting/normalization */
+
+/* TODO: There might be ways to choose these defaults at startup based on
+   criteria like available memory or pagesize. */
+
+/* `kno_smallchoice_threshold` is is the size at which prechoices with
+   embedded merges use merge_choices, which has more overhead. */
+KNO_EXPORT ssize_t kno_smallchoice_threshold;
+#ifndef KNO_SMALLCHOICE_THRESHOLD
+#define KNO_SMALLCHOICE_THRESHOLD 100
 #endif
 
-KNO_EXPORT ssize_t kno_choicemerge_threshold;
+/* `kno_bigchoice_threshold` is the size at which kno_init_choice (and
+   potentially other choice constructors) should use a merge sort
+   (kno_big_sort) rather than a simple quick sort. */
+KNO_EXPORT ssize_t kno_bigchoice_threshold;
+#ifndef KNO_BIGCHOICE_THRESHOLD
+#define KNO_BIGCHOICE_THRESHOLD 300000
+#endif
+
+/* `kno_bigsort_blocksize` is the block sizes used by the choice bigsort
+   blocksize. */
+KNO_EXPORT unsigned int kno_bigsort_blocksize;
+#ifndef KNO_BIGSORT_BLOCKSIZE
+#define KNO_BIGSORT_BLOCKSIZE 1000
+#endif
+
+KNO_EXPORT
+ssize_t kno_big_sort(const lispval *items,lispval *output,ssize_t n_items,
+		     kno_choice_flags flags,int span_size);
 
 /* Quoted choices */
 
@@ -303,20 +328,18 @@ static void __kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
   if (comparison==0) {kno_decref(nv); return;}
   if (ch->prechoice_uselock) u8_lock_mutex(&(ch->prechoice_lock));
   if (ch->prechoice_write >= ch->prechoice_limit) {
-    struct KNO_CHOICE *prechoice_choicedata;
     old_size  = ch->prechoice_limit-ch->prechoice_data;
     write_off = ch->prechoice_write-ch->prechoice_data;
     new_size=old_size*2;
-    prechoice_choicedata=
-      u8_big_realloc(ch->prechoice_choicedata,
-                     KNO_CHOICE_BYTES+(LISPVEC_BYTELEN(new_size-1)));
-    ch->prechoice_choicedata=prechoice_choicedata;
-    ch->prechoice_data=((lispval *)KNO_XCHOICE_DATA(prechoice_choicedata));
-    ch->prechoice_write=ch->prechoice_data+write_off;
-    ch->prechoice_limit=ch->prechoice_data+new_size;}
+    lispval *data = ch->prechoice_data;
+    lispval *newdata = u8_big_realloc(data,new_size*SIZEOF_LISPVAL);
+    ch->prechoice_data=newdata;
+    ch->prechoice_write=newdata+write_off;
+    ch->prechoice_limit=newdata+new_size;}
   *(ch->prechoice_write++)=nv;
-  kno_decref(ch->prechoice_normalized);
-  ch->prechoice_normalized=VOID;
+  lispval old_norm = ch->prechoice_normalized;
+  ch->prechoice_normalized = KNO_VOID;
+  kno_decref(old_norm);
   if (comparison>0) ch->prechoice_muddled=1;
   if (KNO_CHOICEP(nv)) {
     ch->prechoice_nested++;

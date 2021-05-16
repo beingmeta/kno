@@ -1063,7 +1063,8 @@ static int table_indexstore(lispval ixarg,lispval key,lispval value)
 static int merge_kv_into_adds(struct KNO_KEYVAL *kv,void *data)
 {
   struct KNO_HASHTABLE *adds = (kno_hashtable) data;
-  kno_hashtable_op_nolock(adds,kno_table_add,kv->kv_key,kv->kv_val);
+  lispval key = kv->kv_key, val = kv->kv_val;
+  kno_hashtable_op_nolock(adds,kno_table_add,key,val);
   return 0;
 }
 

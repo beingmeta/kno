@@ -1205,10 +1205,10 @@ static lispval *fetchn(struct KNO_KINDEX *kx,int n,const lispval *keys)
 	    struct KNO_CHOICE *result = (struct KNO_CHOICE *)values[index];
 	    int n_values = result->choice_size;
 	    lispval realv = kno_init_choice(result,n_values,NULL,
-					   KNO_CHOICE_DOSORT|
-					   ((atomicp)?(KNO_CHOICE_ISATOMIC):
-					    (KNO_CHOICE_ISCONSES))|
-					   KNO_CHOICE_REALLOC);
+					    KNO_CHOICE_DOSORT|
+					    ((atomicp)?(KNO_CHOICE_ISATOMIC):
+					     (KNO_CHOICE_ISCONSES))|
+					    KNO_CHOICE_REALLOC);
 	    values[index]=realv;
 	    read++;}}}}
     kno_close_inbuf(&vblock);
@@ -3088,9 +3088,9 @@ KNO_EXPORT lispval kno_kindex_keyinfo(lispval lix,
   u8_big_free(buckets);
   u8_big_free(bucket_no);
   return kno_init_choice(choice,key_count,NULL,
-			KNO_CHOICE_REALLOC|
-			KNO_CHOICE_ISCONSES|
-			KNO_CHOICE_DOSORT);
+			 KNO_CHOICE_REALLOC|
+			 KNO_CHOICE_ISCONSES|
+			 KNO_CHOICE_DOSORT);
 }
 
 static lispval get_hashbuckets(struct KNO_KINDEX *kx)
