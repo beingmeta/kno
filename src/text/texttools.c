@@ -1439,7 +1439,7 @@ static lispval gathersubst_base(lispval pattern,lispval string,
     else return results;}
 }
 
-DEFC_PRIM("gathersubst",gathersubst,
+DEFC_PRIM("text/gather/subst",gathersubst,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1452,7 +1452,7 @@ static lispval gathersubst(lispval pattern,lispval string,
   return gathersubst_base(pattern,string,offset,limit,0);
 }
 
-DEFC_PRIM("gathersubst*",gathersubst_star,
+DEFC_PRIM("text/gather*/subst",gathersubst_star,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1467,7 +1467,7 @@ static lispval gathersubst_star(lispval pattern,lispval string,
 
 /* Handy filtering functions */
 
-DEFC_PRIM("textfilter",textfilter,
+DEFC_PRIM("text/filter",textfilter,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "**undocumented**",
 	  {"strings",kno_any_type,KNO_VOID},
@@ -1790,7 +1790,7 @@ static int framify(lispval f,u8_output out,lispval xtract)
   return 1;
 }
 
-DEFC_PRIM("text->frame",text2frame,
+DEFC_PRIM("text/getframe",text2frame,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -1823,7 +1823,7 @@ static lispval text2frame(lispval pattern,lispval string,
       return frame_results;}}
 }
 
-DEFC_PRIM("text->frames",text2frames,
+DEFC_PRIM("text/getframes",text2frames,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"pattern",kno_any_type,KNO_VOID},
@@ -2410,7 +2410,7 @@ static lispval is_suffix_prim(lispval suffix,lispval string)
 
 static ssize_t get_more_data(u8_input in,size_t lim);
 
-DEFC_PRIM("read-match",read_match,
+DEFC_PRIM("text/read-match",read_match,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
 	  {"port",kno_ioport_type,KNO_VOID},

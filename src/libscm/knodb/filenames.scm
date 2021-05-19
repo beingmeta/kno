@@ -6,7 +6,8 @@
 
 (use-module '{ezrecords text/stringfmts logger texttools})
 
-(module-export! '{knodb/file knodb/partition-files opt-suffix})
+(module-export! '{knodb/file knodb/partition-files opt-suffix
+		  knodb/abspath knodb/relpath})
 
 (define (opt-suffix string suffix)
   (if suffix
@@ -47,3 +48,15 @@
 	      absroot))))
 	(else (irritant prefix |NotAPartitionSpec|))))
 
+(define (knodb/abspath path (root #f))
+  (cond ((equal? path ".") (mkpath (or root (getcwd)) ""))
+	((equal? path "..") (mkpath (dirname (or root (getcwd))) "/"))
+	(root (abspath path root))
+	(else (abspath path))))
+
+(define (knodb/relpath path (root #f) (nullval #f))
+  (when (and root (not (has-suffix root "/"))) (set! root (glom root "/")))
+  (cond ((not root) path)
+	((equal? root path) nullval)
+	((has-prefix root path) (slice path (length root)))
+	(else path)))

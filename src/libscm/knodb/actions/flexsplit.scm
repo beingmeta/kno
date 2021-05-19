@@ -55,11 +55,14 @@
 (define (do-flexsplit flexindex (headfile #f) (tailfile #f) (tailcount 1))
   (let* ((flex-opts (read-xtype flexindex))
 	 (prefix (try (get flex-opts 'prefix) (basename flexindex ".flexindex")))
-	 (rootdir (dirname (abspath flexindex)))
+	 (partdir (try (get flex-opts 'partdir) #f))
+	 (absroot (dirname (abspath flexindex)))
+	 (rootdir (mkpath (if partdir (mkpath absroot partdir) absroot) ""))
 	 (root-prefix (mkpath rootdir prefix))
 	 (headfile (or headfile (mkpath rootdir (glom prefix ".index"))))
 	 (tailfile (or tailfile (mkpath rootdir (glom prefix "_tail.flexindex"))))
 	 (keyslot (get flex-opts 'keyslot)))
+    (when (equal? tailfile "none") (set! tailfile #f))
     (let* ((pattern `#(,rootdir ,prefix "." (isdigit+) ".index"))
 	   (partitions (sorted (pick (getfiles rootdir) string-matches? pattern)))
 	   (sizes (map get-index-keycount partitions))
@@ -75,13 +78,15 @@
 				   keyslot (try keyslot #f)
 				   maxload (config 'headload (config 'maxload 0.8))
 				   create #t]))
-	    (tailindex (index/ref tailfile
-				  [type (config 'headtype 'kindex)
-				   flexindex (config 'flextail #f)
-				   capacity tailsize
-				   keyslot (try keyslot #f)
-				   maxload (config 'tailload (config 'maxload 0.8))
-				   create #t])))
+	    (tailindex (and tailfile
+			    (index/ref tailfile
+				       [type (config 'headtype 'kindex)
+					flexindex (config 'flextail #f)
+					capacity tailsize
+					keyslot (try keyslot #f)
+					maxload (config 'tailload (config 'maxload 0.8))
+					create #t]))))
+	(lognotice |FlexSplit| "Merging and splitting " ($count (length partitions) "partition"))
 	(doseq (partition partitions)
 	  (let ((started (elapsed-time))
 		(proc (proc/open "knodb" #[lookup #t isknox #t stdout temp stderr temp]
@@ -131,7 +136,7 @@
     (set! configs-done #t)))
 
 (define (usage)
-  (lineout "Usage: split-index <input> <head> [tail]\n"
+  (lineout "Usage: split-index <input> <head> [tailfile] [tailcount]\n"
     ($indented 4
 	       "Repacks the file index stored in <from> either in place or into [to]."
 	       "Common options include (first value is default) : \n"

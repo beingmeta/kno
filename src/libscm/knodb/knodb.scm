@@ -10,7 +10,7 @@
 (use-module '{knodb/flexpool knodb/flexindex})
 
 (module-export! '{knodb/ref knodb/make knodb/commit! knodb/save! 
-		  knodb/partitions knodb/getindexes knodb/getindex
+		  knodb/partitions knodb/components knodb/getindexes knodb/getindex
 		  knodb/pool knodb/wrap-index
 		  knodb/id knodb/source
 		  knodb/mods knodb/modified? knodb/get-modified
@@ -154,11 +154,13 @@
 	(else (->gpath source rootdir))))
 
 (define (knodb/subpath prefix . namespecs)
-  (if (file-directory? prefix)
-      (mkpath prefix (apply glom namespecs))
-      (if (has-suffix prefix {"_" "-" "."})
-	  (glom prefix (apply glom namespecs))
-	  (glom prefix "_" (apply glom namespecs)))))
+  (if (not prefix)
+      (apply glom namespecs)
+      (if (or (file-directory? prefix) (has-suffix prefix "/"))
+	  (mkpath prefix (apply glom namespecs))
+	  (if (has-suffix prefix {"_" "-" "."})
+	      (glom prefix (apply glom namespecs))
+	      (glom prefix "_" (apply glom namespecs))))))
 (define (knodb/mksubpath prefix . namespecs)
   (let ((subpath (apply knodb/subpath prefix namespecs)))
     (unless (file-directory? (dirname subpath)) (mkdirs subpath))
@@ -448,11 +450,45 @@
 
 ;;; Getting partitions
 
-(define (knodb/partitions arg)
-  (cond ((pool? arg) (poolctl arg 'partitions))
-	((index? arg) (indexctl arg 'partitions))
-	((string? arg) (knodb/partition-files arg))
-	(else (fail))))
+(define (gather-partitions-loop db set)
+  (unless (get set db)
+    (hashset-add! set db)
+    (cond ((or (pool? db) (index? db))
+	   (gather-partitions-loop (dbctl db 'partitions) set))
+	  ((string? db)
+	   (gather-partitions-loop (knodb/partition-files db) set))
+	  (else))))
+
+(defambda (knodb/partitions arg)
+  (local set (make-hashset))
+  (gather-partitions-loop arg set)
+  (pick (hashset-elts set) {index? pool?}))
+
+(define (gather-components-loop db set indexes)
+  (unless (get set db)
+    (hashset-add! set db)
+    (when (or (pool? db) (index? db))
+      (gather-components-loop (dbctl db 'partitions) set indexes))
+    (gather-components-loop (getvalues (dbctl db 'adjuncts)) set indexes)))
+
+(defambda (knodb/components arg (opts #f))
+  (local set (make-hashset)
+	 include-indexes (or (eq? opts #t) (getopt opts 'indexes #f))
+	 filter (getopt opts 'filter {index? pool?}))
+  (gather-components-loop arg set include-indexes)
+  (pick (hashset-elts set) filter))
+
+(defambda (knodb/readonly! db flag (opts #f))
+  (local component-opts (getopt opts 'components [filter {pool? index?}])
+	 count 0)
+  (do-choices (component (if component-opts (knodb/components db component-opts)
+			     db))
+    (unless (if flag (dbctl component 'metadata 'readonly)
+		(not (dbctl component 'metadata 'readonly)))
+      (dbctl component 'metadata 'readonly flag))
+    (dbctl component 'readonly flag)
+    (set! count (1+ count)))
+  count)
 
 ;;;; OPEN-FILEDB
 
@@ -678,21 +714,6 @@
       (|| {(config 'pools) (config 'indexes)})))
 
 (config-def! 'usedb usedb-config)
-
-;;;; Setting read-only for dbs and partitions
-
-(define (knodb/readonly! db flag)
-  (cond ((pool? db)
-	 (poolctl db 'readonly flag)
-	 (when (poolctl db 'adjuncts)
-	   (dbctl (getvalues (poolctl db 'adjuncts)) 'readonly flag))
-	 (when (poolctl db 'partitions)
-	   (dbctl (poolctl db 'partitions) 'readonly flag)))
-	((index? db)
-	 (indexctl db 'readonly flag)
-	 (when (indexctl db 'partitions)
-	   (dbctl (indexctl db 'partitions) 'readonly flag)))
-	(else (logwarn |NotDB| "Can't set readonly state for " db))))
 
 ;;;; Defaults
 

@@ -3300,6 +3300,7 @@ static int kindex_set_read_only(kno_kindex kx,int read_only)
   else format = format & (~(KNO_KINDEX_READ_ONLY));
   ssize_t v = kno_write_4bytes_at(stream,format,KNO_KINDEX_FORMAT_POS);
   if (v>=0) {
+    kx->kindex_format = format;
     if (read_only)
       kx->index_flags |=  KNO_STORAGE_READ_ONLY;
     else kx->index_flags &=  (~(KNO_STORAGE_READ_ONLY));}
@@ -3399,21 +3400,35 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     kno_add(base,metadata_readonly_props,buckets_symbol);
     kno_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
-	    ( ( op == kno_metadata_op ) && (n == 1) &&
-	      ( args[0] == KNOSYM_READONLY ) ) ) {
+  else if ( ( op == KNOSYM_READONLY ) && (n == 0) ) {
     if ( (ix->index_flags) & (KNO_STORAGE_READ_ONLY) )
       return KNO_TRUE;
     else return KNO_FALSE;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
-	    ( ( op == kno_metadata_op ) && (n == 2) &&
-	      ( args[0] == KNOSYM_READONLY ) ) ) {
-    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
+  else if ( ( op == kno_metadata_op ) && (n == 1) &&
+	    ( args[0] == KNOSYM_READONLY ) )  {
+    if ( (kx->kindex_format) & (KNO_KINDEX_READ_ONLY) )
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else if ( ( op == kno_metadata_op ) && (n == 2) &&
+	    ( args[0] == KNOSYM_READONLY ) )  {
+    lispval arg = args[1];
     int rv = (KNO_FALSEP(arg)) ? (kindex_set_read_only(kx,0)) :
       (kindex_set_read_only(kx,1));
     if (rv<0)
       return KNO_ERROR;
     else return kno_incref(arg);}
+  else if ( ( op == KNOSYM_READONLY ) && (n == 1) ) {
+    lispval val = args[0];
+    if ( (KNO_FALSEP(val)) ? (!( (kx->index_flags) & (KNO_STORAGE_READ_ONLY) )) :
+	 ( (kx->index_flags) & (KNO_STORAGE_READ_ONLY) ) )
+      return KNO_FALSE;
+    else if (!(KNO_FALSEP(val))) {
+      kx->index_flags |= KNO_STORAGE_READ_ONLY;
+      return KNO_TRUE;}
+    else if (!( (kx->kindex_format) & (KNO_KINDEX_READ_ONLY) )) {
+      kx->index_flags &= (~KNO_STORAGE_READ_ONLY);
+      return KNO_TRUE;}
+    else return KNO_FALSE;}
   else if (op == kno_stats_op)
     return kindex_stats(kx);
   else if (op == kno_reload_op) {

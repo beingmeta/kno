@@ -1938,19 +1938,20 @@ static int kpool_set_read_only(kno_kpool kp,int read_only)
   struct KNO_STREAM _stream, *stream =
     kno_init_file_stream(&_stream,kp->pool_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
+  kno_lock_pool_struct((kno_pool)kp,1);
   unsigned int format =
     kno_read_4bytes_at(stream,KNO_KPOOL_FORMAT_POS,KNO_STREAM_ISLOCKED);
   if (read_only)
     format = format | (KNO_KPOOL_READ_ONLY);
   else format = format & (~(KNO_KPOOL_READ_ONLY));
   ssize_t v = kno_write_4bytes_at(stream,format,KNO_KPOOL_FORMAT_POS);
-  if (v>=0) {
-    kno_lock_pool_struct((kno_pool)kp,1);
-    if (read_only)
-      kp->pool_flags |=	 KNO_STORAGE_READ_ONLY;
-    else kp->pool_flags &=  (~(KNO_STORAGE_READ_ONLY));
-    kno_unlock_pool_struct((kno_pool)kp);}
+  if (v>=0) kp->kpool_format = format;
+  kno_unlock_pool_struct((kno_pool)kp);
   kno_close_stream(stream,KNO_STREAM_FREEDATA);
+  if (v>=0) {
+    if (read_only)
+      kp->pool_flags   |= KNO_STORAGE_READ_ONLY;
+    else kp->pool_flags   &= (~(KNO_STORAGE_READ_ONLY));}
   return v;
 }
 
@@ -2121,7 +2122,7 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     if (n == 1)
       return ( (kp->kpool_format) & (KNO_KPOOL_READ_ONLY) ) ?
 	(KNO_TRUE) : (KNO_FALSE);
-    int rv = (KNO_FALSEP(args[0])) ? (kpool_set_read_only(kp,0)) :
+    int rv = (KNO_FALSEP(args[1])) ? (kpool_set_read_only(kp,0)) :
       (kpool_set_read_only(kp,1));
     if (rv<0)
       return KNO_ERROR;

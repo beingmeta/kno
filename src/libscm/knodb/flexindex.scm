@@ -9,7 +9,7 @@
 (use-module '{knodb/adjuncts knodb/filenames})
 (use-module '{knodb})
 
-(module-export! '{flex/open-index})
+(module-export! '{flex/open-index flexindex/relocate!})
 
 (define-init %loglevel %notice%)
 
@@ -61,6 +61,7 @@
 		(state (frame-create #f
 			 'defpath spec
 			 'defabspath (abspath spec)
+			 'partdir (getopt opts 'partdir {})
 			 'prefix (getopt opts 'prefix (basename spec #t))
 			 'label (getopt opts 'label {})
 			 'partindex  (getopt opts 'partindex (getopt opts 'indextype 'kindex))
@@ -77,11 +78,13 @@
 
 (define (flex/open-index spec (opts #f))
   (let* ((flex-opts (get-flex-opts spec opts))
-	 (prefix (getopt flex-opts 'prefix
-			 (basename (textsubst spec (qc ".flexindex" ".index" flex-suffix) ""))))
+	 (prefixspec (try (getopt opts 'prefix (get flex-opts 'prefix)) #f))
+	 (prefix (or prefixspec
+		     (basename (textsubst spec (qc ".flexindex" ".index" flex-suffix) ""))))
 	 (directory (dirname (abspath spec)))
-	 (partdir (knodb/checkpath (mkpath (if (getopt opts 'partdir)
-					       (mkpath directory (getopt opts 'partdir))
+	 (partspec (try (getopt opts 'partdir (get flex-opts 'partdir)) #f))
+	 (partdir (knodb/checkpath (mkpath (if partspec
+					       (mkpath directory partspec)
 					       directory)
 					   "")
 				   opts))
@@ -278,3 +281,47 @@
       (when maxsize (store! (getopt new-opts 'metadata) 'maxsize maxsize))
       (when maxkeys (store! (getopt new-opts 'metadata) 'maxsize maxsize)))
     new-opts))
+
+
+;;;; Relocating flexindexes
+
+(define (get-prefix-dir prefix)
+  (cond ((has-suffix prefix "/") prefix)
+	((file-directory? prefix) prefix)
+	((position #\/ prefix) (dirname prefix))
+	(else #f)))
+
+(define (strip-partdir prefix partdir)
+  (if (not partdir) prefix
+      (let ((absprefix (realpath prefix))
+	    (abspartdir (mkpath (realpath partdir) "")))
+	(if (has-prefix absprefix abspartdir)
+	    (slice absprefix (length abspartdir))
+	    prefix))))
+
+(define (base-prefix? string prefix) (has-prefix (basename string) prefix))
+
+(define (flexindex/relocate! file new-prefix (newloc #f))
+  (let* ((state (statefile/read file))
+	 (rootdir (dirname file))
+	 (partdir (if (test state 'partdir) 
+		      (knodb/abspath (get state 'partdir) (dirname file))
+		      (knodb/abspath (dirname file))))
+	 (prefix (try (get state 'prefix) #f))
+	 (new-root (if newloc (dirname (abspath newloc)) rootdir))
+	 (new-partdir (get-prefix-dir (knodb/abspath new-prefix new-root)))
+	 (new-prefix (or (strip-partdir (abspath new-prefix new-root) new-partdir) "")))
+    (debug%watch "FLEXINDEX/RELOCATE!" partdir prefix new-partdir new-prefix)
+    (do-choices (partition (pick (getfiles partdir) base-prefix? prefix))
+      (let* ((base (basename partition))
+	     (newbase (textsubst base `#((bos) (not> ".")) new-prefix)))
+	(if newloc
+	    (move-file partition (mkpath (mkpath new-root new-partdir) newbase))
+	    (move-file partition (mkpath new-partdir newbase)))))
+    (when newloc (store! state 'statefile (abspath newloc)))
+    (store! state 'partdir (knodb/relpath new-partdir new-root))
+    (store! state 'prefix (knodb/relpath new-prefix new-root))
+    (statefile/save! state)
+    (when (and newloc (not (equal? (abspath newloc) (abspath file))))
+      (move-file file (glom file ".bak")))))
+

@@ -3671,23 +3671,32 @@ static lispval set_baseoids(struct KNO_HASHINDEX *hx,lispval arg)
 
 static int hashindex_set_read_only(kno_hashindex hx,int read_only)
 {
+  int rv = 0;
   struct KNO_STREAM _stream, *stream = kno_init_file_stream
     (&_stream,hx->index_source,KNO_FILE_MODIFY,-1,-1);
   if (stream == NULL) return -1;
   kno_lock_index(hx);
   unsigned int format =
     kno_read_4bytes_at(stream,KNO_HASHINDEX_FORMAT_POS,KNO_STREAM_ISLOCKED);
-  if (read_only)
-    format = format | (KNO_HASHINDEX_READ_ONLY);
-  else format = format & (~(KNO_HASHINDEX_READ_ONLY));
-  ssize_t v = kno_write_4bytes_at(stream,format,KNO_HASHINDEX_FORMAT_POS);
-  if (v>=0) {
+  if ( (read_only) ? (format & (KNO_HASHINDEX_READ_ONLY) ) :
+       ((format & (KNO_HASHINDEX_READ_ONLY) )==0) ) {
+    hx->hashindex_format = format;
     if (read_only)
       hx->index_flags |=  KNO_STORAGE_READ_ONLY;
     else hx->index_flags &=  (~(KNO_STORAGE_READ_ONLY));}
+  else {
+    if (read_only)
+      format = format | (KNO_HASHINDEX_READ_ONLY);
+    else format = format & (~(KNO_HASHINDEX_READ_ONLY));
+    ssize_t v = kno_write_4bytes_at(stream,format,KNO_HASHINDEX_FORMAT_POS);
+    if (v>=0) {
+      if (read_only)
+	hx->index_flags |=  KNO_STORAGE_READ_ONLY;
+      else hx->index_flags &=  (~(KNO_STORAGE_READ_ONLY));}
+    if (v<0) rv=-1; else rv = 1;}
   kno_close_stream(stream,KNO_STREAM_FREEDATA);
   kno_unlock_index(hx);
-  return v;
+  return rv;
 }
 
 /* The control function */
@@ -3768,21 +3777,35 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     kno_add(base,metadata_readonly_props,buckets_symbol);
     kno_add(base,metadata_readonly_props,nkeys_symbol);
     return base;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
-            ( ( op == kno_metadata_op ) && (n == 1) &&
-              ( args[0] == KNOSYM_READONLY ) ) ) {
+  else if ( ( op == KNOSYM_READONLY ) && (n == 0) ) {
     if ( (ix->index_flags) & (KNO_STORAGE_READ_ONLY) )
       return KNO_TRUE;
     else return KNO_FALSE;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
-            ( ( op == kno_metadata_op ) && (n == 2) &&
-              ( args[0] == KNOSYM_READONLY ) ) ) {
-    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
+  else if ( ( op == kno_metadata_op ) && (n == 1) &&
+	    ( args[0] == KNOSYM_READONLY ) )  {
+    if ( (hx->hashindex_format) & (KNO_HASHINDEX_READ_ONLY) )
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else if ( ( op == kno_metadata_op ) && (n == 2) &&
+	    ( args[0] == KNOSYM_READONLY ) )  {
+    lispval arg = args[1];
     int rv = (KNO_FALSEP(arg)) ? (hashindex_set_read_only(hx,0)) :
       (hashindex_set_read_only(hx,1));
     if (rv<0)
       return KNO_ERROR;
     else return kno_incref(arg);}
+  else if ( ( op == KNOSYM_READONLY ) && (n == 2) ) {
+    lispval val = args[0];
+    if ( (KNO_FALSEP(val)) ? (!( (hx->index_flags) & (KNO_STORAGE_READ_ONLY) )) :
+	 ( (hx->index_flags) & (KNO_STORAGE_READ_ONLY) ) )
+      return KNO_FALSE;
+    else if (!(KNO_FALSEP(val))) {
+      hx->index_flags |= KNO_STORAGE_READ_ONLY;
+      return KNO_TRUE;}
+    else if (!( (hx->hashindex_format) & (KNO_HASHINDEX_READ_ONLY) )) {
+      hx->index_flags &= (~KNO_STORAGE_READ_ONLY);
+      return KNO_TRUE;}
+    else return KNO_FALSE;}
   else if (op == kno_stats_op)
     return hashindex_stats(hx);
   else if (op == kno_reload_op) {

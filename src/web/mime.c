@@ -109,6 +109,14 @@ lispval kno_handle_compound_mime_field(lispval fields,lispval slotid,lispval ori
 {
   lispval value = kno_get(fields,slotid,VOID);
   if (VOIDP(value)) return VOID;
+  else if (CHOICEP(value)) {
+    KNO_DO_CHOICES(v,value) {
+      if (KNO_SYMBOLP(v)) {
+	kno_decref(value);
+	return v;}}
+    lispval err = kno_err(kno_TypeError,"kno_handle_compound_mime_field",_("string"),value);
+    kno_decref(value);
+    return err;}
   else if (!(STRINGP(value))) {
     lispval err = kno_err(kno_TypeError,"kno_handle_compound_mime_field",_("string"),value);
     kno_decref(value); return err;}

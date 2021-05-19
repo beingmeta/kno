@@ -626,51 +626,86 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
   else return kno_incref(expr);
 }
 
+int skip_space(u8_input in)
+{
+  int c = u8_getc(in);
+  while ((c>=0) && (u8_isspace(c))) c = u8_getc(in);
+  return c;
+}
+
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var = value.
    Both # and ; are comment characters at the beginning of lines. */
 static int read_config(U8_INPUT *in,int dflt)
 {
   int c, count = 0;
-  u8_string buf;
-  while ((c = u8_getc(in))>=0)
-    if (c == '#') {
-      buf = u8_gets(in); u8_free(buf);}
-    else if (c == ';') {
-      buf = u8_gets(in); u8_free(buf);}
-    else if (c == '(') {
-      lispval entry;
-      u8_ungetc(in,c);
-      entry = kno_parser(in);
-      if (KNO_ABORTP(entry))
-        return kno_interr(entry);
-      else if ((PAIRP(entry)) &&
-               (SYMBOLP(KNO_CAR(entry))) &&
-               (PAIRP(KNO_CDR(entry)))) {
-        lispval val = kno_interpret_value(KNO_CADR(entry));
-        int rv = (dflt) ?
-          (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
-          (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
-        if (rv < 0) {
-          kno_decref(val);
-          return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}
-        if (rv) count++;
-        kno_decref(entry);
-        kno_decref(val);}
-      else return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}
-    else if ((u8_isspace(c)) || (u8_isctrl(c))) {}
-    else {
-      u8_ungetc(in,c);
+  while ((c = skip_space(in))>=0) {
+    u8_string buf = NULL;
+    if ( (c == '#') || (c == ';') )
       buf = u8_gets(in);
-      int rv = (dflt) ?
-        (kno_default_config_assignment(buf)<0) :
-        (kno_config_assignment(buf)<0);
-      if (rv<0)
-        return kno_reterr(kno_ConfigError,"kno_read_config",buf,VOID);
-      else if (rv)
-        count++;
-      else NO_ELSE;
-      u8_free(buf);}
+    else {
+      int doparse = 0;
+      if ( (c == '(') || (c == ']') ) doparse=1;
+      else {
+	int nextc = u8_probec(in);
+	if ( (c == '/') && (nextc == '/') )
+	  buf = u8_gets(in);
+	else if ( (c == '#') && (nextc == '[') )
+	  doparse=1;
+	else NO_ELSE;}
+      if (doparse) {
+	u8_ungetc(in,c);
+	lispval entry = kno_parser(in);
+	if (KNO_ABORTP(entry))
+	  return kno_interr(entry);
+	else if ((PAIRP(entry)) &&
+		 (SYMBOLP(KNO_CAR(entry))) &&
+		 (PAIRP(KNO_CDR(entry)))) {
+	  lispval val = kno_interpret_value(KNO_CADR(entry));
+	  int rv = (dflt) ?
+	    (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
+	    (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
+	  if (rv < 0) {
+	    kno_decref(val);
+	    if (buf) u8_free(buf);
+	    return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}
+	  if (rv) count++;
+	  kno_decref(entry);
+	  kno_decref(val);}
+	else if ( (KNO_SLOTMAPP(entry)) || (KNO_SCHEMAPP(entry)) ) {
+	  lispval keys = kno_getkeys(entry);
+	  KNO_DO_CHOICES(key,keys) {
+	    u8_string conf_name =
+	      (KNO_SYMBOLP(key)) ? (KNO_SYMBOL_NAME(key)) :
+	      (KNO_STRINGP(key)) ? (KNO_CSTRING(key)) :
+	      (NULL);
+	    if (conf_name) {
+	      lispval val = kno_get(entry,key,KNO_VOID);
+	      if (! ( (KNO_VOIDP(val)) || (KNO_DEFAULTP(val)) || (KNO_EMPTYP(val)) ) ) {
+		KNO_DO_CHOICES(v,val) {
+		  int rv = (dflt) ?
+		    (kno_default_config(conf_name,v)) :
+		    (kno_set_config(conf_name,v));
+		  if (rv) count++;}
+		kno_decref(val);}}}
+	  kno_decref(keys);
+	  kno_decref(entry);}
+	else {
+	  if (buf) u8_free(buf);
+	  return KNO_ERR(-1,kno_ConfigError,"kno_read_config",NULL,entry);}}
+      else {
+	u8_ungetc(in,c);
+	buf = u8_gets(in);
+	int rv = (dflt) ?
+	  (kno_default_config_assignment(buf)<0) :
+	  (kno_config_assignment(buf)<0);
+	if (rv<0) {
+	  if (buf) u8_free(buf);
+	  return kno_reterr(kno_ConfigError,"kno_read_config",buf,VOID);}
+	else if (rv)
+	  count++;
+	else NO_ELSE;}
+      if (buf) u8_free(buf);}}
   return count;
 }
 
@@ -1073,6 +1108,7 @@ static lispval cwd_config_get(lispval var,void *data)
 static int cwd_config_set(lispval var,lispval val,void *data)
 {
   if (KNO_STRINGP(val)) {
+    u8_log(LOGWARN,"CWD","Setting current directory to %s",KNO_CSTRING(val));
     if (u8_setcwd(CSTRING(val))<0)
       return KNO_ERROR;
     else return 1;}

@@ -23,6 +23,7 @@ static int bigpool_loglevel = -1;
 #include "kno/pools.h"
 #include "kno/indexes.h"
 #include "kno/drivers.h"
+#include "kno/apply.h"
 
 #include "headers/bigpool.h"
 
@@ -2132,21 +2133,37 @@ static lispval bigpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
             ( ( op == kno_metadata_op ) && (n == 1) &&
               ( args[0] == compression_symbol ) ) )
     return kno_compression_name(bp->pool_compression);
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 0) ) ||
-            ( ( op == kno_metadata_op ) && (n == 1) &&
-              ( args[0] == KNOSYM_READONLY ) ) ) {
-    if ( (bp->pool_flags) & (KNO_STORAGE_READ_ONLY) )
-      return KNO_TRUE;
+  else if (op == KNOSYM_READONLY) {
+    if (n == 0)
+      return ( (bp->pool_flags) & (KNO_STORAGE_READ_ONLY) ) ?
+	(KNO_TRUE) : (KNO_FALSE);
+    else if (n!=1) {
+      u8_log(LOGWARN,kno_TooManyArgs,
+	     "For bigpool_ctl/readonly on %s: %q",
+	     bp->poolid,(lispval)bp);
+      return KNO_FALSE;}
+    lispval val = args[0];
+    if ( (KNO_FALSEP(val)) ? (!( (bp->pool_flags) & (KNO_STORAGE_READ_ONLY) )) :
+	 ( (bp->pool_flags) & (KNO_STORAGE_READ_ONLY) ) )
+      return KNO_FALSE;
+    else if (!(KNO_FALSEP(val))) {
+      bp->pool_flags |= KNO_STORAGE_READ_ONLY;
+      return KNO_TRUE;}
+    else if (!( (bp->bigpool_format) & (KNO_BIGPOOL_READ_ONLY) )) {
+      bp->pool_flags &= (~KNO_STORAGE_READ_ONLY);
+      return KNO_TRUE;}
     else return KNO_FALSE;}
-  else if ( ( ( op == KNOSYM_READONLY ) && (n == 1) ) ||
-            ( ( op == kno_metadata_op ) && (n == 2) &&
-              ( args[0] == KNOSYM_READONLY ) ) ) {
-    lispval arg = ( op == KNOSYM_READONLY ) ? (args[0]) : (args[1]);
-    int rv = (KNO_FALSEP(arg)) ? (bigpool_set_read_only(bp,0)) :
+  else if ( ( op == kno_metadata_op ) && (n >= 1) &&
+	    ( args[0] == KNOSYM_READONLY ) ) {
+    if (n == 1)
+      return ( (bp->bigpool_format) & (KNO_BIGPOOL_READ_ONLY) ) ?
+	(KNO_TRUE) : (KNO_FALSE);
+    int rv = (KNO_FALSEP(args[1])) ? (bigpool_set_read_only(bp,0)) :
       (bigpool_set_read_only(bp,1));
     if (rv<0)
       return KNO_ERROR;
-    else return kno_incref(arg);}
+    else if (rv==0) return KNO_FALSE;
+    else return KNO_TRUE;}
   else if ( ( ( op == compression_symbol ) && (n == 1) ) ||
             ( ( op == kno_metadata_op ) && (n == 2) &&
               ( args[0] == compression_symbol ) ) ) {
