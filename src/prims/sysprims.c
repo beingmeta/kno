@@ -209,7 +209,6 @@ static lispval datakb_symbol, stackkb_symbol, sharedkb_symbol;
 static lispval rsskb_symbol, privatekb_symbol;
 static lispval utime_symbol, stime_symbol, clock_symbol;
 static lispval load_symbol, loadavg_symbol, pid_symbol, ppid_symbol;
-static lispval memusage_symbol, vmemusage_symbol, pagesize_symbol;
 static lispval n_cpus_symbol, max_cpus_symbol;
 static lispval physical_pages_symbol, available_pages_symbol;
 static lispval physical_memory_symbol, available_memory_symbol;
@@ -219,6 +218,7 @@ static lispval nptrlocks_symbol, cpusage_symbol, tcpusage_symbol;
 static lispval mallocd_symbol, heap_symbol, mallocinfo_symbol;
 static lispval uptime_symbol, total_swap_symbol, swap_symbol, total_ram_symbol;
 static lispval free_swap_symbol, free_ram_symbol, nprocs_symbol;
+static lispval waits_symbol, faults_symbol, switches_symbol;
 static lispval max_vmem_symbol;
 
 static lispval tcmallocinfo_symbol;
@@ -287,11 +287,29 @@ void extract_rusage(lispval result,
     add_intval(result,sharedkb_symbol,((r->ru_ixrss*pagesize)/1024));
     add_intval(result,rsskb_symbol,((r->ru_maxrss*pagesize)/1024));
     if (ref) {
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+      add_intval(result,waits_symbol,r->ru_nvcsw-ref->ru_nvcsw);
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+      add_intval(result,faults_symbol,r->ru_majflt-ref->ru_majflt);
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+      add_intval(result,switches_symbol,r->ru_nivcsw-ref->ru_nivcsw);
+#endif
       add_flonum(result,utime_symbol,
 		 (u8_dbldifftime(r->ru_utime,ref->ru_utime))/1000000);
       add_flonum(result,stime_symbol,
 		 (u8_dbldifftime(r->ru_stime,ref->ru_stime))/1000000);}
     else {
+#if HAVE_STRUCT_RUSAGE_RU_NVCSW
+      add_intval(result,waits_symbol,r->ru_nvcsw);
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_MAJFLT
+      add_intval(result,faults_symbol,r->ru_majflt);
+#endif
+#if HAVE_STRUCT_RUSAGE_RU_NIVCSW
+      add_intval(result,switches_symbol,r->ru_nivcsw);
+#endif
       add_flonum(result,utime_symbol,u8_dbltime(r->ru_utime)/1000000);
       add_flonum(result,stime_symbol,u8_dbltime(r->ru_stime)/1000000);}
 }
@@ -941,6 +959,10 @@ KNO_EXPORT void kno_init_sysprims_c()
   free_ram_symbol=kno_intern("freeram");
   total_ram_symbol=kno_intern("totalram");
   max_vmem_symbol=kno_intern("maxvmem");
+
+  waits_symbol=kno_intern("waits");
+  faults_symbol=kno_intern("faults");
+  switches_symbol=kno_intern("switches");
 
   link_local_cprims();
 

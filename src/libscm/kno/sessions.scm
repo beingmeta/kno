@@ -54,7 +54,7 @@
 	(printout " " ex))))
 
 (define (load-session location)
-  (lognotice |Session| "Configuration from " (abspath location))
+  (lognotice |Session| "Loaded configuration from " (abspath location))
   (when (file-exists? (mkpath location "session.cfg"))
     (unless (overlaps? (abspath (mkpath location "session.cfg")) loaded-configs)
       (set+! loaded-configs (abspath (mkpath location "session.cfg")))

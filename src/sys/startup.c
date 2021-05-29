@@ -869,7 +869,7 @@ static int boot_config()
 
 #define NO_COPYRIGHT_MESSAGE ""
 #define COPYRIGHT_MESSAGE                                       \
-  "\nCopyright (C) beingmeta 2004-2020, all rights reserved"
+  "\nCopyright (C) beingmeta 2004-2020, Kenneth Haase 2020-2021"
 
 KNO_EXPORT int kno_boot_message()
 {

@@ -28,6 +28,7 @@
    fifo/load
    fifo/fill!
    fifo-name
+   fifo-notes
    fifo-condvar
    fifo-opts})
 

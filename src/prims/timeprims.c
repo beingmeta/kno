@@ -66,6 +66,7 @@ static lispval hms_symbol, dmy_symbol, dm_symbol, my_symbol;
 static lispval shortstring_symbol, short_symbol;
 static lispval string_symbol, fullstring_symbol;
 static lispval timestring_symbol, datestring_symbol;
+static lispval timekeys_symbol, isokeys_symbol;
 
 static int get_precision(lispval sym)
 {
@@ -572,6 +573,23 @@ static int tzvalueok(lispval value,int *off,u8_context caller)
   return 0;
 }
 
+static lispval xtime_isokeys(struct U8_XTIME *xt)
+{
+  lispval keys = KNO_EMPTY; int count = 0;
+  U8_STATIC_OUTPUT(iso,128);
+  u8_putc(&iso,'+'); u8_xtime_to_iso8601(&iso,xt);
+  u8_string string = iso.u8_outbuf, scan=string+1;
+  while ( (*scan) && (count<3) ) {
+    u8_string pt = scan;
+    int c = u8_sgetc(&scan);
+    if (!(u8_isdigit(c))) {
+      lispval key = kno_extract_string(NULL,string,pt);
+      CHOICE_ADD(keys,key);
+      count++;}}
+  u8_close_output(&iso);
+  return keys;  
+}
+
 static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,
 			 lispval timestamp,int reterr)
 {
@@ -599,6 +617,16 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,
     U8_INIT_OUTPUT(&out,128);
     u8_xtime_to_iso8601(&out,xt);
     return kno_stream2string(&out);}
+  else if (KNO_EQ(slotid,isokeys_symbol))
+    return kno_simplify_choice(xtime_isokeys(xt));
+  else if (KNO_EQ(slotid,timekeys_symbol)) {
+    u8_tmprec prec=xt->u8_prec;
+    lispval keys = xtime_isokeys(xt);
+    if ( (prec>=u8_month) && (xt->u8_mon>=0) && (xt->u8_mon<12) ) {
+      CHOICE_ADD(keys,(monthids[xt->u8_mon]));}
+    if ( (prec>=u8_day) && (xt->u8_wday>=0) && (xt->u8_wday<7) ) {
+      CHOICE_ADD(keys,(dowids[xt->u8_wday]));}
+    return kno_simplify_choice(keys);}
   else if (KNO_EQ(slotid,isodate_symbol)) {
     struct U8_XTIME newt;
     struct U8_OUTPUT out;
@@ -1670,6 +1698,10 @@ KNO_EXPORT void kno_init_timeprims_c()
   CHOICE_ADD(xtime_keys,datestring_symbol);
   fullstring_symbol = kno_intern("fullstring");
   CHOICE_ADD(xtime_keys,fullstring_symbol);
+  isokeys_symbol = kno_intern("isokeys");
+  CHOICE_ADD(xtime_keys,isokeys_symbol);
+  timekeys_symbol = kno_intern("timekeys");
+  CHOICE_ADD(xtime_keys,timekeys_symbol);
 
   dowid_symbol = kno_intern("dowid");
   CHOICE_ADD(xtime_keys,dowid_symbol);

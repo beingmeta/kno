@@ -1412,7 +1412,7 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-bu	
+
 installed_module_path=$installed_module_dir/
 
 local_module_path=$local_module_dir/

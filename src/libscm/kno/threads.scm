@@ -9,9 +9,9 @@
 ;;; prefetch/execute cycles which can improve performance on many
 ;;; database-intensive operations. 
 
-(use-module '{reflection text/stringfmts varconfig logger})
+(use-module '{reflection text/stringfmts varconfig logger fifo/call})
 
-(module-export! '{threadcount})
+(module-export! '{threadcount mt/call})
 
 ;;; Thread count utilities
 
@@ -49,3 +49,12 @@
       (if (not arg) arg
 	  (irritant arg |InvalidThreadcount| 
 	    "This value cannot be used as a default threadcount."))))
+
+(defambda (mt/call opts fcn . args)
+  (let* ((results {})
+	 (add-result (lambda (arg) (%watch "got" arg) (set+! results arg)))
+	 (fifo.threads (apply fifo/call [results add-result] fcn args)))
+    (thread/wait (cdr fifo.threads))
+    results))
+
+

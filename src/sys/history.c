@@ -362,6 +362,19 @@ KNO_EXPORT lispval kno_eval_histrefs(lispval obj,lispval history)
 	lispval ref = KNO_COMPOUND_REF(obj,0);
 	return kno_eval_histref(ref,history);}
       else return kno_incref(obj);}
+    case kno_choice_type: {
+      lispval transformed = KNO_EMPTY; int changed=0;
+      ITER_CHOICES(scan,limit,obj);
+      while (scan<limit) {
+	lispval v = *scan++;
+	lispval nv = kno_eval_histrefs(v,history);
+	CHOICE_ADD(transformed,nv);
+	if (v!=nv) changed=1;}
+      if (changed)
+	return kno_simplify_choice(transformed);
+      else {
+	kno_decref(transformed);
+	return kno_incref(obj);}}
     case kno_vector_type: {
       ssize_t n_elts = KNO_VECTOR_LENGTH(obj), changed = 0;
       lispval resolved[n_elts], *elts = KNO_VECTOR_ELTS(obj);

@@ -275,7 +275,7 @@ command $bpnum
 end
 break dbg_evalfn:examine_result
 set $dbgeval = $bpnum
-break dbgeval_evalfn:examine_expr
+break dbg_evalfn:examine_expr
 set $dbgexpr = $bpnum
 break kno_notice_error:soft
 set $dbgsofterr = $bpnum
