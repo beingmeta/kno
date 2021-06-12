@@ -468,9 +468,6 @@ else
   u8run=${u8bin}u8run
 fi
 
-chowning=yes
-AC_ARG_WITH(chowning,--with/out-chowning,chowning=yes,chowning=no)
-
 AC_CHECK_PROGS(etags,etags,"na")
 if test $etags = "na"; then
    TAGS_TARGET="NOTAGS"
@@ -1114,14 +1111,13 @@ AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 
 dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
-if test "$with_admin_group" != "none"; then
-   if test "$chowning" = "yes"; then
-     install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-     install_file_opts="-g $with_admin_group $install_file_opts"
-     install_exe_opts="-g $with_admin_group $install_exe_opts"
-     admininstall="-g $with_admin_group"
-  fi;
+AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=${default_admin_group})
+
+if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admininstall="-g $with_admin_group"
   admin_group=$with_admin_group
 else
   install_dir_opts="$install_dir_opts"
@@ -1134,18 +1130,17 @@ fi
 AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
-AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
-if test "$with_daemonid" != "none"; then
+AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=${default_daemonid})
+
+if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
-   if test "$chowning" = "yes"; then
-     knouserinstall="-o $knouser";
-   fi;
+   knouserinstall="-o $knouser";
 else
    knouserinstall=""
    knouser=$default_daemonid
 fi
 
-AC_DEFINE_UNQUOTED(KNO_DAEMON,"$knoaemon")
+AC_DEFINE_UNQUOTED(KNO_DAEMON,"$daemonid")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$kno_rundir")
@@ -1925,7 +1920,7 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   etc/getbuildopt
 	   dist/alpine/APKBUILD
-	   dist/kno-4.3.spec])
+	   dist/kno.spec.base])
 AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig],[])
 AC_OUTPUT
 
