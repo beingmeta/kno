@@ -319,7 +319,6 @@ SCHEME_SCRIPTS=exe/scripts/knodb exe/scripts/knocall exe/scripts/knoserver exe/s
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
-	 $(DESTDIR)@stdlib_install_dir@ \
 	 $(DESTDIR)@local_module_dir@
 
 CLEANDIRS=include/kno src/drivers/headers 		\
@@ -407,10 +406,6 @@ CMODULE_SOURCES=			\
 	src/cmodules/crypto.c
 
 STATIC_LIBS=lib/libkno@suffix@.a 	\
-	lib/libknocore@suffix@.a 	\
-	lib/libknostorage@suffix@.a	\
-	lib/libknodrivers@suffix@.a  	\
-	lib/libknoscheme@suffix@.a 	\
 	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
 
@@ -419,60 +414,28 @@ LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
 	lib/libknotexttools@suffix@.a
 
 INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a 	\
-	${LIBSOURCE}/libknocore@suffix@.a 	\
-	${LIBSOURCE}/libknostorage@suffix@.a	\
-	${LIBSOURCE}/libknodrivers@suffix@.a  	\
-	${LIBSOURCE}/libknoscheme@suffix@.a 	\
 	${LIBSOURCE}/libknowebtools@suffix@.	\
 	${LIBSOURCE}/libknotexttools@suffix@.a
 
 SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@  		\
-	lib/libknocore@suffix@.@shared_suffix@  		\
-	lib/libknostorage@suffix@.@shared_suffix@        	\
-        lib/libknodrivers@suffix@.@shared_suffix@    		\
-	lib/libknoscheme@suffix@.@shared_suffix@    		\
 	lib/libknowebtools@suffix@.@shared_suffix@       	\
 	lib/libknotexttools@suffix@.@shared_suffix@		\
-	lib/libknocore@suffix@.@mshared_suffix@  		\
-	lib/libknostorage@suffix@.@mshared_suffix@        	\
-        lib/libknodrivers@suffix@.@mshared_suffix@    		\
-	lib/libknoscheme@suffix@.@mshared_suffix@    		\
 	lib/libknowebtools@suffix@.@mshared_suffix@		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
 
 INSTALL_SHARED=${LIBSOURCE}/libkno@suffix@.@shared_suffix@		\
-	${LIBSOURCE}/libknocore@suffix@.@shared_suffix@			\
-	${LIBSOURCE}/libknostorage@suffix@.@shared_suffix@        	\
-        ${LIBSOURCE}/libknodrivers@suffix@.@shared_suffix@    		\
-	${LIBSOURCE}/libknoscheme@suffix@.@shared_suffix@    		\
 	${LIBSOURCE}/libknowebtools@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@shared_suffix@		\
-	${LIBSOURCE}/libknocore@suffix@.@mshared_suffix@  		\
-	${LIBSOURCE}/libknostorage@suffix@.@mshared_suffix@        	\
-        ${LIBSOURCE}/libknodrivers@suffix@.@mshared_suffix@    		\
-	${LIBSOURCE}/libknoscheme@suffix@.@mshared_suffix@    		\
 	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
 
 STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
-	lib/stripped/libknocore@suffix@.a 			\
-	lib/stripped/libknostorage@suffix@.a			\
-	lib/stripped/libknodrivers@suffix@.a  			\
-	lib/stripped/libknoscheme@suffix@.a 			\
 	lib/stripped/libknowebtools@suffix@.a 			\
 	lib/stripped/libknotexttools@suffix@.a 			\
 	lib/stripped/libkno@suffix@.@shared_suffix@		\
-	lib/stripped/libknocore@suffix@.@shared_suffix@		\
-	lib/stripped/libknostorage@suffix@.@shared_suffix@	\
-        lib/stripped/libknodrivers@suffix@.@shared_suffix@	\
-	lib/stripped/libknoscheme@suffix@.@shared_suffix@	\
 	lib/stripped/libknowebtools@suffix@.@shared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@shared_suffix@	\
 	lib/stripped/libkno@suffix@.@mshared_suffix@  		\
-	lib/stripped/libknocore@suffix@.@mshared_suffix@	\
-	lib/stripped/libknostorage@suffix@.@mshared_suffix@	\
-        lib/stripped/libknodrivers@suffix@.@mshared_suffix@	\
-	lib/stripped/libknoscheme@suffix@.@mshared_suffix@	\
 	lib/stripped/libknowebtools@suffix@.@mshared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
 
@@ -719,7 +682,7 @@ etc/%: etc/%.in ./config.status
 	@./config.status
 
 src/%.zip: src/%
-	cd $^;	@ZIPCMD@ ../$(@F) -r *
+	cd $<; zip ../$(@F) -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
@@ -823,6 +786,9 @@ $(DESTDIR)@config_dir@/boot/%.conf: etc/upstart/%.conf $(DESTDIR)@config_dir@/bo
 $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $@
 
+$(DESTDIR)@share_dir@/% $(DESTDIR)@share_dir@/modules/%:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
 
@@ -889,8 +855,7 @@ uninstall-core:
 	rm -rf $(DESTDIR)${CMODULES}
 uninstall-all: uninstall-core
 	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
-		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-		$(DESTDIR)@stdlib_install_dir@
+		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@
 uninstall: uninstall-core
 	@if (test -d $(DESTDIR)@share_dir@); then \
 	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
@@ -1364,14 +1329,31 @@ dist/source.tar: dist/kno.tar
 # Creating staging areas from GIT
 
 staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
-	cd staging; mv kno/dist/debian kno/debian;
+	cd staging; cp -r kno/dist/debian kno/debian;
+	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
 	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
 			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
+	if [ -d staging/kno_@KNO_VERSION@ ]; then rm -rf staging/kno_@KNO_VERSION@; fi
 	cd staging; mv kno kno_@KNO_VERSION@;
 staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
-	cd staging; tar -czf $@ kno_@KNO_VERSION@
+	cd staging; tar -czf kno_@KNO_VERSION@.tar.gz kno_@KNO_VERSION@
+
+staging/kno-@KNO_VERSION@: REVISION FULL_REVISION staging/kno dist/kno.spec.base
+	cd staging; cp -r kno/dist/debian kno/debian;
+	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
+	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
+			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
+			< dist/debian/changelog \
+			> staging/kno/debian/changelog;
+	if [ -d staging/kno-@KNO_VERSION@ ]; then rm -rf staging/kno-@KNO_VERSION@; fi
+	cd staging; mv kno kno-@KNO_VERSION@;
+staging/kno-@KNO_VERSION@.tar.gz: staging/kno-@KNO_VERSION@
+	cd staging; tar -czf kno-@KNO_VERSION@.tar.gz kno-@KNO_VERSION@
+
+dist/kno.spec.base: dist/kno.spec.base.in
+	config.status
 
 # Rules for Debian building
 
@@ -1421,8 +1403,8 @@ update-apt apt-upload: dist/debs.uploaded
 # RPM targets (probably broken)
 
 staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
-	tar -czf staging/$(DEBNAME).orig.tar.gz -C staging kno_@KNO_VERSION@
-	cd staging; ln -s ${DEBNAME}.orig.tar.gz kno_@KNO_VERSION@.orig.tar.gz
+	tar -czf staging/kno_@KNO_VERSION@.tar.gz -C staging kno_@KNO_VERSION@
+	cd staging; ln -s kno.tar.gz kno_@KNO_VERSION@.tar.gz
 
 dist/rpms.ready: staging/kno-@KNO_VERSION@ \
 	staging/kno-@KNO_VERSION@.tar.gz
@@ -1498,10 +1480,6 @@ $(DESTDIR)@config_dir@/daemons \
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libkno@suffix@.a        		\
-		$(LIBINSTALLDIR)/libknocore@suffix@.a        	\
-		$(LIBINSTALLDIR)/libknostorage@suffix@.a	\
-		$(LIBINSTALLDIR)/libknodrivers@suffix@.a   	\
-		$(LIBINSTALLDIR)/libknoscheme@suffix@.a   	\
 		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
@@ -1509,22 +1487,6 @@ install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
     $(LIBINSTALLDIR)/libkno@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknocore@suffix@.@shared_suffix@			\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknostorage@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknodrivers@suffix@.@shared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mmshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@mshared_suffix@		\
-    $(LIBINSTALLDIR)/libknoscheme@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@		\
@@ -1594,7 +1556,7 @@ workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
-confdirs: $(DESTDIR)@stdlib_install_dir@ $(DESTDIR)@installed_module_dir@ \
+confdirs: $(DESTDIR)@installed_module_dir@ \
 	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
@@ -1605,26 +1567,19 @@ confdirs: $(DESTDIR)@stdlib_install_dir@ $(DESTDIR)@installed_module_dir@ \
 		$(SYSINSTALL) @install_file_opts@ /dev/null \
 			$(DESTDIR)@config_dir@/servers; fi
 
-$(DESTDIR)@stdlib_install_dir@ \
-	$(DESTDIR)@stdlib_install_dir@/brico \
-	$(DESTDIR)@stdlib_install_dir@/brico/data \
-	$(DESTDIR)@stdlib_install_dir@/brico/build \
-	$(DESTDIR)@stdlib_install_dir@/brico/utils \
-	$(DESTDIR)@stdlib_install_dir@/brico/utils/data \
-	$(DESTDIR)@installed_module_dir@ \
-	$(DESTDIR)@local_module_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 $(DESTDIR)@unpackage_dir@:
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 
-src/stdlib.zip: src/stdmods src/textmods src/webmods src/brico
-	rm -rf $@
-	cd src/stdmods; @ZIPCMD@ ../stdlib.zip *
-	cd src/webmods; @ZIPCMD@ ../stdlib.zip *
-	cd src/textmods; @ZIPCMD@ ../stdlib.zip *
-	cd src; @ZIPCMD@ stdlib.zip brico
+FIND_FLAGS="-exclude ".attic" -exclude "*~" -exclude "#*""
+
+src/stdlib.zip: src/stdmods src/textmods src/webmods src/brico makefile
+	rm -rf src/stdlib.zip
+	cd src/stdmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src/webmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src/textmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src; zip ../stdlib.zip -r brico -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
 
 src/libscm.zip: src/libscm/*.scm src/libscm/*/*.scm
 
@@ -1641,32 +1596,6 @@ src/brico/brico.scm:
 	git submodule init && \
 	git submodule update --remote --merge src/brico;
 
-install-stdlib: install-stdlib-files
-
-install-stdlib-files: $(DESTDIR)@stdlib_install_dir@ \
-	src/stdmods/hashfs.scm src/webmods/hostinfo.scm \
-	src/textmods/text/ellipsize.scm
-	@$(ECHO) Copying stdmods to @stdlib_install_dir@
-	@cd src/stdmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
-	@$(ECHO) Copying webmods to @stdlib_install_dir@
-	@cd src/webmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
-	@$(ECHO) Copying textmods to @stdlib_install_dir@
-	@cd src/textmods; ${DOINSTALL} cp -rp * $(DESTDIR)@stdlib_install_dir@
-	@make install-brico
-	@${DOINSTALL} find $(DESTDIR)@stdlib_install_dir@ -name "*~" -exec rm '{}' \;
-	@${DOINSTALL} find $(DESTDIR)@stdlib_install_dir@ -name "#*" -exec rm '{}' \;
-
-install-brico: $(DESTDIR)@stdlib_install_dir@ $(DESTDIR)@stdlib_install_dir@/brico \
-		$(DESTDIR)@stdlib_install_dir@/brico/data \
-		$(DESTDIR)@stdlib_install_dir@/brico/build \
-		$(DESTDIR)@stdlib_install_dir@/brico/utils \
-		src/brico/brico.scm
-	@$(ECHO) Copying brico to @stdlib_install_dir@/brico
-	@cd src/brico; ${DOINSTALL} cp -rp *.scm $(DESTDIR)@stdlib_install_dir@/brico;
-	@cd src/brico; ${DOINSTALL} cp -p build/*.scm $(DESTDIR)@stdlib_install_dir@/brico/build;
-	@cd src/brico; ${DOINSTALL} cp -p utils/*.scm $(DESTDIR)@stdlib_install_dir@/brico/utils;
-	@cd src/brico; ${DOINSTALL} cp -p data/* $(DESTDIR)@stdlib_install_dir@/brico/data;
-
 install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
 		gdbinit makefile.include knoc.el 		\
@@ -1674,28 +1603,15 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-LIBSCM_DIRS=optimize bugjar bench knodb xhtml kno io sqldb json net text knodb/actions
-LIBSCM_DATA_DIRS=
-install-libscm:
-	@if [ ! -d ${DESTDIR}${LIBSCM} ]; then 						\
-	  make really-install-libscm; 							\
-	elif [ "$(realpath ${DESTDIR}${LIBSCM})" != "$(realpath ./src/libscm)" ]; then 	\
-	  make really-install-libscm; 							\
-	fi;
-# When libscm is linked to libscm in the source tree ('dev' mode), we don't do anything
-#  to install it. Otherwise, we set it up, installing both the directory and the zip version.
-really-install-libscm: src/libscm.zip
-	@case "${LIBSCM}" in 								\
-	  *.zip) 									\
-	    $(SYSINSTALL) @install_dir_opts@ $$(dirname $(DESTDIR)${LIBSCM});		\
-	    $(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}; 	\
-	    ;; 										\
-	  *) 										\
-	    $(SYSINSTALL) @install_dir_opts@ $(DESTDIR)${LIBSCM}; 			\
-	    $(SYSINSTALL) @install_file_opts@ src/libscm.zip $(DESTDIR)${LIBSCM}.zip; 	\
-	    cd $(DESTDIR)${LIBSCM}; @DOINSTALL@ unzip -o $(DESTDIR)${LIBSCM}.zip;			\
-	    ;; 										\
-	esac;
+install-libscm: src/libscm.zip $(DESTDIR)@share_dir@/libscm
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
+install-libscm-source: src/libscm.zip
+	$(SYSINSTALL} @install_dir_opts@ $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
+	$(SYSINSTALL} src/libscm.zip $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
+	cd $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@; unzip libscm.zip; rm libscm.zip
+
+install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
+	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 
@@ -1844,12 +1760,12 @@ staging/alpine:
 staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
 	cp dist/alpine/APKBUILD staging/alpine
 
-staging/alpine/kno-@KNO_VERSION@.tar: dist/kno.tar
+staging/alpine/kno_@KNO_VERSION@.tar: dist/kno.tar
 	# Get archives of this and submodule repositories
 	cp dist/kno.tar $@
 
 dist/alpine.setup: dist/alpine/APKBUILD include/kno/revision.h makefile
-	make staging/alpine/kno-@KNO_VERSION@.tar staging/alpine/APKBUILD && \
+	make staging/alpine/kno_@KNO_VERSION@.tar staging/alpine/APKBUILD && \
 	if test ! -d ${APK_ARCH_DIR}; then mkdir -p ${APK_ARCH_DIR}; fi && \
 	(cd staging/alpine; abuild -P ${APKREPO} clean cleancache cleanpkg && abuild checksum ) && \
 	touch $@

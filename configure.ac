@@ -141,7 +141,8 @@ PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 TAGS_TARGET="alltags"
-LIBSCM="kno-${KNO_PATCHVERSION}"
+LIBSCM=""
+STDLIB=""
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
@@ -265,7 +266,6 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
-AC_SUBST(stdlib_install_dir)
 AC_SUBST(installed_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
@@ -343,6 +343,7 @@ AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_BRANCH)
 AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
+AC_SUBST(KNO_PATCHVERSION)
 AC_SUBST(RPMVERSION)
 AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(DEBVERSION)
@@ -467,9 +468,6 @@ if test "$with_u8run" != ""; then
 else
   u8run=${u8bin}u8run
 fi
-
-chowning=yes
-AC_ARG_WITH(chowning,--with/out-chowning,chowning=yes,chowning=no)
 
 AC_CHECK_PROGS(etags,etags,"na")
 if test $etags = "na"; then
@@ -1114,14 +1112,13 @@ AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 
 dnl Specifies an admin group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=$default_admin_group)
-if test "$with_admin_group" != "none"; then
-   if test "$chowning" = "yes"; then
-     install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-     install_file_opts="-g $with_admin_group $install_file_opts"
-     install_exe_opts="-g $with_admin_group $install_exe_opts"
-     admininstall="-g $with_admin_group"
-  fi;
+AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=${default_admin_group})
+
+if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admininstall="-g $with_admin_group"
   admin_group=$with_admin_group
 else
   install_dir_opts="$install_dir_opts"
@@ -1134,18 +1131,17 @@ fi
 AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
-AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=$default_daemonid)
-if test "$with_daemonid" != "none"; then
+AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=${default_daemonid})
+
+if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
-   if test "$chowning" = "yes"; then
-     knouserinstall="-o $knouser";
-   fi;
+   knouserinstall="-o $knouser";
 else
    knouserinstall=""
    knouser=$default_daemonid
 fi
 
-AC_DEFINE_UNQUOTED(KNO_DAEMON,"$knoaemon")
+AC_DEFINE_UNQUOTED(KNO_DAEMON,"$daemonid")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$kno_rundir")
@@ -1373,11 +1369,6 @@ installed_module_dir=$with_installed_module_dir
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
 
-AC_ARG_WITH(stdlib_install_dir,--with-stdlib-install-dir location,,with_stdlib_install_dir=$share_dir/modules/stdlib)
-stdlib_install_dir=$with_stdlib_install_dir
-
-LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
-
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
 AC_ARG_WITH(libscm,--with-libscm location)
@@ -1390,12 +1381,15 @@ elif test "$with_libscm" == "zip"; then
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm
+else
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
+   LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 fi;
 
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_install_dir;
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -1925,7 +1919,7 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 	   etc/install-script 
 	   etc/getbuildopt
 	   dist/alpine/APKBUILD
-	   dist/kno-4.3.spec])
+	   dist/kno.spec.base])
 AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig],[])
 AC_OUTPUT
 
