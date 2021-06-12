@@ -409,6 +409,11 @@ STATIC_LIBS=lib/libkno@suffix@.a 	\
 	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
 
+COMPONENT_STATIC_LIBS=lib/libknocore@suffix@.a 	\
+	lib/libknostorage@suffix@.a	\
+	lib/libknodrivers@suffix@.a  	\
+	lib/libknoscheme@suffix@.a
+
 LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
 	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
@@ -416,6 +421,11 @@ LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
 INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a 	\
 	${LIBSOURCE}/libknowebtools@suffix@.	\
 	${LIBSOURCE}/libknotexttools@suffix@.a
+
+INSTALL_STATIC_COMPONENTS=${LIBSOURCE}/libknocore@suffix@.a 	\
+	${LIBSOURCE}/libknostorage@suffix@.a	\
+	${LIBSOURCE}/libknodrivers@suffix@.a  	\
+	${LIBSOURCE}/libknoscheme@suffix@.a
 
 SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@  		\
 	lib/libknowebtools@suffix@.@shared_suffix@       	\
