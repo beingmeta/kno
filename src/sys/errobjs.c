@@ -146,6 +146,10 @@ lispval kno_mkerr(u8_condition c,u8_context caller,
     if (push) *push=new_ex;
     else u8_expush(new_ex);
     return KNO_ERROR;}
+  if ( (details == NULL) && (!(KNO_VOIDP(irritant))) ) {
+    if (KNO_SYMBOLP(irritant)) details=KNO_SYMBOL_NAME(irritant);
+    else if (KNO_STRINGP(irritant)) details=KNO_CSTRING(irritant);
+    else NO_ELSE;}
   if (kno_log_exceptions) kno_log_error(c,caller,details,irritant);
   struct KNO_EXCEPTION *exo = (ex) ? (kno_exception_object(ex)) : (NULL);
   lispval backtrace = ( (exo) && (KNO_CONSP(exo->ex_stack)) ) ?

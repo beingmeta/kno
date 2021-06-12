@@ -1,8 +1,8 @@
 ;;; -*- Mode: Scheme -*-
 
-(in-module 'knodb/actions/flexsplit)
+(in-module 'knodb/actions/flexpack)
 
-(module-export! '{flexsplit main})
+(module-export! '{flexpack main})
 
 (use-module '{varconfig logger texttools text/stringfmts binio optimize})
 (use-module '{knodb knodb/indexes knodb/flexindex})
@@ -32,7 +32,7 @@
 	   (remove-file! file)
 	   (logwarn |FileExists| "Removed existing file " (write file)))
 	  (else
-	   (onerror
+	  (onerror
 	       (move-file! file (glom file ".bak"))
 	       (lambda (ex)
 		 (logwarn |FileExists|
@@ -52,7 +52,7 @@
   (set! slotids (dbctl input 'slotids))
   (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
 
-(define (do-flexsplit flexindex (headfile #f) (tailfile #f) (tailcount 1))
+(define (do-flexpack flexindex (headfile #f) (tailfile #f) (tailcount 1))
   (let* ((flex-opts (read-xtype flexindex))
 	 (prefix (try (get flex-opts 'prefix) (basename flexindex ".flexindex")))
 	 (partdir (try (get flex-opts 'partdir) #f))
@@ -60,15 +60,18 @@
 	 (rootdir (mkpath (if partdir (mkpath absroot partdir) absroot) ""))
 	 (root-prefix (mkpath rootdir prefix))
 	 (headfile (or headfile (mkpath rootdir (glom prefix ".index"))))
-	 (tailfile (or tailfile (mkpath rootdir (glom prefix "_tail.flexindex"))))
+	 (tailfile (cond ((not tailfile) #f)
+			 ((overlaps? (downcase tailfile) '{"none" "skip" "no" "merge"}) #f)
+			 ((overlaps? (downcase tailfile) '{"tail" "auto" "default" "split"})
+			  (mkpath rootdir (glom prefix "_tail.flexindex")))
+			 (else tailfile)))
 	 (keyslot (get flex-opts 'keyslot)))
-    (when (equal? tailfile "none") (set! tailfile #f))
     (let* ((pattern `#(,rootdir ,prefix "." (isdigit+) ".index"))
 	   (partitions (sorted (pick (getfiles rootdir) string-matches? pattern)))
 	   (sizes (map get-index-keycount partitions))
 	   (max-size (largest (elts sizes)))
 	   (headsize (* max-size (1+ (ilog (length partitions)))))
-	   (tailsize (* max-size 3))
+	   (tailsize (and tailfile (* max-size 3)))
 	   (maxsecs (config 'maxsecs #f))
 	   (msgsecs (config 'msgsecs 120)))
       (let ((headindex (index/ref headfile
@@ -86,7 +89,9 @@
 					keyslot (try keyslot #f)
 					maxload (config 'tailload (config 'maxload 0.8))
 					create #t]))))
-	(lognotice |FlexSplit| "Merging and splitting " ($count (length partitions) "partition"))
+	(lognotice |FlexPack|
+	  (if tailfile "Merging and splitting " "Merging ")
+	  ($count (length partitions) "partition"))
 	(doseq (partition partitions)
 	  (let ((started (elapsed-time))
 		(proc (proc/open "knodb" #[lookup #t isknox #t stdout temp stderr temp]
@@ -107,20 +112,23 @@
 		  (else (logwarn |Error|
 			  "Processing " partition ", see " (write (proc-stdout proc))
 			  "for details.")
-			(break)))))))))
+			(break)))))
+	(when (and headfile (overlaps? (dbctl headindex 'type) 'kindex))
+	  (fork/cmd/wait "knodb" "packindex" headfile))
+	(when (and tailfile tailindex (overlaps? (dbctl tailindex 'type) 'kindex))
+	  (fork/cmd/wait "knodb" "packindex" tailfile))))))
 
 (define (get-index-keycount file)
   (let ((index (open-index file #[register #f cachelevel 1])))
     (indexctl index 'metadata 'keys)))
 
 (define (main (in #f) (head #f)
-	      (tail (config 'tailfile #f)) 
-	      (tailcount (config 'TAILCOUNT 1)))
+	      (tail (config 'tailfile #f)))
   (default! head in)
   (when (overlaps? head '{"inplace" "-"}) (set! head in))
   (default-configs)
   (if (and (string? in) (file-exists? in))
-      (do-flexsplit in head tail tailcount)
+      (do-flexpack in head tail (config 'TAILCOUNT 1))
       (usage)))
 
 (define configs-done #f)
@@ -138,9 +146,9 @@
 (define (usage)
   (lineout "Usage: split-index <input> <head> [tailfile] [tailcount]\n"
     ($indented 4
-	       "Repacks the file index stored in <from> either in place or into [to]."
-	       "Common options include (first value is default) : \n"
-	       ($indented 4
-			  "INDEXTYPE=keep|knopool|filepool\n"
-			  "OVERWRITE=no|yes\n")
-	       "If specified, [to] must not exist unless OVERWRITE=yes")))
+      "Repacks the file index stored in <from> either in place or into [to]."
+      "Common options include (first value is default) : \n"
+      ($indented 4
+	"INDEXTYPE=keep|knopool|filepool\n"
+	"OVERWRITE=no|yes\n")
+      "If specified, [to] must not exist unless OVERWRITE=yes")))

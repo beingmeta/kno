@@ -139,7 +139,8 @@ static lispval trychoices_evalfn(lispval expr,kno_lexenv env,
     trychoices_vals[1]=VOID;
     if (finished) break;
     else if (!(EMPTYP(val))) {
-      result = val; break;}
+      result = val;
+      break;}
     else i++;}
   kno_pop_stack(trychoices_stack);
   return result;
@@ -822,7 +823,11 @@ DEFC_PRIM("choice-size",choicesize_prim,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval choicesize_prim(lispval x)
 {
+#if KNO_DEEP_PROFILING
+  int n = kno_choice_size(x);
+#else
   int n = KNO_CHOICE_SIZE(x);
+#endif
   return KNO_INT(n);
 }
 

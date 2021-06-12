@@ -25,7 +25,7 @@
 #include <stdarg.h>
 
 static u8_condition OddFindFramesArgs=_("Odd number of args to find frames");
-static u8_condition NoWritableIndexForSlot=_("NoIndexForSlot");
+static u8_condition NoWritableIndexForSlot=_("No writable index for slot");
 
 static lispval index2lisp(kno_index ix)
 {
@@ -184,7 +184,7 @@ static lispval aggregate_prim_find
 	  if (KNO_ABORTED(v)) {
 	    kno_decref(fetch_features);
 	    kno_decref(combined);
-	    kno_decref_vec(valvec,j);
+	    kno_decref_elts(valvec,j);
 	    u8_free(keyvec);
 	    u8_free(valvec);
 	    KNO_STOP_DO_CHOICES;
@@ -196,7 +196,7 @@ static lispval aggregate_prim_find
 	  j++;}
 	int rv = (ax->index_cache_level<1) ? (0) :
 	  (kno_hashtable_iter(cache,kno_table_add,j,keyvec,valvec));
-	kno_decref_vec(valvec,j);
+	kno_decref_elts(valvec,j);
 	u8_free(keyvec);
 	u8_free(valvec);
 	if (rv<0) {
@@ -258,16 +258,16 @@ KNO_EXPORT lispval kno_finder(lispval indexes,int n,kno_argvec slotvals)
     conjuncts[i]=kno_prim_find(indexes,slotvals[i*2],slotvals[i*2+1]);
     if (KNO_ABORTP(conjuncts[i])) {
       lispval error = conjuncts[i];
-      kno_decref_vec(conjuncts,i);
+      kno_decref_elts(conjuncts,i);
       return error;}
     if (EMPTYP(conjuncts[i])) {
-      kno_decref_vec(conjuncts,i);
+      kno_decref_elts(conjuncts,i);
       return EMPTY;}
     i++;}
   if (n_conjuncts == 1)
     return conjuncts[0];
   result = kno_intersection(conjuncts,n_conjuncts);
-  kno_decref_vec(conjuncts,n_conjuncts);
+  kno_decref_elts(conjuncts,n_conjuncts);
   return result;
 }
 

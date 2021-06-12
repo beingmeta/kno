@@ -57,6 +57,8 @@ static lispval set_symbol, drop_symbol, slotids_symbol;
 static lispval buckets_slot, slotids_slot;
 static struct KNO_INDEX_HANDLER fileindex_handler;
 
+DEF_KNOSYM(covers);
+
 static lispval fileindex_fetch(kno_index ix,lispval key);
 
 static kno_index open_fileindex(u8_string fname,kno_storage_flags flags,lispval opts)
@@ -77,9 +79,15 @@ static kno_index open_fileindex(u8_string fname,kno_storage_flags flags,lispval 
   u8_string abspath = u8_abspath(fname,NULL);
   u8_string realpath = u8_realpath(fname,NULL);
 
+  lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
+  if (KNO_VOIDP(metadata)) {
+    metadata = kno_make_slotmap(3,0,NULL);
+    kno_store(metadata,KNOSYM(covers),KNO_EMPTY);}
+
   kno_init_index((kno_index)index,&fileindex_handler,
                 fname,abspath,realpath,
-                flags,VOID,opts);
+                flags,metadata,opts);
+  kno_decref(metadata);
 
   int consed = U8_BITP(flags,KNO_STORAGE_UNREGISTERED);
   unsigned int magicno;
@@ -935,7 +943,7 @@ static int commit_drops(struct KNO_CONST_KEYVAL *drops,int n_drops,
     drop_i++;
     kdata_i++;}
 
-  kno_decref_vec(dropvals,n_drops);
+  kno_decref_elts(dropvals,n_drops);
   u8_big_free(dropvals);
 
   return kdata_i;

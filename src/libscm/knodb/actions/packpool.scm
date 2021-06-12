@@ -5,7 +5,7 @@
 (module-export! '{main packpool})
 
 (use-module '{kno/mttools varconfig binio engine text/stringfmts optimize logger})
-(use-module '{knodb/countrefs})
+(use-module '{knodb/countrefs knodb/filenames})
 
 (define %loglevel (config 'loglevel %notice%))
 (define %optmods '{knodb knodb/actions/packpool knodb/countrefs})
@@ -44,7 +44,8 @@
 
 (define (make-new-pool filename old (opts #f) (type) (adjslot))
   (default! type (getopt opts 'pooltype (symbolize (config 'pooltype 'kpool))))
-  (default! adjslot (getopt opts 'adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
+  (default! adjslot
+    (getopt opts 'adjslot (CONFIG 'ADJSLOT (CONFIG 'ADJUNCTSLOT #f))))
   (let ((metadata (or (poolctl old 'metadata) #[]))
 	(base-metadata (or (poolctl old '%metadata) #[]))
 	(xrefs (and (eq? type 'kpool) (get-xrefs old opts))))
@@ -55,7 +56,8 @@
       (when (config 'savexrefs)
 	(if xrefs
 	    (fileout (config 'savexrefs) (doseq (xref xrefs) (lineout xref)))
-	    (when (file-exists? (config 'savexrefs)) (remove-file (config 'savexrefs))))))
+	    (when (file-exists? (config 'savexrefs))
+	      (remove-file (config 'savexrefs))))))
     (when adjslot (store! base-metadata 'adjunct adjslot))
     (when (or adjslot (CONFIG 'ISADJUNCT))
       (add! base-metadata 'format 'adjunct))
@@ -67,7 +69,6 @@
 	     capacity ,(config 'newcap (pool-capacity old))
 	     load ,(config 'newload (pool-load old))
 	     label ,(config 'label (pool-label old))]
-	'slotids (get-slotids metadata type)
 	'xrefs (tryif xrefs xrefs)
 	'oidrefs
 	(tryif (eq? type 'bigpool)
@@ -89,16 +90,6 @@
 	'metadata base-metadata
 	'register #t))))
 
-(define code-slots #default)
-(varconfig! codeslots code-slots config:boolean)
-
-(define (get-slotids metadata type (current) (added (or (config 'slotids) {})))
-  (set! current (getopt metadata 'slotids #f))
-  (and (if (eq? code-slots #default)
-	   (or (vector? current) (exists? added))
-	   code-slots)
-       (let ((cur (or current #())))
-	 (append cur (choice->vector (difference added (elts cur)))))))
 (define (get-compression metadata type)
   (or (and (config 'compression) (symbolize (config 'compression)))
       (and (test metadata 'compression) (get metadata 'compression))
@@ -152,7 +143,7 @@
       (set! queue (cons (qc (pick-n oids blocksize (* i blocksize)))
 			queue)))
     (set! queue (reverse queue))
-    (lognotice |CopyOIDS|
+    (loginfo |CopyOIDS|
       "Copying " ($num (choice-size oids)) " OIDs"
       (if (pool-label old) (append " for " (pool-label old)))
       " from " (or (pool-source old) old)
@@ -170,14 +161,14 @@
 	     (loginfo |FinishedOIDs|
 	       "Finished a block of " ($num count) " OIDs "
 	       "in " (secs->string (elapsed-time start)))
-	     (lognotice |CopyOIDs|
+	     (loginfo |CopyOIDs|
 	       "Copied " ($num blocks-done) "/" ($num nblocks) " blocks, "
 	       ($num oids-done) " OIDs (" (show% oids-done noids) ") "
 	       "after " (secs->string (elapsed-time started)))))
 	  (xopts (and (eq? (poolctl new 'type) 'kpool)
 		      [xrefs (poolctl new '%xrefs) 
 		       compression (getopt opts 'compresion compression)])))
-      (if threadcount
+      (if (and threadcount (> threadcount 1))
 	  (let ((threads {}))
 	    (dotimes (i threadcount)
 	      (set+! threads 
@@ -245,13 +236,14 @@
   (let* ((base (basename from))
 	 (inplace (equal? from to))
 	 (tmpfile (config 'TMPFILE (CONFIG 'TEMPFILE (glom to ".part"))))
-	 (bakfile (config 'BAKFILE (CONFIG 'BACKUP (glom from ".bak")))))
+	 (bakfile (knodb/bakpath from opts)))
     (config! 'appid (glom "pack(" (basename to) ")"))
     (cond ((and (not (writable? to)))
 	   (logcrit |NotWritable| "Can't write output file " (write to))
 	   (exit))
 	  ((not (writable? tmpfile))
-	   (logcrit |NotWritable| "Can't write temporary output file " (write tmpfile))
+	   (logcrit |NotWritable|
+	     "Can't write temporary output file " (write tmpfile))
 	   (exit))
 	  ((and (file-exists? tmpfile) (not (config 'RESTART)))
 	   (logwarn |ExistingTMP| 
@@ -307,8 +299,8 @@
 	   (logwarn |Restarting| "Removing " (write (glom to ".part")))
 	   (remove-file (glom to ".part")))
 	  (else (logerr |InProgress|
-		  "The temporary output file " (write (glom to ".part")) " exists.\n  "
-		  "Specify RESTART=yes to remove.")
+		  "The temporary output file " (write (glom to ".part"))
+		  " exists.\n  Specify RESTART=yes to remove.")
 		(exit))))
   (cond ((or (not (bound? from)) (not from)) (usage))
 	((and (file-exists? to) (not (equal? from to)) (config 'COPY #f))
@@ -341,12 +333,12 @@
 (define (usage)
   (lineout "Usage: pack-pool <from> [to]\n"
     ($indented 4
-	       "Repacks the file pool stored in <from> either in place or into [to]."
-	       "Common options include (first value is default) : \n"
-	       ($indented 4
-			  "POOLTYPE=keep|knopool|filepool\n"
-			  "COMPRESSION=none|zlib9|snappy|zstd9\n"
-			  "CODESLOTS=yes|no\n"
-			  "OVERWRITE=no|yes\n")
-	       "If specified, [to] must not exist unless OVERWRITE=yes")))
+      "Repacks the file pool stored in <from> either in place or into [to]."
+      "Common options include (first value is default) : \n"
+      ($indented 4
+	"POOLTYPE=keep|knopool|filepool\n"
+	"COMPRESSION=zstd|none|snappy|zlib|zlib9|zstd|zstd9|zstd19\n"
+	"BACKUP=.bak|none|.suffix|suffix|bakdir\n"
+	"OVERWRITE=no|yes\n")
+      "If specified, [to] must not exist unless OVERWRITE=yes")))
 

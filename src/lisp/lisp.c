@@ -8,6 +8,7 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_LISP_CORE 1
 #define KNO_INLINE_XTYPEP 1
 
 #include "kno/knosource.h"
@@ -222,14 +223,7 @@ KNO_EXPORT void *_kno_lspcpy(lispval *dest,const lispval *src,int n)
 
 KNO_EXPORT void *_kno_lspset(lispval *dest,lispval val,int n)
 {
-  if (RARELY(KNO_CONSP(val))) {
-    lispval *write = dest, *limit = write+n;
-    while (write<limit) {*write++=val; kno_incref(val);}
-    return write;}
-  else {
-    lispval *write = dest, *limit = write+n;
-    while (write<limit) *write++=val;
-    return write;}
+  return kno_lspset(dest,val,n);
 }
 
 /* Errors */

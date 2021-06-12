@@ -2058,6 +2058,21 @@ static lispval validoidp(lispval x,lispval pool_arg)
 
 /* Prefetching functions */
 
+static int pool_argp(lispval x)
+{
+  if (KNO_POOLP(x)) return 1;
+  else if (KNO_CHOICEP(x)) {
+    int poolp = -1;
+    KNO_DO_CHOICES(each,x) {
+      if (KNO_POOLP(x)) {
+	if (poolp<0) poolp=1;
+	else return -1;}
+      else if (poolp<0) poolp=0;
+      else return -1;}
+    return poolp;}
+  else return 0;
+}
+
 DEFC_PRIM("pool-prefetch!",pool_prefetch_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "'(POOL-PREFETCH! pool oids)' prefetches OIDs from "
@@ -2094,17 +2109,26 @@ static lispval pool_prefetch_prim(lispval pool,lispval oids)
 
 DEFC_PRIM("prefetch-oids!",prefetch_oids_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "'(PREFETCH-OIDS! oids [pool])' prefetches OIDs "
-	  "from pool",
+	  "prefetches OIDs from pool(s). With no *pool*, prefetches "
+	  "OIDS from the background.",
 	  {"oids",kno_any_type,KNO_VOID},
-	  {"parg",kno_any_type,KNO_VOID})
-static lispval prefetch_oids_prim(lispval oids,lispval parg)
+	  {"pool",kno_any_type,KNO_VOID})
+static lispval prefetch_oids_prim(lispval oids,lispval pool)
 {
-  if ( (VOIDP(parg)) || (KNO_FALSEP(parg)) || (KNO_TRUEP(parg)) ) {
+  if ( (VOIDP(pool)) || (KNO_FALSEP(pool)) || (KNO_TRUEP(pool)) ) {
     if (kno_prefetch_oids(oids)>=0)
       return KNO_TRUE;
     else return KNO_ERROR;}
-  else return pool_prefetch_prim(parg,oids);
+  int pool_ok = pool_argp(pool);
+  if (pool_ok<0)
+    return kno_err("NotAPool","prefetch_oids_prim",NULL,pool);
+  else if (pool_ok)
+    return pool_prefetch_prim(pool,oids);
+  else if (pool_argp(oids)==1) {
+    lispval use_pool = oids;
+    lispval use_oids = pool;
+    return pool_prefetch_prim(use_pool,use_oids);}
+  else return kno_err("NotAPool","prefetch_oids_prim",NULL,pool);
 }
 
 DEFC_PRIM("fetchoids",fetchoids_prim,
@@ -2118,28 +2142,56 @@ static lispval fetchoids_prim(lispval oids)
   return kno_incref(oids);
 }
 
+static int index_argp(lispval x)
+{
+  if (KNO_INDEXP(x)) return 1;
+  else if (KNO_CHOICEP(x)) {
+    int indexp = -1;
+    KNO_DO_CHOICES(each,x) {
+      if (KNO_INDEXP(x)) {
+	if (indexp<0) indexp=1;
+	else return -1;}
+      else if (indexp<0) indexp=0;
+      else return -1;}
+    return indexp;}
+  else return 0;
+}
+
 DEFC_PRIM("prefetch-keys!",prefetch_keys,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "or `(PREFETCH-KEYS! *keys*)`, moves mappings for "
-	  "*keys* in *index* into its cache. With one "
-	  "argument caches from the background.",
-	  {"arg1",kno_any_type,KNO_VOID},
-	  {"arg2",kno_any_type,KNO_VOID})
-static lispval prefetch_keys(lispval arg1,lispval arg2)
+	  "moves mappings for *keys* in *index* into its cache. "
+	  "With one argument (no *index*) caches keys from the "
+	  "background index.",
+	  {"keys",kno_any_type,KNO_VOID},
+	  {"index",kno_any_type,KNO_VOID})
+static lispval prefetch_keys(lispval keys,lispval index)
 {
-  if (VOIDP(arg2)) {
-    if (kno_bg_prefetch(arg1)<0)
+  if (VOIDP(index)) {
+    if (kno_bg_prefetch(keys)<0)
       return KNO_ERROR;
     else return VOID;}
-  else {
-    DO_CHOICES(arg,arg1) {
-      if (INDEXP(arg)) {
-	kno_index ix = kno_indexptr(arg);
-	if (kno_index_prefetch(ix,arg2)<0) {
-	  KNO_STOP_DO_CHOICES;
-	  return KNO_ERROR;}}
-      else return kno_type_error(_("index"),"prefetch_keys",arg);}
-    return VOID;}
+  else if (KNO_EMPTYP(index)) return VOID;
+  int index_ok = index_argp(index);
+  if (index_ok<0)
+    return kno_err("NotAnIndex","prefetch-keys!",NULL,index);
+  else if (KNO_EMPTYP(keys)) return KNO_VOID;
+  else if (index_ok) {
+    DO_CHOICES(each_ix,index) {
+      kno_index ix = kno_indexptr(each_ix);
+      if (kno_index_prefetch(ix,keys)<0) {
+	KNO_STOP_DO_CHOICES;
+	return KNO_ERROR;}}
+    return KNO_VOID;}
+  else if (index_argp(keys)==1) {
+    lispval use_index = keys;
+    lispval use_keys = index;
+    DO_CHOICES(each_ix,use_index) {
+      kno_index ix = kno_indexptr(each_ix);
+      if (kno_index_prefetch(ix,use_keys)<0) {
+	KNO_STOP_DO_CHOICES;
+	return KNO_ERROR;}}
+    return KNO_VOID;}
+  else return kno_err("NotAnIndex","prefetch-keys!",NULL,index);
 }
 
 DEFC_PRIM("index-prefetch!",index_prefetch_keys,
@@ -2147,18 +2199,19 @@ DEFC_PRIM("index-prefetch!",index_prefetch_keys,
 	  "(INDEX-PREFETCH! *index* *keys*)  "
 	  "moves mappings for *keys* in *index* into its "
 	  "cache.",
-	  {"ix_arg",kno_any_type,KNO_VOID},
+	  {"index",kno_any_type,KNO_VOID},
 	  {"keys",kno_any_type,KNO_VOID})
-static lispval index_prefetch_keys(lispval ix_arg,lispval keys)
+static lispval index_prefetch_keys(lispval index,lispval keys)
 {
-  DO_CHOICES(arg,ix_arg) {
-    if (INDEXP(arg)) {
-      kno_index ix = kno_indexptr(arg);
+  if (index_argp(index)<0)
+    return kno_err("NotAnIndex","prefetch-keys!",NULL,index);
+  else {
+    DO_CHOICES(ix_arg,index) {
+      kno_index ix = kno_indexptr(ix_arg);
       if (kno_index_prefetch(ix,keys)<0) {
 	KNO_STOP_DO_CHOICES;
 	return KNO_ERROR;}}
-    else return kno_type_error(_("index"),"prefetch_keys",arg);}
-  return KNO_VOID;
+    return KNO_VOID;}
 }
 
 /* Getting cached OIDs */

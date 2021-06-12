@@ -7,6 +7,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define KNO_LISP_CORE 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/cons.h"
@@ -242,27 +244,6 @@ void kno_recycle_cons(kno_raw_cons c)
   default: {
     if (kno_recyclers[ctype]) kno_recyclers[ctype](c);}
   }
-}
-
-KNO_EXPORT
-/* Increfs the elements of a vector of LISP pointers */
-void kno_incref_vec(lispval *vec,size_t n)
-{
-  int i = 0; while (i<n) {
-    lispval elt = vec[i];
-    if ( (KNO_CONSP(elt)) && (KNO_STATIC_CONSP(elt) ) ) {
-      vec[i] = kno_copier(elt,KNO_FULL_COPY);}
-    else kno_incref(elt);
-    i++;}
-}
-
-KNO_EXPORT
-/* Decrefs the elements of a vector of LISP pointers */
-void kno_decref_vec(lispval *vec,size_t n)
-{
-  int i = 0; while (i<n) {
-    lispval elt = vec[i++];
-    kno_decref(elt);}
 }
 
 void kno_init_recycle_c()

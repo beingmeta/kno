@@ -720,7 +720,7 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
   kno_decref(lambda->lambda_source);
   u8_free(lambda->lambda_vars);
   if (lambda->lambda_inits) {
-    kno_decref_vec(lambda->lambda_inits,n_vars);
+    kno_decref_elts(lambda->lambda_inits,n_vars);
     u8_free(lambda->lambda_inits);
     lambda->lambda_inits=NULL;}
   if (lambda->lambda_consblock) {

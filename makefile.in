@@ -42,7 +42,7 @@ INDENTOPTS        = -br -ce -psl -Tknodtype -Tu8_string \
 		    -Tkno_stream -Tkno_inbuf -Tkno_outbuf \
 		    -Tkno_rawbuf -Tkno_function -Tkno_pair \
 		    -Tkno_choice
-GCOVR_FLAGS       = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/storage/"
+GCOVR_FLAGS       = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/libtests/"
 PYLIBS            = -lknowebtools -lknotexttools -lkno ${LIBS}
 
 DESTDIR	  	  =
@@ -719,7 +719,7 @@ etc/%: etc/%.in ./config.status
 	@./config.status
 
 src/%.zip: src/%
-	cd $^;	@ZIPCMD@ ../$(@F) -r *
+	cd $<;	@ZIPCMD@ ../$(@F) -r *
 
 # docs/man/%: docs/ronn/%.ronn
 # 	ronn --roff < $< > $@
@@ -2009,7 +2009,11 @@ tests/gcovr/web.html: src/lisp/cons.gcda tests/gcovr
 
 src/lisp/cons.gcda: lib/libknocore.a lib/libkno.a
 	find . -name "*.gcda" -exec rm '{}' \;
-	cd tests; make libtests;
+	find . -name ".*.gcda" -exec rm '{}' \;
+	cd tests; make
+fresh_coverage:
+	rm -f src/lisp/cons.gcda
+	make src/lisp/cons.gcda
 
 gcovr_html: tests/gcovr/all.html tests/gcovr/core.html tests/gcovr/storage.html \
 	tests/gcovr/prims.html tests/gcovr/text.html tests/gcovr/web.html \

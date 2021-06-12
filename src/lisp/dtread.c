@@ -384,7 +384,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
               lispval v=kno_read_dtype(in);
               if (KNO_ABORTP(v)) {
                 lispval *elts=(lispval *)KNO_XCHOICE_DATA(ch);
-                kno_decref_vec(elts,write-elts);
+                kno_decref_elts(elts,write-elts);
                 u8_big_free(ch);
                 return v;}
               else *write++=v;}
@@ -464,7 +464,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
           while (i<len) {
             lispval v=kno_read_dtype(in);
             if (KNO_ABORTP(v)) {
-              kno_decref_vec(data,i);
+              kno_decref_elts(data,i);
               u8_free(data);
               return v;}
             else data[i++]=kno_read_dtype(in);}

@@ -713,7 +713,7 @@ KNO_EXPORT int kno_hashset_add(kno_hashset h,lispval keys);
 KNO_EXPORT lispval kno_hashset_intern(kno_hashset h,lispval key,int add);
 
 KNO_EXPORT lispval kno_hashset_elts(kno_hashset h,int clean);
-KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,int *len);
+KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,ssize_t *len);
 
 KNO_EXPORT void kno_init_hashset(kno_hashset h,int n,int stack_cons);
 KNO_EXPORT lispval kno_make_hashset(void);

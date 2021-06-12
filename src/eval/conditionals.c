@@ -30,6 +30,7 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_err(kno_TooFewExpressions,"IF",NULL,expr);
   test_result = kno_eval(test_expr,env,_stack);
   if (KNO_ABORTED(test_result)) return test_result;
+  else if (EMPTYP(test_result)) return test_result;
   else if (FALSEP(test_result)) {
     if (VOIDP(else_expr))
       return KNO_VOID;
@@ -41,11 +42,10 @@ static lispval if_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 static lispval tryif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  lispval test_expr = kno_get_arg(expr,1), test_result;
+  lispval test_expr = kno_get_arg(expr,1), test_result = KNO_FALSE;
   lispval first_consequent = kno_get_arg(expr,2);
   if ((VOIDP(test_expr)) || (VOIDP(first_consequent)))
     return kno_err(kno_TooFewExpressions,"TRYIF",NULL,expr);
-  test_result = kno_eval(test_expr,env,_stack);
   int cmp = testeval(test_expr,env,TESTEVAL_FAIL_FALSE,&test_result,_stack);
   if (cmp<0)
     return test_result;
@@ -72,7 +72,9 @@ DEFC_PRIM("not",not_prim,
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval not_prim(lispval arg)
 {
-  if (FALSEP(arg)) return KNO_TRUE; else return KNO_FALSE;
+  if (FALSEP(arg)) return KNO_TRUE;
+  else if (EMPTYP(arg)) return KNO_EMPTY;
+  else return KNO_FALSE;
 }
 
 static lispval apply_marker;
@@ -88,6 +90,7 @@ static lispval cond_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       return eval_body(KNO_CDR(clause),env,_stack,"COND","else",tail);
     else test_val = kno_eval(KNO_CAR(clause),env,_stack);
     if (KNO_ABORTED(test_val)) return test_val;
+    /* else if (EMPTYP(test_val)) return KNO_EMPTY; */
     else if (FALSEP(test_val)) {}
     else {
       lispval applyp = ((PAIRP(KNO_CDR(clause))) &&

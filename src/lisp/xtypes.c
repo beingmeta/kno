@@ -1076,7 +1076,7 @@ static ssize_t write_hashtable(kno_outbuf out,struct KNO_HASHTABLE *hashtable,
 static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
 			     xtype_refs refs)
 {
-  int i = 0, n_elts = -1;
+  ssize_t i = 0, n_elts = -1;
   lispval *elts = kno_hashset_vec(hashtable,&n_elts);
   if (RARELY(n_elts < 0)) return -1;
   kno_output_byte(out,xt_tagged); kno_output_byte(out,xt_bigset);
@@ -1090,7 +1090,7 @@ static ssize_t write_hashset(kno_outbuf out,struct KNO_HASHSET *hashtable,
       if (elt_len<0) { xtype_len=-1; break; }
       else xtype_len += elt_len;
       i++;}
-    kno_decref_vec(elts,n_elts);
+    kno_decref_elts(elts,n_elts);
     u8_free(elts);
     return xtype_len;}
   else return rv;
@@ -1402,7 +1402,7 @@ KNO_EXPORT lispval kno_copy_xrefs(struct XTYPE_REFS *refs)
       kno_hashtable lookup_copy = kno_copy_hashtable(NULL,lookup,1);
       if (!(lookup_copy)) {
 	if (refs->xt_refs_flags & XTYPE_REFS_CONS_ELTS)
-	  kno_decref_vec(copycodes,n_refs);
+	  kno_decref_elts(copycodes,n_refs);
 	u8_free(copycodes);
 	u8_free(copy);
 	return KNO_ERROR;}

@@ -2093,7 +2093,7 @@ static int process_drops(struct KNO_HASHINDEX *hx,
     s[sched_ref].free_values   = 1;
     j++;}
 
-  kno_decref_vec(drop_vals,n_fetches);
+  kno_decref_elts(drop_vals,n_fetches);
   u8_big_free(drop_vals);
   u8_big_free(fetch_scheds);
   u8_big_free(to_fetch);

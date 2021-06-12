@@ -78,7 +78,9 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
 #define kno_free_lexenv _kno_free_lexenv
 #endif
 
+#if KNO_DESTROY_LEXENV /* Experimentally removed */
 KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env);
+#endif
 
 #endif
 

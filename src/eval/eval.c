@@ -491,7 +491,7 @@ lispval eval_schemap(lispval expr,kno_lexenv env,
       break;}
     else new_vals[i++] = val;}
   if (KNO_ABORTED(result))
-    kno_decref_vec(new_vals,i);
+    kno_decref_elts(new_vals,i);
   else {
     result = kno_make_schemap(NULL,n,KNO_SCHEMAP_STATIC_VALUES,schema,new_vals);
     /* Set the template, which allows the new schemap to share the schema */

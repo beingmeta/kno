@@ -7,7 +7,8 @@
 (use-module '{ezrecords text/stringfmts logger texttools})
 
 (module-export! '{knodb/file knodb/partition-files opt-suffix
-		  knodb/abspath knodb/relpath})
+		  knodb/abspath knodb/relpath
+		  knodb/altpath knodb/bakpath})
 
 (define (opt-suffix string suffix)
   (if suffix
@@ -60,3 +61,61 @@
 	((equal? root path) nullval)
 	((has-prefix root path) (slice path (length root)))
 	(else path)))
+
+(define (make-writable path)
+  (if (file-writable? path)
+      path
+      (if (file-exists? path)
+	  (irritant path |NotWritable|)
+	  (if (file-directory? (dirname path))
+	      (if (file-writable? (dirname path))
+		  path
+		  (irritant path |DirectoryNotWritable|))
+	      (begin (mkdirs path)
+		(if (file-writable? (dirname path))
+		    path
+		    (irritant path |DirectoryNotWritable|)))))))
+  
+(define-init alt-types
+  #[backup ".bak"
+    bak ".bak"
+    partial ".part"
+    part ".part"])
+
+(define (knodb/altpath path pathtype (opts #f) (alt))
+  (default! alt
+    (getopt opts pathtype
+	    (if (getopt opts 'useconfig #t) 
+		(config pathtype
+			(try (get alt-types pathtype) (glom "." pathtype)))
+		(try (get alt-types pathtype) (glom "." pathtype)))))
+  (cond ((not alt) #f)
+	((overlaps? alt '{none no skip}) #f)
+	((not (string? alt)) (irritant alt |BadAltSpec| "For " pathtype))
+	((overlaps? (downcase alt) {"none" "no" "skip"}) #f)
+	((file-directory? alt)
+	 (make-writable
+	  (if (has-prefix path "/")
+	      (mkpath alt (basename path))
+	      (mkpath alt path))))
+	((has-prefix alt ".") (make-writable (glom path alt)))
+	((position #\/ alt) (make-writable (mkpath alt path)))
+	(else (make-writable (glom path  "." alt)))))
+
+(define (knodb/bakpath path (opts #f) (backup))
+  (default! backup
+    (getopt opts 'backup (if (getopt opts 'useconfig #t) 
+			     (config 'backup ".bak")
+			     ".bak")))
+  (cond ((not backup) #f)
+	((overlaps? backup '{none no skip}) #f)
+	((not (string? backup)) (irritant backup |BadBackupSpec|))
+	((overlaps? (downcase backup) {"none" "no" "skip"}) #f)
+	((file-directory? backup)
+	 (make-writable
+	  (if (has-prefix path "/")
+	      (mkpath backup (basename path))
+	      (mkpath backup path))))
+	((has-prefix backup ".") (make-writable (glom path backup)))
+	((position #\/ backup) (make-writable (mkpath backup path)))
+	(else (make-writable (glom path  "." backup)))))

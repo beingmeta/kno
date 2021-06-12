@@ -512,7 +512,7 @@ static void cleanup_tmpchoice(struct KNO_CHOICE *reduced)
     lispval *vals = (lispval *) KNO_XCHOICE_ELTS(reduced);
     /* We need to incref these values for wherever
        delay_index_fetch stores them. */
-    kno_incref_vec(vals,KNO_XCHOICE_SIZE(reduced));
+    kno_incref_elts(vals,KNO_XCHOICE_SIZE(reduced));
     kno_incref(lptr);}
   else kno_free_choice(reduced);
 }
@@ -857,9 +857,6 @@ KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key)
     if (!(KNO_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level == 0) cached = VOID;
-  else if ((PAIRP(key)) && (!(VOIDP(ix->index_covers_slotids))) &&
-	   (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))))
-    return EMPTY;
   else cached = kno_hashtable_get(&(ix->index_cache),key,VOID);
   if (VOIDP(cached))
     cached = kno_index_fetch(ix,key);
@@ -878,17 +875,6 @@ static lispval table_indexget(lispval ixarg,lispval key,lispval dflt)
   else return KNO_ERROR;
 }
 
-
-static void extend_slotids(kno_index ix,const lispval *keys,int n)
-{
-  lispval slotids = ix->index_covers_slotids;
-  int i = 0; while (i<n) {
-    lispval key = keys[i++], slotid;
-    if (PAIRP(key)) slotid = KNO_CAR(key); else continue;
-    if ((OIDP(slotid)) || (SYMBOLP(slotid))) {
-      if (kno_contains_atomp(slotid,slotids)) continue;
-      else {kno_decref(slotids); ix->index_covers_slotids = VOID;}}}
-}
 
 KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
 {
@@ -924,15 +910,13 @@ KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value)
     if (cache->table_n_keys)
       kno_hashtable_iterkeys(cache,kno_table_add_if_present,n,keyv,value);
     if (drops->table_n_keys)
-      kno_hashtable_iterkeys(drops,kno_table_drop,n,keyv,value);
-    if (!(VOIDP(ix->index_covers_slotids))) extend_slotids(ix,keyv,n);}
+      kno_hashtable_iterkeys(drops,kno_table_drop,n,keyv,value);}
   else {
     kno_hashtable_add(adds,key,value);
     if (cache->table_n_keys)
       kno_hashtable_op(cache,kno_table_add_if_present,key,value);
     if (drops->table_n_keys)
-      kno_hashtable_op(drops,kno_table_drop,key,value);
-    if (!(VOIDP(ix->index_covers_slotids))) extend_slotids(ix,&key,1);}
+      kno_hashtable_op(drops,kno_table_drop,key,value);}
 
   /* if ((knotc)&&(KNO_WRITETHROUGH_THREADCACHE)) knotc_add(ix,keys,value); */
 
@@ -1883,7 +1867,6 @@ KNO_EXPORT void kno_init_index(kno_index ix,
   ix->index_source = u8_strdup(src);
   ix->canonical_source = u8_strdup(csrc);
   ix->index_typeid = u8_strdup(h->name);
-  ix->index_covers_slotids = VOID;
 
   if ( (KNO_VOIDP(opts)) || (KNO_FALSEP(opts)) )
     ix->index_opts = KNO_FALSE;
@@ -2197,7 +2180,6 @@ KNO_EXPORT void kno_recycle_index(struct KNO_INDEX *ix)
   kno_free_slotmap(&(ix->index_metadata));
   kno_free_slotmap(&(ix->index_props));
 
-  kno_decref(ix->index_covers_slotids);
   kno_decref(ix->index_opts);
 }
 

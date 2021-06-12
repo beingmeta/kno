@@ -14,8 +14,7 @@
 		  engine/checkpoint
 		  engine/getopt
 		  engine/test
-		  engine/stop!
-		  batchup})
+		  engine/stop!})
 
 (module-export! '{engine/showrates engine/showrusage
 		  engine/log engine/logrusage engine/logrates})
@@ -37,20 +36,30 @@
 
 ;;;; Configurable
 
-(define engine-bugjar #f)
+(define-init engine-bugjar #f)
 (varconfig! engine:bugjar engine-bugjar)
 
-(define log-frequency 60)
+(define-init log-frequency 60)
 (varconfig! engine:logfreq log-frequency)
 
-(define check-frequency 15)
+(define-init check-frequency 15)
 (varconfig! engine:checkfreq check-frequency)
 
-(define check-spacing 60)
+(define-init check-spacing 60)
 (varconfig! engine:checkspace check-spacing)
 
-(define engine-threadcount #t)
+(define-init engine-threadcount #t)
 (varconfig! engine:threads engine-threadcount)
+
+(define-init use-configs #t)
+(varconfig! engine:useconfigs use-configs)
+(varconfig! engine:useconfig use-configs)
+
+(define (getconfopt opts prop (dflt #f))
+  (getopt opts prop 
+	  (if (getopt opts 'useconfigs use-configs)
+	      (config prop dflt)
+	      dflt)))
 
 (defimport fifo-condvar 'fifo)
 
@@ -264,7 +273,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(count-term (try (get loop-state 'count-term) "item"))
 	(%loglevel (or threadfn-loglevel %loglevel))
 	(batch-indexes (pick (getopt opts 'branchindexes {}) loop-state))
-	(batchcall (if batchsize (getopt opts 'batchcall #f)
+	(batchcall (if batchsize
+		       (getopt opts 'batchcall #f)
 		       (getopt opts 'batchcall (non-deterministic? iterfn))))
 	(batchno 1))
     (let* ((batch (get-batch fifo batchsize loop-state fillfn))
@@ -418,7 +428,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (engine/fill! fifo fillfn loop-state))
   (tryif (and (not (test loop-state '{stopped done}))
 	      (or fillfn (> (fifo/load fifo) 0)))
-    (if batchsize (fifo/popvec fifo batchsize) (fifo/pop fifo batchsize))))
+    (if batchsize
+	(fifo/popvec fifo batchsize)
+	(fifo/pop fifo batchsize))))
 
 (define (pick-spacing opts nthreads)
   (let ((spacing (getopt opts 'spacing 0.1)))
@@ -429,18 +441,18 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		  (> nthreads 1)
 		  (/~ nthreads (ilog nthreads)))))))
 
-(defambda (get-items-vec items opts (max))
-  (set! max (getopt opts 'maxitems (config 'maxitems)))
+(defambda (get-items-vec items opts (maxitems))
+  (set! maxitems (getconfopt opts 'maxitems))
   (if (applicable? items) #()
       (let ((vec (if (and (singleton? items) (vector? items)) 
 		     items
 		     (choice->vector items))))
-	(if (or (not max) (>= max (length vec)))
+	(if (or (not maxitems) (>= maxitems (length vec)))
 	    vec
-	    (slice vec 0 max)))))
+	    (slice vec 0 maxitems)))))
 
 (define (get-engine-threadcount opts max-items fill)
-  (let* ((spec (getopt opts 'nthreads (config 'engine:threads (config 'nthreads #t))))
+  (let* ((spec (getopt opts 'nthreads (getconfopt opts 'engine:threads)))
 	 (nthreads (threadcount spec)))
     (if fill nthreads
 	(if (and nthreads max-items (> max-items 0))
@@ -471,8 +483,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	 (task (getopt opts 'task (init-task-state opts)))
 	 (stopfile (try (get task 'stopfile) (getopt opts 'stopfile #t)))
 	 (donefile (try (get task 'donefile) (getopt opts 'donefile #t))))
-    (when (and stopfile (not (string? stopfile))) (set! stopfile (runfile ".stop")))
-    (when (and donefile (not (string? donefile))) (set! donefile (runfile ".done")))
+    (when (and stopfile (not (string? stopfile)))
+      (set! stopfile (runfile ".stop")))
+    (when (and donefile (not (string? donefile)))
+      (set! donefile (runfile ".done")))
     (when (and init-items (> init-items queuelen)) (set! queuelen init-items))
     (when (and max-items (> queuelen max-items)) (set! queuelen max-items))
     (when (and max-items nthreads (> nthreads max-items)) 
@@ -633,8 +647,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	(store! loop-state 'stopped (timestamp))
 	(store! loop-state 'stopval 'final))
 
-      (when (and (test loop-state 'taskstate)
-		 (test (get loop-state 'taskstate) 'done)
+      (when (and (or (test loop-state 'done)
+		     (and (test loop-state 'taskstate)
+			  (test (get loop-state 'taskstate) 'done)))
 		 (test loop-state 'donefile)
 		 (not (file-exists? (get loop-state 'donefile))))
 	(statefile/save! (get loop-state 'taskstate) #f
@@ -1009,7 +1024,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (if (and (getopt loop-state 'checkthread)
 	     (not (test loop-state 'checkthread (threadid))))
 	#f
-	(begin 
+	(begin
 	  (store! loop-state 'checkthread (threadid))
 	  (store! loop-state 'checkstart (elapsed-time))
 	  #t))))
@@ -1019,6 +1034,10 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (when (exists? (get loop-state slot))
       (store! copy slot (get loop-state slot))))
   copy)
+
+;;; Task states:
+;;;  'task is the current unsaved state of the task running in the loop
+;;;  'task
 
 (define (updated-task-state loop-state)
   (let* ((counters (choice (get loop-state 'counters) *standard-counters*))
@@ -1098,8 +1117,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
-	    (when (getopt opts 'swapout (config 'swapout))
-	      (engine-swapout loop-state))))
+	    (when (getconfopt opts 'swapout) (engine-swapout loop-state))))
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
 	  (pprint loop-state)))))
@@ -1207,14 +1225,25 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 ;;;; Utility functions
 
 (define (engine/fetchoids oids (batch-state #f) (loop-state #f) (state #f))
-  (prefetch-oids! oids))
-(define (engine/fetchkeys oids (batch-state #f) (loop-state #f) (state #f))
-  (prefetch-keys! oids))
+  (if (vector? oids)
+      (prefetch-oids! (elts oids))
+      (prefetch-oids! oids)))
+(define (engine/fetchkeys keys (batch-state #f) (loop-state #f) (state #f))
+  (if (vector? keys)
+      (prefetch-keys! (elts keys))
+      (prefetch-keys! keys)))
 (define (engine/swapout args (batch-state #f) (loop-state #f) (state #f))
-  (swapout args))
+  (if (vector? args)
+      (swapout (elts args))
+      (swapout args)))
 (define (engine/lockoids oids (batch-state #f) (loop-state #f) (state #f))
-  (lock-oids! oids)
-  (prefetch-oids! oids))
+  (cond ((vector? oids) 
+	 (let ((oids (elts oids)))
+	   (lock-oids! oids)
+	   (prefetch-oids! oids)))
+	(else 
+	 (lock-oids! oids)
+	 (prefetch-oids! oids))))
 
 ;;;; Utility meta-functions
 

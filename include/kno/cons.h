@@ -242,8 +242,6 @@ KNO_EXPORT lispval kno_deep_copy(lispval x);
 KNO_EXPORT lispval kno_static_copy(lispval x);
 
 KNO_EXPORT lispval *kno_copy_vec(lispval *vec,size_t n,lispval *into,int copy_flags);
-KNO_EXPORT void kno_incref_vec(lispval *vec,size_t n);
-KNO_EXPORT void kno_decref_vec(lispval *vec,size_t n);
 
 #define KNO_SIMPLE_COPY 1 /* Only copies one level */
 
@@ -367,11 +365,9 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 
 KNO_EXPORT lispval *_kno_init_elts(lispval *elts,size_t n,lispval v);
 
-KNO_EXPORT ssize_t _kno_incref_elts(const lispval *elts,size_t n);
+KNO_EXPORT ssize_t _kno_incref_elts(lispval *elts,size_t n);
 
 KNO_EXPORT ssize_t _kno_decref_elts(const lispval *elts,size_t n);
-
-KNO_EXPORT ssize_t _kno_free_elts(lispval *elts,size_t n);
 
 #if KNO_SOURCE
 KNO_FASTOP U8_MAYBE_UNUSED
@@ -384,48 +380,37 @@ lispval *kno_init_elts(lispval *elts,ssize_t n,lispval v)
     int i=0; while (i<n) { elts[i++]=v; }}
   return elts;
 }
+
 KNO_FASTOP U8_MAYBE_UNUSED
-ssize_t kno_incref_elts(const lispval *elts,size_t n)
+ssize_t kno_incref_elts(lispval *elts,size_t n)
 {
-  int i=0, consed=0; while (i<n) {
-    lispval elt=elts[i++];
-    if ((KNO_CONSP(elt))&&(KNO_MALLOCD_CONSP((kno_cons)elt))) {
-      consed++;
-      kno_decref(elt);}}
+  int i = 0, consed = 0; while (i<n) {
+    lispval elt = elts[i];
+    if (KNO_CONSP(elt)) {
+      if (KNO_MALLOCD_CONSP(elt))
+	kno_incref(elt);
+      else elts[i] = kno_copier(elt,KNO_FULL_COPY);
+      consed++;}
+    else NO_ELSE;
+    i++;}
   return consed;
 }
 
 KNO_FASTOP U8_MAYBE_UNUSED
-size_t kno_decref_elts(const lispval *elts,size_t n)
+ssize_t kno_decref_elts(const lispval *elts,size_t n)
 {
-  size_t conses=0;
-  int i=0; while (i<n) {
+  ssize_t i=0, conses=0; while (i<n) {
     lispval elt=elts[i++];
     if (KNO_CONSP(elt)) {
       kno_decref(elt);
       conses++;}}
   return conses;
-
 }
 
-KNO_FASTOP U8_MAYBE_UNUSED
-ssize_t kno_free_elts(lispval *elts,size_t n)
-{
-  size_t conses=0;
-  const lispval *scan=(const lispval *)elts;
-  int i=0; while (i<n) {
-    lispval elt=scan[i++];
-    if (KNO_CONSP(elt)) {
-      kno_decref(elt);
-      conses++;}}
-  u8_free(elts);
-  return conses;
-}
 #else
 #define kno_init_elts _kno_init_elts
 #define kno_incref_elts _kno_incref_elts
 #define kno_decref_elts _kno_decref_elts
-#define kno_free_elts _kno_free_elts
 #endif
 
 #define kno_incref_ptr(p) (kno_incref((lispval)(p)))

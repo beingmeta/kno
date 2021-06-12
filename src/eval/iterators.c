@@ -220,7 +220,7 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
     i++;}
   if (KNO_VOIDP(result))
     result=kno_makeseq(KNO_TYPEOF(seq),i,results);
-  kno_decref_vec(results,i);
+  kno_decref_elts(results,i);
   u8_free(results);
   kno_pop_stack(forseq_stack);
   return result;

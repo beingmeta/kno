@@ -730,7 +730,7 @@ AC_SUBST(GCOV_CFLAGS)
 AC_SUBST(GCOV_LDFLAGS)
 
 if test "${use_gcov}" == "yes"; then
-  AC_DEFINE(KNO_PROFILING,2)
+#  AC_DEFINE(KNO_PROFILING,2)
   PROFILING="${PROFILING} -fprofile-arcs -ftest-coverage"
   OPTFLAGS=
   XOPTFLAGS=

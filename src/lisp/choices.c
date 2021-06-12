@@ -332,7 +332,7 @@ lispval kno_init_choice
       else {atomicp = 0; break;}}
   if (atomicp) {}
   else if (flags&KNO_CHOICE_INCREF)
-    kno_incref_vec(((lispval *)(KNO_XCHOICE_DATA(ch))),n);
+    kno_incref_elts(((lispval *)(KNO_XCHOICE_DATA(ch))),n);
   else copy_static(((lispval *)(KNO_XCHOICE_DATA(ch))),n);
   /* Now sort and compress it if requested */
   if (flags&KNO_CHOICE_DOSORT) {
@@ -469,18 +469,6 @@ KNO_EXPORT
 void _kno_prechoice_add(struct KNO_PRECHOICE *ch,lispval v)
 {
   __kno_prechoice_add(ch,v);
-}
-
-KNO_EXPORT
-/* _kno_contains_atomp:
-   Arguments: a prechoice pointer and a lisp pointer
-   Returns: a lisp pointer
-   Adds the value into the prechoice, without incref'ing it
-
-*/
-int _kno_contains_atomp(lispval x,lispval ch)
-{
-  return __kno_contains_atomp(x,ch);
 }
 
 /* Converting prechoices to choices */
@@ -637,9 +625,9 @@ lispval _kno_simplify_choice(lispval x)
   return kno_normalize_choice(x,1);
 }
 
-KNO_EXPORT int _kno_choice_size(lispval x)
+KNO_EXPORT int kno_choice_size(lispval x)
 {
-  return __kno_choice_size(x);
+  return KNO_CHOICE_SIZE(x);
 }
 
 /* Merging choices */

@@ -9,7 +9,7 @@
 	    ((and (string? config) (file-exists? config)) (get-module config))
 	    ((string? config) (get-module (string->symbol config)))
 	    (else #f))
-      (irritant config |BadAppModule|)))
+      (irritant config |BadAppModule| resolve-module config)))
 
 (define appmodule #f)
 (varconfig! appmodule appmodule resolve-module)
@@ -20,14 +20,23 @@
 (define optmods {})
 (varconfig! optmods optmods resolve-module)
 
-(define (main config . args)
-  (if (file-exists? config) (load-config config)
-      (irritant config |MissingConfigFile|))
-  (unless appmodule (error |NoAppModule|))
+(define (knapp config-file . args)
+  (if (file-exists? config-file)
+      (load-config config-file)
+      (irritant config-file |MissingConfigFile| knapp))
+  (unless appmodule (irritant config-file |NoAppModule|))
   (let ((setup (try (get appmodule 'setup) #f))
 	(main (get appmodule apphandler)))
-    (when (or (not setup) (apply setup args))
+    (when setup 
+      (onerror (apply setup args)
+	  (lambda (ex)
+	    (set! main #f)
+	    (logerr |SetupError|
+	      "Calling " setup ": " (exception-summary ex #f)))))
+    (when main
       (when (config 'optimized #t)
 	(optimize* optmods)
-	(optimize* (get appmodule '%optmods)))
+	(optimize* appmodule))
       (apply main args))))
+
+(define main knapp)

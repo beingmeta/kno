@@ -82,9 +82,9 @@ KNO_EXPORT lispval kno_init_compound_from_elts
 	  lispval *start = &(p->compound_0); int n =0;
 	  u8_byte buf[64];
 	  if ( (incref) || (copyref) || (decref) ) {
-	    kno_decref_vec(start,write-start);}
+	    kno_decref_elts(start,write-start);}
 	  if (decref) {
-	    kno_decref_vec(read,((elts+n)-read));}
+	    kno_decref_elts(read,((elts+n)-read));}
 	  u8_free(p);
 	  return kno_err(kno_NullPtr,"kno_init_compound_from_elts",
 			 u8_bprintf(buf,"at elt#%d",read-elts-1),

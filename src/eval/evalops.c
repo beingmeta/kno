@@ -274,7 +274,7 @@ static lispval getstack_prim(lispval test,lispval count)
       if (KNO_APPLICABLEP(test)) {
 	lispval keep = kno_apply(test,1,&stackobj);
 	if (KNO_ABORTED(keep)) {
-	  kno_decref_vec(results,i);
+	  kno_decref_elts(results,i);
 	  return keep;}
 	else if (KNO_FALSEP(keep))
 	  kno_decref(stackobj);
