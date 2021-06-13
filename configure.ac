@@ -141,7 +141,8 @@ PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 TAGS_TARGET="alltags"
-LIBSCM="kno-${KNO_PATCHVERSION}"
+LIBSCM=""
+STDLIB=""
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
@@ -265,7 +266,6 @@ AC_SUBST(scheme_builtins_init)
 AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
-AC_SUBST(stdlib_install_dir)
 AC_SUBST(installed_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
@@ -343,6 +343,7 @@ AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_BRANCH)
 AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
+AC_SUBST(KNO_PATCHVERSION)
 AC_SUBST(RPMVERSION)
 AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(DEBVERSION)
@@ -1368,11 +1369,6 @@ installed_module_dir=$with_installed_module_dir
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
 
-AC_ARG_WITH(stdlib_install_dir,--with-stdlib-install-dir location,,with_stdlib_install_dir=$share_dir/modules/stdlib)
-stdlib_install_dir=$with_stdlib_install_dir
-
-LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
-
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
 AC_ARG_WITH(libscm,--with-libscm location)
@@ -1385,12 +1381,15 @@ elif test "$with_libscm" == "zip"; then
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm
+else
+   AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
+   LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 fi;
 
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_install_dir;
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do

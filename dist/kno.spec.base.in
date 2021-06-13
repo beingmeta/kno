@@ -9,8 +9,8 @@ URL:            http://www.beingmeta.com/
 Source0:        kno-@VERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel mysql-devel libldns-devel leveldb-devel rocksdb-devel hunspell-devel hyphen-devel libxeif-devel qrencode-devel ImageMagic-devel libffi-devel jemalloc-devel libzip-devel libsnappy-devel mongo-c-driver-devel libzstd-devel
-Requires:       libu8 >= 3.0 curl >= 7.15.1
+BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel
+Requires:       libu8 >= 3.0 curl >= 7.15.1 ldns csnappy libffi libzstd
 
 %description
 Kno is a distributed knowledge base and application environment.
@@ -18,7 +18,7 @@ Kno is a distributed knowledge base and application environment.
 %package        python
 Summary:        KNO access to Python3 modules and functions
 Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release}
+Requires:       %{name} = %{version}-%{release} python3
 
 %description    python
 The %{name}-python package contains the parseltongue module for
@@ -47,7 +47,7 @@ You probably don\'t need it.
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --without-sudo --without-chowning --with-bootsystem=systemd --with-systemd=/etc/systemd/system --without-fastcgi --with-libscm=version --disable-devmode --with-admin-group=none --with-daemonid=none --with-parseltongue=3
+%configure --prefix=/usr --libdir=%{_libdir} --without-sudo --without-chowning --with-bootsystem=systemd --with-systemd=/etc/systemd/system --without-fastcgi --disable-devmode --with-admin-group=none --with-daemonid=none --with-parseltongue=3
 make %{?_smp_mflags}
 
 %pre
@@ -82,68 +82,21 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) %{_sysconfdir}/init.d/kno
 %attr(-,root,adm) %{_sysconfdir}/logrotate.d/kno
 %attr(-,root,adm) %{_sysconfdir}/systemd/*/*
+%attr(-,root,adm) %{_sysconfdir}/kno/boot
 %attr(-,fdaemon,adm) /var/run/kno/daemons
 %attr(-,fdaemon,adm) /var/log/kno/daemons
 %attr(-,fdaemon,adm) /var/log/kno/bugjar
 %attr(-,root,adm) %{_sysconfdir}/kno/servers
 %attr(-,root,adm) %{_sysconfdir}/kno/config
+%attr(-,root,adm) %{_datadir}/kno/data/*
 %attr(-,root,adm) %{_datadir}/kno/knoc.el
 %attr(-,root,adm) %{_datadir}/kno/webinfo.knocgi
 %attr(-,root,adm) %{_datadir}/kno/gdbinit
 %attr(-,root,adm) %{_datadir}/kno/makefile.include
 %attr(-,root,adm) %{_datadir}/kno/libscm/kno-*.zip
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/bench/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/bugjar/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/bugjar/resources/*
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/io/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/json/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/kno/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/knodb/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/net/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/optimize/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/sqldb/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/text/*.scm
-%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*/xhtml/*.scm
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-*.zip
 %attr(-,root,adm) %{_datadir}/kno/modules/local
 %attr(-,root,adm) %{_datadir}/kno/modules/installed
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/aws/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/aws/templates/*.json
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/dropbox/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/facebook/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/paypal/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/reddit/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/twilio/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/apis/twitter/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/batch/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/bench/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/booktools/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/compat/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/crypto/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/domutils/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/google/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/imagick/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/json/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/kno/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/knodules/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/knodules/data/*
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/knoml/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/misc/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/morph/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/morph/data/*.xtype
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/morph/data/*.dtype
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/net/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/os/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/tests/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/text/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/textindex/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/textindex/data/*
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/web/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/webapi/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/xhtml/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/brico/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/brico/build/*.scm
-%attr(-,root,adm) %{_datadir}/kno/modules/stdlib/brico/data/*
 %attr(-,root,adm) %{_datadir}/locale/es/LC_MESSAGES/kno.mo
 %attr(-,root,adm) %{_datadir}/locale/fr/LC_MESSAGES/kno.mo
 %attr(-,root,adm) %{_datadir}/locale/nl/LC_MESSAGES/kno.mo
@@ -152,8 +105,12 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libknotexttools.so.*
 %{_libdir}/kno/crypto.so*
 %{_libdir}/kno/sqlite.so*
+%{_libdir}/kno/testcapi.so*
 %{_libdir}/kno/libarchive.so*
 %{_bindir}/*
+%{_mandir}/man1/*
+%{_mandir}/man8/*
+%{_docdir}/kno/html/*.html
 %defattr(-,root,root,-)
 %doc
 
@@ -169,8 +126,6 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libknowebtools.so
 %{_libdir}/libknotexttools.so
 %{_libdir}/kno/testcapi.so
-%{_libdir}/kno/testcapi.so.2106.0.0
-%{_libdir}/libknocore.so
 %{_datadir}/pkgconfig/*.pc
 
 
@@ -178,10 +133,6 @@ rm -rf $RPM_BUILD_ROOT
 %defattr(-,root,root,-)
 %doc
 %{_libdir}/libkno.a
-%{_libdir}/libknocore.a
-%{_libdir}/libknostorage.a
-%{_libdir}/libknodrivers.a
-%{_libdir}/libknoscheme.a
 %{_libdir}/libknowebtools.a
 %{_libdir}/libknotexttools.a
 

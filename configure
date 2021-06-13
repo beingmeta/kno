@@ -739,6 +739,7 @@ LIBSOURCE
 DEBVERSION
 DEB_BUILD_TARGET
 RPMVERSION
+KNO_PATCHVERSION
 KNO_PATCHLEVEL
 KNO_RELEASE
 KNO_BRANCH
@@ -813,7 +814,6 @@ config_dir
 default_module_path
 local_module_dir
 installed_module_dir
-stdlib_install_dir
 unpackage_dir
 share_dir
 systemd_loc
@@ -958,7 +958,6 @@ enable_fileconfig
 enable_xprofiling
 with_installed_module_dir
 with_local_modules
-with_stdlib_install_dir
 with_loadpath
 with_libscm
 with_stdlibs
@@ -1682,7 +1681,6 @@ Optional Packages:
 --with-unpackage-dir location
 --with-installed-module-dir location
 --with-local-modules location
---with-stdlib-install-dir location
 --with-loadpath location
 --with-libscm location
 --with-stdlibs location
@@ -4296,7 +4294,8 @@ PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 TAGS_TARGET="alltags"
-LIBSCM="kno-${KNO_PATCHVERSION}"
+LIBSCM=""
+STDLIB=""
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
@@ -10612,18 +10611,6 @@ fi
 local_module_dir=$with_local_modules
 
 
-# Check whether --with-stdlib_install_dir was given.
-if test "${with_stdlib_install_dir+set}" = set; then :
-  withval=$with_stdlib_install_dir;
-else
-  with_stdlib_install_dir=$share_dir/modules/stdlib
-fi
-
-stdlib_install_dir=$with_stdlib_install_dir
-
-LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
-
-
 # Check whether --with-loadpath was given.
 if test "${with_loadpath+set}" = set; then :
   withval=$with_loadpath;
@@ -10654,6 +10641,12 @@ elif test ! -z "$with_libscm"; then
 _ACEOF
 
    LIBSCM=$with_libscm
+else
+   cat >>confdefs.h <<_ACEOF
+#define KNO_LIBSCM_DIR "zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip"
+_ACEOF
+
+   LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 fi;
 
 stdlib_search_dir=
@@ -10664,7 +10657,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_install_dir;
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
