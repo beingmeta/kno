@@ -1,0 +1,138 @@
+Name:           kno
+Version:        @VERSION@
+Release:        @RPMVERSION@%{?dist}
+Summary:        semantic development environment
+
+Group:          System Environment/Libraries
+License:        GNU GPL
+URL:            http://www.beingmeta.com/
+Source0:        kno-@VERSION@.tar.gz
+BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
+
+BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel
+Requires:       libu8 >= 3.0 curl >= 7.15.1 ldns csnappy libffi libzstd
+
+%description
+Kno is a distributed knowledge base and application environment.
+
+%package        python
+Summary:        KNO access to Python3 modules and functions
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release} python3
+
+%description    python
+The %{name}-python package contains the parseltongue module for
+accessing Python modules, classes, handlers, and functions from KNO.
+
+%package        devel
+Summary:        Development files for %{name}
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release}
+
+%description    devel
+The %{name}-devel package contains libraries and header files for
+developing applications that use %{name}.
+
+%package        static
+Summary:        Static libraries for %{name}
+Group:          Development/Libraries
+Requires:       %{name}-devel = %{version}-%{release}
+
+%description    static
+The %{name}-static package contains static libraries for
+developing statically linked applications that use %{name}.
+You probably don\'t need it.
+
+%prep
+%setup -q
+
+%build
+%configure --prefix=/usr --libdir=%{_libdir} --without-sudo --without-chowning --with-bootsystem=systemd --with-systemd=/etc/systemd/system --without-fastcgi --disable-devmode --with-admin-group=none --with-daemonid=none --with-parseltongue=3
+make %{?_smp_mflags}
+
+%pre
+if grep -q ^knodaemon /etc/passwd;
+    then echo "User knodaemon already exists";
+    else useradd -r knodaemon -c "Kno daemon";
+fi
+if grep -q ^kno /etc/group;
+    then echo "Group kno already exists";
+    else groupadd -f -r kno;
+fi
+
+%install
+rm -rf $RPM_BUILD_ROOT
+make install DESTDIR=$RPM_BUILD_ROOT
+make install-support DESTDIR=$RPM_BUILD_ROOT
+make install-dev DESTDIR=$RPM_BUILD_ROOT
+make install-i18n DESTDIR=$RPM_BUILD_ROOT
+make install-docs DESTDIR=$RPM_BUILD_ROOT
+make setup-sysv DESTDIR=$RPM_BUILD_ROOT
+make setup-systemd DESTDIR=$RPM_BUILD_ROOT
+#find $RPM_BUILD_ROOT -name '*.la' -exec rm -f {} ';'
+
+%clean
+rm -rf $RPM_BUILD_ROOT
+
+%post -p /sbin/ldconfig
+
+%postun -p /sbin/ldconfig
+
+%files
+%attr(-,root,adm) %{_sysconfdir}/init.d/kno
+%attr(-,root,adm) %{_sysconfdir}/logrotate.d/kno
+%attr(-,root,adm) %{_sysconfdir}/systemd/*/*
+%attr(-,root,adm) %{_sysconfdir}/kno/boot
+%attr(-,fdaemon,adm) /var/run/kno/daemons
+%attr(-,fdaemon,adm) /var/log/kno/daemons
+%attr(-,fdaemon,adm) /var/log/kno/bugjar
+%attr(-,root,adm) %{_sysconfdir}/kno/servers
+%attr(-,root,adm) %{_sysconfdir}/kno/config
+%attr(-,root,adm) %{_datadir}/kno/data/*
+%attr(-,root,adm) %{_datadir}/kno/knoc.el
+%attr(-,root,adm) %{_datadir}/kno/webinfo.knocgi
+%attr(-,root,adm) %{_datadir}/kno/gdbinit
+%attr(-,root,adm) %{_datadir}/kno/makefile.include
+%attr(-,root,adm) %{_datadir}/kno/libscm/kno-*.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-*.zip
+%attr(-,root,adm) %{_datadir}/kno/modules/local
+%attr(-,root,adm) %{_datadir}/kno/modules/installed
+%attr(-,root,adm) %{_datadir}/locale/es/LC_MESSAGES/kno.mo
+%attr(-,root,adm) %{_datadir}/locale/fr/LC_MESSAGES/kno.mo
+%attr(-,root,adm) %{_datadir}/locale/nl/LC_MESSAGES/kno.mo
+%{_libdir}/libkno.so.*
+%{_libdir}/libknowebtools.so.*
+%{_libdir}/libknotexttools.so.*
+%{_libdir}/kno/crypto.so*
+%{_libdir}/kno/sqlite.so*
+%{_libdir}/kno/testcapi.so*
+%{_libdir}/kno/libarchive.so*
+%{_bindir}/*
+%{_mandir}/man1/*
+%{_mandir}/man8/*
+%{_docdir}/kno/html/*.html
+%defattr(-,root,root,-)
+%doc
+
+%files python
+/usr/lib64/kno/parseltongue.so
+/usr/lib64/kno/parseltongue.so.2106.0.0
+
+
+%files devel
+%defattr(-,root,root,-)
+%{_includedir}/*
+%{_libdir}/libkno.so
+%{_libdir}/libknowebtools.so
+%{_libdir}/libknotexttools.so
+%{_libdir}/kno/testcapi.so
+%{_datadir}/pkgconfig/*.pc
+
+
+%files static
+%defattr(-,root,root,-)
+%doc
+%{_libdir}/libkno.a
+%{_libdir}/libknowebtools.a
+%{_libdir}/libknotexttools.a
+

@@ -739,6 +739,7 @@ LIBSOURCE
 DEBVERSION
 DEB_BUILD_TARGET
 RPMVERSION
+KNO_PATCHVERSION
 KNO_PATCHLEVEL
 KNO_RELEASE
 KNO_BRANCH
@@ -813,7 +814,6 @@ config_dir
 default_module_path
 local_module_dir
 installed_module_dir
-stdlib_install_dir
 unpackage_dir
 share_dir
 systemd_loc
@@ -899,7 +899,6 @@ with_statedir
 with_execwrapper
 with_u8bin
 with_u8run
-with_chowning
 with_mkdir
 with_chmod
 with_chown
@@ -960,7 +959,6 @@ enable_fileconfig
 enable_xprofiling
 with_installed_module_dir
 with_local_modules
-with_stdlib_install_dir
 with_loadpath
 with_libscm
 with_stdlibs
@@ -1647,7 +1645,6 @@ Optional Packages:
 --with-execwrapper program to use when calling exec()
 --with-u8bin path for libu8 programs/scripts
 --with-u8run location of the u8run launcher
---with/out-chowning
 --with-mkdir command
 --with-chmod command
 --with-chown command
@@ -1696,7 +1693,6 @@ Optional Packages:
 --with-unpackage-dir location
 --with-installed-module-dir location
 --with-local-modules location
---with-stdlib-install-dir location
 --with-loadpath location
 --with-libscm location
 --with-stdlibs location
@@ -4310,7 +4306,8 @@ PKGCONFIG_DIR=
 GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 TAGS_TARGET="alltags"
-LIBSCM="kno-${KNO_PATCHVERSION}"
+LIBSCM=""
+STDLIB=""
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
@@ -6074,16 +6071,6 @@ _ACEOF
 else
   u8run=${u8bin}u8run
 fi
-
-chowning=yes
-
-# Check whether --with-chowning was given.
-if test "${with_chowning+set}" = set; then :
-  withval=$with_chowning; chowning=yes
-else
-  chowning=no
-fi
-
 
 for ac_prog in etags
 do
@@ -9947,16 +9934,15 @@ $as_echo "$found_user" >&6; }
 if test "${with_admin_group+set}" = set; then :
   withval=$with_admin_group;
 else
-  with_admin_group=$default_admin_group
+  with_admin_group=${default_admin_group}
 fi
 
-if test "$with_admin_group" != "none"; then
-   if test "$chowning" = "yes"; then
-     install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-     install_file_opts="-g $with_admin_group $install_file_opts"
-     install_exe_opts="-g $with_admin_group $install_exe_opts"
-     admininstall="-g $with_admin_group"
-  fi;
+
+if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
+  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
+  install_file_opts="-g $with_admin_group $install_file_opts"
+  install_exe_opts="-g $with_admin_group $install_exe_opts"
+  admininstall="-g $with_admin_group"
   admin_group=$with_admin_group
 else
   install_dir_opts="$install_dir_opts"
@@ -9976,21 +9962,20 @@ _ACEOF
 if test "${with_daemonid+set}" = set; then :
   withval=$with_daemonid;
 else
-  with_daemonid=$default_daemonid
+  with_daemonid=${default_daemonid}
 fi
 
-if test "$with_daemonid" != "none"; then
+
+if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
    knouser=$with_daemonid
-   if test "$chowning" = "yes"; then
-     knouserinstall="-o $knouser";
-   fi;
+   knouserinstall="-o $knouser";
 else
    knouserinstall=""
    knouser=$default_daemonid
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_DAEMON "$knoaemon"
+#define KNO_DAEMON "$daemonid"
 _ACEOF
 
 
@@ -10638,18 +10623,6 @@ fi
 local_module_dir=$with_local_modules
 
 
-# Check whether --with-stdlib_install_dir was given.
-if test "${with_stdlib_install_dir+set}" = set; then :
-  withval=$with_stdlib_install_dir;
-else
-  with_stdlib_install_dir=$share_dir/modules/stdlib
-fi
-
-stdlib_install_dir=$with_stdlib_install_dir
-
-LIBSCM="${share_dir}/libscm/kno-${KNO_PATCHVERSION}"
-
-
 # Check whether --with-loadpath was given.
 if test "${with_loadpath+set}" = set; then :
   withval=$with_loadpath;
@@ -10680,6 +10653,12 @@ elif test ! -z "$with_libscm"; then
 _ACEOF
 
    LIBSCM=$with_libscm
+else
+   cat >>confdefs.h <<_ACEOF
+#define KNO_LIBSCM_DIR "zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip"
+_ACEOF
+
+   LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
 fi;
 
 stdlib_search_dir=
@@ -10690,7 +10669,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir=$stdlib_install_dir;
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -13838,7 +13817,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno-4.3.spec"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14604,7 +14583,7 @@ do
     "etc/install-script") CONFIG_FILES="$CONFIG_FILES etc/install-script" ;;
     "etc/getbuildopt") CONFIG_FILES="$CONFIG_FILES etc/getbuildopt" ;;
     "dist/alpine/APKBUILD") CONFIG_FILES="$CONFIG_FILES dist/alpine/APKBUILD" ;;
-    "dist/kno-4.3.spec") CONFIG_FILES="$CONFIG_FILES dist/kno-4.3.spec" ;;
+    "dist/kno.spec.base") CONFIG_FILES="$CONFIG_FILES dist/kno.spec.base" ;;
     "default") CONFIG_COMMANDS="$CONFIG_COMMANDS default" ;;
 
   *) as_fn_error $? "invalid argument: \`$ac_config_target'" "$LINENO" 5;;
