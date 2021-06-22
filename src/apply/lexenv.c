@@ -185,6 +185,7 @@ int kno_recycle_lexenv(kno_lexenv env)
       return 0;}}
 }
 
+#if KNO_DESTROY_LEXENV
 KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env)
 {
   lispval bindings = env->env_bindings;
@@ -193,7 +194,7 @@ KNO_EXPORT void kno_destroy_lexenv(kno_lexenv env)
   env->env_bits &= (~(KNO_LEXENV_NVALS_MASK));
   kno_decref(bindings);
 }
-
+#endif
 
 KNO_EXPORT
 void _kno_free_lexenv(kno_lexenv env)
@@ -218,6 +219,7 @@ static int unparse_lexenv(u8_output out,lispval x)
   return 1;
 }
 
+#if LEXENV_DTYPE
 /* Of course this doesn't preserve "eqness" in any way */
 static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
 {
@@ -272,6 +274,7 @@ static ssize_t lexenv_dtype(struct KNO_OUTBUF *out,lispval x)
   kno_close_outbuf(&tmp);
   return n_bytes;
 }
+#endif
 
 /* Finding bindings */
 
@@ -324,7 +327,8 @@ KNO_EXPORT void kno_init_lexenv_c()
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;
   kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
   kno_recyclers[kno_lexenv_type]=recycle_lexenv;
+#if LEXENV_DTYPE
   kno_dtype_writers[kno_lexenv_type]=lexenv_dtype;
-
+#endif
 }
 

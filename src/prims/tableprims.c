@@ -88,7 +88,7 @@ static lispval make_hashset(lispval arg)
 
 DEFC_PRIM("make-hashtable",make_hashtable,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	  "returns a hashset. *n_buckets*, if provided "
+	  "returns a hashtable. *n_buckets*, if provided "
 	  "indicates the number of buckets",
 	  {"size",kno_fixnum_type,KNO_VOID})
 static lispval make_hashtable(lispval size)
@@ -100,7 +100,7 @@ static lispval make_hashtable(lispval size)
 
 DEFC_PRIM("make-eq-hashtable",make_eq_hashtable,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(0),
-	  "returns a hashset. *n_buckets*, if provided "
+	  "returns an `EQ` hashtable. *n_buckets*, if provided "
 	  "indicates the number of buckets",
 	  {"size",kno_fixnum_type,KNO_VOID})
 static lispval make_eq_hashtable(lispval size)
@@ -225,8 +225,8 @@ static lispval slotmap2schemap_prim(lispval map)
   struct KNO_SLOTMAP *slotmap = (kno_slotmap) map;
   lispval result = kno_init_schemap(NULL,slotmap->n_slots,slotmap->sm_keyvals);
   struct KNO_SCHEMAP *schemap = (kno_schemap) result;
-  kno_incref_vec(schemap->table_schema,schemap->schema_length);
-  kno_incref_vec(schemap->table_values,schemap->schema_length);
+  kno_incref_elts(schemap->table_schema,schemap->schema_length);
+  kno_incref_elts(schemap->table_values,schemap->schema_length);
   return result;
 }
 
@@ -1006,6 +1006,18 @@ static lispval hashset_elts(lispval hs,lispval clean)
   else return kno_hashset_elts((kno_hashset)hs,1);
 }
 
+DEFC_PRIM("hashset->vector",hashset2vector_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns a vector made up of the elements of *hashset*",
+	  {"hs",kno_hashset_type,KNO_VOID})
+static lispval hashset2vector_prim(lispval hs)
+{
+  ssize_t len = -1;
+  lispval *elts = kno_hashset_vec((kno_hashset)hs,&len);
+  if (elts==NULL) return KNO_ERROR;
+  else return kno_init_vector(NULL,len,elts);
+}
+
 DEFC_PRIM("reset-hashset!",reset_hashset,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "removes all of the elements of *hashset*.",
@@ -1192,6 +1204,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("HASHSET-DROP!",hashset_drop,2,kno_scheme_module);
   KNO_LINK_CPRIM("HASHSET-GET",hashset_get,2,kno_scheme_module);
   KNO_LINK_CPRIM("HASHSET-TEST",hashset_test,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET->VECTOR",hashset2vector_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("HASHSET-ELTS",hashset_elts,2,kno_scheme_module);
   KNO_LINK_CPRIM("RESET-HASHSET!",reset_hashset,1,kno_scheme_module);
 

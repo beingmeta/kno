@@ -188,13 +188,13 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,
 	  lispval insertion = kno_eval(KNO_CADR(elt),env,stack);
 	  int addlen = 0;
 	  if (KNO_ABORTED(insertion)) {
-	    kno_decref_vec(newelts,j);
+	    kno_decref_elts(newelts,j);
 	    u8_free(newelts);
 	    return insertion;}
 	  else if (VOIDP(insertion)) {
 	    kno_seterr(kno_VoidArgument,"quasiquote_vector",
 		       NULL,KNO_CADR(elt));
-	    kno_decref_vec(newelts,j);
+	    kno_decref_elts(newelts,j);
 	    u8_free(newelts);
 	    return KNO_ERROR;}
 	  if (NILP(insertion)) {}
@@ -205,14 +205,14 @@ static lispval quasiquote_vector(lispval obj,kno_lexenv env,
 	      kno_seterr(kno_SyntaxError,
 			 "splicing UNQUOTE for an improper list",
 			 NULL,insertion);
-	      kno_decref_vec(newelts,j);
+	      kno_decref_elts(newelts,j);
 	      u8_free(newelts);
 	      kno_decref(insertion);
 	      return KNO_ERROR;}}
 	  else if (VECTORP(insertion))
 	    addlen = VEC_LEN(insertion);
 	  else {
-	    kno_decref_vec(newelts,j);
+	    kno_decref_elts(newelts,j);
 	    u8_free(newelts);
 	    kno_seterr(kno_SyntaxError,
 		       "splicing UNQUOTE for an improper list",

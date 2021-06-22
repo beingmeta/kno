@@ -164,7 +164,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
                  return_type,ffi_argtypes);
   if (rv == FFI_OK) {
     /* Set up generic function fields */
-    kno_incref_vec(savespecs,arity);
+    kno_incref_elts(savespecs,arity);
     proc->fcn_name = u8_strdup(name);
     proc->fcn_filename = u8dup(filename);
     proc->fcn_call_width = proc->fcn_arity = arity;

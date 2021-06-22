@@ -170,7 +170,7 @@ static lispval *procindex_fetchn(kno_index ix,int n,const lispval *keys)
       lispval key = keys[i];
       lispval v = procindex_fetch(ix,key);
       if (KNO_ABORTED(v)) {
-        kno_decref_vec(vals,i);
+        kno_decref_elts(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}

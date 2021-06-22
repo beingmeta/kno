@@ -680,7 +680,7 @@ lispval *kno_seq_elts(lispval seq,int *n)
 	int i = 0; while (i<len) {
 	  lispval elt = getelt(seq,i);
 	  if (KNO_ABORTED(elt)) {
-	    kno_decref_vec(vec,i);
+	    kno_decref_elts(vec,i);
 	    u8_free(vec);
 	    *n=-1;
 	    return NULL;}

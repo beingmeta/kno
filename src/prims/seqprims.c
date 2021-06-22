@@ -1021,16 +1021,16 @@ lispval position_if_prim(lispval test,lispval seq,lispval start_arg,
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return v;}
       else if (!(KNO_FALSEP(v))) {
 	kno_decref(v);
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return KNO_INT(i);}
       else i += delta;}
-    kno_decref_vec(data,len);
+    kno_decref_elts(data,len);
     u8_free(data);
     return KNO_FALSE;}
   }
@@ -1138,17 +1138,17 @@ lispval position_if_not_prim(lispval test,lispval seq,lispval start_arg,
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return v;}
       else if (KNO_FALSEP(v)) {
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return KNO_INT(i);}
       else {
 	kno_decref(v);
 	i += delta;}}
-    kno_decref_vec(data,len);
+    kno_decref_elts(data,len);
     u8_free(data);
     return KNO_FALSE;}
   }
@@ -1257,17 +1257,17 @@ lispval find_if_prim(lispval test,lispval seq,lispval start_arg,
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return v;}
       else if (!(KNO_FALSEP(v))) {
 	lispval elt = data[i]; kno_incref(elt);
 	kno_decref(v);
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return elt;}
       else i += delta;}
-    kno_decref_vec(data,len);
+    kno_decref_elts(data,len);
     u8_free(data);
     return kno_incref(fail_val);}
   }
@@ -1379,18 +1379,18 @@ lispval find_if_not_prim(lispval test,lispval seq,lispval start_arg,
     int i = start; while (i!=end) {
       lispval v = kno_apply(test,1,data+i);
       if (KNO_ABORTP(v)) {
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return v;}
       else if (KNO_FALSEP(v)) {
 	lispval elt = data[i]; kno_incref(elt);
-	kno_decref_vec(data,len);
+	kno_decref_elts(data,len);
 	u8_free(data);
 	return elt;}
       else {
 	kno_decref(v);
 	i += delta;}}
-    kno_decref_vec(data,len);
+    kno_decref_elts(data,len);
     u8_free(data);
     return kno_incref(fail_val);}
   }
@@ -1872,7 +1872,7 @@ static lispval x2string(lispval seq)
 	long long charcode = FIX2INT(data[i]);
 	if ((charcode<0)||(charcode>=0x10000)) {
 	  lispval err = kno_type_error(_("character"),"x2string",data[i]);
-	  kno_decref_vec(data,n);
+	  kno_decref_elts(data,n);
 	  u8_free(data);
 	  return err;}
 	u8_putc(&out,charcode); i++;}
@@ -1881,7 +1881,7 @@ static lispval x2string(lispval seq)
 	u8_putc(&out,charcode); i++;}
       else {
 	lispval err = kno_type_error(_("character"),"x2string",data[i]);
-	kno_decref_vec(data,n);
+	kno_decref_elts(data,n);
 	u8_free(data);
 	return err;}}
     u8_free(data);

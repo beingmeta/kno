@@ -253,16 +253,16 @@
 		  (testopt opts '%constants sym)))
 	 value)
 	((and sym from (module? from) (applicable? value)
-	      (getopt opts 'aliasfns aliasfns-default)
+	      (aliasfns? opts)
 	      (use-fcnrefs? opts))
 	 (get-fcnid sym from value))
 	((not (symbol? sym)) value)
 	((or (%test env '%constants sym)
 	     (and from (%test from '%constants sym))
-	     (if (or (special-form? value) (primitive? value))
-		 (or (getopt opts 'aliasprims aliasprims-default)
-		     (getopt opts 'aliasfns aliasfns-default))
-		 (getopt opts 'aliasfns aliasfns-default)))
+	     (try (if (or (special-form? value) (primitive? value))
+		      (or (aliasprims? opts) (aliasfns? opts))
+		      (aliasfns? opts))
+		  #f))
 	 value)
 	((or (not from) (not (test from sym value))) sym)
 	((or (not (use-fcnrefs? opts))
@@ -375,16 +375,17 @@
 (define-init opcode-map (make-hashtable))
 
 (define (get-headop value head arity env bound opts)
-  (if (use-opcodes? opts)
-      (try (tryif length (get opcode-map (cons value arity)))
-	   (tryif (and arity (procedure? value) (procedure-name value)) 
-	     (get opcode-map (cons (procedure-name value) arity)))
-	   (get opcode-map value)
-	   (get opcode-map value)
-	   (tryif (and (procedure? value) (procedure-name value)) 
-	     (get opcode-map (procedure-name value)))
+  (try (if (use-opcodes? opts)
+	   (try (tryif arity (get opcode-map (cons value arity)))
+		(tryif (and arity (procedure? value) (procedure-name value)) 
+		  (get opcode-map (cons (procedure-name value) arity)))
+		(get opcode-map value)
+		(get opcode-map value)
+		(tryif (and (procedure? value) (procedure-name value)) 
+		  (get opcode-map (procedure-name value)))
+		(fcnref value head env opts))
 	   (fcnref value head env opts))
-      (fcnref value head env opts)))
+       head))
 
 (define name2op
   (and (bound? name->opcode) name->opcode))
@@ -645,6 +646,7 @@
 
 (defambda (make-fncall fn args env bound opts expr (len))
   (default! len (length args))
+  (when (fail? fn) (error |BadFNCall|))
   (annotate
    (if (> len 15)
        (cons* #OP_CALLN len (qc fn)
@@ -662,8 +664,8 @@
 	(let* ((srcenv (wherefrom expr env))
 	       (module (and srcenv (module? srcenv) srcenv))
 	       (value (and srcenv (get srcenv expr))))
-	  (debug%watch "OPTIMIZE/SYMBOL/module" 
-	    expr module srcenv env bound optwarn)
+	  (info%watch "OPTIMIZE/SYMBOL/module" 
+	    expr module srcenv env bound optwarn value)
 	  ;; Add reference information
 	  (when (and module (module? env))
 	    (add! env '%symrefs expr)
@@ -809,8 +811,9 @@
 	   ;;  the call, replacing the head with shortcuts to the
 	   ;;  headvalue
 	   (make-fncall
-	    (cond ((%lexref? headvalue) headvalue)
-		  ((or (not from) (test from '%nosubst head)) head)
+	    (cond ((fail? headvalue) head)
+		  ((%lexref? headvalue) headvalue)
+		  ((or (fail? from) (not from) (test from '%nosubst head)) head)
 		  ((test from '%volatile head) `(#OP_SYMREF ,module ,head))
 		  (else head))
 	    (cdr expr)
@@ -869,7 +872,7 @@
 		       (forseq (expr args)
 			 (optimize expr env bound opts))))
 	       (make-fncall
-		(cond ((or (not module) (fail? fn)
+		(cond ((or (fail? module) (not module) (fail? fn)
 			   (test module '%nosubst fname)
 			   (test module '%nosubst (car expr)))
 		       fname)
@@ -1276,7 +1279,7 @@
 	 (get-module modname)
 	 modname)
      seen)
-    (unless (zero? (table-size seen))
+    (when (> (table-size seen) 1)
       (lognotice |Optimizing|
 	($count (table-size seen) "module")
 	" for " modname))

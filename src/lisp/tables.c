@@ -1097,8 +1097,7 @@ KNO_EXPORT lispval kno_make_schemap
   else if ( (flags) & (KNO_SCHEMAP_COPY_SCHEMA) ) {
     lispval *copied = u8_alloc_n(size,lispval);
     memcpy(copied,schema,sizeof(lispval)*size);
-    kno_incref_vec(copied,size),
-      ptr->table_schema=copied;
+    kno_incref_elts(copied,size), ptr->table_schema=copied;
     KNO_XTABLE_SET_BIT(ptr,KNO_SCHEMAP_PRIVATE,1);}
   else {
     ptr->table_schema=schema;
@@ -1279,7 +1278,7 @@ KNO_EXPORT int kno_schemap_store
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
-      kno_incref_vec(sm->table_values,size);
+      kno_incref_elts(sm->table_values,size);
       KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     kno_decref(sm->table_values[slotno]);
     sm->table_values[slotno]=kno_incref(value);
@@ -1318,7 +1317,7 @@ KNO_EXPORT int kno_schemap_add
   if (slotno>=0) {
     kno_incref(value);
     if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
-      kno_incref_vec(sm->table_values,size);
+      kno_incref_elts(sm->table_values,size);
       KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     CHOICE_ADD(sm->table_values[slotno],value);
     KNO_XTABLE_SET_MODIFIED(sm,1);
@@ -1355,7 +1354,7 @@ KNO_EXPORT int kno_schemap_drop
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
-      kno_incref_vec(sm->table_values,size);
+      kno_incref_elts(sm->table_values,size);
       KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
     lispval oldval=sm->table_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
@@ -1473,7 +1472,7 @@ KNO_EXPORT lispval *kno_schemap_keyvec_n(struct KNO_SCHEMAP *sm,int *len)
   if (size==0) {*len = 0; return NULL;}
   lispval *keys = u8_alloc_n(size,lispval);
   memcpy(keys,sm->table_schema,LISPVEC_BYTELEN(size));
-  kno_incref_vec(keys,size);
+  kno_incref_elts(keys,size);
   *len = size;
   return keys;
 }
@@ -4141,36 +4140,56 @@ KNO_EXPORT lispval kno_hashset_elts(struct KNO_HASHSET *h,int clean)
     return kno_simplify_choice(results);}
 }
 
-KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,int *len)
+KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,ssize_t *outlen)
 {
-  if (!((KNO_CONS_TYPEOF(h))==kno_hashset_type)) {
-    kno_seterr(kno_TypeError,"kno_hashset_vec","hashset",(lispval)h);
-    *len = -1; return NULL;}
+  /* A clean value of -1 indicates that the hashset will be reset
+     entirely (freed) if mallocd. */
+  KNO_CHECK_TYPE_RETVAL(h,kno_hashset_type,NULL);
   if (h->hs_n_elts==0) {
-    *len = 0; return NULL;}
-  int unlock = 0;
-  if (KNO_XTABLE_USELOCKP(h)) {
-    kno_read_lock_table(h);
-    unlock=1;}
-  int n_elts = h->hs_n_elts, i = 0;
-  lispval *keyvec = u8_alloc_n(n_elts,lispval);
-  lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
-  while (scan<limit) {
-    lispval v = *scan;
-    if ((EMPTYP(v)) || (VOIDP(v)) || (KNO_NULLP(v))) {}
-    else if (KNO_CHOICEP(v)) {
-      KNO_DO_CHOICES(elt,v) {
-	keyvec[i++] = kno_incref(elt);}}
-    else if (KNO_PRECHOICEP(v)) {
-      lispval norm = kno_make_simple_choice(v);
-      KNO_DO_CHOICES(elt,norm) {
-	keyvec[i++] = kno_incref(elt);}
-      kno_decref(norm);}
-    else keyvec[i++] = kno_incref(v);
-    scan++;}
-  if (unlock) kno_unlock_table(h);
-  *len = i;
-  return keyvec;
+    *outlen=0;
+    return NULL;}
+  else {
+    int unlock = 0;
+    if (KNO_XTABLE_USELOCKP(h)) {
+      kno_read_lock_table(h);
+      unlock=1;}
+    ssize_t n_elts = h->hs_n_elts;
+    lispval *results = u8_alloc_n(n_elts,lispval);
+    lispval *write = results, *write_limit = results+n_elts;
+    lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
+    while (scan<limit) {
+      lispval v = *scan;
+      if (EMPTYP(v)) continue;
+      else if ((VOIDP(v)) || (KNO_NULLP(v))) {
+        *scan++=EMPTY; continue;}
+      else if ( (KNO_CHOICEP(v)) || (KNO_PRECHOICEP(v)) ) {
+	lispval choice = (KNO_PRECHOICEP(v)) ? (kno_make_simple_choice(v)) : (v);
+	ssize_t size = KNO_CHOICE_SIZE(choice);
+	if ((write+size)>write_limit) goto corrupt_hashset;
+	if (KNO_ATOMIC_CHOICEP(choice)) {
+	  const lispval *elts = KNO_CHOICE_ELTS(choice);
+	  kno_lspcpy(write,elts,size);
+	  write += size;}
+	else {
+	  KNO_DO_CHOICES(elt,choice) {
+	    kno_incref(elt);
+	    *write++=elt;}}
+	if (choice != v) kno_decref(choice);}
+      else {
+	if (write>write_limit) goto corrupt_hashset;
+	kno_incref(v); *write++=v;}
+      scan++;}
+    if (unlock) kno_unlock_table(h);
+    *outlen = write-results;
+    return results;
+  corrupt_hashset:
+    kno_decref_elts(results,write-results);
+    u8_free(results);
+    kno_unlock_table(h);
+    lispval irritant = (KNO_MALLOCD_CONSP(h)) ? ((lispval) h) : (KNO_VOID);
+    kno_seterr("CorruptHashSet","kno_hashset_vec",NULL,irritant);
+    *outlen=-1;
+    return NULL;}
 }
 
 KNO_EXPORT int kno_reset_hashset(struct KNO_HASHSET *h)

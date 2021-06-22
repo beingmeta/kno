@@ -165,7 +165,7 @@ static lispval *procpool_fetchn(kno_pool p,int n,lispval *oids)
       lispval oid = oids[i];
       lispval v = procpool_fetch(p,oid);
       if (KNO_ABORTED(v)) {
-        kno_decref_vec(vals,i);
+        kno_decref_elts(vals,i);
         u8_big_free(vals);
         return NULL;}
       else vals[i++]=v;}

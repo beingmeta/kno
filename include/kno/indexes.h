@@ -56,7 +56,6 @@ KNO_EXPORT int kno_index_adds_init;
   struct KNO_HASHTABLE index_stores;                                \
   struct KNO_SLOTMAP index_metadata, index_props;                   \
   lispval index_keyslot;                                           \
-  lispval index_covers_slotids;                                    \
   lispval index_opts
 
 typedef struct KNO_INDEX {KNO_INDEX_FIELDS;} KNO_INDEX;
@@ -354,9 +353,6 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
     if (!(KNO_VOIDP(cached))) return cached;}
 #endif
   if (ix->index_cache_level==0) cached = KNO_VOID;
-  else if ((KNO_PAIRP(key)) && (!(KNO_VOIDP(ix->index_covers_slotids))) &&
-      (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))))
-    return KNO_EMPTY_CHOICE;
   else cached = kno_hashtable_get(&(ix->index_cache),key,KNO_VOID);
   if (KNO_VOIDP(cached)) cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
@@ -377,24 +373,18 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
   kno_hashtable adds = &(ix->index_adds);
   kno_hashtable cache = &(ix->index_cache);
 
-  if (KNO_CHOICEP(key)) {
+  if ( (KNO_CHOICEP(key)) || (KNO_PRECHOICEP(key)) ) {
+    lispval to_free = KNO_VOID;
+    if (KNO_PRECHOICEP(key))
+      key = to_free = kno_make_simple_choice(key);
     const lispval *keys = KNO_CHOICE_DATA(key);
     unsigned int n = KNO_CHOICE_SIZE(key);
     rv = kno_hashtable_iterkeys(adds,kno_table_add,n,keys,value);
     if (rv<0) {}
     else if (ix->index_cache_level>0)
       rv = kno_hashtable_iterkeys(cache,kno_table_add_if_present,n,keys,value);
-    else NO_ELSE;}
-  else if (KNO_PRECHOICEP(key)) {
-    lispval normchoice = kno_make_simple_choice(key);
-    const lispval *keys = KNO_CHOICE_DATA(normchoice);
-    unsigned int n = KNO_CHOICE_SIZE(key);
-    rv = kno_hashtable_iterkeys(adds,kno_table_add,n,keys,value);
-    if (rv<0) {}
-    else if (ix->index_cache_level>0)
-      rv = kno_hashtable_iterkeys(cache,kno_table_add_if_present,n,keys,value);
     else NO_ELSE;
-    kno_decref(normchoice);}
+    kno_decref(to_free);}
   else {
     rv = kno_hashtable_add(adds,key,value);
     if (rv<0) {}
@@ -416,16 +406,6 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
       /* This will force it to be re-read from the source indexes */
       rv = kno_hashtable_iterkeys(bgcache,kno_table_replace,n,keys,KNO_VOID);}
     else rv = kno_hashtable_op(bgcache,kno_table_replace,key,KNO_VOID);}
-
-  if (rv<0) {}
-  else if ((!(KNO_VOIDP(ix->index_covers_slotids))) &&
-           (KNO_USUALLY(KNO_PAIRP(key))) &&
-           (KNO_USUALLY((KNO_OIDP(KNO_CAR(key))) ||
-                           (KNO_SYMBOLP(KNO_CAR(key)))))) {
-    if (!(kno_contains_atomp(KNO_CAR(key),ix->index_covers_slotids))) {
-      kno_decref(ix->index_covers_slotids);
-      ix->index_covers_slotids = KNO_VOID;}}
-  else NO_ELSE;
 
   if (KNO_INDEX_CONSEDP(ix)) {kno_decref(LISPVAL(ix));}
 

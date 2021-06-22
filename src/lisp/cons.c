@@ -218,7 +218,7 @@ lispval *_kno_init_elts(lispval *elts,size_t n,lispval v)
   return kno_init_elts(elts,n,v);
 }
 
-KNO_EXPORT ssize_t _kno_incref_elts(const lispval *elts,size_t n)
+KNO_EXPORT ssize_t _kno_incref_elts(lispval *elts,size_t n)
 {
   return kno_incref_elts(elts,n);
 }
@@ -226,10 +226,6 @@ KNO_EXPORT ssize_t _kno_incref_elts(const lispval *elts,size_t n)
 KNO_EXPORT ssize_t _kno_decref_elts(const lispval *elts,size_t n)
 {
   return kno_decref_elts(elts,n);
-}
-KNO_EXPORT ssize_t _kno_free_elts(lispval *elts,size_t n)
-{
-  return kno_free_elts(elts,n);
 }
 
 KNO_EXPORT
@@ -768,8 +764,6 @@ KNO_EXPORT int _kno_find_elt(lispval x,lispval *v,int n)
                else i++;
   return -1;
 }
-
-int kno_ptr_debug_density = 1;
 
 KNO_EXPORT void _kno_bad_pointer(lispval badx,u8_context cxt)
 {

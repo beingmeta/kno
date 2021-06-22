@@ -98,14 +98,14 @@ int eval_args(int argc,lispval *into,lispval exprs,
     else if (IMMEDIATEP(v)) {
       if (KNO_EMPTYP(v)) {
 	if (prune) {
-	  kno_decref_vec(into,write-into);
+	  kno_decref_elts(into,write-into);
 	  return KNO_PRUNED;}
 	else empties=1;}
       else if (v == KNO_THROW_VALUE) {
-	kno_decref_vec(into,write-into);
+	kno_decref_elts(into,write-into);
 	return KNO_THROWN_ARG;}
       else if (BAD_ARGP(v)) {
-	kno_decref_vec(into,write-into);
+	kno_decref_elts(into,write-into);
 	if (KNO_VOIDP(v)) kno_seterr(kno_VoidArgument,"eval_args",NULL,expr);
 	return -1;}}
     else NO_ELSE;
@@ -508,7 +508,7 @@ static lispval assignop(kno_stack stack,kno_lexenv env,
 	  lispval *values = map->table_values;
 	  lispval cur	  = values[across];
 	  if (KNO_XTABLE_BITP(map,KNO_SCHEMAP_STACK_VALUES)) {
-	    kno_incref_vec(map->table_values,map_len);
+	    kno_incref_elts(map->table_values,map_len);
 	    KNO_XTABLE_SET_BIT(map,KNO_SCHEMAP_STACK_VALUES,0);}
 	  if ( ( combiner != KNO_FALSE) &&
 	       ( (combiner == KNO_TRUE) || (combiner == KNO_DEFAULT) ) &&
@@ -778,13 +778,13 @@ static lispval docall(lispval fn,int n,kno_argvec args,kno_stack stack,
   if (fntype == kno_cprim_type) {
     struct KNO_CPRIM *prim = (kno_cprim) fn;
     lispval result = cprim_call(prim->fcn_name,prim,n,args,stack);
-    if (free_args) kno_decref_vec((lispval *)args,n);
+    if (free_args) kno_decref_elts((lispval *)args,n);
     return kno_simplify_choice(result);}
   else if (fntype == kno_lambda_type)
     return lambda_call(stack,(kno_lambda)fn,n,args,free_args,tail);
   else {
     lispval result = kno_dcall(stack,fn,n,args);
-    if (free_args) kno_decref_vec((lispval *)args,n);
+    if (free_args) kno_decref_elts((lispval *)args,n);
     return kno_simplify_choice(result);}
 }
 
@@ -845,7 +845,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
     else {
       result = docall(fn,n,args,stack,tail,free_args);
       free_args=0;}}
-  if (free_args) kno_decref_vec(args,n);
+  if (free_args) kno_decref_elts(args,n);
   return result;
 }
 

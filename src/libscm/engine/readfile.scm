@@ -26,7 +26,7 @@
 	     (unless (test loop-state 'done)
 	       (engine/stop! loop-state "InputEndOfFile")
 	       (store! loop-state 'done (timestamp)))
-	       (break))
+	     (break))
 	    ((fail? item)
 	     (engine/stop! loop-state "FillFailed")
 	     (break))

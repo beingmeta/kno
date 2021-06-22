@@ -9,8 +9,11 @@
 #endif
 
 
+// TODO: Update this documentation
+// TODO: Make the implementation actually track the number of keyblocks and valueblocks
+
 /* Notes:
-   A normal 32-bit hash index with N buckets consists of 256 bytes of
+   A normal hash index with N buckets consists of 256 bytes of
    header, followed by N*8 bytes of offset table, followed by an arbitrary
    number of "data blocks", each starting with a varint-encoded byte,
    count and a varint-encoded element count;
@@ -1845,7 +1848,7 @@ static int process_drops(struct KNO_KINDEX *kx,
     s[sched_ref].free_values   = 1;
     j++;}
 
-  kno_decref_vec(drop_vals,n_fetches);
+  kno_decref_elts(drop_vals,n_fetches);
   u8_big_free(drop_vals);
   u8_big_free(fetch_scheds);
   u8_big_free(to_fetch);
@@ -3355,7 +3358,7 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     int n_refs = refs->xt_n_refs;
     if (n == 0) {
       lispval vec = kno_make_vector(n_refs,refs->xt_refs);
-      kno_incref_vec(refs->xt_refs,n_refs);
+      kno_incref_elts(refs->xt_refs,n_refs);
       return vec;}
     else {
       int i = 0, new_refs = 0; while (i<n) {

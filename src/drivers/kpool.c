@@ -2022,7 +2022,7 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     int n_refs = refs->xt_n_refs;
     if (n == 0) {
       lispval vec = kno_make_vector(n_refs,refs->xt_refs);
-      kno_incref_vec(refs->xt_refs,n_refs);
+      kno_incref_elts(refs->xt_refs,n_refs);
       return vec;}
     else {
       int i = 0, new_refs = 0; while (i<n) {

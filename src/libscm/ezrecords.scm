@@ -9,7 +9,7 @@
 
 (define (make-xref-generator off tag-expr)
   (lambda (expr) `(,compound-ref ,(cadr expr) ,off ',tag-expr)))
-(define (make-predicate-generator off tag-expr)
+(define (make-predicate-generator tag-expr)
   (lambda (expr) `(,compound? ,(cadr expr) ',tag-expr)))
 
 (define (make-accessor-def name field tag-expr prefix fields)

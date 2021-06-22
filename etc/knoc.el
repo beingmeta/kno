@@ -125,6 +125,11 @@
 (put 'opts+ 'scheme-indent-function 2)
 (put 'opt+ 'scheme-indent-function 2)
 
+(put '$indented 'scheme-indent-function 1)
+(put '$lines 'scheme-indent-function 1)
+(put '$lines/indent 'scheme-indent-function 1)
+(put '$table 'scheme-indent-function 1)
+
 (put 'ambda 'scheme-indent-function 1)
 (put 'defambda 'scheme-indent-function 1)
 (put 'defslambda 'scheme-indent-function 1)

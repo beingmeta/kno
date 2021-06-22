@@ -412,7 +412,7 @@ static lispval do_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	if (KNO_ABORTED(new_val)) {
 	  /* GC the updated values you've generated so far.
 	     Note that tmp[i] (the exception) is not freed. */
-	  kno_decref_vec(tmp,i);
+	  kno_decref_elts(tmp,i);
 	  doloop_result = new_val; goto pop_stack;}
 	else tmp[i++] = new_val;}
       /* Now, free the current values and replace them with the values

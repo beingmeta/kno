@@ -282,7 +282,7 @@ pylisp_apply(PyObject *self,PyObject *args,PyObject *kwargs)
       Py_BEGIN_ALLOW_THREADS {
 	result=kno_apply(fn,size,argv);}
       Py_END_ALLOW_THREADS;
-      kno_decref_vec(argv,size);}
+      kno_decref_elts(argv,size);}
     pyresult=lisp2py(result);
     return pyresult;}
   else return NULL;

@@ -1065,7 +1065,7 @@ static lispval seq2compound(lispval seq,lispval tag,
   if (KNO_VECTORP(seq))
     return LISP_CONS(compound);
   else {
-    kno_decref_vec(read,len);
+    kno_decref_elts(read,len);
     u8_free(read);
     return LISP_CONS(compound);}
 }

@@ -1216,7 +1216,7 @@ KNO_EXPORT int kno_check_immediate(lispval);
 #define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_PTR(x))))
 #elif (KNO_PTR_DEBUG_LEVEL==2)
 #define KNO_DEBUG_BADPTRP(x) (KNO_RARELY(!(KNO_CHECK_ATOMIC_PTR(x))))
-#elif (KNO_PTR_DEBUG_LEVEL==1)
+#elif (KNO_PTR_DEBUG_LEVELv==1)
 #define KNO_DEBUG_BADPTRP(x) (KNO_RARELY((x) == KNO_NULL))
 #else
 #define KNO_DEBUG_BADPTRP(x) (0)
@@ -1225,91 +1225,8 @@ KNO_EXPORT int kno_check_immediate(lispval);
 #define KNO_DEBUG_BADPTRP(x) (0)
 #endif
 
-/* These constitue a simple API for including ptr checks which
-   turn into noops depending on the debug level, which
-   can be specified in different ways.  */
-
-/* KNO_CHECK_PTRn is the return value call,
-   KNO_PTR_CHECKn is the side-effect call.
-
-   KNO_PTR_DEBUG_DENSITY enables the numbered versions
-    of each call.  If it's negative, the runtime
-    variable kno_ptr_debug_level is used instead.
-
-   Each higher level includes the levels below it.
-
-   As a rule of thumb, currently, the levels should be used as follows:
-    1: topical debugging for places you think something odd is happening;
-        the system code should almost never use this level
-    2: assignment debugging (called when a pointer is stored)
-    3: return value debugging (called when a pointer is returned)
-
-   Setting a breakpoint at _kno_bad_pointer is a good idea.
-*/
-
 KNO_EXPORT void _kno_bad_pointer(lispval,u8_context);
 
-static U8_MAYBE_UNUSED lispval _kno_check_ptr(lispval x,u8_context cxt) {
-  if (KNO_DEBUG_BADPTRP(x)) _kno_bad_pointer(x,cxt);
-  return x;
-}
-
-static U8_MAYBE_UNUSED lispval _kno_check_lisp_ptr(lispval x,u8_context cxt) {
-  if (!(USUALLY(KNO_CHECK_ANY_PTR(x)))) _kno_bad_pointer(x,cxt);
-  return x;
-}
-
-KNO_EXPORT int kno_ptr_debug_density;
-
-#if (KNO_PTR_DEBUG_DENSITY<0)
-/* When the check level is negative, use a runtime variable. */
-#define KNO_CHECK_PTR1(x,cxt) ((kno_ptr_debug_density>0) ? (_kno_check_ptr(x,((u8_context)cxt))) : (x))
-#define KNO_PTR_CHECK1(x,cxt)                                            \
-  {if ((kno_ptr_debug_density>0) && (KNO_DEBUG_BADPTRP(x))) _kno_bad_pointer(x,((u8_context)cxt));}
-#define KNO_CHECK_PTR2(x,cxt) ((kno_ptr_debug_density>1) ? (_kno_check_ptr(x,((u8_context)cxt))) : (x))
-#define KNO_PTR_CHECK2(x,cxt)                                            \
-  {if ((kno_ptr_debug_density>1) && (KNO_DEBUG_BADPTRP(x))) _kno_bad_pointer(x,((u8_context)cxt));}
-#define KNO_CHECK_PTR3(x,cxt) ((kno_ptr_debug_density>2) ? (_kno_check_ptr(x,((u8_context)cxt))) : (x))
-#define KNO_PTR_CHECK3(x,cxt)                                            \
-  {if ((kno_ptr_debug_density>2) && (KNO_DEBUG_BADPTRP(x))) _kno_bad_pointer(x,((u8_context)cxt));}
-#else
-#if (KNO_PTR_DEBUG_DENSITY > 0)
-#define KNO_CHECK_PTR1(x,cxt) (_kno_check_ptr((x),((u8_context)cxt)))
-#define KNO_PTR_CHECK1(x,cxt)                    \
-  {if (KNO_DEBUG_BADPTRP(x)) _kno_bad_pointer(x,((u8_context)cxt));}
-#endif
-#if (KNO_PTR_DEBUG_DENSITY > 1)
-#define KNO_CHECK_PTR2(x,cxt) (_kno_check_ptr((x),((u8_context)cxt)))
-#define KNO_PTR_CHECK2(x,cxt)                    \
-  {if (KNO_DEBUG_BADPTRP(x)) _kno_bad_pointer(x,((u8_context)cxt));}
-#endif
-#if (KNO_PTR_DEBUG_DENSITY > 2)
-#define KNO_CHECK_PTR3(x,cxt) (_kno_check_ptr((x),((u8_context)cxt)))
-#define KNO_PTR_CHECK3(x,cxt)                    \
-  {if (KNO_DEBUG_BADPTRP(x)) _kno_bad_pointer(x,((u8_context)cxt));}
-#endif
-#endif
-
-/* Now define any undefined operations. */
-#ifndef KNO_PTR_CHECK1
-#define KNO_PTR_CHECK1(x,cxt)
-#endif
-#ifndef KNO_PTR_CHECK2
-#define KNO_PTR_CHECK2(x,cxt)
-#endif
-#ifndef KNO_PTR_CHECK3
-#define KNO_PTR_CHECK3(x,cxt)
-#endif
-
-#ifndef KNO_CHECK_PTR1
-#define KNO_CHECK_PTR1(x,cxt) (x)
-#endif
-#ifndef KNO_CHECK_PTR2
-#define KNO_CHECK_PTR2(x,cxt) (x)
-#endif
-#ifndef KNO_CHECK_PTR3
-#define KNO_CHECK_PTR3(x,cxt) (x)
-#endif
 
 #endif /* ndef KNO_PTR_H */
 

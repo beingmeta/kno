@@ -1168,7 +1168,7 @@ static int pool_docommit(kno_pool p,lispval oids,
     if (use_commits) {
       memcpy(&commits,use_commits,sizeof(struct KNO_POOL_COMMITS));
       if (commits.commit_vals)
-	kno_incref_vec(commits.commit_vals,commits.commit_count);
+	kno_incref_elts(commits.commit_vals,commits.commit_count);
       free_commits=0;}
     else commits.commit_pool = p;
 
@@ -1353,7 +1353,7 @@ static int pool_docommit(kno_pool p,lispval oids,
 	    commits.commit_times.cleanup);
 
     if ( (use_commits) && (commits.commit_vals) )
-      kno_decref_vec(commits.commit_vals,commits.commit_count);
+      kno_decref_elts(commits.commit_vals,commits.commit_count);
 
     if (free_commits) {
       if (commits.commit_oids) {

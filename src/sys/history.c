@@ -388,7 +388,7 @@ KNO_EXPORT lispval kno_eval_histrefs(lispval obj,lispval history)
       if (changed)
 	return kno_make_vector(n_elts,resolved);
       else {
-	kno_decref_vec(resolved,n_elts);
+	kno_decref_elts(resolved,n_elts);
 	return kno_incref(obj);}}
     case kno_pair_type: {
       lispval scan = obj; lispval head = KNO_VOID, *tail=&head;

@@ -13,9 +13,13 @@
 		  hashindex/copy-keys!
 		  hashindex/repack-keys
 		  hashindex/repack-buckets
-		  hashindex/repack-mapkeys})
+		  hashindex/repack-mapkeys
+		  hashindex/keyset
+		  hashindex/slotkeyset})
 
 (define %loglevel %info%)
+
+(define %optmods '{kno/mttools fifo engine})
 
 ;;; Mapping over buckets in a hashindex
 
@@ -51,6 +55,28 @@
 (define (hashindex/histogram index (opts #f) (table (make-hashtable)))
   (hashindex/mapkeys update-histogram index `#[loop #[histogram ,table]])
   table)
+
+(define (update-keyset info batch-state loop-state task-state)
+  (let ((hashset (get loop-state 'keyset)))
+    (do-choices (keyinfo info)
+      (hashset-add! hashset (get keyinfo 'key)))))
+
+(define (hashindex/keyset index (opts #f) (hashset (make-hashset)))
+  (hashindex/mapkeys update-keyset index `#[loop #[keyset ,hashset]])
+  hashset)
+
+(define (update-slotkeyset info batch-state loop-state task-state)
+  (let ((hashset (get loop-state 'keyset))
+	(slotids (get loop-state 'slotids))
+	(key #f))
+    (do-choices (keyinfo info)
+      (set! key (get keyinfo 'key))
+      (when (and (pair? key) (overlaps? (car key) slotids))
+	(hashset-add! hashset key)))))
+
+(defambda (hashindex/slotkeyset index slotids (hashset (make-hashset)))
+  (hashindex/mapkeys update-slotkeyset index `#[loop #[keyset ,hashset slotids ,slotids]])
+  hashset)
 
 ;;; Getting index-sizes by iterating over buckets
 

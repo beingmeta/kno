@@ -381,7 +381,7 @@ static lispval read_command(u8_input in,int iscmd,kno_lexenv env)
       arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
                             argout.u8_outbuf);}
     if (n >= KNO_MAX_COMMAND_LENGTH) {
-      kno_decref_vec(cmds,n);
+      kno_decref_elts(cmds,n);
       return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
     cmds[n++] = arg;
     /* Add environment */
@@ -447,7 +447,7 @@ static lispval stream_read(u8_input in,kno_lexenv env)
         arg = kno_init_string(NULL,argout.u8_write-argout.u8_outbuf,
                               argout.u8_outbuf);}
       if (n >= KNO_MAX_COMMAND_LENGTH) {
-        kno_decref_vec(cmds,n);
+        kno_decref_elts(cmds,n);
         return kno_err("TooManyCommandArgs","stream_read",NULL,KNO_VOID);}
       cmds[n++] = arg;
       nextc = swallow_hspace(in);}
