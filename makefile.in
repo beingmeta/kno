@@ -1576,10 +1576,10 @@ FIND_FLAGS="-exclude ".attic" -exclude "*~" -exclude "#*""
 
 src/stdlib.zip: src/stdmods src/textmods src/webmods src/brico makefile
 	rm -rf src/stdlib.zip
-	cd src/stdmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
-	cd src/webmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
-	cd src/textmods; zip ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
-	cd src; zip ../stdlib.zip -r brico -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src/stdmods; zip -u ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src/webmods; zip -u ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src/textmods; zip -u ../stdlib.zip -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
+	cd src; zip -u stdlib.zip -r brico -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
 
 src/libscm.zip: src/libscm/*.scm src/libscm/*/*.scm
 
