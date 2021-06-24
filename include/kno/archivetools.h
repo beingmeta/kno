@@ -14,7 +14,7 @@
 #include <archive.h>
 #endif
 
-KNO_EXPORT int kno_init_libarchive(void) KNO_LIBINIT_FN;
+KNO_EXPORT int kno_init_archivetools(void) KNO_LIBINIT_FN;
 
 #endif /* KNO_ARCHIVE_H */
 

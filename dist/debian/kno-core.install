@@ -2,7 +2,7 @@ usr/lib/libkno.so.*
 usr/lib/libknowebtools.so*
 usr/lib/libknotexttools.so*
 usr/lib/kno/crypto.so*
-usr/lib/kno/libarchive.so*
+usr/lib/kno/archivetools.so*
 usr/bin/knoc
 usr/bin/knox
 usr/bin/knocgi

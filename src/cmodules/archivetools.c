@@ -48,9 +48,9 @@ static lispval archive_typetag;
 
 #define KNO_ARCHIVE_TYPE 0x3c98f9d03f706c8L
 kno_lisp_type kno_archive_type;
-KNO_EXPORT int kno_init_libarchive(void) KNO_LIBINIT_FN;
+KNO_EXPORT int kno_init_archivetools(void) KNO_LIBINIT_FN;
 
-static long long int libarchive_initialized = 0;
+static long long int archivetools_initialized = 0;
 
 typedef struct KNO_ARCHIVE {
   u8_string archive_spec;
@@ -456,30 +456,30 @@ static lispval archive_stat(lispval port)
   return kno_incref(info);
 }
 
-static lispval libarchive_module;
+static lispval archivetools_module;
 
-KNO_EXPORT int kno_init_libarchive()
+KNO_EXPORT int kno_init_archivetools()
 {
-  if (libarchive_initialized)
-    return libarchive_initialized;
-  else libarchive_initialized = u8_millitime();
+  if (archivetools_initialized)
+    return archivetools_initialized;
+  else archivetools_initialized = u8_millitime();
 
-  libarchive_module = kno_new_cmodule("libarchive",0,kno_init_libarchive);
-
+  archivetools_module =
+    kno_new_cmodule("archivetools",0,kno_init_archivetools);
   archive_typetag = kno_intern("LIBARCHIVE");
 
   link_local_cprims();
 
-  kno_finish_cmodule(libarchive_module);
+  kno_finish_cmodule(archivetools_module);
 
   u8_register_source_file(_FILEINFO);
 
-  return libarchive_initialized;
+  return archivetools_initialized;
 }
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("archive/stat",archive_stat,1,libarchive_module);
-  KNO_LINK_CPRIM("archive/open",open_archive,3,libarchive_module);
-  KNO_LINK_CPRIM("archive/find",archive_find,2,libarchive_module);
+  KNO_LINK_CPRIM("archive/stat",archive_stat,1,archivetools_module);
+  KNO_LINK_CPRIM("archive/open",open_archive,3,archivetools_module);
+  KNO_LINK_CPRIM("archive/find",archive_find,2,archivetools_module);
 }

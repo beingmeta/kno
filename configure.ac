@@ -1787,11 +1787,11 @@ AC_CHECK_HEADERS(archive.h)
 AC_CHECK_LIB(archive,archive_read_new)
 if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/kno/libarchive.${shared_suffix} ${CMODULES}"
-  INSTALL_CMODULES="install-libarchive ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} libarchive"
+  CMODULES="lib/kno/archivetools.${shared_suffix} ${CMODULES}"
+  INSTALL_CMODULES="install-archivetools ${INSTALL_CMODULES}"
+  TEST_CMODULES="${TEST_CMODULES} archivetools"
 else
-  auto_disabled="libarchive ${auto_disabled}"
+  auto_disabled="archivetools ${auto_disabled}"
 fi
 
 ### SQLITE3

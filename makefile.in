@@ -299,7 +299,7 @@ PYTHON_OBJS=				\
 
 CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/crypto.o	\
-	     src/cmodules/libarchive.o	\
+	     src/cmodules/archivetools.o	\
 	     src/cmodules/testcapi.o
 
 EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knocgi@suffix@
@@ -401,7 +401,7 @@ KNO_SOURCES=									\
 
 CMODULE_SOURCES=			\
 	src/cmodules/sqlite.c		\
-	src/cmodules/libarchive.c	\
+	src/cmodules/archivetools.c	\
 	src/cmodules/gperftools.c	\
 	src/cmodules/crypto.c
 
@@ -1133,14 +1133,14 @@ lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) lib/libkno@suffix@.dylib
 		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-src/cmodules/libarchive.o: src/cmodules/libarchive.c ${CONFIG_HDRS}
+src/cmodules/archivetools.o: src/cmodules/archivetools.c ${CONFIG_HDRS}
 	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
 	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
-lib/kno/libarchive.so: src/cmodules/libarchive.o
+lib/kno/archivetools.so: src/cmodules/archivetools.o
 	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
-lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/kno/archivetools.dylib: src/cmodules/archivetools.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) \
@@ -1159,9 +1159,9 @@ lib/kno/sqlite.so lib/kno/sqlite.dylib : MODLIBS=-lsqlite3
 lib/kno/sqlite.so: src/cmodules/sqlite.o
 lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
-lib/kno/libarchive.o: src/cmodules/libarchive.c
-lib/kno/libarchive.so: src/cmodules/libarchive.o
-lib/kno/libarchive.dylib: src/cmodules/libarchive.o ${CMODULE_DEPENDS}
+lib/kno/archivetools.o: src/cmodules/archivetools.c
+lib/kno/archivetools.so: src/cmodules/archivetools.o
+lib/kno/archivetools.dylib: src/cmodules/archivetools.o ${CMODULE_DEPENDS}
 
 lib/kno/gperftools.so : MODLIBS="-lprofiler"
 lib/kno/gperftools.o: src/cmodules/gperftools.c
@@ -1546,7 +1546,7 @@ install-cmodules: @INSTALL_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-libarchive: ${CMODULES}/libarchive.@shared_suffix@ ${CMODULES}/libarchive.@vshared_suffix@
+install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archivetools.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 
 # Setup targets

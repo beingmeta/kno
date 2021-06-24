@@ -372,5 +372,5 @@
 (comment
  (use-module '{exif qrcode imagick nng sundown hyphenate
 	       mongodb mariadb rocksdb leveldb tidy zeromq
-	       ziptools odbc crypto sqlite libarchive testcapi zlib})
+	       ziptools odbc crypto sqlite archivetools testcapi zlib})
  (use-module 'kno/primdecls))

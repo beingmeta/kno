@@ -5,7 +5,7 @@
 (in-module 'io/filestream)
 
 (use-module '{fifo varconfig ezrecords text/stringfmts reflection 
-	      libarchive bugjar bugjar/html logger})
+	      archivetools bugjar bugjar/html logger})
 (use-module '{knodb knodb/registry knodb/branches})
 
 (define %loglevel %notice%)
