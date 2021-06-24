@@ -54,13 +54,6 @@ Suggests:
     libcurl4-dbg | libcurl3-dbg
 Description: This package contains the debugging symbols for kno-core
 
-Package: kno-stdlib
-Architecture: any
-Depends: ${misc:Depends}, kno-core
-Provides: kno-modules
-Description: This package directly provides many source (scheme) modules for
-  use with Kno
-
 Package: kno-sqlite
 Architecture: any
 Depends: kno-core (= ${binary:Version}), sqlite | sqlite3
@@ -136,7 +129,7 @@ Description: Provides an Emacs mode for interacting with knoc
 
 Package: kno-full
 Architecture: any
-Depends: ${misc:Depends}, kno-core, kno-stdlib, kno-doc,
+Depends: ${misc:Depends}, kno-core, kno-doc,
 	 kno-sqlite,
 	 kno-parseltongue,
 	 elpa-knoc
