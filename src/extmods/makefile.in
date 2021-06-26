@@ -44,9 +44,9 @@ commit:
 	else echo "No MSG specified"; fi
 
 status:
-	for dir in *; do if [ -d $${dir}/.git ]; then cd $${dir}; git status; cd ..; fi; done;
+	for dir in *; do if [ -d $${dir}/.git ]; then echo "In $${dir}"; cd $${dir}; git status; cd ..; fi; done;
 diff:
-	for dir in *; do if [ -d $${dir}/.git ]; then cd $${dir}; git diff; cd ..; fi; done;
+	for dir in *; do if [ -d $${dir}/.git ]; then echo "In $${dir}"; cd $${dir}; git diff; cd ..; fi; done;
 
 build: extmods
 	domake ${EXTMODS}
@@ -62,6 +62,10 @@ alpine: extmods
 	domake ${EXTMODS} alpine
 debfresh: extmods
 	domake ${EXTMODS} GPGID=none debfresh
+rpms: extmods
+	domake ${EXTMODS} GPGID=none rpms
+freshrpms: extmods
+	domake ${EXTMODS} GPGID=none freshrpms
 
 STDMODS=hyphenate leveldb rocksdb mongodb mariadb nng odbc sundown tidy zeromq ziptools
 
@@ -76,6 +80,16 @@ symlinks:
 	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} 	\
 		   $${modname}.${shared_suffix}; 				\
 	  done;
+
+push:
+	for dir in ${STDMODS}; do if [ -d $${dir}/.git ]; then \
+	  command cd $${dir}; git push; command cd ..; fi; done;
+
+rpms.zip:
+	for dir in ${STDMODS}; \
+	  do for rpm in $${dir}/dist/*.rpm $${dir}/dist/*/*.rpm; do \
+	   if [ -f $${rpm} ]; then \
+		zip $@ -uj $${rpm}; fi; done; done;
 
 debclean:
 	rm -f *.deb *.ddeb *.changes *.buildinfo
