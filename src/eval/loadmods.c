@@ -881,6 +881,31 @@ KNO_EXPORT int kno_load_module(u8_string modname)
     return 1;}
 }
 
+/* Checking a module path */
+
+static u8_string check_module_dir(u8_string dir)
+{
+  u8_string use_path = NULL;
+  if (dir == NULL)
+    return NULL;
+  else if (u8_has_suffix(dir,"/",0))
+    use_path=u8_strdup(dir);
+  else if (u8_has_prefix(dir,"zip:",0))
+    use_path=u8_strdup(dir);
+  else if (u8_has_suffix(dir,".zip",0))
+    use_path=u8_strdup(dir);
+   else  use_path=u8_string_append(dir,"/",NULL);
+  if ( (u8_has_prefix(use_path,"zip:",0)) ?
+       (u8_file_existsp(use_path+4)) :
+       (u8_has_suffix(use_path,".zip",0) ) ?
+       (u8_file_existsp(use_path)) :
+       (u8_directoryp(use_path)) )
+    return use_path;
+  else {
+    u8_free(use_path);
+    return NULL;}
+}
+
 /* The init function */
 
 static int scheme_loadmods_initialized = 0;
@@ -912,29 +937,18 @@ KNO_EXPORT void kno_init_loadmods_c()
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 
-  {u8_string dir=u8_getenv("KNO_LIBSCM_DIR"), use_path = NULL;
-    if (dir==NULL) dir = u8_strdup(kno_default_libscm);
-    if (u8_has_suffix(dir,"/",0))
-      use_path=dir;
-    else if (u8_has_suffix(dir,".zip",0))
-      use_path=dir;
-    else {
-      use_path=u8_string_append(dir,"/",NULL);
-      u8_free(dir);}
-    if ( (u8_has_suffix(use_path,".zip",0)) ?
-	 (u8_file_existsp(use_path)) :
-	 (u8_directoryp(use_path)) ) {
+  {u8_string dir=u8_getenv("KNO_LIBSCM_DIR");
+    u8_string use_path = check_module_dir(dir);
+    if (use_path == NULL) use_path=check_module_dir(kno_default_libscm);
+    if (use_path == NULL) use_path=check_module_dir(KNO_LIBSCM_DIR);
+    lispval new_path = (use_path) ? (knostring(use_path)) : (KNO_ERROR);
+    if (!(KNO_ABORTED(new_path))) {
       lispval old_path = libscm_path;
-      lispval new_path = knostring(use_path);
-      if (KNO_ABORTED(new_path)) {
-	u8_log(LOG_ERR,"PathError","Couldn't allocate new path %s",use_path);}
-      else {
-	libscm_path = new_path;
-	kno_decref(old_path);}}
-    else u8_log(LOG_ERR,"Missing LIBSCM path",
-		"The LIBSCM source path `%s` does not exist",use_path);
-    u8_free(use_path);
-  }
+      libscm_path = new_path;
+      kno_decref(old_path);}
+    else u8_raise("Bad LIBSCM path","init_libscm",use_path);
+    if (dir) u8_free(dir);
+    u8_free(use_path);}
 
   kno_register_config
     ("UPDATEMODULES","Modules to update automatically on UPDATEMODULES",

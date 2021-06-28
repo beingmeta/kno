@@ -142,6 +142,7 @@ GPG=`which gpg2 || which gpg || gpg`
 GPGID=${GPGID:-FE1BC737F9F323D732AA26330620266BE5AFF294}
 TAGS_TARGET="alltags"
 LIBSCM=""
+install_libscm="install-libscm"
 STDLIB=""
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
@@ -389,6 +390,7 @@ AC_SUBST(REPONAME)
 AC_SUBST(RELSTATUS)
 AC_SUBST(BINPATH)
 AC_SUBST(LIBSCM)
+AC_SUBST(install_libscm)
 AC_SUBST(ODBC_LIBS)
 AC_SUBST(SQLITE3_LIBS)
 AC_SUBST(ZEROMQ_LIBS)
@@ -1372,18 +1374,20 @@ local_module_dir=$with_local_modules
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
 AC_ARG_WITH(libscm,--with-libscm location)
-if test "$with_libscm" == "version"; then
+if test "$with_libscm" == "unzipped"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$share_dir/libscm/kno-${KNO_PATCHVERSION}")
    LIBSCM="$share_dir/libscm/kno-${KNO_PATCHVERSION}";
-elif test "$with_libscm" == "zip"; then
+elif test "$with_libscm" == "zip" || test "$with_libscm" == "zipped"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
    LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
+   install_libscm=install-libscm.zip
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
    LIBSCM=$with_libscm
 else
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")
    LIBSCM="zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip";
+   install_libscm=install-libscm.zip
 fi;
 
 stdlib_search_dir=
