@@ -154,7 +154,9 @@ static lispval dosegment(u8_string string,lispval separators)
 
 DEFC_PRIM("segment",segment_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "**undocumented**",
+	  "Segments *inputs* (which can be a choice of strings) into "
+	  "substrings separated by any of *separators* (which are also "
+	  "strings).",
 	  {"inputs",kno_any_type,KNO_VOID},
 	  {"separators",kno_any_type,KNO_VOID})
 static lispval segment_prim(lispval inputs,lispval separators)
@@ -177,7 +179,8 @@ static lispval segment_prim(lispval inputs,lispval separators)
 
 DEFC_PRIM("decode-entities",decode_entities_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Decodes any XHTML character entities in *input*, returning "
+	  "the decoded string.",
 	  {"input",kno_string_type,KNO_VOID})
 static lispval decode_entities_prim(lispval input)
 {
@@ -222,7 +225,11 @@ static lispval encode_entities(lispval input,int nonascii,
 
 DEFC_PRIM("encode-entities",encode_entities_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns a copy of *input* with certain characters "
+	  "encoded as XHTML entities (e.g. `&ref;`). If *chars* "
+	  "is specified, it specifies the characters to encode. "
+	  "If *nonascii* is not #f, *all* non-ascii characters "
+	  "will be encoded.",
 	  {"input",kno_string_type,KNO_VOID},
 	  {"chars",kno_any_type,KNO_VOID},
 	  {"nonascii",kno_any_type,KNO_VOID})
@@ -393,7 +400,10 @@ KNO_EXPORT lispval kno_words2vector(u8_string string,int keep_punct)
 
 DEFC_PRIM("getwords",getwords_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Breaks *arg* into words separated by whitespace. "
+	  "If *punctflag* is true or unspecified, punctuation is included "
+	  "in the output, separated from corersponding words. Returns "
+	  "the words as a list.",
 	  {"arg",kno_string_type,KNO_VOID},
 	  {"punctflag",kno_any_type,KNO_VOID})
 static lispval getwords_prim(lispval arg,lispval punctflag)
@@ -404,7 +414,10 @@ static lispval getwords_prim(lispval arg,lispval punctflag)
 
 DEFC_PRIM("words->vector",getwordsv_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Breaks *arg* into words separated by whitespace. "
+	  "If *punctflag* is true or unspecified, punctuation is included "
+	  "in the output, separated from corersponding words. Returns "
+	  "the words as a vector.",
 	  {"arg",kno_string_type,KNO_VOID},
 	  {"punctflag",kno_any_type,KNO_VOID})
 static lispval getwordsv_prim(lispval arg,lispval punctflag)
@@ -427,7 +440,13 @@ static lispval getwordsv_prim(lispval arg,lispval punctflag)
 
 DEFC_PRIM("vector->frags",vector2frags_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns a choice of wordspans from the word vector *vec*, "
+	  "including wordspans of *window* words (default=2).  "
+	  "When *with-affix* is provided, the beginning and end of "
+	  "the string is denoted by wordspans whose initial or final "
+	  "elements if #f. *window* can either be a maximum span length "
+	  "(in which case the minimum is 1), or a pair of a minimum and "
+	  "maximum length.",
 	  {"vec",kno_vector_type,KNO_VOID},
 	  {"window",kno_any_type,KNO_INT(2)},
 	  {"with_affix",kno_any_type,KNO_TRUE})
@@ -500,7 +519,8 @@ static lispval vector2frags_prim(lispval vec,lispval window,lispval with_affix)
 
 DEFC_PRIM("list->phrase",list2phrase_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Makes a compound string composed of the words in *list* separated "
+	  "by a space character.",
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval list2phrase_prim(lispval arg)
 {
@@ -520,51 +540,50 @@ static lispval seq2phrase_ndhelper
 
 DEFC_PRIM("seq->phrase",seq2phrase_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"arg",kno_any_type,KNO_VOID},
-	  {"start_arg",kno_fixnum_type,KNO_INT(0)},
-	  {"end_arg",kno_fixnum_type,KNO_VOID})
-static lispval seq2phrase_prim(lispval arg,lispval start_arg,lispval end_arg)
+	  "Converts the words in *seq* between *start* and *end* into "
+	  "a compound string",
+	  {"seq",kno_sequence_type,KNO_VOID},
+	  {"start",kno_fixnum_type,KNO_INT(0)},
+	  {"end",kno_fixnum_type,KNO_VOID})
+static lispval seq2phrase_prim(lispval seq,lispval start,lispval end)
 {
-  if (RARELY(!(KNO_SEQUENCEP(arg))))
-    return kno_type_error("sequence","seq2phrase_prim",arg);
-  else if (STRINGP(arg)) return kno_incref(arg);
-  else if (!(KNO_UINTP(start_arg)))
-    return kno_type_error("uint","seq2phrase_prim",start_arg);
+  if (STRINGP(seq)) return kno_incref(seq);
+  else if (!(KNO_UINTP(start)))
+    return kno_type_error("uint","seq2phrase_prim",start);
   else {
-    int dospace = 0, start = FIX2INT(start_arg), end;
-    int len = kno_seq_length(arg); char tmpbuf[32];
+    int dospace = 0, min = FIX2INT(start), max;
+    int len = kno_seq_length(seq); char tmpbuf[32];
 
     struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
-    if (start<0) start = len+start;
-    if ((start<0) || (start>len)) {
+    if (min<0) min = len+min;
+    if ((min<0) || (min>len)) {
       return kno_err(kno_RangeError,"seq2phrase_prim",
-		     u8_itoa10(FIX2INT(start_arg),tmpbuf),
-		     arg);}
-    if (!(KNO_INTP(end_arg))) end = len;
+		     u8_itoa10(FIX2INT(start),tmpbuf),
+		     seq);}
+    if (!(KNO_INTP(end))) max = len;
     else {
-      end = FIX2INT(end_arg);
-      if (end<0) end = len+end;
-      if ((end<0) || (end>len)) {
+      max = FIX2INT(end);
+      if (max<0) max = len+max;
+      if ((max<0) || (max>len)) {
 	return kno_err(kno_RangeError,"seq2phrase_prim",
-		       u8_itoa10(FIX2INT(end_arg),tmpbuf),
-		       arg);}}
-    while (start<end) {
-      lispval word = kno_seq_elt(arg,start);
+		       u8_itoa10(FIX2INT(end),tmpbuf),
+		       seq);}}
+    while (min<max) {
+      lispval word = kno_seq_elt(seq,min);
       if (CHOICEP(word)) {
 	lispval result=
-	  seq2phrase_ndhelper(out.u8_outbuf,arg,start,end,dospace);
+	  seq2phrase_ndhelper(out.u8_outbuf,seq,min,max,dospace);
 	kno_decref(word);
 	u8_free(out.u8_outbuf);
 	return kno_simplify_choice(result);}
       else if ( (FALSEP(word)) || (EMPTYP(word)) || (NILP(word)) ) {
-	start++;
+	min++;
 	continue;}
       else if (dospace) {u8_putc(&out,' ');} else dospace = 1;
       if (STRINGP(word)) u8_puts(&out,KNO_STRING_DATA(word));
       else u8_printf(&out,"%q",word);
       kno_decref(word);
-      start++;}
+      min++;}
     return kno_stream2string(&out);}
 }
 
@@ -602,7 +621,7 @@ static lispval seq2phrase_ndhelper
 
 DEFC_PRIM("isspace%",isspace_percentage,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the percentage of whitespace characters in *string*.",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval isspace_percentage(lispval string)
 {
@@ -618,7 +637,7 @@ static lispval isspace_percentage(lispval string)
 
 DEFC_PRIM("isalpha%",isalpha_percentage,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the percentage of alphabetic characters in *string*.",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval isalpha_percentage(lispval string)
 {
@@ -634,7 +653,7 @@ static lispval isalpha_percentage(lispval string)
 
 DEFC_PRIM("isalphalen",isalphalen,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the number of alphabetic characters in *string*",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval isalphalen(lispval string)
 {
@@ -650,7 +669,7 @@ static lispval isalphalen(lispval string)
 
 DEFC_PRIM("count-words",count_words,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the number if whitespace separated words in *string*.",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval count_words(lispval string)
 {
@@ -667,7 +686,7 @@ static lispval count_words(lispval string)
 
 DEFC_PRIM("markup%",ismarkup_percentage,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the percentage of XML markup in *string*",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval ismarkup_percentage(lispval string)
 {
@@ -699,11 +718,11 @@ KNO_EXPORT u8_byte *kno_stem_english_word(const u8_byte *original);
 
 DEFC_PRIM("porter-stem",stem_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"arg",kno_string_type,KNO_VOID})
-static lispval stem_prim(lispval arg)
+	  "Returns the Porter stem of *word*",
+	  {"word",kno_string_type,KNO_VOID})
+static lispval stem_prim(lispval word)
 {
-  u8_byte *stemmed = kno_stem_english_word(CSTRING(arg));
+  u8_byte *stemmed = kno_stem_english_word(CSTRING(word));
   return kno_wrapstring(stemmed);
 }
 
@@ -722,7 +741,8 @@ static int all_asciip(u8_string s)
 
 DEFC_PRIM("disemvowel",disemvowel,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns a copy of *string* with all *vowels* removed. "
+	  "*vowels* defaults to `aeiouy`",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"vowels",kno_string_type,KNO_VOID})
 static lispval disemvowel(lispval string,lispval vowels)
@@ -755,7 +775,7 @@ static lispval disemvowel(lispval string,lispval vowels)
 
 DEFC_PRIM("depunct",depunct,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Removes all punctuation or whitespace from *string*.",
 	  {"string",kno_string_type,KNO_VOID})
 static lispval depunct(lispval string)
 {
@@ -774,7 +794,9 @@ static lispval depunct(lispval string)
 
 DEFC_PRIM("strip-markup",strip_markup,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Removes all XML markup from *string*. "
+	  "If *addspace* is non-false (or not provided), markup "
+	  "is replaced by a single space character.",
 	  {"string",kno_string_type,KNO_VOID},
 	  { "insert_space_arg",kno_any_type,KNO_VOID})
 static lispval strip_markup(lispval string,lispval insert_space_arg)
@@ -806,31 +828,32 @@ static lispval strip_markup(lispval string,lispval insert_space_arg)
 
 DEFC_PRIM("columnize",columnize_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Breaks *string* into columns specified by *widths* and "
+	  "(optionally) parsed by *parse*",
 	  {"string",kno_string_type,KNO_VOID},
-	  {"cols",kno_any_type,KNO_VOID},
-	  {"parse",kno_any_type,KNO_FALSE})
-static lispval columnize_prim(lispval string,lispval cols,lispval parse)
+	  {"widths",kno_any_type,KNO_VOID},
+	  {"parsefns",kno_any_type,KNO_FALSE})
+static lispval columnize_prim(lispval string,lispval widths,lispval parsefns)
 {
   u8_string scan = CSTRING(string), limit = scan+STRLEN(string);
   u8_byte *buf;
-  int i = 0, field = 0, n_fields = kno_seq_length(cols), parselen = 0;
+  int i = 0, field = 0, n_fields = kno_seq_length(widths), parselen = 0;
   lispval *fields;
   while (i<n_fields) {
-    lispval elt = kno_seq_elt(cols,i);
+    lispval elt = kno_seq_elt(widths,i);
     if (FIXNUMP(elt)) i++;
     else return kno_type_error(_("column width"),"columnize_prim",elt);}
-  if (KNO_SEQUENCEP(parse)) parselen = kno_seq_length(parselen);
+  if (KNO_SEQUENCEP(parsefns)) parselen = kno_seq_length(parsefns);
   fields = u8_alloc_n(n_fields,lispval);
   buf = u8_malloc(STRLEN(string)+1);
   while (field<n_fields) {
-    lispval parsefn;
-    int j = 0, width = kno_getint(kno_seq_elt(cols,field));
+    lispval parsefn = KNO_FALSE;
+    int j = 0, width = kno_getint(kno_seq_elt(widths,field));
     u8_string start = scan;
     /* Get the parse function */
     if (field<parselen)
-      parsefn = kno_seq_elt(parse,field);
-    else parsefn = parse;
+      parsefn = kno_seq_elt(parsefns,field);
+    else parsefn = kno_incref(parsefns);
     /* Skip over the field */
     while (j<width)
       if (scan>=limit) break;
@@ -858,29 +881,31 @@ static lispval columnize_prim(lispval string,lispval cols,lispval parse)
        and apply the parse function. */
     else if (KNO_APPLICABLEP(parsefn)) {
       lispval stringval = kno_substring(start,scan);
-      lispval value = kno_apply(parse,1,&stringval);
-      if (field<parselen) kno_decref(parsefn);
+      lispval value = kno_apply(parsefn,1,&stringval);
       if (KNO_ABORTP(value)) {
 	int k = 0; while (k<field) {kno_decref(fields[k]); k++;}
 	u8_free(fields);
 	u8_free(buf);
 	kno_decref(stringval);
+	kno_decref(parsefn);
 	return value;}
       else {
 	kno_decref(stringval);
 	fields[field++]=value;}}
     else {
       int k = 0; while (k<field) {kno_decref(fields[k]); k++;}
+      kno_decref(parsefn);
       u8_free(fields);
       u8_free(buf);
       return kno_type_error(_("column parse function"),
-			    "columnize_prim",parsefn);}}
+			    "columnize_prim",parsefn);}
+    kno_decref(parsefn);}
   u8_free(buf);
-  if (FALSEP(parse))
+  if (FALSEP(parsefns))
     while (field<n_fields)
       fields[field++]=kno_init_string(NULL,0,NULL);
   else while (field<n_fields) fields[field++]=KNO_FALSE;
-  lispval result=kno_makeseq(KNO_TYPEOF(cols),n_fields,fields);
+  lispval result=kno_makeseq(KNO_TYPEOF(widths),n_fields,fields);
   u8_free(fields);
   return result;
 }
@@ -918,7 +943,8 @@ static void convert_offsets
 
 DEFC_PRIM("text/matchlen",textmatcher,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns the end of all matching substrings of *string* between "
+	  "*offset* and *limit* which match *pattern*.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -940,7 +966,8 @@ static lispval textmatcher(lispval pattern,lispval string,
 
 DEFC_PRIM("text/match",textmatch,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns true if *pattern* matches the entirety of *string* "
+	  "between *offset* and *limit*.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -962,7 +989,8 @@ static lispval textmatch(lispval pattern,lispval string,
 
 DEFC_PRIM("text/search",textsearch,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Finds the first match to *pattern* in *string* "
+	  "between *offset* and *limit*.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -984,7 +1012,8 @@ static lispval textsearch(lispval pattern,lispval string,
 
 DEFC_PRIM("text/extract",textract,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns a nested structure organizing substrings of *string* "
+	  "based how they match *pattern*.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1067,7 +1096,8 @@ static lispval textgather_base(lispval pattern,lispval string,
 
 DEFC_PRIM("text/gather",textgather,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns the largest substrings of *string* matching *pattern* between "
+	  "offset and limit.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1080,7 +1110,8 @@ static lispval textgather(lispval pattern,lispval string,
 
 DEFC_PRIM("text/gather*",textgather_star,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns all substrings of *string* matching *pattern* between "
+	  "offset and limit. This may return substrings of matching strings.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1093,7 +1124,8 @@ static lispval textgather_star(lispval pattern,lispval string,
 
 DEFC_PRIM("text/gather/list",textgather2list,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns substrings of *string* matching *pattern* between "
+	  "offset and limit as an ordered list.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1238,7 +1270,8 @@ static lispval rewrite_apply(lispval fcn,lispval content,lispval args)
 
 DEFC_PRIM("text/rewrite",textrewrite,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Transforms *string* between *offset* and *limit* using "
+	  "`SUBST` expressions in *pattern*",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1274,7 +1307,8 @@ static lispval textrewrite(lispval pattern,lispval string,
 
 DEFC_PRIM("text/subst",textsubst,
 	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Substitutes all matches to *pattern* with *replace* "
+	  "in *string* between *offset* and *limit*",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"replace",kno_any_type,KNO_VOID},
@@ -1506,7 +1540,8 @@ static int getnonstring(lispval choice)
 
 DEFC_PRIM("string-matches?",string_matches,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**",
+	  "Returns true if *string*  between *start_arg* and *end_arg* "
+	  "matches *pattern*.",
 	  {"string",kno_any_type,KNO_VOID},
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"start_arg",kno_fixnum_type,KNO_INT(0)},
@@ -1549,7 +1584,8 @@ static lispval string_matches(lispval string,lispval pattern,
 
 DEFC_PRIM("string-contains?",string_contains,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**",
+	  "Returns true if a match to *pattern* exists  between *start_arg* "
+	  "and *end_arg* in *string*",
 	  {"string",kno_any_type,KNO_VOID},
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"start_arg",kno_fixnum_type,KNO_INT(0)},
@@ -1595,7 +1631,7 @@ static lispval string_contains(lispval string,lispval pattern,
 
 DEFC_PRIM("string-starts-with?",string_starts_with,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**",
+	  "Returns true if string matches *pattern* at *start_arg*",
 	  {"string",kno_any_type,KNO_VOID},
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"start_arg",kno_fixnum_type,KNO_INT(0)},
@@ -1675,7 +1711,7 @@ static lispval string_ends_with_test(lispval string,lispval pattern,
 
 DEFC_PRIM("string-ends-with?",string_ends_with,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2)|KNO_NDCALL,
-	  "**undocumented**",
+	  "Returns true if string matches *pattern* before *end_arg*",
 	  {"string",kno_any_type,KNO_VOID},
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"start_arg",kno_fixnum_type,KNO_INT(0)},
@@ -1792,7 +1828,8 @@ static int framify(lispval f,u8_output out,lispval xtract)
 
 DEFC_PRIM("text/getframe",text2frame,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns a slotmap based on the `label` elements of "
+	  "*pattern* matching *string* between *offset* and *limit*.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1825,7 +1862,9 @@ static lispval text2frame(lispval pattern,lispval string,
 
 DEFC_PRIM("text/getframes",text2frames,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns matches to *pattern* in *string* (between *offset* "
+	  "and *limit*) converted into slotmaps based on their `label` "
+	  "elements.",
 	  {"pattern",kno_any_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID},
 	  {"offset",kno_fixnum_type,KNO_INT(0)},
@@ -1903,7 +1942,6 @@ static int interpret_keep_arg(lispval keep_arg)
 
 DEFC_PRIM("text/slice",textslice,
 	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	  "\n"
 	  "Divides *string* (between *start* and *limit*) "
 	  "into segments separated by *sep*. If keep is #f "
 	  "(the default), the separators are discarded; if "
@@ -2357,7 +2395,7 @@ static lispval textclosure_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 DEFC_PRIM("textclosure?",textclosurep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *arg* is a text closure.",
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval textclosurep(lispval arg)
 {
@@ -2370,7 +2408,7 @@ static lispval textclosurep(lispval arg)
 
 DEFC_PRIM("is-prefix?",is_prefix_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns true if *string* has the prefix *prefix*",
 	  {"prefix",kno_string_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID})
 static lispval is_prefix_prim(lispval prefix,lispval string)
@@ -2388,7 +2426,7 @@ static lispval is_prefix_prim(lispval prefix,lispval string)
 
 DEFC_PRIM("is-suffix?",is_suffix_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns true if *string* has the suffix *suffix*",
 	  {"suffix",kno_string_type,KNO_VOID},
 	  {"string",kno_string_type,KNO_VOID})
 static lispval is_suffix_prim(lispval suffix,lispval string)
@@ -2412,7 +2450,9 @@ static ssize_t get_more_data(u8_input in,size_t lim);
 
 DEFC_PRIM("text/read-match",read_match,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Reads the first string matching *pat* from *port*. *limit* if "
+	  "specified is the maximum number of bytes to scan for *pat* before "
+	  "returning #eof (which can be tested with `(eof? *result*)`)",
 	  {"port",kno_ioport_type,KNO_VOID},
 	  {"pat",kno_any_type,KNO_VOID},
 	  {"limit_arg",kno_any_type,KNO_VOID})
@@ -2616,7 +2656,8 @@ static lispval unslashify_prim(lispval string,lispval offset,lispval limit_arg,
 
 DEFC_PRIM("soundex",soundex_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the soundex encoding of *string*. This is returned "
+	  "as a packet if *packetp* is true.",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"packetp",kno_any_type,KNO_FALSE})
 static lispval soundex_prim(lispval string,lispval packetp)
@@ -2628,7 +2669,8 @@ static lispval soundex_prim(lispval string,lispval packetp)
 
 DEFC_PRIM("metaphone",metaphone_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the metaphone encoding of *string*. This is returned "
+	  "as a packet if *packetp* is true.",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"packetp",kno_any_type,KNO_FALSE})
 static lispval metaphone_prim(lispval string,lispval packetp)
@@ -2642,7 +2684,8 @@ static lispval metaphone_prim(lispval string,lispval packetp)
 
 DEFC_PRIM("metaphone+",metaphone_plus_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the metaphone+ encoding of *string*. This is returned "
+	  "as a packet if *packetp* is true.",
 	  {"string",kno_string_type,KNO_VOID},
 	  {"packetp",kno_any_type,KNO_FALSE})
 static lispval metaphone_plus_prim(lispval string,lispval packetp)
@@ -2658,7 +2701,11 @@ static lispval metaphone_plus_prim(lispval string,lispval packetp)
 
 DEFC_PRIM("md5",md5_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the MD5 hash of *input* (as a packet). If "
+	  "*input* is a string, the UTF-8 encoding is hashed, if "
+	  "it is a packet its bytes are used. If it is neither a string "
+	  "nor a packet, it is converted to a dtype whose binary "
+	  "representation is hashed.",
 	  {"input",kno_any_type,KNO_VOID})
 static lispval md5_prim(lispval input)
 {
@@ -2681,7 +2728,11 @@ static lispval md5_prim(lispval input)
 
 DEFC_PRIM("sha1",sha1_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the SHA1 hash of *input* (as a packet). If "
+	  "*input* is a string, the UTF-8 encoding is hashed, if "
+	  "it is a packet its bytes are used. If it is neither a string "
+	  "nor a packet, it is converted to a dtype whose binary "
+	  "representation is hashed.",
 	  {"input",kno_any_type,KNO_VOID})
 static lispval sha1_prim(lispval input)
 {
@@ -2704,7 +2755,11 @@ static lispval sha1_prim(lispval input)
 
 DEFC_PRIM("sha256",sha256_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the SHA256 hash of *input* (as a packet). If "
+	  "*input* is a string, the UTF-8 encoding is hashed, if "
+	  "it is a packet its bytes are used. If it is neither a string "
+	  "nor a packet, it is converted to a dtype whose binary "
+	  "representation is hashed.",
 	  {"input",kno_any_type,KNO_VOID})
 static lispval sha256_prim(lispval input)
 {
@@ -2727,7 +2782,11 @@ static lispval sha256_prim(lispval input)
 
 DEFC_PRIM("sha384",sha384_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the SHA384 hash of *input* (as a packet). If "
+	  "*input* is a string, the UTF-8 encoding is hashed, if "
+	  "it is a packet its bytes are used. If it is neither a string "
+	  "nor a packet, it is converted to a dtype whose binary "
+	  "representation is hashed.",
 	  {"input",kno_any_type,KNO_VOID})
 static lispval sha384_prim(lispval input)
 {
@@ -2750,7 +2809,11 @@ static lispval sha384_prim(lispval input)
 
 DEFC_PRIM("sha512",sha512_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the SHA512 hash of *input* (as a packet). If "
+	  "*input* is a string, the UTF-8 encoding is hashed, if "
+	  "it is a packet its bytes are used. If it is neither a string "
+	  "nor a packet, it is converted to a dtype whose binary "
+	  "representation is hashed.",
 	  {"input",kno_any_type,KNO_VOID})
 static lispval sha512_prim(lispval input)
 {
@@ -2919,7 +2982,7 @@ static lispval hmac_sha512_prim(lispval key,lispval input)
 
 DEFC_PRIM("text/matchdef!",matchdef_prim,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Define a match operator *symbol* implemented by *value*.",
 	  {"symbol",kno_symbol_type,KNO_VOID},
 	  {"value",kno_any_type,KNO_VOID})
 static lispval matchdef_prim(lispval symbol,lispval value)

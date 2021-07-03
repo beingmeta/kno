@@ -548,8 +548,13 @@ int kno_pprint_table(u8_output out,lispval x,
       continue;}
     else count++;
     if (SYMBOLP(key)) {
-      u8_puts(out,SYM_NAME(key));
-      col=col+strlen(SYM_NAME(key));}
+      u8_string pname = SYM_NAME(key);
+      if (*pname=='\0') {
+	u8_puts(out,"||");
+	col=col+2;}
+      else {
+	u8_puts(out,pname);
+	col=col+strlen(pname);}}
     else if (STRINGP(key)) {
       u8_putc(out,'"');
       u8_puts(out,CSTRING(key));
@@ -597,13 +602,15 @@ static int output_keyval(u8_output out,
     len = len+STRLEN(key)+3;
   else if (SYMBOLP(key)) {
     u8_string pname = SYM_NAME(key);
-    len = len+strlen(pname)+1;}
+    if (*pname) len += strlen(pname)+1;
+    else len += 2;}
   else if (CONSP(key)) return -1;
   if (STRINGP(val))
     len = len+STRLEN(val)+2;
   else if (SYMBOLP(val)) {
     u8_string pname = SYM_NAME(val);
-    len = len+strlen(pname);}
+    if (*pname) len += strlen(pname)+1;
+    else len += 2;}
   else {}
   if ((col+len)>maxcol)
     return -1;

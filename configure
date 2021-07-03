@@ -10655,6 +10655,7 @@ elif test ! -z "$with_libscm"; then
 #define KNO_LIBSCM_DIR "$with_libscm"
 _ACEOF
 
+   install_libscm=install-libscm.skip
    LIBSCM=$with_libscm
 else
    cat >>confdefs.h <<_ACEOF

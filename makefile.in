@@ -1603,13 +1603,17 @@ install-support: $(DESTDIR)@share_dir@
 	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
-install-libscm: src/libscm.zip
-	@$(SYSINSTALL} @install_dir_opts@ $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
-	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
-	@$(SYSINSTALL} src/libscm.zip $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
-	@cd $(DESTDIR}@share_dir@/libscm/kno-@KNO_PATCHVERSION@; unzip libscm.zip; rm libscm.zip
+install-libscm: src/libscm.zip \
+		$(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@ \
+		$(DESTDIR)@share_dir@/libscm
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip;
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
+	@cd $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@; unzip -f ../kno-@KNO_PATCHVERSION@.zip;
 install-libscm.zip: src/libscm.zip $(DESTDIR)@share_dir@/libscm
 	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
+install-libscm.skip: src/libscm.zip
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
+	@echo "Skipping libscm install, using runtime ${LIBSCM}"
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
 	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip

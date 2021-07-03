@@ -63,31 +63,35 @@ static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
 static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
 {
   const u8_byte *scan = name;
-  int c = u8_sgetc(&scan), needs_protection = 0;
-  while (c>=0)
+  int c = u8_sgetc(&scan), needs_protection = 0, rv = 0;
+  if (c<0) return u8_puts(out,"||");
+  while ( (c>=0) && (rv>=0) )
     if ((atombreakp(c)) ||
         ((u8_isupper(c)) && ((u8_tolower(c))!=c))) {
       needs_protection = 1;
       break;}
     else c = u8_sgetc(&scan);
   if (needs_protection==0)
-    u8_puts(out,name);
+    rv=u8_puts(out,name);
   else {
     const u8_byte *start = name, *scan = start;
-    u8_putc(out,'|');
-    while (*scan)
+    rv=u8_putc(out,'|');
+    if (rv>=0) while (*scan)
       if ((*scan == '\\') || (*scan == '|')) {
-        u8_putn(out,start,scan-start);
-        u8_putc(out,'\\'); u8_putc(out,*scan);
+	rv=u8_putn(out,start,scan-start);
+        rv=u8_putc(out,'\\');
+	rv=u8_putc(out,*scan);
         scan++; start = scan;}
       else if (iscntrl(*scan)) {
         char buf[32];
-        u8_putn(out,start,scan-start);
-        sprintf(buf,"\\%03o",*scan); u8_puts(out,buf);
+	rv=u8_putn(out,start,scan-start);
+        sprintf(buf,"\\%03o",*scan);
+	rv=u8_puts(out,buf);
         scan++; start = scan;}
       else scan++;
-    u8_puts(out,start);
-    u8_putc(out,'|');}
+    rv=u8_puts(out,start);
+    rv=u8_putc(out,'|');
+    if (rv<0) return rv;}
   return 1;
 }
 

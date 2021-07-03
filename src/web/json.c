@@ -291,7 +291,9 @@ static lispval json_table(U8_INPUT *in,int flags,lispval fieldmap)
       if (KNO_ABORTP(kv[n_elts].kv_val)) break;
       n_elts++; c = skip_whitespace(in);}}
   i = 0; while (i<n_elts) {
-    kno_decref(kv[i].kv_key); kno_decref(kv[i].kv_val); i++;}
+    kno_decref(kv[i].kv_key);
+    kno_decref(kv[i].kv_val);
+    i++;}
   u8_free(kv);
   return kno_err(JSON_Error,"json_table",in->u8_inbuf+good_pos,VOID);
 }

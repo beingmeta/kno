@@ -1383,6 +1383,7 @@ elif test "$with_libscm" == "zip" || test "$with_libscm" == "zipped"; then
    install_libscm=install-libscm.zip
 elif test ! -z "$with_libscm"; then
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"$with_libscm")
+   install_libscm=install-libscm.skip
    LIBSCM=$with_libscm
 else
    AC_DEFINE_UNQUOTED(KNO_LIBSCM_DIR,"zip:$share_dir/libscm/kno-${KNO_PATCHVERSION}.zip")

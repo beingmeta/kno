@@ -2018,6 +2018,7 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("zipsource/get",zipsource_content_prim,kno_textio_module);
 
   KNO_LINK_ALIAS("eof?",eofp,kno_textio_module);
+  KNO_LINK_ALIAS("port-id",portid_prim,kno_textio_module);
   KNO_LINK_ALIAS("write-char",putchar_prim,kno_textio_module);
   KNO_LINK_ALIAS("decode-string",unescape_string_prim,kno_textio_module);
 
