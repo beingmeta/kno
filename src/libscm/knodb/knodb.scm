@@ -20,6 +20,8 @@
 		  knodb/open-index
 		  knodb/checkpath
 		  knodb/makedb
+		  knodb/index-frame
+		  knodb/index-frame!
 		  knodb/index!
 		  knodb/find})
 
@@ -329,6 +331,85 @@
        (get-indexes-for-pool pool opts)
        (pool/getindex pool opts)))
 
+;;; Indexfns
+
+(define-init default-indexslots {})
+(varconfig! knodb:indexslots default-indexslots)
+
+(define-init default-skipindex {})
+(varconfig! knodb:skipindex default-skipindex)
+
+(define-init default-indexall {})
+(varconfig! knodb:indexall default-indexall config:boolean)
+
+(define-init generic-indexfns {})
+(define-init default-indexfns (make-hashtable))
+
+(config-def! 'knodb:indexfns
+  (lambda (var (val))
+    (cond ((unbound? val) default-indexfns)
+	  ((applicable? val) (set+! generic-indexfns val))
+	  ((and (compound? val '%fnref) (> (compound-length val) 1))
+	   (let* ((module (get-module (compound-ref val 0)))
+		  (fn (and module (symbol? (compound-ref val 1))
+			   (get module (compound-ref val 1)))))
+	     (cond ((applicable? fn)
+		    (set+! generic-indexfns val))
+		   ((not module)
+		    (logwarn |UnknownModule| (compound-ref val 0) " resolving " val))
+		   (else
+		    (logwarn |BadFnRef| fn " resolving " val)))))
+	  ((not (pair? val)) (irritant val |InvalidIndexFnInit|))
+	  (else (let ((fn (resolve-indexfn (cdr val))))
+		  (if (applicable? fn)
+		      (store! default-indexfns (car val) fn)
+		      (irritant (cdr val) |BadIndexFn|)))))))
+
+(define-init cached-indexfns (make-hashtable))
+(define-init pending-indexfns (make-hashtable))
+
+(defslambda (init-indexfns-for-pool pool)
+  (try (poolctl pool 'props 'indexfns)
+       (let ((fns (poolctl pool 'metadata 'indexfns)))
+	 (cond ((fail? fns)
+		(poolctl pool 'metadata 'props 'indexfns #f)
+		#f)
+	       (else (let ((indexfns (resolve-indexfns fns pool)))
+		       (poolctl pool 'props 'indexfns indexfns)
+		       indexfns))))))
+
+(define (knodb/getindexfns pool)
+  (try (poolctl pool 'props 'indexfns)
+       (init-indexfns-for-pool pool)))
+
+(define (resolve-indexfns template pool)
+  (let ((resolved (frame-create #f)))
+    (do-choices (key (getkeys template))
+      (do-choices (spec (get template key))
+	(let ((slot (if (pair? spec) (or (car spec) key) key))
+	      (spec (if (pair? spec) (cdr spec) spec))
+	      (fn (resolve-indexfn spec pool)))
+	  (when fn
+	    (add! resolved key (if slot (cons slot fn) fn))))))
+    resolved))
+
+(define (resolve-indexfn spec (pool #f))
+  (cond ((applicable? spec) spec)
+	((and (pair? spec) (get-module (car spec)))
+	 (let ((fn (get (get-module (car spec)) (cdr spec))))
+	   (if (applicable? fn)
+	       (begin (add! cached-indexfns spec fn) fn)
+	       (irritant spec |BadIndexFn|))))
+	((and (compound? spec '%fnref) (> (compound-length spec) 1))
+	 (let* ((module (get-module (compound-ref spec 0)))
+		(fn (and module (symbol? (compound-ref spec 1))
+			 (get module (compound-ref spec 1)))))
+	   (and (applicable? fn) fn)))
+	;; This should update pending-indexfns
+	(else #f)))
+
+;;; Index opening/wrapping/etc
+
 (define (knodb/wrap-index index (opts #f)) index)
 
 (define (knodb/open-index source opts)
@@ -372,11 +453,58 @@
 	((string? arg) (index/ref arg opts-arg))
 	(else (index/ref arg))))
 
-(defambda (knodb/index! frames slots (values))
+(defambda (knodb/index-frame frames slots (values))
   (do-choices (pool (oid->pool frames))
     (if (bound? values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots values)
 	(index-frame (pool/getindex pool) (pick frames pool) slots))))
+(define knodb/index-frame! (fcn/alias knodb/index-frame))
+
+(define (index+ index frame slotid indexfn (values))
+  (when indexfn
+    (default! values (get frame slotid))
+    (unless (fail? values)
+      (let* ((indexslot (if (pair? indexfn) (or (car indexfn) slotid) slotid))
+	     (indexfn (if (pair? indexfn) (cdr indexfn) indexfn))
+	     (indexvals (cond ((eq? indexfn #t) values)
+			      ((slotid? indexfn) (get values indexfn))
+			      ((table? indexfn) (get indexfn values))
+			      ((applicable? indexfn) (indexfn values))
+			      (else (fail)))))
+	(when (exists? indexvals)
+	  (index-frame index frame slotid indexvals))))))
+
+(defambda (knodb/index! frames (opts #f) (index) (indexfns))
+  (default! index (getopt opts 'index #f))
+  (default! indexfns (getopt opts 'indexfns #f))
+  (do-choices (pool (oid->pool frames))
+    (let ((index (or index (knodb/getindex pool)))
+	  (indexfns (or indexfns (knodb/getindexfns pool)))
+	  (gindexfns generic-indexfns)
+	  (slots (getopt opts 'indexslots (poolctl pool 'metadata 'indexslots)))
+	  (indexall (getopt opts 'indexall default-indexall))
+	  (prefetch (getopt opts 'prefetch #t))
+	  (frames (pick frames pool)))
+      (when prefetch (prefetch-oids! frames))
+      (cond ((fail? frames))
+	    ((fail? slots)
+	     (do-choices (frame frames)
+	       (do-choices (slotid (getkeys frame))
+		 (cond ((and (not indexfns)
+			     (or default-indexall (overlaps? slotid default-indexslots))
+			     (not (overlaps? slotid default-skipindex)))
+			(index-frame index frame slotid)
+			(index+ index frame slotid gindexfns))
+		       ((or indexall (test indexfns slotid))
+			(index+ index frame slotid {(get indexfns slotid) gindexfns}))
+		       (else)))))
+	    (else
+	     (do-choices (slotid (difference slots (getopt opts 'skipindex {})))
+	       (let ((indexers {(tryif indexfns (get indexfns slotid))
+				(tryif (and (or default-indexall (overlaps? slotid default-indexslots))
+					    (not (overlaps? slotid default-skipindex)))
+				  gindexfns)}))
+		 (do-choices (frame frames) (index+ index frame slotid indexers)))))))))
 
 (defambda (knodb/find index . slotvals)
   (cond ((index? index) (apply find-frames index slotvals))
