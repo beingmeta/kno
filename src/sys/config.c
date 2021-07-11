@@ -42,14 +42,17 @@ static int support_config_c_init_done = 0;
 
 struct KNO_CONFIG_HANDLER *config_handlers = NULL;
 
-static lispval configuration_table;
+static struct KNO_HASHTABLE *configuration_table;
+static struct KNO_HASHTABLE *configuration_defaults;
 static lispval path_macro, env_macro, config_macro, now_macro;
-static lispval source_macro;
+static lispval source_macro, glom_macro, string_macro;
 
 static u8_mutex config_lookup_lock;
 static u8_mutex config_register_lock;
 
 static struct KNO_CONFIG_FINDER *config_lookupfns = NULL;
+
+int kno_configs_initialized = 0;
 
 /* Low level functions */
 
@@ -81,41 +84,47 @@ static lispval config_intern(u8_string start)
 
 static lispval config_get(lispval symbol)
 {
-  lispval probe = kno_get(configuration_table,symbol,VOID);
+  lispval probe = kno_hashtable_get(configuration_table,symbol,VOID);
   /* This lookups configuration information using various methods */
   if (VOIDP(probe)) {
-    lispval value = VOID;
+    lispval value = KNO_VOID;
     struct KNO_CONFIG_FINDER *scan = config_lookupfns;
     while (scan) {
       value = scan->config_lookup(symbol,scan->config_lookup_data);
       if (VOIDP(value))
         scan = scan->next_lookup;
       else break;}
-    kno_store(configuration_table,symbol,value);
+    if (!(VOIDP(value))) {
+      if (!(VOIDP(value)))
+	kno_hashtable_store(configuration_table,symbol,value);
+      else {
+	value = kno_hashtable_get(configuration_defaults,symbol,KNO_VOID);
+	if (kno_configs_initialized)
+	  kno_hashtable_store(configuration_table,symbol,value);}}
     return value;}
   else return probe;
 }
 
 int set_config(lispval symbol,lispval val)
 {
-  lispval current = kno_get(configuration_table,symbol,VOID);
+  lispval current = kno_hashtable_get(configuration_table,symbol,VOID);
   if (VOIDP(current)) {
     if (PAIRP(val)) {
       lispval pairpair = kno_make_pair(val,NIL);
-      int rv = kno_store(configuration_table,symbol,pairpair);
+      int rv = kno_hashtable_store(configuration_table,symbol,pairpair);
       kno_decref(pairpair);
       return rv;}
-    else return kno_store(configuration_table,symbol,val);}
+    else return kno_hashtable_store(configuration_table,symbol,val);}
   else if (PAIRP(current)) {
     lispval pairpair = kno_make_pair(val,current);
-    int rv = kno_store(configuration_table,symbol,pairpair);
+    int rv = kno_hashtable_store(configuration_table,symbol,pairpair);
     kno_decref(pairpair);
     return rv;}
   else if (KNO_EQUAL(current,val)) return 0;
   else {
     lispval cdr = kno_make_pair(current,NIL);
     lispval pairpair = kno_make_pair(val,cdr);
-    int rv = kno_store(configuration_table,symbol,pairpair);
+    int rv = kno_hashtable_store(configuration_table,symbol,pairpair);
     kno_decref(cdr);
     kno_decref(pairpair);
     return rv;}
@@ -168,33 +177,42 @@ KNO_EXPORT int kno_set_config(u8_string var,lispval val)
   return kno_set_config_sym(symbol,val);
 }
 
-KNO_EXPORT int kno_default_config_sym(lispval symbol,lispval val)
+KNO_EXPORT int kno_default_config_sym(lispval var,lispval val)
 {
   int retval = 1;
-  struct KNO_CONFIG_HANDLER *scan = config_handlers;
-  while (scan)
-    if (KNO_EQ(scan->configname,symbol)) {
-      if ( (scan->configflags) & (KNO_CONFIG_ALREADY_MODIFIED) )
-        return 0;
-      scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
-      retval = scan->config_set_method(symbol,val,scan->configdata);
-      if (kno_trace_config)
-        u8_log(LOG_WARN,"ConfigSet",
-               "Using handler to configure default %s with %q",
-               SYM_NAME(symbol),val);
-      break;}
-    else scan = scan->config_next;
-  if (kno_test(configuration_table,symbol,VOID)) return 0;
+  lispval symbol = config_intern(KNO_SYMBOL_NAME(var));
+  if (kno_hashtable_probe(configuration_table,symbol)) {
+    if (kno_trace_config)
+      u8_log(LOG_INFO,"ConfigDefault/ignored",
+	     "Config %q already set, ignoring default %q",
+	     var,val);
+    return 0;}
   else {
-    if ((!(scan))&&(kno_trace_config))
-      u8_log(LOG_WARN,"ConfigSet","Configuring %s with %q",
-             SYM_NAME(symbol),val);
-    retval = set_config(symbol,val);}
-  if (retval<0) {
-    u8_string errsum = kno_errstring(NULL);
-    u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
-    u8_free(errsum);}
-  return retval;
+    struct KNO_CONFIG_HANDLER *scan = config_handlers;
+    while (scan) {
+      if (KNO_EQ(scan->configname,symbol)) {
+	if ( (scan->configflags) & (KNO_CONFIG_ALREADY_MODIFIED) )
+	  return 0;
+	scan->configflags |= KNO_CONFIG_ALREADY_MODIFIED;
+	retval = scan->config_set_method(symbol,val,scan->configdata);
+	if (kno_trace_config)
+	  u8_log(LOG_WARN,"ConfigSet",
+		 "Using handler to configure default %s with %q",
+		 SYM_NAME(symbol),val);
+	break;}
+      else scan = scan->config_next;}
+    if (!(kno_configs_initialized)) {
+      kno_hashtable_store(configuration_defaults,symbol,val);}
+    else {
+      if ((!(scan))&&(kno_trace_config))
+	u8_log(LOG_WARN,"ConfigSet","Configuring %s with %q",
+	       SYM_NAME(symbol),val);
+      retval = set_config(symbol,val);}
+    if (retval<0) {
+      u8_string errsum = kno_errstring(NULL);
+      u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+      u8_free(errsum);}
+    return retval;}
 }
 
 KNO_EXPORT int kno_default_config(u8_string var,lispval val)
@@ -557,17 +575,14 @@ KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
       namebuf = u8_malloc(namelen+1);
     else namebuf=_namebuf;
     strncpy(namebuf,assignment,namelen); namebuf[namelen]='\0';
-    if (!(kno_test(configuration_table,config_intern(namebuf),VOID)))
+    if (!(kno_hashtable_test(configuration_table,config_intern(namebuf),VOID)))
       retval = kno_set_config_consed(namebuf,value);
     if (namebuf!=_namebuf) u8_free(namebuf);
     return retval;}
   else return -1;
 }
 
-#define EXPR_STARTS_WITH(expr,sym)  \
-  ( (KNO_PAIRP(expr)) &&             \
-    (KNO_PAIRP(KNO_CDR(expr))) &&    \
-    ( (KNO_CAR(expr)) == (sym) ) )
+/* config-time read macros */
 
 KNO_EXPORT lispval kno_interpret_value(lispval expr)
 {
@@ -594,9 +609,17 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
     else if (head == config_macro) {
       if (KNO_SYMBOLP(arg)) {
         lispval v = kno_config_get(KNO_SYMBOL_NAME(arg));
-        if (KNO_VOIDP(v))
-          return expr;
-        else return v;}
+	if (KNO_VOIDP(v))
+	  return expr;
+	else return v;}
+      else if ( (KNO_PAIRP(arg)) && (KNO_SYMBOLP(KNO_CAR(arg))) ) {
+	lispval v = kno_config_get(KNO_SYMBOL_NAME(KNO_CAR(arg)));
+	if (!(KNO_VOIDP(v)))
+	  return v;
+	else if (KNO_PAIRP(KNO_CDR(v))) {
+	  lispval dflt = KNO_CADR(v);
+	  return kno_incref(dflt);}
+	else return kno_incref(expr);}
       else return kno_incref(expr);}
     else if (head == env_macro) {
       u8_string varname; int free_varname = 0;
@@ -605,6 +628,11 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
         free_varname = 1;}
       else if (KNO_STRINGP(arg))
         varname = KNO_CSTRING(arg);
+      else if ( (KNO_PAIRP(arg)) && (KNO_SYMBOLP(KNO_CAR(arg))) ) {
+	varname = KNO_SYMBOL_NAME(KNO_CAR(arg));
+	free_varname = 1;}
+      else if ( (KNO_PAIRP(arg)) && (KNO_STRINGP(KNO_CAR(arg))) )
+	varname = KNO_CSTRING(KNO_CAR(arg));
       else return kno_incref(expr);
       u8_string strval = u8_getenv(varname);
       if (free_varname) u8_free(varname);
@@ -612,6 +640,9 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
         lispval val = knostring(strval);
         u8_free(strval);
         return val;}
+      else if ( (KNO_PAIRP(arg)) && (KNO_PAIRP(KNO_CDR(arg))) ) {
+	lispval dflt = KNO_CADR(arg);
+	return kno_incref(dflt);}
       else return KNO_FALSE;}
     else if (head == now_macro) {
       if (KNO_SYMBOLP(arg)) {
@@ -622,6 +653,24 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
           return expr;
         else return v;}
       else return kno_make_timestamp(NULL);}
+    else if ( (head == glom_macro) || (head == string_macro) ) {
+      if (KNO_PAIRP(arg)) {
+	U8_STATIC_OUTPUT(string,128);
+	lispval scan = arg; while (KNO_PAIRP(scan)) {
+	  lispval car = KNO_CAR(scan); scan = KNO_CDR(scan);
+	  lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_value(car)) :
+	    (kno_incref(car));
+	  if (KNO_STRINGP(elt))
+	    u8_putn(stringout,KNO_CSTRING(elt),KNO_STRLEN(elt));
+	  else kno_unparse(stringout,elt);
+	  kno_decref(elt);}
+	if (scan != KNO_EMPTY_LIST) {
+	  u8_log(LOGWARN,"BadConfigValue","Tail=%q in %q",
+		 scan,arg);}
+	lispval result = kno_stream2string(stringout);
+	u8_close_output(stringout);
+	return result;}
+      else return kno_incref(expr);}
     else return kno_incref(expr);}
   else return kno_incref(expr);
 }
@@ -1222,7 +1271,8 @@ void kno_init_config_c()
 
   u8_register_source_file(_FILEINFO);
 
-  configuration_table = kno_make_hashtable(NULL,16);
+  configuration_table = (kno_hashtable) kno_make_hashtable(NULL,72);
+  configuration_defaults = (kno_hashtable) kno_make_hashtable(NULL,72);
 
   u8_init_mutex(&config_lookup_lock);
   u8_init_mutex(&config_register_lock);
@@ -1232,6 +1282,8 @@ void kno_init_config_c()
   now_macro = kno_intern("#now");
   env_macro = kno_intern("#env");
   source_macro = kno_intern("#source");
+  glom_macro = kno_intern("#glom");
+  string_macro = kno_intern("#string");
 
   kno_register_config
     ("KNOVERSION",_("Get the Kno version string"),

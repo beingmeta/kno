@@ -156,19 +156,6 @@ static lispval unsetenv_prim(lispval var)
   else return KNO_FALSE;
 }
 
-static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
-{
-  lispval var = kno_get_arg(expr,1);
-  if ( (KNO_STRINGP(var)) || (KNO_SYMBOLP(var)) ) {
-    u8_string enval = (KNO_SYMBOLP(var)) ?
-      (u8_getenv(KNO_SYMBOL_NAME(var))) :
-      (u8_getenv(CSTRING(var)));
-    if (enval == NULL)
-      return KNO_FALSE;
-    else return kno_wrapstring(enval);}
-  else return kno_err(kno_TypeError,"getenv_macro","string or symbol",var);
-}
-
 /* LOAD AVERAGE */
 
 DEFC_PRIM("getload",loadavg_prim,
@@ -965,10 +952,6 @@ KNO_EXPORT void kno_init_sysprims_c()
   switches_symbol=kno_intern("switches");
 
   link_local_cprims();
-
-  kno_def_evalfn(kno_sys_module,"#ENV",getenv_macro,
-		 "#:ENV\"HOME\" or #:ENV:HOME\n"
-		 "evaluates to an environment variable");
 
   kno_init_procprims_c();
 

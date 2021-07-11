@@ -526,6 +526,19 @@
 	    (else (poolctl pool 'props 'index
 			   (make-aggregate-index {combined cur new} pool-index-opts)))))))
 
+;;; Prefetching
+
+(defambda (knodb/prefetch-oids! oids (pool #f))
+  (if pool
+      (pool-prefetch! oids pool)
+      (let ((pools (getpool oids))
+	    (threads {}))
+	(if (singleton? pools)
+	    (prefetch-oids! oids pool)
+	    (do-choices (pool pools)
+	      (set+! threads (thread/call pool-prefetch! (pick oids pool) pool))))
+	(thread/wait threads))))
+
 ;;;; Repacking
 
 ;; (define (needs-repack? index opts (filename))

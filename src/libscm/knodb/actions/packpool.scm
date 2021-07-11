@@ -326,6 +326,7 @@
 (define (main (from #f) (to))
   (default! to from)
   (when (config 'optimized #t) (optimize*! 'knodb/actions/packpool))
+  (config! 'dbloglevel (-1+ %loglevel))
   (if (and from (file-exists? from))
       (packpool from to)
       (usage)))

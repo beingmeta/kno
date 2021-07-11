@@ -183,21 +183,31 @@ static void finish_subproc(struct KNO_SUBPROC *p)
     p->proc_finished = u8_elapsed_time();
     int status = p->proc_status;
     if ( (WIFEXITED(status)) && (WEXITSTATUS(status)==0) ) {
-      lispval opts = p->proc_opts;
+      lispval opts = p->proc_opts, in = p->proc_stdin;
       lispval out = p->proc_stdout, err = p->proc_stderr;
       u8_string outfilename = NULL, errfilename = NULL;
+      if (KNO_TYPEP(in,kno_ioport_type)) {
+	struct KNO_PORT *port = (kno_port) in;
+	if (port->port_input) {
+	  u8_close_input(port->port_input);}
+	if (port->port_output) {
+	  u8_close_output(port->port_output);}}
       if (KNO_STRINGP(out)) {
 	if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(out),"stdout")) {
 	    p->proc_stdout=KNOSYM(deleted);
 	    kno_decref(out);}}
 	else outfilename = KNO_CSTRING(out);}
+      else if (KNO_TYPEP(out,kno_ioport_type)) {}
+      else NO_ELSE;
       if (KNO_STRINGP(err)) {
 	if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(err),"stderr")) {
 	    p->proc_stderr=KNOSYM(deleted);
 	    kno_decref(err);}}
 	else errfilename = KNO_CSTRING(err);}
+      else if (KNO_TYPEP(err,kno_ioport_type)) {}
+      else NO_ELSE;
       int loglevel  = ( (outfilename) || (errfilename) ) ? (LOG_WARN) :
 	(subproc_loglevel);
       u8_log(loglevel,"SubprocFinished","PID=%lld %s%s%s%s%s",
@@ -450,14 +460,14 @@ static pid_t doexec(int flags,char *progname,char *cwd,
   if (out) {
     if (out[0]>0) close(out[0]);
     if ((doblock) && (out[1]>0)) u8_set_blocking(out[1],1);}
-  if (err) {
+  if ( (err) && (err!=out) ) {
     if (err[0]>0) close(err[0]);
     /* Setup err[1] here */}
   if ( (rv>=0) && (in) && (in[0]>=0) )
     rv = dodup(in[0],STDIN_FILENO,"stdin",progname);
-  if ( (rv>=0) && (out) && ( (rv>=0) && (out[1]>0) ) )
+  if ( (rv>=0) && (out) && (out[1]>0) )
     rv = dodup(out[1],STDOUT_FILENO,"stdout",progname);
-  if ( (rv>=0) && (err) && ( (rv>=0) && (err[1]>0) ) )
+  if ( (rv>=0) && (err) && (err!=out) && (err[1]>0) )
     rv = dodup(err[1],STDERR_FILENO,"stderr",progname);
   if (rv<0) {
     int saved_errno = errno; errno=0;
@@ -493,8 +503,8 @@ static int dodup(int from,int to,u8_string stream,u8_string id)
   if (rv<0) {
     int err = errno; errno=0;
     u8_log(LOGCRIT,RedirectFailed,
-	   "Couldn't redirect %s for job %s (%d:%s)",
-	   stream,id,err,u8_strerror(err));}
+	   "Couldn't dup %s (%d:%d) for job %s (%d:%s)",
+	   stream,from,to,id,err,u8_strerror(err));}
   close(from);
   return rv;
 }
@@ -586,13 +596,17 @@ static lispval proc_open_prim(int n,kno_argvec args)
        (!(u8_file_existsp(progname))) )
     flags |= KNO_DO_LOOKUP;
 
-  u8_string idstring = NULL;
+  u8_string idstring = NULL, idbase = NULL;
   {lispval idopt = kno_getopt(opts,id_symbol,KNO_VOID);
-    if (STRINGP(idopt)) idstring=u8_strdup(CSTRING(idopt));
+    if (STRINGP(idopt)) {
+      idstring=u8_strdup(CSTRING(idopt));
+      idbase=u8_strdup(CSTRING(idopt));}
     kno_decref(idopt);}
   if (idstring==NULL)
     idstring=mkidstring(progname,n-args_start,args+args_start);
-
+  if (idbase==NULL)
+    idbase=u8_strdup(progname);
+  
   lispval knox_opt = kno_getopt(opts,KNOSYM(knox),KNO_VOID);
   lispval interpreter_opt = kno_getopt(opts,KNOSYM(interpreter),KNO_VOID);
   u8_string interpreter =
@@ -734,11 +748,9 @@ static lispval proc_open_prim(int n,kno_argvec args)
     if (setup_pipe(outpipe)<0) {}
     else out = outpipe;}
 
-  if ( (KNO_EMPTYP(errfile)) && (!(KNO_EMPTYP(outfile))) ) {
-    errpipe[1]=outpipe[1];
-    err=errpipe;}
-  else if (KNO_EMPTYP(errfile)) {}
-  else if (errfile == stderr_symbol) {}
+  int merge_errout = 0;
+
+  if (errfile == stderr_symbol) {}
   else if (KNO_STRINGP(errfile)) {
     u8_string use_file = u8_abspath(KNO_CSTRING(errfile),out_dir);
     kno_decref(errfile); errfile = kno_init_string(NULL,-1,use_file);
@@ -756,9 +768,12 @@ static lispval proc_open_prim(int n,kno_argvec args)
   else if ( (errfile == KNOSYM(temp)) ||
 	    (errfile == KNOSYM(file)) )
     create_errfile = 1;
+  else if ( (KNO_EMPTYP(errfile)) &&
+	    ( (outpipe[1]>0) || (create_outfile) ) )
+    merge_errout=1;
   else {
     if (setup_pipe(errpipe)<0) {}
-    else out = errpipe;}
+    else err = errpipe;}
 
   lispval wait_opt = kno_getopt(opts,KNOSYM(wait),KNO_FALSE);
   int nofork = flags&(KNO_NO_FORK);
@@ -769,40 +784,50 @@ static lispval proc_open_prim(int n,kno_argvec args)
   pid_t child_pid = (pid == 0) ? (getpid()) : (pid);
   if (create_outfile) {
     u8_string name =
-      u8_mkstring("%s_%lld.stdout",progname,(long long)child_pid);
+      u8_mkstring("%s_%lld.stdout",idbase,(long long)child_pid);
     u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
       (u8_abspath(name,NULL));
-    int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
-    if (new_stdout<0) {
-      u8_exception ex = u8_current_exception;
-      u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
-	     KNO_CSTRING(errfile),
-	     ex->u8x_cond,ex->u8x_details);
-      result=KNO_ERROR;
-      goto do_exit;}
-    else if (pid)
-      outfile=kno_wrapstring(use_file);
-    else {
-      outpipe[1]=new_stdout;
-      out=outpipe;}}
+    if (pid==0) {
+      int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
+      if (new_stdout<0) {
+	u8_exception ex = u8_current_exception;
+	u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
+	       KNO_CSTRING(errfile),
+	       ex->u8x_cond,ex->u8x_details);
+	result=KNO_ERROR;
+	goto do_exit;}
+      else {
+	outpipe[1]=new_stdout;
+	out=outpipe;}}
+    else outfile=kno_wrapstring(use_file);}
+
   if (create_errfile) {
     u8_string name =
-      u8_mkstring("%s_%lld.stderr",progname,(long long)child_pid);
+      u8_mkstring("%s_%lld.stderr",idbase,(long long)child_pid);
     u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
       (u8_abspath(name,NULL));
-    int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
-    if (new_stderr<0) {
-      u8_exception ex = u8_current_exception;
-      u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
-	     KNO_CSTRING(errfile),
-	     ex->u8x_cond,ex->u8x_details);
-      result=KNO_ERROR;
-      goto do_exit;}
-    else if (pid)
-      errfile=kno_wrapstring(use_file);
-    else {
-      errpipe[1]=new_stderr;
-      err=errpipe;}}
+    if (pid==0) {
+      int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
+      if (new_stderr<0) {
+	u8_exception ex = u8_current_exception;
+	u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
+	       KNO_CSTRING(errfile),
+	       ex->u8x_cond,ex->u8x_details);
+	result=KNO_ERROR;
+	goto do_exit;}
+      else {
+	errpipe[1]=new_stderr;
+	err=errpipe;}}
+    else errfile=kno_wrapstring(use_file);}
+  else if ( (merge_errout) && (outpipe[1]>0) ) {
+    if (pid==0)
+      err=outpipe;
+    else if (outfile)
+      errfile=kno_incref(outfile);
+    else NO_ELSE;}
+  else NO_ELSE;
+
+  u8_free(idbase); idbase=NULL;
 
   if (pid == 0) {
     doexec(flags,cprogname,cwd,in,out,err,argv,envp,opts);
@@ -842,26 +867,26 @@ static lispval proc_open_prim(int n,kno_argvec args)
   if (in) {
     /* Child's stdin, we use the write end [1] and close the read end [0]. */
     if (in[1]>=0) {
-      if (KNO_ABORTED(result)) close(in[1]);
-      else {u8_set_blocking(in[1],1);}}
+      if (KNO_ABORTED(result)) close(in[1]);}
     if (in[0]>=0) close(in[0]);}
+  
   if (out) {
     /* Child's stdout, we use the read end [0] and close the write end [1]. */
     if (out[0]>=0) {
-      if (KNO_ABORTED(result)) close(out[0]);
-      else u8_set_blocking(out[0],1);}
+      if (KNO_ABORTED(result)) close(out[0]);}
     if (out[1]>=0) close(out[1]);}
-  if (err) {
+
+  if ( (err) && (err != out) ) {
     /* Child's stderr, we use the read end [0] and close the write end [1]. */
     if (err[0]>=0) {
-      if (KNO_ABORTED(result)) close(err[0]);
-      else u8_set_blocking(err[0],1);}
+      if (KNO_ABORTED(result)) close(err[0]);}
     if (err[1]>=0) close(err[1]);}
 
  do_exit:
   if (KNO_ABORTED(result)) {
     if (cprogname) u8_free(cprogname);}
   if (out_dir) u8_free(out_dir);
+  if (idbase) u8_free(idbase); idbase=NULL;
   /* free_stringvec(argv); free_stringvec(envp); */
   kno_decref(infile);
   kno_decref(outfile);
@@ -881,12 +906,14 @@ static lispval makeout(int fd,u8_string id)
 {
   u8_output out = (u8_output) u8_open_xoutput(fd,NULL);
   out->u8_streaminfo |= U8_STREAM_OWNS_SOCKET;
+  u8_set_blocking(fd,1);
   return kno_make_port(NULL,out,id);
 }
 static lispval makein(int fd,u8_string id)
 {
   u8_input in = (u8_input) u8_open_xinput(fd,NULL);
   in->u8_streaminfo |= U8_STREAM_OWNS_SOCKET;
+  u8_set_blocking(fd,1);
   return kno_make_port(in,NULL,id);
 }
 

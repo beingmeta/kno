@@ -76,7 +76,8 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
   else {
     const u8_byte *start = name, *scan = start;
     rv=u8_putc(out,'|');
-    if (rv>=0) while (*scan)
+    if (rv>=0) {
+      while (*scan) {
       if ((*scan == '\\') || (*scan == '|')) {
 	rv=u8_putn(out,start,scan-start);
         rv=u8_putc(out,'\\');
@@ -88,7 +89,7 @@ static int emit_symbol_name(U8_OUTPUT *out,u8_string name)
         sprintf(buf,"\\%03o",*scan);
 	rv=u8_puts(out,buf);
         scan++; start = scan;}
-      else scan++;
+      else scan++;}}
     rv=u8_puts(out,start);
     rv=u8_putc(out,'|');
     if (rv<0) return rv;}

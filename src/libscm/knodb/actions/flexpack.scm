@@ -94,7 +94,8 @@
 	  ($count (length partitions) "partition"))
 	(doseq (partition partitions)
 	  (let ((started (elapsed-time))
-		(proc (proc/open "knodb" #[lookup #t isknox #t stdout temp stderr temp]
+		(proc (proc/open "knodb"
+				 #[lookup #t isknox #t stdout temp stderr temp id "splitindex"]
 				 "splitindex" partition headfile tailfile tailcount))
 		(lastmsg (elapsed-time)))
 	    (logwarn |Launched| 

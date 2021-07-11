@@ -20,7 +20,8 @@ KNO_EXPORT int kno_trace_config;
 KNO_EXPORT int kno_thread_sigint;
 
 #define KNO_CONFIG_ALREADY_MODIFIED 0x01
-#define KNO_CONFIG_SINGLE_VALUE     0x02
+#define KNO_CONFIG_SINGLE_VALUE	    0x02
+#define KNO_CONFIG_DELAYED	    0x04
 
 KNO_EXPORT u8_string kno_logdir, kno_rundir, kno_sharedir, kno_datadir;
 
@@ -52,6 +53,8 @@ KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val);
 #define kno_config_set(var,val) kno_set_config(var,val)
 #define kno_config_set_consed(var,val) kno_set_config_consed(var,val)
 #define kno_config_default(var,val) kno_default_config(var,val)
+
+KNO_EXPORT int kno_configs_initialized;
 
 KNO_EXPORT int kno_readonly_config_set(lispval ignored,lispval v,void *p);
 
@@ -95,8 +98,8 @@ KNO_EXPORT int kno_read_default_config(u8_input in);
 
 KNO_EXPORT int kno_argv_config(int argc,char **argv) U8_DEPRECATED;
 KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
-                                  unsigned char *arg_mask,
-                                  size_t *arglen_ptr);
+				  unsigned char *arg_mask,
+				  size_t *arglen_ptr);
 
 KNO_EXPORT lispval *kno_argv;
 KNO_EXPORT int kno_argc;
@@ -229,18 +232,18 @@ KNO_EXPORT void kno_restore_sourcebase(u8_string sourcebase);
 #define KNO_CHECK_ERRNO(action,cxt)
 #define KNO_CHECK_ERRNO_OBJ(obj,cxt)
 #else
-#define KNO_CHECK_ERRNO(action,cxt)             \
-  if (errno) {                                  \
-    int errnum = errno; errno = 0;               \
-    u8_log(LOG_WARN,u8_UnexpectedErrno,          \
-           "Dangling errno value %d (%s) %s %s", \
-           errnum,u8_strerror(errnum),cxt,action);}
-#define KNO_CHECK_ERRNO_OBJ(obj,cxt)             \
-  if (errno) {                                  \
-    int errnum = errno; errno = 0;               \
-    u8_log(LOG_WARN,u8_UnexpectedErrno,          \
-           "Dangling errno value %d (%s) %s %q", \
-           errnum,u8_strerror(errnum),cxt,obj);}
+#define KNO_CHECK_ERRNO(action,cxt)		\
+  if (errno) {					\
+    int errnum = errno; errno = 0;		 \
+    u8_log(LOG_WARN,u8_UnexpectedErrno,		 \
+	   "Dangling errno value %d (%s) %s %s", \
+	   errnum,u8_strerror(errnum),cxt,action);}
+#define KNO_CHECK_ERRNO_OBJ(obj,cxt)		 \
+  if (errno) {					\
+    int errnum = errno; errno = 0;		 \
+    u8_log(LOG_WARN,u8_UnexpectedErrno,		 \
+	   "Dangling errno value %d (%s) %s %q", \
+	   errnum,u8_strerror(errnum),cxt,obj);}
 #endif
 
 #endif /* #ifndef KNO_SUPPORT_H */

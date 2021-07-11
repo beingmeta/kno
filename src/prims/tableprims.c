@@ -1072,6 +1072,19 @@ static lispval hashset_probe(lispval hs,lispval key)
   return kno_hashset_intern((kno_hashset)hs,key,0);
 }
 
+DEFC_PRIM("hashset/merge!",hashset_merge,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Merges the hashet *src* into *dest*, returns "
+	  "the number of of new values added.",
+	  {"dest",kno_hashset_type,KNO_VOID},
+	  {"src",kno_hashset_type,KNO_VOID})
+static lispval hashset_merge(lispval dest,lispval src)
+{
+  ssize_t n_added = kno_hashset_merge((kno_hashset)dest,(kno_hashset)src);
+  if (n_added<0) return KNO_ERROR;
+  else return KNO_INT(n_added);
+}
+
 /* Sorting slotmaps */
 
 DEFC_PRIM("sort-slotmap",sort_slotmap,
@@ -1211,6 +1224,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIMN("CHOICE->HASHSET",choices2hashset,kno_scheme_module);
   KNO_LINK_CPRIM("HASHSET/INTERN",hashset_intern,2,kno_scheme_module);
   KNO_LINK_CPRIM("HASHSET/PROBE",hashset_probe,2,kno_scheme_module);
+  KNO_LINK_CPRIM("HASHSET/MERGE!",hashset_merge,2,kno_scheme_module);
   KNO_LINK_CPRIM("SORT-SLOTMAP",sort_slotmap,1,kno_scheme_module);
   KNO_LINK_CPRIM("HASHTABLE-BUCKETS",hashtable_buckets,1,kno_scheme_module);
   KNO_LINK_CPRIM("HASHTABLE/MERGE",hashtable_merge,2,kno_scheme_module);

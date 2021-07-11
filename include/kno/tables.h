@@ -712,6 +712,8 @@ KNO_EXPORT int kno_hashset_add(kno_hashset h,lispval keys);
 #define kno_hashset_drop(h,key) kno_hashset_mod(h,key,0)
 KNO_EXPORT lispval kno_hashset_intern(kno_hashset h,lispval key,int add);
 
+KNO_EXPORT ssize_t kno_hashset_merge(struct KNO_HASHSET *h,struct KNO_HASHSET *src);
+
 KNO_EXPORT lispval kno_hashset_elts(kno_hashset h,int clean);
 KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,ssize_t *len);
 

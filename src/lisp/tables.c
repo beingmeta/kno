@@ -4287,6 +4287,7 @@ KNO_EXPORT ssize_t kno_grow_hashset(struct KNO_HASHSET *h,ssize_t target)
 
 static int hashset_test_add(struct KNO_HASHSET *h,lispval key)
 {
+  if ( (VOIDP(key)) || (EMPTYP(key)) ) return 0;
   lispval *slots = h->hs_buckets;
   int n_slots = h->hs_n_buckets;
   int hash = kno_hash_lisp(key), bucket = hash%n_slots;
@@ -4396,6 +4397,41 @@ KNO_EXPORT int kno_hashset_add(struct KNO_HASHSET *h,lispval keys)
   else if (EMPTYP(keys))
     return 0;
   else return kno_hashset_mod(h,keys,1);
+}
+
+KNO_EXPORT ssize_t kno_hashset_merge(struct KNO_HASHSET *h,struct KNO_HASHSET *src)
+{
+  int lock_src = KNO_XTABLE_USELOCKP(src), lock_dest=KNO_XTABLE_USELOCKP(h);
+  if (lock_src) kno_read_lock_table(src);
+  if (lock_dest) kno_write_lock_table(h);
+  ssize_t cur_vals = h->hs_n_elts, add_vals = src->hs_n_elts, n_adds = 0;
+  size_t need_size=ceil((cur_vals+add_vals)*h->hs_load_factor);
+  if (need_size>h->hs_n_buckets) grow_hashset(h,need_size);
+  lispval *scan=src->hs_buckets, *lim=scan+src->hs_n_buckets;
+  while (scan<lim) {
+    lispval v = *scan++;
+    if (KNO_CONSP(v)) {
+      if (KNO_CHOICEP(v)) {
+	KNO_ITER_CHOICES(vscan,vlimit,v);
+	while (vscan<vlimit) {
+	  lispval v = *vscan++;
+	  if (hashset_test_add(h,v)) n_adds++;}}
+      else if (KNO_PRECHOICEP(v)) {
+	lispval norm = kno_make_simple_choice(v);
+	KNO_ITER_CHOICES(vscan,vlimit,norm);
+	while (vscan<vlimit) {
+	  lispval v = *vscan++;
+	  if (hashset_test_add(h,v)) n_adds++;}
+	kno_decref(norm);}
+      else if (hashset_test_add(h,v))
+	n_adds++;
+      else NO_ELSE;}
+    else if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) ) {}
+    else if (hashset_test_add(h,v)) n_adds++;
+    else NO_ELSE;}
+  if (lock_src) kno_unlock_table(src);
+  if (lock_dest) kno_unlock_table(h);
+  return n_adds;
 }
 
 KNO_EXPORT int kno_recycle_hashset(struct KNO_HASHSET *h)

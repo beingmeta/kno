@@ -122,12 +122,89 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
 static lispval config_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval var = kno_get_arg(expr,1);
-  if (KNO_SYMBOLP(var)) {
-    lispval config_val = (kno_config_get(KNO_SYMBOL_NAME(var)));
+  if ( (KNO_SYMBOLP(var)) || (KNO_STRINGP(var)) ) {
+    u8_string name = (KNO_SYMBOLP(var)) ? (KNO_SYMBOL_NAME(var)) :
+      (KNO_CSTRING(var));
+    lispval config_val = kno_config_get(name);
     if (KNO_VOIDP(config_val))
       return KNO_FALSE;
     else return config_val;}
+  else if ( (KNO_PAIRP(var)) &&
+	    ( (KNO_SYMBOLP(KNO_CAR(var))) || (KNO_STRINGP(KNO_CDR(var))) ) ) {
+    lispval spec = KNO_CAR(var);
+    u8_string name = (KNO_SYMBOLP(spec)) ? (KNO_SYMBOL_NAME(spec)) :
+      (KNO_CSTRING(spec));
+    lispval config_val = kno_config_get(name);
+    if (KNO_VOIDP(config_val)) {
+      if (KNO_PAIRP(KNO_CDR(var)))
+	return kno_incref(KNO_CADR(var));
+      else return KNO_FALSE;}
+    else return config_val;}
   else return KNO_FALSE;
+}
+
+static lispval string_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+{
+  lispval arg = kno_get_arg(expr,1);
+  if (KNO_STRINGP(arg))
+    return kno_incref(arg);
+  else if (KNO_SYMBOLP(arg))
+    return knostring(KNO_SYMBOL_NAME(arg));
+  else if (KNO_PAIRP(arg)) {
+    U8_STATIC_OUTPUT(string,128);
+    lispval scan = arg; while (KNO_PAIRP(scan)) {
+      lispval car = KNO_CAR(scan); scan = KNO_CDR(scan);
+      lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_value(car)) :
+	(kno_incref(car));
+      if (KNO_STRINGP(elt))
+	u8_putn(stringout,KNO_CSTRING(elt),KNO_STRLEN(elt));
+      else kno_unparse(stringout,elt);
+      kno_decref(elt);}
+    if (scan != KNO_EMPTY_LIST) {
+      u8_log(LOGWARN,"BadConfigValue","Tail=%q in %q",
+	     scan,arg);}
+    lispval result = kno_stream2string(stringout);
+    u8_close_output(stringout);
+    return result;}
+  else return kno_incref(arg);
+}
+
+static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+{
+  lispval field = kno_get_arg(expr,1);
+  lispval now = kno_make_timestamp(NULL);
+  lispval v = (FALSEP(field)) ? (kno_incref(now)) :
+    (kno_get(now,field,KNO_VOID));
+  kno_decref(now);
+  if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) )
+    return KNO_FALSE;
+  else return v;
+}
+
+static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+{
+  lispval var = kno_get_arg(expr,1);
+  if ( (KNO_STRINGP(var)) || (KNO_SYMBOLP(var)) ) {
+    u8_string enval = (KNO_SYMBOLP(var)) ?
+      (u8_getenv(KNO_SYMBOL_NAME(var))) :
+      (u8_getenv(CSTRING(var)));
+    if (enval == NULL)
+      return KNO_FALSE;
+    else return kno_wrapstring(enval);}
+  else if ( (KNO_PAIRP(var)) &&
+	    ( (KNO_STRINGP(KNO_CAR(var))) ||
+	      (KNO_SYMBOLP(KNO_CAR(var))) ) )  {
+    lispval name = KNO_CAR(var);
+    u8_string enval = (KNO_SYMBOLP(name)) ?
+      (u8_getenv(KNO_SYMBOL_NAME(name))) :
+      (u8_getenv(CSTRING(name)));
+    if (enval == NULL) {
+      if (KNO_PAIRP(KNO_CDR(var))) {
+	lispval dflt = KNO_CADR(var);
+	return kno_incref(dflt);}
+      else return KNO_FALSE;}
+    else return kno_wrapstring(enval);}
+  else return kno_err(kno_TypeError,"getenv_macro","string or symbol",var);
 }
 
 DEFC_PRIMN("config!",set_config,
@@ -503,6 +580,17 @@ KNO_EXPORT void kno_init_configops_c()
 		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
 		 "evaluates to a value from the current configuration "
 		 "environment");
+  kno_def_evalfn(kno_scheme_module,"#NOW",now_macro,
+		 "#:NOW:YEAR\n evaluates to a field of the current time");
+  kno_def_evalfn(kno_scheme_module,"#ENV",getenv_macro,
+		 "#:ENV\"HOME\" or #:ENV:HOME\n"
+		 "evaluates to an environment variable");
+  kno_def_evalfn(kno_scheme_module,"#STRING",string_macro,
+		 "#:STRING(FOO 3 #:envHOME)\n"
+		 "evaluates to string made up of components");
+  kno_def_evalfn(kno_scheme_module,"#GLOM",string_macro,
+		 "#:GLOM(FOO 3 #:envHOME)\n"
+		 "evaluates to string made up of components");
 
   kno_register_config("CONFIG","Add a CONFIG file/URI to process",
 		      get_config_files,add_config_file,NULL);

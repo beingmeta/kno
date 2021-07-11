@@ -104,6 +104,7 @@
   (when (overlaps? head '{"inplace" "-"}) (set! head in))
   (default-configs)
   (when (equal? tail "none") (set! tail #f))
+  (config! 'dbloglevel (-1+ %loglevel))
   (if (and (string? in) (file-exists? in))
       (do-splitindex in head tail tailcount)
       (usage)))

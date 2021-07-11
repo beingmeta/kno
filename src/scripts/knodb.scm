@@ -20,6 +20,7 @@
 
 (define (main (op #f) . args)
   (when (not op) (usage) (exit))
+  (config! 'appid op)
   (let* ((modname (string->symbol (glom "knodb/actions/" op)))
 	 (module (get-module modname)))
     (cond ((not module)

@@ -1194,18 +1194,6 @@ static lispval microtime_prim()
   else return KNO_INT(now);
 }
 
-static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
-{
-  lispval field = kno_get_arg(expr,1);
-  lispval now = kno_make_timestamp(NULL);
-  lispval v = (FALSEP(field)) ? (kno_incref(now)) :
-    (kno_get(now,field,KNO_VOID));
-  kno_decref(now);
-  if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) )
-    return KNO_FALSE;
-  else return v;
-}
-
 /* Counting seconds */
 
 DEFC_PRIM("secs->string",secs2string,
@@ -1735,8 +1723,6 @@ KNO_EXPORT void kno_init_timeprims_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_sys_module,"#NOW",now_macro,
-		 "#:NOW:YEAR\n evaluates to a field of the current time");
   kno_finish_cmodule(timeprims_module);
 }
 

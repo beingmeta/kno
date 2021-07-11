@@ -109,6 +109,7 @@
   (default! out in)
   (when (overlaps? out '{"inplace" "-"}) (set! out in))
   (when (config 'optimized #t) (optimize*! 'knodb/actions/packindex))
+  (config! 'dbloglevel (-1+ %loglevel))
   (packindex in out))
 
 (define configs-done #f)

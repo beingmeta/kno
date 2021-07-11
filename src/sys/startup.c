@@ -217,6 +217,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     app_argc = n;
     kno_argv = _kno_argv;
     kno_argc = n;
+    kno_configs_initialized = 1;
     if (return_args) {
       if (arglen_ptr) *arglen_ptr = n;
       return return_args;}
