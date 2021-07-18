@@ -317,7 +317,15 @@ KNO_EXPORT lispval kno_badptr_err(lispval badx,u8_context cxt,u8_string details)
 
 /* Basic cons structs */
 
+#if KNO_INT_REFCOUNT
 typedef unsigned int kno_consbits;
+#define KNO_MAX_REFCOUNT  0xFFFFFF80
+#define KNO_REFCOUNT_MASK 0xFFFFFF80
+#else
+typedef unsigned long kno_consbits;
+#define KNO_MAX_REFCOUNT  0xFFFFFFFFFFF80
+#define KNO_REFCOUNT_MASK 0xFFFFFFFFFFF80
+#endif
 
 #if KNO_INLINE_REFCOUNTS && KNO_LOCKFREE_REFCOUNTS && KNO_USE_ATOMIC
 #define KNO_ATOMIC_CONSHEAD _Atomic

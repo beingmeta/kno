@@ -104,7 +104,9 @@ int kno_numvec_showmax = 7;
 static kno_bigint
 DEFUN (bigint_malloc, (kno_veclen), int length)
 {
-  char * result = (malloc (sizeof(struct KNO_CONS)+((length + 1) * (sizeof (bigint_digit_type)))));
+  char * result =
+    (malloc (sizeof(struct KNO_CONS)+
+	     ((length + 1) * (sizeof (bigint_digit_type)))));
   BIGINT_ASSERT (result != ((char *) 0));
   KNO_INIT_CONS(((struct KNO_RAW_CONS *)result),kno_bigint_type);
   return ((kno_bigint) result);
@@ -116,7 +118,8 @@ DEFUN (bigint_realloc, (bigint, kno_veclen),
 {
   char * result =
     (realloc (((char *) bigint),
-              ((length + 2) * (sizeof (bigint_digit_type)))));
+	      sizeof(struct KNO_CONS)+
+	      ((length + 1) * (sizeof (bigint_digit_type)))));
   BIGINT_ASSERT (result != ((char *) 0));
   return ((kno_bigint) result);
 }

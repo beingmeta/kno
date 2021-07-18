@@ -46,12 +46,6 @@
 #define KNO_PROFILING 0
 #endif
 
-#if ( KNO_DEBUGGING_BUILD | KNO_DEBUG_GC )
-#ifndef KNO_MAX_REFCOUNT
-#define KNO_MAX_REFCOUNT 0xFFFFFF
-#endif
-#endif
-
 #ifndef KNO_SOURCE
 #define KNO_SOURCE 0
 #endif
@@ -227,6 +221,16 @@
 #define KNO_USE_ATOMIC 1
 #else
 #define KNO_USE_ATOMIC 0
+#endif
+#endif
+
+#ifndef KNO_INT_REFCOUNT
+#define KNO_INT_REFCOUNT 0
+#endif
+
+#if ( KNO_DEBUGGING_BUILD | KNO_DEBUG_GC )
+#ifndef KNO_CHECK_REFCOUNT
+#define KNO_CHECK_REFCOUNT 0xFFFFFF
 #endif
 #endif
 
