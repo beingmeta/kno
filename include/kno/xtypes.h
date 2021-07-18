@@ -87,12 +87,21 @@ KNO_EXPORT lispval kno_xtrefs_typetag;
 
 typedef struct XTYPE_REFS {
   int xt_refs_flags;
-  int xt_n_refs;
+ /* The initial set of xrefs with which this structure was initialized */
+  int xt_refs_zero;
+ /* The number of stored xrefs */
+  int xt_refs_count;
+  /* The allocated length of the *x_refs vector */
   int xt_refs_len;
+  /* The maximum length to which  *x_refs vector may grow */
   int xt_refs_max;
+  /* A vector, indexed by xref code, of registerd references */
   lispval *xt_refs;
+  /* A hashtable mapping the elements of xt_refs to their xref codes */
   struct KNO_HASHTABLE *xt_lookup;} XTYPE_REFS;
 typedef struct XTYPE_REFS *xtype_refs;
+
+#define xt_n_refs xt_refs_count
 
 #define XTYPE_REFS_DELTA_MAX 4096
 #define XTYPE_MAX_XREFS 16384
@@ -167,7 +176,7 @@ KNO_EXPORT ssize_t kno_write_tagged_xtype(kno_outbuf out,lispval tag,
 					  xtype_refs refs);
 
 KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
-			      int n_refs,int refs_len,
+			      int zero_refs,int n_refs,int refs_len,
 			      int refs_max,int flags,
 			      lispval *elts,
 			      kno_hashtable lookup);

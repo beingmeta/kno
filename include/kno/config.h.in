@@ -362,12 +362,6 @@
 /* Define if you have the CURL header file */
 #undef HAVE_CURL_CURL_H
 
-/* Define if webtools is linking with curl */
-#undef KNO_WITH_EXIF
-
-/* Define if you have the EXIF header file */
-#undef HAVE_LIBEXIF_EXIF_DATA_H
-
 /* The root data directory */
 #undef KNO_SHARE_DIR
 

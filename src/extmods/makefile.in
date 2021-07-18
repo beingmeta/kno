@@ -70,8 +70,8 @@ freshrpms: extmods
 STDMODS=hyphenate leveldb rocksdb mongodb mariadb nng odbc sundown tidy zeromq ziptools
 
 symlinks:
-	for dir in ${STDMODS}; do make $${dir}/.git; done;
-	cd ../../lib/kno;							\
+	@for dir in ${STDMODS}; do make $${dir}/.git; done;
+	@cd ../../lib/kno;							\
 	  for modname in ${STDMODS}; do						\
 	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix}	\
 		   $${modname}.${shared_suffix};				\

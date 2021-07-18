@@ -54,6 +54,8 @@ static struct KNO_CONFIG_FINDER *config_lookupfns = NULL;
 
 int kno_configs_initialized = 0;
 
+static u8_string knox_path = KNO_EXEC;
+
 /* Low level functions */
 
 static lispval config_intern(u8_string start)
@@ -397,6 +399,10 @@ static lispval getenv_config_lookup(lispval symbol,void *ignored)
     return VOID;}
   u8result = u8_fromlibc(getenv_result);
   result = kno_parse_arg(u8result);
+  if (KNO_PAIRP(result)) {
+    lispval interpreted = kno_interpret_config(result);
+    kno_decref(result);
+    result=interpreted;}
   u8_close_output(&out);
   u8_free(u8result);
   return result;
@@ -502,7 +508,7 @@ static int do_config_assignment(u8_string assignment)
   if (KNO_ABORTP(value))
     return kno_interr(value);
   else if (KNO_PAIRP(value)) {
-    lispval interpreted = kno_interpret_value(value);
+    lispval interpreted = kno_interpret_config(value);
     kno_decref(value);
     value = interpreted;}
   if (namelen+1>64)
@@ -568,7 +574,7 @@ KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
     if (KNO_ABORTP(value))
       return kno_interr(value);
     else if (KNO_PAIRP(value)) {
-      lispval interpreted = kno_interpret_value(value);
+      lispval interpreted = kno_interpret_config(value);
       kno_decref(value);
       value = interpreted;}
     if (namelen+1>64)
@@ -584,9 +590,10 @@ KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
 
 /* config-time read macros */
 
-KNO_EXPORT lispval kno_interpret_value(lispval expr)
+KNO_EXPORT lispval kno_interpret_config(lispval expr)
 {
   if ( (KNO_PAIRP(expr)) &&
+       (KNO_SYMBOLP(KNO_CAR(expr))) &&
        (KNO_PAIRP(KNO_CDR(expr))) &&
        (KNO_CDDR(expr) == KNO_NIL) ) {
     lispval head = KNO_CAR(expr);
@@ -658,7 +665,7 @@ KNO_EXPORT lispval kno_interpret_value(lispval expr)
 	U8_STATIC_OUTPUT(string,128);
 	lispval scan = arg; while (KNO_PAIRP(scan)) {
 	  lispval car = KNO_CAR(scan); scan = KNO_CDR(scan);
-	  lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_value(car)) :
+	  lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_config(car)) :
 	    (kno_incref(car));
 	  if (KNO_STRINGP(elt))
 	    u8_putn(stringout,KNO_CSTRING(elt),KNO_STRLEN(elt));
@@ -710,7 +717,7 @@ static int read_config(U8_INPUT *in,int dflt)
 	else if ((PAIRP(entry)) &&
 		 (SYMBOLP(KNO_CAR(entry))) &&
 		 (PAIRP(KNO_CDR(entry)))) {
-	  lispval val = kno_interpret_value(KNO_CADR(entry));
+	  lispval val = kno_interpret_config(KNO_CADR(entry));
 	  int rv = (dflt) ?
 	    (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
 	    (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
@@ -1285,6 +1292,9 @@ void kno_init_config_c()
   glom_macro = kno_intern("#glom");
   string_macro = kno_intern("#string");
 
+  if ( (knox_path) && (strcmp(knox_path,KNO_EXEC)==0) )
+    knox_path=u8_strdup(KNO_EXEC);
+
   kno_register_config
     ("KNOVERSION",_("Get the Kno version string"),
      knoversion_config_get,kno_readonly_config_set,NULL);
@@ -1306,6 +1316,11 @@ void kno_init_config_c()
   kno_register_config
     ("U8MAJOR",_("Get the libu8 major version number"),
      u8major_config_get,kno_readonly_config_set,NULL);
+
+  kno_register_config
+    ("LOGLEVEL",_("default loglevel (from libu8) for the session"),
+     kno_intconfig_get,loglevelconfig_set,&u8_loglevel);
+
 
 #if KNO_FILECONFIG_ENABLED
 #if KNO_FILECONFIG_DEFAULTS
@@ -1373,6 +1388,11 @@ void kno_init_config_c()
                       kno_boolconfig_get,kno_boolconfig_set,
                       &envconfig_enabled);
 
+  kno_register_config
+    ("KNOX",_("Get the Kno executable path"),
+     kno_sconfig_get,kno_sconfig_set,&knox_path);
+
+
   kno_register_config("FEATURES",
 		      "Defined runtime features in this session",
 		      features_config_get,features_config_set,
@@ -1393,4 +1413,5 @@ void kno_init_config_c()
      kno_boolconfig_get,kno_boolconfig_set,&kno_trace_config);
 
 }
+
 

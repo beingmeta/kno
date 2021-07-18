@@ -89,7 +89,7 @@ case ${option} in
     lib)
 	echo "@abs_top_srcdir@/lib";;
     libs)
-	echo "@LIBS@ -lknocore -lknostorage -lknodrivers -lknoscheme";;
+	echo "@LIBS@ -L@libdir@ -lkno -lu8";;
     deplibs)
 	echo "@LIBS@";;
     bin)

@@ -32,7 +32,7 @@
 	   (remove-file! file)
 	   (logwarn |FileExists| "Removed existing file " (write file)))
 	  (else
-	  (onerror
+	   (onerror
 	       (move-file! file (glom file ".bak"))
 	       (lambda (ex)
 		 (logwarn |FileExists|
@@ -74,29 +74,37 @@
 	   (tailsize (and tailfile (* max-size 3)))
 	   (maxsecs (config 'maxsecs #f))
 	   (msgsecs (config 'msgsecs 120)))
-      (let ((headindex (index/ref headfile
-				  [type (config 'headtype 'kindex)
-				   flexindex (config 'flexhead #f)
-				   capacity headsize
-				   keyslot (try keyslot #f)
-				   maxload (config 'headload (config 'maxload 0.8))
-				   create #t]))
-	    (tailindex (and tailfile
-			    (index/ref tailfile
-				       [type (config 'headtype 'kindex)
-					flexindex (config 'flextail #f)
-					capacity tailsize
-					keyslot (try keyslot #f)
-					maxload (config 'tailload (config 'maxload 0.8))
-					create #t]))))
+      (let* ((headindex (index/ref headfile
+				   [type (config 'headtype 'kindex)
+				    flexindex (config 'flexhead #f)
+				    capacity headsize
+				    keyslot (try keyslot #f)
+				    maxload (config 'headload (config 'maxload 0.8))
+				    register #f
+				    create #t]))
+	     (tailindex (index/ref (or tailfile {})
+				   [type (config 'tailtype 'kindex)
+				    flexindex (config 'flextail #f)
+				    capacity tailsize
+				    keyslot (try keyslot #f)
+				    maxload (config 'tailload (config 'maxload 0.8))
+				    register #f
+				    create #t])))
+	;; Close the indexes so that splitindex can lock them
+	;;  (Note that this doesn't matter for kindexes but it does for rocksdb/etc)
+	(close-index headindex)
+	(close-index tailindex)
 	(lognotice |FlexPack|
 	  (if tailfile "Merging and splitting " "Merging ")
 	  ($count (length partitions) "partition"))
 	(doseq (partition partitions)
 	  (let ((started (elapsed-time))
-		(proc (proc/open "knodb"
-				 #[lookup #t isknox #t stdout temp stderr temp id "splitindex"]
-				 "splitindex" partition headfile tailfile tailcount))
+		(proc (proc/run "knodb"
+				[lookup #t stdout 'file stderr 'file id "splitindex"]
+				"splitindex"
+				(glom "HEADTYPE=" (config 'headtype 'kindex))
+				(glom "TAILTYPE=" (config 'tailtype 'kindex))
+				partition headfile tailfile tailcount))
 		(lastmsg (elapsed-time)))
 	    (logwarn |Launched| 
 	      "splitindex " (write partition) " stdout=" (proc-stdout proc))
@@ -108,16 +116,17 @@
 			 " for " (proc-pid proc) " to process " (write partition)))
 	      (sleep 1))
 	    (cond ((test (proc/status proc) 'exited 0)
-		   (move-file partition (glom partition ".bak"))
+		   ;;(move-file partition (glom partition ".bak"))
 		   (logwarn |Finished| partition " in " (secs->string (elapsed-time started))))
 		  (else (logwarn |Error|
 			  "Processing " partition ", see " (write (proc-stdout proc))
 			  "for details.")
 			(break)))))
-	(when (and headfile (overlaps? (dbctl headindex 'type) 'kindex))
-	  (fork/cmd/wait "knodb" "packindex" headfile))
-	(when (and tailfile tailindex (overlaps? (dbctl tailindex 'type) 'kindex))
-	  (fork/cmd/wait "knodb" "packindex" tailfile))))))
+	;; (when (and headfile (overlaps? (dbctl headindex 'type) 'kindex))
+	;;   (fork/cmd/wait "knodb" "packindex" headfile))
+	;; (when (and tailfile tailindex (overlaps? (dbctl tailindex 'type) 'kindex))
+	;;   (fork/cmd/wait "knodb" "packindex" tailfile))
+	))))
 
 (define (get-index-keycount file)
   (let ((index (open-index file #[register #f cachelevel 1])))

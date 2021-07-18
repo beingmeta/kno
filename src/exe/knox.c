@@ -221,7 +221,7 @@ static void link_local_cprims()
 static lispval find_exec_module(u8_string string)
 {
   lispval modname = kno_getsym(string), result = kno_find_module(modname,0);
-  if ( (KNO_VOIDP(result)) && (!(strchr(string,'/'))) ) {
+  if ( ((KNO_FALSEP(result))||(KNO_VOIDP(result))) && (!(strchr(string,'/'))) ) {
     u8_byte buf[100];
     u8_string newname = u8_bprintf(buf,"actions/%s",string);
     modname = kno_getsym(newname);

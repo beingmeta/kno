@@ -745,6 +745,8 @@ int main(int argc,char **argv)
   u8_init_chardata_c();
 #endif
 
+  u8_stdout_loglevel = U8_LOG_WARN;
+
   init_libraries();
 
 #if ((!(HAVE_CONSTRUCTOR_ATTRIBUTES)) || (KNO_TESTCONFIG))
