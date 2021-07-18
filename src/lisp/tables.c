@@ -4158,27 +4158,31 @@ KNO_EXPORT lispval *kno_hashset_vec(struct KNO_HASHSET *h,ssize_t *outlen)
     lispval *write = results, *write_limit = results+n_elts;
     lispval *scan=h->hs_buckets, *limit=scan+h->hs_n_buckets;
     while (scan<limit) {
-      lispval v = *scan;
+      lispval v = *scan++;
       if (EMPTYP(v)) continue;
       else if ((VOIDP(v)) || (KNO_NULLP(v))) {
-        *scan++=EMPTY; continue;}
+	/* Clean up these values, just in case */
+        scan[-1]=EMPTY; continue;}
       else if ( (KNO_CHOICEP(v)) || (KNO_PRECHOICEP(v)) ) {
 	lispval choice = (KNO_PRECHOICEP(v)) ? (kno_make_simple_choice(v)) : (v);
-	ssize_t size = KNO_CHOICE_SIZE(choice);
-	if ((write+size)>write_limit) goto corrupt_hashset;
-	if (KNO_ATOMIC_CHOICEP(choice)) {
-	  const lispval *elts = KNO_CHOICE_ELTS(choice);
-	  kno_lspcpy(write,elts,size);
-	  write += size;}
+	if (EMPTYP(choice)) continue;
+	else if (!(KNO_CHOICEP(choice))) {
+	  *write++=choice; continue;}
 	else {
-	  KNO_DO_CHOICES(elt,choice) {
-	    kno_incref(elt);
-	    *write++=elt;}}
+	  ssize_t size = KNO_CHOICE_SIZE(choice);
+	  if ((write+size)>write_limit) goto corrupt_hashset;
+	  if (KNO_ATOMIC_CHOICEP(choice)) {
+	    const lispval *elts = KNO_CHOICE_ELTS(choice);
+	    kno_lspcpy(write,elts,size);
+	    write += size;}
+	  else {
+	    KNO_DO_CHOICES(elt,choice) {
+	      kno_incref(elt);
+	      *write++=elt;}}}
 	if (choice != v) kno_decref(choice);}
       else {
 	if (write>write_limit) goto corrupt_hashset;
-	kno_incref(v); *write++=v;}
-      scan++;}
+	kno_incref(v); *write++=v;}}
     if (unlock) kno_unlock_table(h);
     *outlen = write-results;
     return results;

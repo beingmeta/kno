@@ -15,6 +15,7 @@ typedef struct KNO_SUBPROC {
   u8_string proc_id;
   pid_t proc_pid;
   int proc_status;
+  int proc_loglevel;
   u8_string proc_progname;
   char **proc_argv, **proc_envp;
   double proc_started, proc_finished;

@@ -58,7 +58,7 @@ KNO_EXPORT int kno_configs_initialized;
 
 KNO_EXPORT int kno_readonly_config_set(lispval ignored,lispval v,void *p);
 
-KNO_EXPORT lispval kno_interpret_value(lispval value_expr);
+KNO_EXPORT lispval kno_interpret_config(lispval value_expr);
 
 KNO_EXPORT int kno_lconfig_push(lispval,lispval v,void *lispp);
 KNO_EXPORT int kno_lconfig_add(lispval,lispval v,void *lispp);

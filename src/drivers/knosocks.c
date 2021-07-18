@@ -256,8 +256,8 @@ static kno_service knosocks_open
 	refs[i++]=elt;}
       int flags = XTYPE_REFS_READ_ONLY |
 	( (atomicp) ? (0) : (XTYPE_REFS_CONS_ELTS));
-      kno_init_xrefs(&(service->xrefs),len,len,len,flags,refs,NULL);}
-    else kno_init_xrefs(&(service->xrefs),0,0,0,0,NULL,NULL);}
+      kno_init_xrefs(&(service->xrefs),flags,-1,len,len,0,refs,NULL);}
+    else kno_init_xrefs(&(service->xrefs),0,-1,0,0,0,NULL,NULL);}
   else memset((&(service->xrefs)),0,sizeof(struct XTYPE_REFS));
   /* And create a connection pool */
   int minsock = kno_getfixopt(opts,"minsock",0);
@@ -675,8 +675,9 @@ struct KNOSOCKS_SERVER *new_knosocks_listener
     ssize_t xrefs_len = get_xrefs_len(xrefs);
     lispval *xrefs_vec = u8_alloc_n(xrefs_len,lispval);
     int xrefs_flags = XTYPE_REFS_ADD_OIDS | XTYPE_REFS_ADD_SYMS;
-    kno_init_xrefs(&(server->server_xrefs),0,xrefs_len,max_xrefs,
-		   xrefs_flags,xrefs_vec,NULL);
+    kno_init_xrefs(&(server->server_xrefs),xrefs_flags,
+		   -1,0,xrefs_len,max_xrefs,
+		   xrefs_vec,NULL);
     KNO_DO_CHOICES(xref_init,xrefs) {
       if (KNO_VECTORP(xrefs)) {
 	lispval *inits = KNO_VECTOR_ELTS(xrefs);
@@ -689,8 +690,8 @@ struct KNOSOCKS_SERVER *new_knosocks_listener
 	kno_add_xtype_ref(xref_init,&(server->server_xrefs));}
     server->server_xrefs.xt_refs_flags |= XTYPE_REFS_READ_ONLY;
     server->server_xrefs.xt_refs_max = server->server_xrefs.xt_n_refs;}
-  else kno_init_xrefs(&(server->server_xrefs),
-		      0,0,0,XTYPE_REFS_READ_ONLY,NULL,NULL);
+  else kno_init_xrefs(&(server->server_xrefs),XTYPE_REFS_READ_ONLY,
+		      -1,0,0,0,NULL,NULL);
   u8_init_mutex(&(server->server_lock));
   lispval base_env    = kno_incref(knosocks_env);
   server->async       = getintopt(opts,KNOSYM(async),default_async_mode);

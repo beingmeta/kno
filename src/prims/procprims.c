@@ -88,6 +88,7 @@ static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 static lispval cons_subproc(pid_t pid,u8_string id,
 			    char *cprogname,char **argv,char **envp,
 			    lispval in,lispval out,lispval err,
+			    int loglevel,
 			    lispval opts);
 static int handle_procopts(lispval opts);
 
@@ -114,7 +115,7 @@ static int stringvec_len(char **vec)
   return scan-vec;
 }
 
-static int subproc_loglevel = LOG_NOTICE;
+static int default_subproc_loglevel = LOG_WARN;
 
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
@@ -177,23 +178,30 @@ void extract_pid_status(int status,lispval into)
 static void finish_subproc(struct KNO_SUBPROC *p)
 {
   if (p->proc_finished>0) return;
-  lispval pidval = KNO_INT((long long)(p->proc_pid));
-  int rv = kno_hashtable_drop(proctable,pidval,KNO_VOID);
-  if (rv) { /* if rv!=0, it was already deleted */ 
-    p->proc_finished = u8_elapsed_time();
-    int status = p->proc_status;
-    if ( (WIFEXITED(status)) && (WEXITSTATUS(status)==0) ) {
+  int status = p->proc_status;
+  if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) ) {
+    lispval pidval = KNO_INT((long long)(p->proc_pid));
+    int rv = kno_hashtable_drop(proctable,pidval,KNO_VOID);
+    if (rv) { /* if rv!=0, it was already deleted */ 
+      p->proc_finished = u8_elapsed_time();
+      int normal_exit = (WIFEXITED(status)) ? (WEXITSTATUS(status)==0) :
+	(0);
       lispval opts = p->proc_opts, in = p->proc_stdin;
       lispval out = p->proc_stdout, err = p->proc_stderr;
       u8_string outfilename = NULL, errfilename = NULL;
+      /* Close the input to the process */
       if (KNO_TYPEP(in,kno_ioport_type)) {
 	struct KNO_PORT *port = (kno_port) in;
 	if (port->port_input) {
-	  u8_close_input(port->port_input);}
+	  u8_close_input(port->port_input);
+	  port->port_input=NULL;}
 	if (port->port_output) {
-	  u8_close_output(port->port_output);}}
+	  u8_close_output(port->port_output);
+	  port->port_output=NULL;}}
       if (KNO_STRINGP(out)) {
-	if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
+	if (!(normal_exit))
+	  outfilename = KNO_CSTRING(out);
+	else if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(out),"stdout")) {
 	    p->proc_stdout=KNOSYM(deleted);
 	    kno_decref(out);}}
@@ -201,29 +209,43 @@ static void finish_subproc(struct KNO_SUBPROC *p)
       else if (KNO_TYPEP(out,kno_ioport_type)) {}
       else NO_ELSE;
       if (KNO_STRINGP(err)) {
-	if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
+	if (!(normal_exit))
+	  errfilename = KNO_CSTRING(err);
+	else if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(err),"stderr")) {
 	    p->proc_stderr=KNOSYM(deleted);
 	    kno_decref(err);}}
 	else errfilename = KNO_CSTRING(err);}
       else if (KNO_TYPEP(err,kno_ioport_type)) {}
       else NO_ELSE;
-      int loglevel  = ( (outfilename) || (errfilename) ) ? (LOG_WARN) :
-	(subproc_loglevel);
-      u8_log(loglevel,"SubprocFinished","PID=%lld %s%s%s%s%s",
-	     (long long)(p->proc_pid),p->proc_id,
-	     ((outfilename)?("\n\tsaved stdout="):("")),
-	     ((outfilename)?(outfilename):(U8S(""))),
-	     ((errfilename)?("\n\tsaved stderr="):("")),
-	     ((errfilename)?(errfilename):(U8S(""))));}
-    lispval onfinish = kno_get(p->annotations,KNOSYM(onfinish),KNO_VOID);
-    if (!(KNO_VOIDP(onfinish))) {
-      lispval sj = (lispval)p;
-      DO_CHOICES(handler,onfinish) {
-	lispval v = kno_call(NULL,handler,1,&sj);
-	if (KNO_ABORTED(v)) {kno_clear_errors(1);}
-	else kno_decref(v);}
-      kno_decref(onfinish);}}
+      int loglevel  = (normal_exit) ? (p->proc_loglevel) : (LOGERR) ;
+      if (WIFEXITED(status))
+	u8_log(loglevel,"SubprocFinished","PID=%lld %s status=%d %s%s%s%s",
+	       (long long)(p->proc_pid),p->proc_id,WEXITSTATUS(status),
+	       ((outfilename)?("\n\tsaved stdout="):("")),
+	       ((outfilename)?(outfilename):(U8S(""))),
+	       ((errfilename)?("\n\tsaved stderr="):("")),
+	       ((errfilename)?(errfilename):(U8S(""))));
+      else u8_log(loglevel,"SubprocFinished","PID=%lld %s signal=%d %s%s%s%s",
+		  (long long)(p->proc_pid),p->proc_id,WTERMSIG(status),
+		  ((outfilename)?("\n\tsaved stdout="):("")),
+		  ((outfilename)?(outfilename):(U8S(""))),
+		  ((errfilename)?("\n\tsaved stderr="):("")),
+		  ((errfilename)?(errfilename):(U8S(""))));
+      lispval onfinish = kno_get(p->annotations,KNOSYM(onfinish),KNO_VOID);
+      if (!(KNO_VOIDP(onfinish))) {
+	lispval sj = (lispval)p;
+	DO_CHOICES(handler,onfinish) {
+	  lispval v = kno_call(NULL,handler,1,&sj);
+	  if (KNO_ABORTED(v)) {kno_clear_errors(1);}
+	  else kno_decref(v);}
+	kno_decref(onfinish);}}}
+  else if (WIFSTOPPED(status)) {
+    int loglevel = p->proc_loglevel;
+    u8_log(loglevel,"SubprocStopped","PID=%lld signal=%d stdin=%q stdout=%q stderr=%q",
+	   (long long)(p->proc_pid),p->proc_id,WSTOPSIG(status),
+	   p->proc_stdin,p->proc_stdout,p->proc_stderr);}
+  else {}
 }
 
 static int check_finished(struct KNO_SUBPROC *p)
@@ -542,17 +564,15 @@ static int handle_procopts(lispval opts)
 
 /* Run */
 
-static void handle_config_spec(kno_stackvec c,lispval spec,lispval keep);
-static void handle_env_spec(kno_stackvec e,lispval spec,lispval keep);
+static void handle_env_spec(kno_stackvec e,lispval spec);
 static int handle_arg_spec(kno_stackvec a,lispval arg,int flags);
-static void add_configs(kno_stackvec configs,lispval value,u8_string name);
 static u8_string mkidstring(u8_string progname,int n,kno_argvec args);
 static lispval makeout(int fd,u8_string id);
 static lispval makein(int fd,u8_string id);
 static u8_string get_outdir(lispval opts);
 
-DEFC_PRIMNx("proc/open",proc_open_prim,
-	    KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+DEFC_PRIMNx("%proc/run",proc_run_prim,
+	    KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	    "invokes *progname*, usually by forking a new child "
 	    "process, and passes the remaining arguments to "
 	    "the program. If the *opts* arg is a string, it is "
@@ -560,32 +580,18 @@ DEFC_PRIMNx("proc/open",proc_open_prim,
 	    2,
 	    {"progname",kno_string_type,KNO_VOID},
 	    {"opts",kno_any_type,KNO_VOID})
-static lispval proc_open_prim(int n,kno_argvec args)
+static lispval proc_run_prim(int n,kno_argvec args)
 {
-  u8_string progname = NULL;
-  int args_start = 2, flags = 0, exec_mod = 0;
-  lispval command = args[0], opts = (n>1) ? (args[1]) : (KNO_FALSE), result=VOID;
-  if (KNO_STRINGP(command))
-    progname=KNO_CSTRING(command);
-  else if (KNO_SYMBOLP(command)) {
-    if (strchr(KNO_SYMBOL_NAME(command),'/')) {
-      lispval mod = kno_find_module(command,0);
-      if (!(KNO_VOIDP(mod))) {
-	exec_mod = 1;
-	progname=KNO_SYMBOL_NAME(command);
-	kno_decref(mod);}}
-    if (!exec_mod) {
-      lispval config_val = kno_config_get(KNO_SYMBOL_NAME(command));
-      if (KNO_STRINGP(config_val))
-	progname=KNO_CSTRING(config_val);
-      else progname=KNO_SYMBOL_NAME(command);
-      kno_decref(config_val);}}
-  else return kno_err("BadCommand","runproc_prim",NULL,command);
+  int args_start = 2, flags = 0, arg_flags = 0;
+  lispval opts=args[0], command=args[1], result=VOID;
+  if (!(KNO_STRINGP(command)))
+    return kno_err("Invalid COMMAND arg","%proc/run",NULL,command);
+  else if (!(KNO_OPTIONSP(opts)))
+    return kno_err("Invalid OPTS arg","%proc/run",NULL,opts);
+  else NO_ELSE;
+  u8_string progname = KNO_CSTRING(command);
 
-  /* Handle the case with no options */
-  if ( (KNO_STRINGP(opts)) || (KNO_NUMBERP(opts)) ) {
-    opts = KNO_FALSE; args_start = 1;}
-  else if (kno_testopt(opts,KNOSYM(fork),KNO_FALSE))
+  if (kno_testopt(opts,KNOSYM(fork),KNO_FALSE))
     flags |= KNO_NO_FORK;
   else NO_ELSE;
 
@@ -604,42 +610,25 @@ static lispval proc_open_prim(int n,kno_argvec args)
     kno_decref(idopt);}
   if (idstring==NULL)
     idstring=mkidstring(progname,n-args_start,args+args_start);
-  if (idbase==NULL)
-    idbase=u8_strdup(progname);
+  if (idbase==NULL) {
+    if (*progname=='/')
+      idbase=u8_basename(progname,NULL);
+    else idbase=u8_strdup(progname);}
   
-  lispval knox_opt = kno_getopt(opts,KNOSYM(knox),KNO_VOID);
-  lispval interpreter_opt = kno_getopt(opts,KNOSYM(interpreter),KNO_VOID);
-  u8_string interpreter =
-    ( (!(exec_mod)) && (KNO_FALSEP(interpreter_opt)) ) ? (NULL) :
-    (KNO_STRINGP(interpreter_opt)) ? (KNO_CSTRING(interpreter_opt)) :
-    (KNO_STRINGP(knox_opt)) ? (KNO_CSTRING(knox_opt)) :
-    ((!(KNO_VOIDP(knox_opt))) && (!(KNO_FALSEP(knox_opt)))) ? (U8S(KNO_EXEC)) :
-    (KNO_VOIDP(interpreter_opt)) ?
-    ((u8_has_suffix(progname,".scm",1)) ? (U8S(KNO_EXEC)) : (NULL)) :
-    (U8S(KNO_EXEC));
-  int kno_exec = (exec_mod) ? (exec_mod) :
-    (KNO_FALSEP(knox_opt)) ? (0) :
-    (!(KNO_VOIDP(knox_opt))) ? (1) :
-    ( (interpreter) && (strcmp(interpreter,KNO_EXEC)==0) );
-
-  if (kno_exec) flags |= KNO_IS_SCHEME;
+  lispval logopt = kno_get(opts,KNOSYM_LOGLEVEL,KNO_VOID);
+  int loglevel = ( (FIXNUMP(logopt)) && (KNO_FIX2INT(logopt)>0) && 
+		   (KNO_FIX2INT(logopt)<64) ) ?
+    (KNO_FIX2INT(logopt)) : (default_subproc_loglevel);
 
   KNO_DECL_STACKVEC(exec_args,32);
   KNO_DECL_STACKVEC(environment,32);
-  KNO_DECL_STACKVEC(configs,32);
-  char *cprogname = NULL;
+  char *cprogname = u8_tolibc(progname);
 
-  if (interpreter) {
-    kno_stackvec_push(exec_args,knostring(interpreter));
-    cprogname = u8_tolibc(interpreter);}
-  else cprogname = u8_tolibc(progname);
   kno_stackvec_push(exec_args,knostring(progname));
 
   kno_argvec scan = args+args_start, limit = args+n;
   while (scan<limit) {
     lispval arg = *scan++;
-    int arg_flags = (kno_exec) ? (ARG_ESCAPE_SCHEME|ARG_ESCAPE_CONFIGS) :
-      (0);
     int rv = handle_arg_spec(exec_args,arg,arg_flags);
     if (rv<0) {
       kno_free_stackvec(exec_args);
@@ -647,53 +636,34 @@ static lispval proc_open_prim(int n,kno_argvec args)
       return KNO_ERROR;}}
 
   lispval env_spec = kno_getopt(opts,KNOSYM(environment),KNO_VOID);
-  lispval keep_env = kno_getopt(opts,KNOSYM(keepenv),KNO_VOID);
-  if ( (!(KNO_VOIDP(env_spec))) || (!(KNO_VOIDP(keep_env))) )
-    handle_env_spec(environment,env_spec,keep_env);
+  if (!(KNO_VOIDP(env_spec))) handle_env_spec(environment,env_spec);
 
-  lispval config_spec = kno_getopt(opts,KNOSYM(configs),VOID);
-  if ( (!(KNO_VOIDP(config_spec))) && (kno_exec) ) {
-    lispval keep_configs = kno_getopt(opts,KNOSYM(keepconfigs),KNO_VOID);
-    if ( (!(KNO_VOIDP(config_spec))) || (!(KNO_VOIDP(keep_configs))) )
-      handle_config_spec(configs,config_spec,keep_configs);
-    else NO_ELSE;
-    kno_decref(keep_configs);}
-  else if (!(KNO_VOIDP(config_spec)))
-    u8_log(LOGWARN,"IgnoredConfigs",
-	   "Ignoring the provided configs because the program "
-	   "is not a KNO application.");
-  else NO_ELSE;
-
-  int use_argc = ((interpreter==NULL)?(0):(1)) +
-    exec_args->count + configs->count + 1;
-  char **argv = u8_alloc_n(use_argc,char *);
+  int argc = exec_args->count;
+  char **argv = u8_alloc_n(argc+1,char *);
   int arg_write = 0;
 
   lispval *scan_args = exec_args->elts;
-  int arg_i = 0, arg_max = exec_args->count;
-  while (arg_i<arg_max) {
-    lispval arg = scan_args[arg_i++];
+  int arg_i = 0;
+  while (arg_i<argc) {
+    lispval arg = scan_args[arg_i];
     if (KNO_STRINGP(arg))
-      argv[arg_write++]=u8_tolibc(CSTRING(arg));}
+      argv[arg_i]=u8_tolibc(CSTRING(arg));
+    else if (KNO_PACKETP(arg))
+      argv[arg_i]=u8_memdup(KNO_PACKET_LENGTH(arg),KNO_PACKET_DATA(arg));
+    else argv[arg_i]="badarg";
+    arg_i++;}
+  argv[arg_i]=NULL;
 
-  lispval *config_args = configs->elts;
-  int config_i = 0, config_max = configs->count;
-  while (config_i<config_max) {
-    lispval arg = config_args[config_i++];
-    if (KNO_STRINGP(arg))
-      argv[arg_write++]=u8_tolibc(CSTRING(arg));}
-  argv[arg_write++]=NULL;
-
-  int use_envc = environment->count+1;
-  char **envp = (use_envc) ? (u8_alloc_n(use_envc,char *)) : (NULL);
-  int env_i=0, env_max = environment->count;
-  lispval *elts = environment->elts;
-  while (env_i<env_max) {
-    lispval spec = elts[env_i];
-    envp[env_i]=u8_tolibc(CSTRING(spec));
-    env_i++;}
-  envp[env_i++]=NULL;
-
+  int env_i=0, envc = environment->count;
+  char **envp = u8_alloc_n(envc+1,char *);
+  if (envp) {
+    lispval *elts = environment->elts;
+    while (env_i<envc) {
+      lispval spec = elts[env_i];
+      envp[env_i]=u8_tolibc(CSTRING(spec));
+      env_i++;}
+    envp[env_i++]=NULL;}
+  
   lispval dir_opt = kno_getopt(opts,KNOSYM(chdir),KNO_EMPTY);
   char *cwd = (KNO_STRINGP(dir_opt)) ? (u8_tolibc(KNO_CSTRING(dir_opt))) :
     (NULL);
@@ -787,6 +757,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
       u8_mkstring("%s_%lld.stdout",idbase,(long long)child_pid);
     u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
       (u8_abspath(name,NULL));
+    u8_free(name);
     if (pid==0) {
       int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
       if (new_stdout<0) {
@@ -806,6 +777,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
       u8_mkstring("%s_%lld.stderr",idbase,(long long)child_pid);
     u8_string use_file = (out_dir) ? (u8_mkpath(out_dir,name)) :
       (u8_abspath(name,NULL));
+    u8_free(name);
     if (pid==0) {
       int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
       if (new_stderr<0) {
@@ -831,10 +803,9 @@ static lispval proc_open_prim(int n,kno_argvec args)
 
   if (pid == 0) {
     doexec(flags,cprogname,cwd,in,out,err,argv,envp,opts);
-    result=kno_seterr("ExecFailed","proc_open",progname,VOID);}
+    result=kno_seterr("ExecFailed","proc_run",progname,VOID);}
   else if (pid>0) {
-    int loglevel  = subproc_loglevel;
-    u8_log(subproc_loglevel+1,"SubprocStarted",
+    u8_log(loglevel+1,"SubprocStarted",
 	   "%s pid=%lld %s",idstring,(long long)pid,progname);
     result = cons_subproc
       (pid,idstring,cprogname,argv,envp,
@@ -844,6 +815,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
 	(makein(out[0],u8_mkstring("(stdout)%s",idstring)))),
        (((err==NULL) || (err[0]<0)) ? (kno_incref(errfile)) :
 	(makein(err[0],u8_mkstring("(stderr)%s",idstring)))),
+       loglevel,
        kno_incref(opts));
     struct KNO_SUBPROC *subproc = (kno_subproc) result;
     if (!(KNO_FALSEP(wait_opt))) {
@@ -851,7 +823,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
       int rv = waitpid(pid,&status,0);
       if (rv>=0) subproc->proc_status = status;
       if (rv<0) {
-	lispval err = kno_err("WaitFailed","proc_open",progname,result);
+	lispval err = kno_err("WaitFailed","proc_run",progname,result);
 	kno_decref(result);
 	result=err;}
       else if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
@@ -860,7 +832,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
     errno = 0;}
   else {
     int err = errno; errno=0;
-    result = kno_err(u8_strerror(err),"proc_open/wait",progname,KNO_VOID);}
+    result = kno_err(u8_strerror(err),"proc_run/wait",progname,KNO_VOID);}
 
   /* Clean up any sockets we created */
   /* pair[0] is the read end, pair[1] is the write end */
@@ -892,13 +864,11 @@ static lispval proc_open_prim(int n,kno_argvec args)
   kno_decref(outfile);
   kno_decref(errfile);
   kno_decref(dir_opt);
-  kno_decref(knox_opt);
-  kno_decref(interpreter_opt);
-  kno_decref(config_spec);
   kno_decref(env_spec);
-  kno_decref(keep_env);
+  kno_decref_stackvec(exec_args);
+  kno_free_stackvec(exec_args);
+  kno_decref_stackvec(environment);
   kno_free_stackvec(environment);
-  kno_free_stackvec(configs);
   return result;
 }
 
@@ -932,10 +902,10 @@ static u8_string get_outdir(lispval opts)
       goto cleanup;}
     else if (KNO_UNSPECIFIEDP(outdir_conf)) {}
     else u8_log(LOGWARN,"BadOutdir",
-		"Value of OUTDIR for proc/run config option was %q",
+		"Value of OUTDIR for %proc/run config option was %q",
 		outdir_conf);}
   else if (KNO_UNSPECIFIEDP(outdir_opt)) {}
-  else u8_log(LOGWARN,"BadOutdir","Outdir option (for proc/run) was %q",
+  else u8_log(LOGWARN,"BadOutdir","Outdir option (for %proc/run) was %q",
 	      outdir_opt);
 
   if (outdir == NULL) {}
@@ -956,25 +926,17 @@ static u8_string get_outdir(lispval opts)
   return outdir;
 }
 
-static int handle_arg_spec(kno_stackvec args,lispval spec,
-			   int escape_flags)
+static int handle_arg_spec(kno_stackvec args,lispval spec,int escape_flags)
 {
   if (KNO_EMPTY_LISTP(spec))
     return 0;
+  else if (KNO_SYMBOLP(spec)) {
+    kno_stackvec_push(args,knostring(KNO_SYMBOL_NAME(spec)));
+    return 1;}
   else if (KNO_STRINGP(spec)) {
-    u8_string s = CSTRING(spec);
-    if ( (escape_flags) && (needs_scheme_escapep(s,escape_flags)) ) {
-      U8_STATIC_OUTPUT(arg,100);
-      u8_putc(argout,'\\');
-      u8_puts(argout,KNO_CSTRING(spec));
-      kno_stackvec_push
-	(args,kno_make_string(NULL,u8_outlen(argout),u8_outstring(argout)));
-      u8_close_output(argout);
-      return 1;}
-    else {
-      kno_incref(spec);
-      kno_stackvec_push(args,spec);
-      return 1;}}
+    kno_incref(spec);
+    kno_stackvec_push(args,spec);
+    return 1;}
   else if (KNO_PACKETP(spec)) {
     kno_incref(spec);
     kno_stackvec_push(args,spec);
@@ -1011,95 +973,48 @@ static int handle_arg_spec(kno_stackvec args,lispval spec,
     return 1;}
 }
 
-static void handle_config_spec(kno_stackvec configs,lispval config_spec,lispval keep_spec)
-{
-  if (KNO_VOIDP(keep_spec)) {}
-  else if ( (KNO_FALSEP(keep_spec)) && (KNO_VOIDP(config_spec)) ) {
-    kno_stackvec_push(configs,knostring("PROCPRIMS_CONFIG_RESET=yes"));
-    return;}
-  else {
-    lispval config_args = kno_config_get("CONFIGARGS");
-    if (KNO_VECTORP(config_args)) {
-      int len = KNO_VECTOR_LENGTH(config_args);
-      lispval *elts = KNO_VECTOR_ELTS(config_args);
-      int i = 0; while (i<len) {
-	lispval config = elts[i]; kno_incref(config);
-	kno_stackvec_push(configs,config);
-	i++;}}
-    kno_decref(config_args);}
-  if (!(KNO_VOIDP(config_spec))) {
-    KNO_DO_CHOICES(conf,config_spec) {
-      if (KNO_STRINGP(conf)) {
-	if (strchr(CSTRING(conf),'='))
-	  kno_stackvec_push(configs,conf);
-	else {
-	  lispval cval = kno_config_get(KNO_SYMBOL_NAME(conf));
-	  add_configs(configs,cval,CSTRING(conf));
-	  kno_decref(cval);}}
-      else if (KNO_SYMBOLP(conf)) {
-	lispval cval = kno_config_get(KNO_SYMBOL_NAME(conf));
-	add_configs(configs,cval,KNO_SYMBOL_NAME(conf));
-	kno_decref(cval);}
-      else if (KNO_TABLEP(conf)) {
-	lispval keys = kno_getkeys(conf);
-	KNO_DO_CHOICES(key,keys) {
-	  if (KNO_SYMBOLP(key)) {
-	    lispval cval = kno_get(conf,key,KNO_VOID);
-	    add_configs(configs,cval,KNO_SYMBOL_NAME(key));
-	    kno_decref(cval);}}
-	kno_decref(keys);}
-      else NO_ELSE;}}
-}
+DEF_KNOSYM(copy);
 
-static void handle_env_spec(kno_stackvec environment,
-			    lispval env_spec,
-			    lispval keep_env)
+static void handle_env_spec(kno_stackvec environment,lispval env_spec)
 {
-  if (KNO_VOIDP(keep_env)) {}
-  else if ( (KNO_FALSEP(keep_env)) && (KNO_VOIDP(env_spec)) ) {
-    kno_stackvec_push(environment,knostring("PROCPRIMS_ENV_RESET=yes"));
-    return;}
-  else {
+  if (kno_overlapp(env_spec,KNOSYM(copy))) {
     char *const *scan = environ;
     while (*scan) {
       u8_string use_string = u8_fromlibc(*scan);
       lispval stringval = kno_init_string(NULL,-1,use_string);
       kno_stackvec_push(environment,stringval);
       scan++;}}
-  if (!(KNO_VOIDP(env_spec))) {
-    KNO_DO_CHOICES(spec,env_spec) {
-      if (KNO_STRINGP(spec)) {
-	if (strchr(CSTRING(spec),'=')) {
-	  kno_stackvec_push(environment,spec); kno_incref(spec);}
-	else u8_log(LOGWARN,"BadEnvEntry","Couldn't use string %q",spec);}
-      else if (KNO_TABLEP(spec)) {
-	lispval keys = kno_getkeys(spec);
-	KNO_DO_CHOICES(key,keys) {
-	  u8_string env_var = (SYMBOLP(key)) ? (SYMBOL_NAME(key)) :
-	    (STRINGP(key)) ? (CSTRING(key)) : (NULL);
-	  if (env_var) {
-	    lispval val = kno_get(spec,key,KNO_VOID);
-	    u8_string spec = NULL;
-	    if (KNO_STRINGP(val))
-	      spec = u8_mkstring("%s=%s",env_var,CSTRING(val));
-	    else if (KNO_NUMBERP(val))
-	      spec = u8_mkstring("%s=%q",env_var,val);
-	    else if (KNO_OIDP(val))
-	      spec = u8_mkstring("%s=%q",env_var,val);
-	    else spec = u8_mkstring("%s=:%q",env_var,val);
-	    lispval as_lisp = kno_init_string(NULL,-1,spec);
+  KNO_DO_CHOICES(spec,env_spec) {
+    if (KNO_STRINGP(spec)) {
+      if (strchr(CSTRING(spec),'=')) {
+	kno_stackvec_push(environment,spec); kno_incref(spec);}
+      else {
+	u8_string env_val = u8_getenv(CSTRING(spec));
+	if (env_val) {
+	  u8_string env_entry = u8_mkstring("%s=%s",CSTRING(spec),env_val);
+	  kno_stackvec_push(environment,kno_init_string(NULL,-1,env_entry));
+	  u8_free(env_val);}}}
+    else if (KNO_TABLEP(spec)) {
+      lispval keys = kno_getkeys(spec);
+      KNO_DO_CHOICES(key,keys) {
+	u8_string env_var = (SYMBOLP(key)) ? (SYMBOL_NAME(key)) :
+	  (STRINGP(key)) ? (CSTRING(key)) : (NULL);
+	if (env_var) {
+	  lispval val = kno_get(spec,key,KNO_VOID);
+	  u8_string env_entry = NULL;
+	  if ( (VOIDP(val)) || (EMPTYP(val)) ) {}
+	  else if (KNO_STRINGP(val))
+	    env_entry = u8_mkstring("%s=%s",env_var,CSTRING(val));
+	  else if (KNO_NUMBERP(val))
+	    env_entry = u8_mkstring("%s=%q",env_var,val);
+	  else if (KNO_OIDP(val))
+	    env_entry = u8_mkstring("%s=%q",env_var,val);
+	  else env_entry = u8_mkstring("%s=:%q",env_var,val);
+	  if (env_entry) {
+	    lispval as_lisp = kno_init_string(NULL,-1,env_entry);
 	    kno_stackvec_push(environment,as_lisp);}}}
-      else NO_ELSE;}}
-}
-
-static void add_configs(kno_stackvec configs,lispval value,u8_string name)
-{
-  if (KNO_CHOICEP(value)) {
-    KNO_DO_CHOICES(v,value) { add_configs(configs,v,name); }}
-  else {
-    u8_string conf_spec = u8_mkstring("%s=:%q",name,value);
-    lispval as_lisp = kno_init_string(NULL,-1,conf_spec);
-    kno_stackvec_push(configs,as_lisp);}
+      kno_decref(keys);}
+    else NO_ELSE;}
 }
 
 static u8_string mkidstring(u8_string progname,int n,kno_argvec args)
@@ -1610,23 +1525,32 @@ static lispval proc_stoppedp(lispval arg)
 static lispval cons_subproc(pid_t pid,u8_string id,
 			    char *cprogname,char **argv,char **envp,
 			    lispval in,lispval out,lispval err,
+			    int loglevel,
 			    lispval opts)
 {
   // TODO: Have a global list/array of subprocesses
   struct KNO_SUBPROC *proc = u8_alloc(struct KNO_SUBPROC);
+  double started = u8_elapsed_time();
   KNO_INIT_CONS(proc,kno_subproc_type);
   proc->annotations = KNO_EMPTY;
-  proc->proc_started = u8_elapsed_time();
-  proc->proc_pid = pid;
+
   proc->proc_id = id;
-  proc->proc_stdin = in;
-  proc->proc_stdout = out;
-  proc->proc_stderr = err;
-  proc->proc_opts = opts;
+  proc->proc_pid = pid;
+  proc->proc_status = 0;
+  proc->proc_loglevel = -1;
   proc->proc_progname = cprogname;
   proc->proc_argv = argv;
   proc->proc_envp = envp;
+
+  proc->proc_started = started;
   proc->proc_finished = -1;
+
+  proc->proc_stdin = in;
+  proc->proc_stdout = out;
+  proc->proc_stderr = err;
+
+  proc->proc_opts = opts;
+
   lispval pid_val = KNO_INT((long long)pid);
   lispval procval = (lispval) proc;
   int rv = kno_hashtable_store(proctable,pid_val,procval);
@@ -1662,8 +1586,8 @@ static void recycle_subproc(struct KNO_RAW_CONS *c)
   kno_decref(sp->proc_stderr); sp->proc_stderr=KNO_VOID;
   kno_decref(sp->proc_opts); sp->proc_opts=KNO_VOID;
   if (sp->proc_progname) u8_free(sp->proc_progname);
-  free_stringvec(sp->proc_argv);
-  free_stringvec(sp->proc_envp);
+  free_stringvec(sp->proc_argv); sp->proc_argv=NULL;
+  free_stringvec(sp->proc_envp); sp->proc_envp=NULL;
   if (sp->proc_id) u8_free(sp->proc_id);
   if (sp->annotations) kno_decref(sp->annotations);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
@@ -1715,7 +1639,7 @@ KNO_EXPORT void kno_init_procprims_c()
 
   kno_register_config
     ("SUBPROC:LOGLEVEL","Loglevel to use for subprocs",
-     kno_intconfig_get,kno_loglevelconfig_set,NULL);
+     kno_intconfig_get,kno_loglevelconfig_set,&default_subproc_loglevel);
 
   id_symbol = kno_intern("id");
   stdin_symbol = kno_intern("stdin");
@@ -1730,7 +1654,7 @@ KNO_EXPORT void kno_init_procprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIMN("proc/open",proc_open_prim,procprims_module);
+  KNO_LINK_CPRIMN("proc/run",proc_run_prim,procprims_module);
   KNO_LINK_CPRIM("proc-pid",proc_pid,1,procprims_module);
   KNO_LINK_CPRIM("proc-id",proc_idstring,1,procprims_module);
   KNO_LINK_CPRIM("proc-progname",proc_progname,1,procprims_module);

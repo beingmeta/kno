@@ -19,11 +19,15 @@
 		  addconfig.command
 		  config.command
 		  addsetup.command
-		  usemods.command
-		  usemod.command
+		  loadmods.command
+		  loadmod.command
 		  optmods.command
 		  optmod.command
 		  optuse.command
+		  usemods.command
+		  usemod.command
+		  use.command
+		  reflect.command
 		  reopt.command
 		  load.command
 		  appload.command
@@ -181,15 +185,28 @@
 
 ;;;; Modifying the session programmatically
 
+(define (read-all-configs file)
+  (if (file-exists? file)
+      (let* ((in (open-input-file file))
+	     (def (read in))
+	     (defs {}))
+	(while (pair? def)
+	  (set+! defs def)
+	  (set! def (read in)))
+	defs)
+      (fail)))
+
 ;;; TODO: Add session-drop-config!
 (defambda (session-config! var val (exec #t) (session *session*))
   (unless (valid-session? session) (irritant session |InvalidSession|))
   (when exec (config! var val))
-  (let ((out (extend-output-file (mkpath session "session.cfg"))))
-    (printout-to out ";; Added " (gmtimestamp) " from " (config 'sessionid) "\n")
-    (printout-to out 
-      (write `(,(string->symbol (downcase var)) ,val))
-      "\n")))
+  (let* ((file (mkpath session "session.cfg"))
+	 (configs (read-all-configs file))
+	 (confdef `(,(string->symbol (downcase var)) ,val)))
+    (unless (overlaps? confdef configs)
+      (let ((out (extend-output-file file)))
+	(printout-to out ";; Added " (gmtimestamp) " from " (config 'sessionid) "\n")
+	(printout-to out (write confdef) "\n")))))
 
 (define (session-setup! expr (session *session*))
   (unless (valid-session? session) (irritant session |InvalidSession|))
@@ -321,22 +338,24 @@
     (or (get-module name)
 	(begin (when warn (logwarn |UnknownModule| name)) #f))))
 
-(define (usemods.command . modules)
+(define (loadmods.command . modules)
   "Add modules to the current application session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (if (exists? good-mods)
 	(if *session*
 	    (session-config! 'appmods good-mods *session*)
 	    (config! 'appmods good-mods))
-	(logwarn |UseMods| "No modules specified"))))
-(define usemod.command (fcn/alias usemods.command))
+	(logwarn |LoadMods| "No modules specified"))))
+(define loadmod.command (fcn/alias loadmods.command))
+
 (define (optmods.command . modules)
   "Optimize the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (cond ((exists? good-mods) (optimize-module! good-mods)
-	   (session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
+	   (session-setup! `((importvar 'optimize 'optimize*) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
 (define optmod.command (fcn/alias optmods.command))
+
 (define (optuse.command . modules)
   "Use (and optimize) the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
@@ -347,6 +366,28 @@
 	   (optimize-module! (get-module (elts modules)))
 	   (session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
+
+(define optimize-usemods #t)
+(varconfig! usemods:optimize optimize-usemods config:boolean)
+
+(define (usemods.command . modules)
+  "Add modules to the current application session"
+  (let ((good-mods (get-good-mods (elts modules) #t)))
+    (if (exists? good-mods)
+	(if *session*
+	    (begin
+	      (session-config! 'appmods good-mods *session*)
+	      (when optimize-usemods (session-config! 'optmods good-mods *session*)))
+	    (begin (config! 'appmods good-mods)
+	      (when optimize-usemods (config! 'optmods good-mods))))
+	(logwarn |UseMods| "No modules specified"))))
+(define usemod.command (fcn/alias usemods.command))
+(define use.command (fcn/alias usemods.command))
+
+;;; Some standard modules
+
+(define (reflect.command)
+  (config! 'appmods 'reflection))
 
 ;;; Other commands
 

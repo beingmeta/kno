@@ -383,6 +383,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 				(exists stopfn loop-state))))
 	      (load (fifo/load fifo)))
 	  (when stopval
+	    (unless (test batch-state 'stopval) (store! batch-state 'stopval stopval))
 	    (if (zero? load)
 		(store! loop-state 'stopped (timestamp))
 		(store! loop-state 'stopping (timestamp)))

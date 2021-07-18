@@ -352,6 +352,8 @@ static kno_index open_kindex(u8_string fname,kno_storage_flags open_flags,
   return (kno_index)index;
 }
 
+DEF_KNOSYM(xrefs_zero);
+
 static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream)
 {
   u8_string fname = index->index_source;
@@ -374,14 +376,14 @@ static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream)
       elts[i] = read_raw(in);
       i++;}
     while (i < max_xrefs) elts[i++]=KNO_VOID;
-    kno_init_xrefs(&(index->index_xrefs),
-		   n_xrefs,max_xrefs,-1,flags,
+    kno_init_xrefs(&(index->index_xrefs),flags,
+		   -1,n_xrefs,max_xrefs,-1,
 		   elts,NULL);}
   else {
     lispval *elts = u8_alloc_n(256,lispval);
     int i = 0; while (i < 256) elts[i++]=KNO_VOID;
-    kno_init_xrefs(&(index->index_xrefs),
-		   0,256,-1,flags,
+    kno_init_xrefs(&(index->index_xrefs),flags,
+		   -1,0,256,-1,
 		   elts,NULL);}
 
   kno_off_t metadata_loc  = kno_read_8bytes_at
@@ -429,18 +431,24 @@ static int load_header(struct KNO_KINDEX *index,struct KNO_STREAM *stream)
     modified_metadata=1;}
   else return -1;
 
+  lispval xrefs_zero = KNO_VOID;
   if (KNO_VOIDP(metadata)) {}
   else if (KNO_SLOTMAPP(metadata)) {
     kno_index_set_metadata((kno_index)index,metadata);
     if (modified_metadata) {
       KNO_XTABLE_SET_MODIFIED(&(index->index_metadata),1);}
-    index->kx_metadata_pos = metadata_loc;}
+    index->kx_metadata_pos = metadata_loc;
+    xrefs_zero=kno_get(metadata,KNOSYM(xrefs_zero),KNO_VOID);}
   else {
     u8_log(LOG_WARN,"BadMetadata",
 	   "Bad metadata for %s @%ll_d+%ll_d: %q",
 	   fname,metadata_loc,metadata_size,metadata);}
   kno_decref(metadata);
   metadata = KNO_VOID;
+
+  if (KNO_UINTP(xrefs_zero))
+    index->index_xrefs.xt_refs_zero=KNO_FIX2INT(xrefs_zero);
+  kno_decref(xrefs_zero);
 
   index->table_n_keys = kno_read_4bytes_at(stream,16,KNO_ISLOCKED);
 
@@ -3127,6 +3135,92 @@ static lispval get_hashbuckets(struct KNO_KINDEX *kx)
   return kno_simplify_choice(buckets);
 }
 
+DEF_KNOSYM(vector);
+
+static lispval tabulate_buckets(lispval info,lispval into)
+{
+  if ( (KNO_VOIDP(into)) || (KNO_FALSEP(into)) )
+    return kno_simplify_choice(info);
+  if (into==KNOSYM(vector)) {
+    if (KNO_CHOICEP(info)) {
+      int reuse = (KNO_REFCOUNT(info)==1);
+      int len = KNO_CHOICE_SIZE(info);
+      lispval result = kno_make_vector(len,NULL);
+      lispval *write = KNO_VECTOR_ELTS(result);
+      KNO_ITER_CHOICES(scan,limit,info);
+      if (reuse) while (scan<limit) *write++=*scan++;
+      else while (scan<limit) {
+	  lispval elt = *scan++;
+	  kno_incref(elt);
+	  *write++=elt;}
+      if (reuse) {
+	kno_free_choice((kno_choice)info);
+	return result;}
+      else {
+	kno_decref(info);
+	return result;}}
+    else if (KNO_PRECHOICEP(info)) {
+      int reuse = (KNO_REFCOUNT(info)==1);
+      int len = KNO_PRECHOICE_SIZE(info);
+      lispval result = kno_make_vector(len,NULL);
+      lispval *write = KNO_VECTOR_ELTS(result);
+      struct KNO_PRECHOICE *ch=(kno_prechoice)info;
+      const lispval *scan=ch->prechoice_data, *limit=ch->prechoice_write;
+      while (scan<limit) {
+	lispval entry = *scan++;
+	if (CHOICEP(entry)) {
+	  int reuse_entry = (reuse) && (KNO_REFCOUNT(entry)==1);
+	  KNO_ITER_CHOICES(vscan,vlimit,entry);
+	  if (reuse_entry) while (vscan<vlimit) { *write++=*vscan++; }
+	  else while (vscan<vlimit) {
+	      lispval v = *vscan++; kno_incref(v); *write++=v;}
+	  if (reuse_entry) kno_free_choice((kno_choice)entry);}
+	else if (reuse)
+	  *write++=entry;
+	else *write++=kno_incref(entry);}
+      if (reuse) {
+	if (ch->prechoice_mallocd) {
+	  u8_big_free(ch->prechoice_data);
+	  ch->prechoice_mallocd=0;}
+	kno_decref(ch->prechoice_normalized);
+	u8_destroy_mutex(&(ch->prechoice_lock));
+	if ((KNO_STATIC_CONSP(ch))) u8_free(ch);}
+      return result;}
+    else return kno_make_vector(1,&info);}
+  ssize_t n_keys = (KNO_CHOICEP(info)) ? (KNO_CHOICE_SIZE(info)) :
+    (KNO_PRECHOICEP(info)) ? (KNO_PRECHOICE_SIZE(info)) : (1);
+  lispval table = kno_make_hashtable(NULL,n_keys);
+  if (KNO_ABORTED(table)) {
+    kno_decref(info);
+    return table;}
+  if (n_keys==0) {}
+  else if (n_keys==1) {
+    lispval key = kno_get(info,KNOSYM_KEY,KNO_VOID);
+    kno_hashtable_store((kno_hashtable)table,key,info);
+    kno_decref(key);}
+  else if (KNO_CHOICEP(info)) {
+    KNO_DO_CHOICES(item,info) {
+      lispval key = kno_get(item,KNOSYM_KEY,KNO_VOID);
+      kno_hashtable_add((kno_hashtable)table,key,item);
+      kno_decref(key);}}
+  else {
+    const struct KNO_PRECHOICE *ch=(kno_prechoice)info;
+    const lispval*scan=ch->prechoice_data, *limit=ch->prechoice_write;
+    while (scan<limit) {
+      lispval entry = *scan++;
+      if (CHOICEP(entry)) {
+	KNO_DO_CHOICES(item,entry) {
+	  lispval key = kno_get(item,KNOSYM_KEY,KNO_VOID);
+	  kno_hashtable_add((kno_hashtable)table,key,item);
+	  kno_decref(key);}}
+      else {
+	lispval key = kno_get(entry,KNOSYM_KEY,KNO_VOID);
+	kno_hashtable_add((kno_hashtable)table,key,entry);
+	kno_decref(key);}}}
+  kno_decref(info);
+  return table;
+}
+
 static lispval hashbucket_info(struct KNO_KINDEX *kx,lispval bucket_nums)
 {
   kno_stream s = &(kx->index_stream);
@@ -3373,8 +3467,8 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       return get_hashbuckets(kx);
     else if (n==1)
       return hashbucket_info(kx,args[0]);
-    else if (n==2) {
-      lispval arg0 = args[0], arg1 = args[1];
+    else if (n<4) {
+      lispval arg0 = args[0], arg1 = args[1], tablep = (n<3) ? (KNO_VOID) : (args[2]);
       if (!(KNO_UINTP(arg0)))
 	return kno_type_error("lowerhashbucket","kindex_ctl/buckets",arg0);
       else if (!(KNO_UINTP(arg0)))
@@ -3382,13 +3476,14 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       else {
 	long long lower = kno_getint(arg0);
 	long long upper = kno_getint(arg1);
-	if (upper==lower) return hashbucket_info(kx,args[0]);
+	if (upper==lower)
+	  return tabulate_buckets(hashbucket_info(kx,args[0]),tablep);
 	else if (upper < lower)
 	  return kno_err(kno_DisorderedRange,"kindex_ctl",kx->indexid,
 			kno_init_pair(NULL,arg0,arg1));
 	else if (upper > kx->index_n_buckets)
 	  return kno_err(kno_RangeError,"kindex_ctl",kx->indexid,arg1);
-	else return hashrange_info(kx,lower,upper);}}
+	else return tabulate_buckets(hashrange_info(kx,lower,upper),tablep);}}
     else return kno_err(kno_TooManyArgs,"kindex_ctl",kx->indexid,op);}
   else if ( (op == kno_metadata_op) && (n == 0) ) {
     lispval base = kno_index_base_metadata(ix);

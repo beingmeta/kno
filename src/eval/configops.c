@@ -154,7 +154,7 @@ static lispval string_macro(lispval expr,kno_lexenv env,kno_stack ptr)
     U8_STATIC_OUTPUT(string,128);
     lispval scan = arg; while (KNO_PAIRP(scan)) {
       lispval car = KNO_CAR(scan); scan = KNO_CDR(scan);
-      lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_value(car)) :
+      lispval elt = (KNO_PAIRP(car)) ? (kno_interpret_config(car)) :
 	(kno_incref(car));
       if (KNO_STRINGP(elt))
 	u8_putn(stringout,KNO_CSTRING(elt),KNO_STRLEN(elt));

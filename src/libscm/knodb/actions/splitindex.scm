@@ -65,20 +65,23 @@
 		    "The temporary output file " (write (glom head-file ".part")) " exists.\n  "
 		    "Specify RESTART=yes to remove.")
 		  (exit))))
-    (let* ((head (index/ref head-file (frame-create #f
-					'maxload (config 'HEADLOAD (config 'MAXLOAD 0.8))
-					'keyslot (tryif keyslot keyslot)
-					'addkeys input-keycount
-					'create #t)))
-	   (tail (and tail-file
-		      (index/ref tail-file (frame-create #f
-					     'maxload (config 'TAILLOAD (CONFIG 'MAXLOAD 0.8))
-					     ;; 'maxsize (config 'TAILMAXSIZE (CONFIG 'MAXSIZE #2gib))
-					     'keyslot (tryif keyslot keyslot)
-					     'addkeys input-keycount
-					     'create #t))))
+    (let* ((head (index/ref head-file
+			    (frame-create #f
+			      'maxload (config 'HEADLOAD (config 'MAXLOAD 0.8))
+			      'indextype (config 'headtype (config 'indextype (config 'type {})))
+			      'keyslot (tryif keyslot keyslot)
+			      'addkeys input-keycount
+			      'create #t)))
+	   (tail (index/ref (or tail-file {}) 
+			    (frame-create #f
+			      'maxload (config 'TAILLOAD (CONFIG 'MAXLOAD 0.8))
+			      'indextype (config 'tailtype (config 'indextype (config 'type {})))
+			      ;; 'maxsize (config 'TAILMAXSIZE (CONFIG 'MAXSIZE #2gib))
+			      'keyslot (tryif keyslot keyslot)
+			      'addkeys input-keycount
+			      'create #t)))
 	   (opts (frame-create #f
-		   'tail (or tail {})
+		   'tail tail
 		   'tailcount (or tailcount {})
 		   'maxcount (config 'maxcount {})
 		   'mincount (config 'mincount {}))))
@@ -127,6 +130,6 @@
 	       "Repacks the file index stored in <from> either in place or into [to]."
 	       "Common options include (first value is default) : \n"
 	       ($indented 4
-			  "INDEXTYPE=keep|knopool|filepool\n"
+			  "INDEXTYPE=keep|kindex|fileindex\n"
 			  "OVERWRITE=no|yes\n")
 	       "If specified, [to] must not exist unless OVERWRITE=yes")))

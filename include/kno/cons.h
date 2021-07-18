@@ -267,14 +267,14 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
     return KNO_BADPTR;
   else {
     kno_consbits cb = atomic_load(&(x->conshead));
-    if (cb>0xFFFFFF80) {
+    if (cb>KNO_MAX_REFCOUNT) {
       kno_raisex(kno_UsingFreedCons,"kno_incref",NULL);
       return (lispval)NULL;}
     else if ((cb&(~0x7F)) == 0) {
       /* Static cons */
       return (lispval) x;}
-#if KNO_MAX_REFCOUNT
-    else if ((cb>>7) > KNO_MAX_REFCOUNT) {
+#if KNO_CHECK_REFCOUNT
+    else if ((cb>>7) > KNO_CHECK_REFCOUNT) {
       _kno_refcount_overflow((lispval)x,(cb>>7),"incref");
       atomic_fetch_add(&(x->conshead),0x80);
       return (lispval) x;}
@@ -288,21 +288,21 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 {
   if (KNO_RARELY(x == NULL)) return;
   kno_consbits cb = atomic_load(&(x->conshead));
-  if (cb>=0xFFFFFF80) {
+  if (cb>KNO_MAX_REFCOUNT) {
     kno_raisex(kno_DoubleGC,"kno_decref",NULL);}
   else if (cb<0x80) {
     /* Static cons */}
   else {
     kno_consbits oldcb=atomic_fetch_sub(&(x->conshead),0x80);
-#if KNO_MAX_REFCOUNT
-    if ((cb>>7) > KNO_MAX_REFCOUNT)
+#if KNO_CHECK_REFCOUNT
+    if ((cb>>7) > KNO_CHECK_REFCOUNT)
       _kno_refcount_overflow((lispval)x,(cb>>7),"decref");
 #endif
     if ((oldcb>=0x80)&&(oldcb<0x100)) {
       /* If the modified consbits indicated a refcount of 1,
 	 we've reduced it to zero, so we recycle it. Otherwise,
 	 someone got in to free it or incref it in the meanwhile. */
-      atomic_store(&(x->conshead),((oldcb&0x7F)|0xFFFFFF80));
+      atomic_store(&(x->conshead),((oldcb&0x7F)|KNO_REFCOUNT_MASK));
       kno_recycle_cons((kno_raw_cons)x);}
   }
 }
@@ -311,7 +311,7 @@ KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 
 KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 {
-  if (KNO_CONSBITS(x)>0xFFFFFF80) {
+  if (KNO_CONSBITS(x)>KNO_MAX_REFCOUNT) {
     kno_raisex(kno_UsingFreedCons,"kno_incref",NULL);
     return (lispval)NULL;}
   else if ((KNO_CONSBITS(x)&(~0x7F)) == 0) {
@@ -326,7 +326,7 @@ KNO_INLINE_FCN lispval _kno_incref(struct KNO_REF_CONS *x)
 
 KNO_INLINE_FCN void _kno_decref(struct KNO_REF_CONS *x)
 {
-  if (KNO_CONSBITS(x)>=0xFFFFFF80) {
+  if (KNO_CONSBITS(x)>=KNO_MAX_REFCOUNT) {
     kno_raisex(kno_DoubleGC,"kno_decref",NULL);}
   else if ((KNO_CONSBITS(x)&(~0x7F)) == 0) {
     /* Static cons */}

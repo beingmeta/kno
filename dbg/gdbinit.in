@@ -3,7 +3,7 @@ directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@extra_sources@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
-set env KNO_INIT_LOADPATH ,@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/textmods/,@abs_top_srcdir@/src/webmods/,@default_module_path@
+set env KNO_INIT_LOADPATH ,@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/textmods/,@abs_top_srcdir@/src/webmods/
 set env KNO_UPDATEMODULES=5
 set env KNO_SKIP_DOTLOAD yes
 set env KNO_TRACECONFIGLOAD yes
@@ -15,4 +15,5 @@ set env KNO_TRACEWEB=yes
 set env KNO_WEBDEBUG=yes
 set env KNO_WEBALLOWDEBUG=yes
 set env KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
+set env KNO_KNOX=@abs_top_srcdir@/dbg/dbgknox
 source .gdbinit.local

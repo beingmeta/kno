@@ -98,13 +98,13 @@ static lispval unexpected_eod()
 
 /* XREF objects */
 
-KNO_EXPORT int kno_init_xrefs(xtype_refs refs,
-			      int n_refs,int refs_len,
-			      int refs_max,int flags,
+KNO_EXPORT int kno_init_xrefs(xtype_refs refs,int flags,
+			      int zero_refs,int n_refs,int refs_len,int refs_max,
 			      lispval *elts,
 			      kno_hashtable lookup)
 {
-  refs->xt_n_refs = n_refs;
+  refs->xt_refs_zero = zero_refs;
+  refs->xt_refs_count = n_refs;
   refs->xt_refs_len = refs_len;
   if (refs_max>0) {
     if (refs_max<refs_len) refs_max = refs_len;}
@@ -760,8 +760,9 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 	return KNO_ERROR;}
       struct XTYPE_REFS xrefs;
       int n_refs = KNO_VECTOR_LENGTH(refvec);
-      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
+      kno_init_xrefs(&xrefs,
 		     (XTYPE_REFS_EXT_ELTS|XTYPE_REFS_READ_ONLY),
+		     -1,n_refs,n_refs,n_refs,
 		     KNO_VECTOR_ELTS(refvec),
 		     NULL);
       lispval decoded = read_xtype(in,&xrefs);
@@ -968,8 +969,9 @@ static int validate_xtype(kno_inbuf in,xtype_refs refs)
 	return KNO_ERROR;}
       struct XTYPE_REFS xrefs;
       int n_refs = KNO_VECTOR_LENGTH(refvec);
-      kno_init_xrefs(&xrefs,n_refs,n_refs,n_refs,
+      kno_init_xrefs(&xrefs,
 		     (XTYPE_REFS_EXT_ELTS|XTYPE_REFS_READ_ONLY),
+		     -1,n_refs,n_refs,n_refs,
 		     KNO_VECTOR_ELTS(refvec),
 		     NULL);
       int rv = validate_xtype(in,&xrefs);
@@ -1463,7 +1465,7 @@ KNO_EXPORT lispval kno_getxrefs(lispval arg)
     if (free_arg) kno_decref(arg);
     struct XTYPE_REFS *refs = u8_alloc(struct XTYPE_REFS);
     int init_rv =
-      kno_init_xrefs(refs,n_elts,n_elts,-1,XTYPE_REFS_READ_ONLY,
+      kno_init_xrefs(refs,XTYPE_REFS_READ_ONLY,-1,n_elts,n_elts,-1,
 		     copy,NULL);
     if (init_rv<0) {
       u8_free(copy);

@@ -75,6 +75,9 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_EXEC_WRAPPER
   config_string(KNO_EXEC_WRAPPER);
 #endif
+#ifdef KNO_EXEC
+  config_string(KNO_EXEC);
+#endif
 #ifdef KNO_LOCAL_MODULE_DIR
   config_string(KNO_LOCAL_MODULE_DIR);
 #endif

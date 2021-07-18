@@ -1886,45 +1886,46 @@ fi;
 ### Here's where stuff gets made
 
 AC_CONFIG_FILES([makefile etc/version etc/makefile.include
-           src/extmods/makefile DIY/makefile 
-	   tests/libtests/makefile
-           etc/gdbinit
-           etc/lldbinit
-	   exe/.gdbinit
-	   exe/.lldbinit
-	   dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
-	   etc/kno.pc
-	   src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs
-	   src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs
-	   src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup
-	   src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog 
-	   src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec
-	   src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob
-	   tests/testenv.sh tests/xtest
-	   tests/runtest tests/memtest
-	   tests/leaktest tests/knoxtest
-	   src/scripts/knopkg.scm
-	   src/extmods/knoconfig
-	   etc/logrotate
-	   etc/sysv/kno-rc.d
-	   etc/sysv/ex_servlet-init.d
-	   etc/sysv/ex_daemon-init.d
-	   etc/upstart/kno.conf
-	   etc/upstart/knod.conf
-	   etc/upstart/knoservlets.conf
-	   etc/upstart/ex_knoservlet.conf
-	   etc/systemd/ex_servlet.service
-	   etc/systemd/ex_daemon.service
-	   etc/systemd/kno-daemons.service
-	   etc/systemd/kno-servlets.service
-	   etc/macos/OSXStartupItem/KNO
-	   etc/macos/KNO.plist
-	   etc/apache/knocgi.conf 
-	   etc/apache/knocgi.load
-	   etc/install-script 
-	   etc/getbuildopt
-	   dist/alpine/APKBUILD
-	   dist/kno.spec.base])
+                 src/extmods/makefile DIY/makefile 
+	         tests/libtests/makefile
+	   	 etc/gdbinit
+           	 etc/lldbinit
+	   	 exe/.gdbinit
+	   	 exe/.lldbinit
+	   	 dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind
+	   	 etc/kno.pc
+	   	 src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs
+	   	 src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs
+		 src/shell/knostart src/shell/knostop src/shell/knostartall 
+		 src/shell/knostopall src/shell/knocleanup
+		 src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog 
+		 src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec
+		 src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob
+		 tests/testenv.sh tests/xtest
+		 tests/runtest tests/memtest
+		 tests/leaktest tests/knoxtest
+		 src/scripts/knopkg.scm
+		 src/extmods/knoconfig
+		 etc/logrotate
+		 etc/sysv/kno-rc.d
+		 etc/sysv/ex_servlet-init.d
+		 etc/sysv/ex_daemon-init.d
+		 etc/upstart/kno.conf
+		 etc/upstart/knod.conf
+		 etc/upstart/knoservlets.conf
+		 etc/upstart/ex_knoservlet.conf
+		 etc/systemd/ex_servlet.service
+		 etc/systemd/ex_daemon.service
+		 etc/systemd/kno-daemons.service
+		 etc/systemd/kno-servlets.service
+		 etc/macos/OSXStartupItem/KNO
+		 etc/macos/KNO.plist
+		 etc/apache/knocgi.conf 
+		 etc/apache/knocgi.load
+		 etc/install-script 
+		 etc/getbuildopt
+		 dist/alpine/APKBUILD
+		 dist/kno.spec.base])
 AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig],[])
 AC_OUTPUT
 

@@ -89,7 +89,7 @@ case ${option} in
     lib)
 	echo "@libdir@";;
     libs)
-	echo "-L@libdir@ -lkno -lu8";;
+	echo "@LIBS@ -L@libdir@ -lkno -lu8";;
     deplibs)
 	echo "@LIBS@";;
     bin|bindir)
