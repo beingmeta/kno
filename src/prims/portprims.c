@@ -1898,9 +1898,11 @@ static void recycle_port(struct KNO_RAW_CONS *c)
 {
   struct KNO_PORT *p = (struct KNO_PORT *)c;
   if (p->port_input) {
-    u8_close_input(p->port_input);}
+    u8_close_input(p->port_input);
+    p->port_input=NULL;}
   if (p->port_output) {
-    u8_close_output(p->port_output);}
+    u8_close_output(p->port_output);
+    p->port_output=NULL;}
   if (p->port_id) u8_free(p->port_id);
   if (p->port_lisprefs != KNO_NULL) kno_decref(p->port_lisprefs);
   if (p->annotations) kno_decref(p->annotations);

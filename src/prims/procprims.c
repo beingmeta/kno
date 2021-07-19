@@ -88,6 +88,7 @@ static lispval id_symbol, stdin_symbol, stdout_symbol, stderr_symbol;
 static lispval cons_subproc(pid_t pid,u8_string id,
 			    char *cprogname,char **argv,char **envp,
 			    lispval in,lispval out,lispval err,
+			    int loglevel,
 			    lispval opts);
 static int handle_procopts(lispval opts);
 
@@ -114,7 +115,7 @@ static int stringvec_len(char **vec)
   return scan-vec;
 }
 
-static int subproc_loglevel = LOG_NOTICE;
+static int default_subproc_loglevel = LOG_WARN;
 
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
@@ -177,23 +178,30 @@ void extract_pid_status(int status,lispval into)
 static void finish_subproc(struct KNO_SUBPROC *p)
 {
   if (p->proc_finished>0) return;
-  lispval pidval = KNO_INT((long long)(p->proc_pid));
-  int rv = kno_hashtable_drop(proctable,pidval,KNO_VOID);
-  if (rv) { /* if rv!=0, it was already deleted */ 
-    p->proc_finished = u8_elapsed_time();
-    int status = p->proc_status;
-    if ( (WIFEXITED(status)) && (WEXITSTATUS(status)==0) ) {
+  int status = p->proc_status;
+  if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) ) {
+    lispval pidval = KNO_INT((long long)(p->proc_pid));
+    int rv = kno_hashtable_drop(proctable,pidval,KNO_VOID);
+    if (rv) { /* if rv!=0, it was already deleted */ 
+      p->proc_finished = u8_elapsed_time();
+      int normal_exit = (WIFEXITED(status)) ? (WEXITSTATUS(status)==0) :
+	(0);
       lispval opts = p->proc_opts, in = p->proc_stdin;
       lispval out = p->proc_stdout, err = p->proc_stderr;
       u8_string outfilename = NULL, errfilename = NULL;
+      /* Close the input to the process */
       if (KNO_TYPEP(in,kno_ioport_type)) {
 	struct KNO_PORT *port = (kno_port) in;
 	if (port->port_input) {
-	  u8_close_input(port->port_input);}
+	  u8_close_input(port->port_input);
+	  port->port_input=NULL;}
 	if (port->port_output) {
-	  u8_close_output(port->port_output);}}
+	  u8_close_output(port->port_output);
+	  port->port_output=NULL;}}
       if (KNO_STRINGP(out)) {
-	if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
+	if (!(normal_exit))
+	  outfilename = KNO_CSTRING(out);
+	else if (kno_testopt(opts,KNOSYM(stdout),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(out),"stdout")) {
 	    p->proc_stdout=KNOSYM(deleted);
 	    kno_decref(out);}}
@@ -201,29 +209,43 @@ static void finish_subproc(struct KNO_SUBPROC *p)
       else if (KNO_TYPEP(out,kno_ioport_type)) {}
       else NO_ELSE;
       if (KNO_STRINGP(err)) {
-	if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
+	if (!(normal_exit))
+	  errfilename = KNO_CSTRING(err);
+	else if (kno_testopt(opts,KNOSYM(stderr),KNOSYM(temp))) {
 	  if (remove_output(KNO_CSTRING(err),"stderr")) {
 	    p->proc_stderr=KNOSYM(deleted);
 	    kno_decref(err);}}
 	else errfilename = KNO_CSTRING(err);}
       else if (KNO_TYPEP(err,kno_ioport_type)) {}
       else NO_ELSE;
-      int loglevel  = ( (outfilename) || (errfilename) ) ? (LOG_WARN) :
-	(subproc_loglevel);
-      u8_log(loglevel,"SubprocFinished","PID=%lld %s%s%s%s%s",
-	     (long long)(p->proc_pid),p->proc_id,
-	     ((outfilename)?("\n\tsaved stdout="):("")),
-	     ((outfilename)?(outfilename):(U8S(""))),
-	     ((errfilename)?("\n\tsaved stderr="):("")),
-	     ((errfilename)?(errfilename):(U8S(""))));}
-    lispval onfinish = kno_get(p->annotations,KNOSYM(onfinish),KNO_VOID);
-    if (!(KNO_VOIDP(onfinish))) {
-      lispval sj = (lispval)p;
-      DO_CHOICES(handler,onfinish) {
-	lispval v = kno_call(NULL,handler,1,&sj);
-	if (KNO_ABORTED(v)) {kno_clear_errors(1);}
-	else kno_decref(v);}
-      kno_decref(onfinish);}}
+      int loglevel  = (normal_exit) ? (p->proc_loglevel) : (LOGERR) ;
+      if (WIFEXITED(status))
+	u8_log(loglevel,"SubprocFinished","PID=%lld status=%d %s%s%s%s%s",
+	       (long long)(p->proc_pid),p->proc_id,WEXITSTATUS(status),
+	       ((outfilename)?("\n\tsaved stdout="):("")),
+	       ((outfilename)?(outfilename):(U8S(""))),
+	       ((errfilename)?("\n\tsaved stderr="):("")),
+	       ((errfilename)?(errfilename):(U8S(""))));
+      else u8_log(loglevel,"SubprocFinished","PID=%lld signal=%d %s%s%s%s%s",
+		  (long long)(p->proc_pid),p->proc_id,WTERMSIG(status),
+		  ((outfilename)?("\n\tsaved stdout="):("")),
+		  ((outfilename)?(outfilename):(U8S(""))),
+		  ((errfilename)?("\n\tsaved stderr="):("")),
+		  ((errfilename)?(errfilename):(U8S(""))));
+      lispval onfinish = kno_get(p->annotations,KNOSYM(onfinish),KNO_VOID);
+      if (!(KNO_VOIDP(onfinish))) {
+	lispval sj = (lispval)p;
+	DO_CHOICES(handler,onfinish) {
+	  lispval v = kno_call(NULL,handler,1,&sj);
+	  if (KNO_ABORTED(v)) {kno_clear_errors(1);}
+	  else kno_decref(v);}
+	kno_decref(onfinish);}}}
+  else if (WIFSTOPPED(status)) {
+    int loglevel = p->proc_loglevel;
+    u8_log(loglevel,"SubprocStopped","PID=%lld signal=%d stdin=%q stdout=%q stderr=%q",
+	   (long long)(p->proc_pid),p->proc_id,WSTOPSIG(status),
+	   p->proc_stdin,p->proc_stdout,p->proc_stderr);}
+  else {}
 }
 
 static int check_finished(struct KNO_SUBPROC *p)
@@ -607,6 +629,11 @@ static lispval proc_open_prim(int n,kno_argvec args)
   if (idbase==NULL)
     idbase=u8_strdup(progname);
   
+  lispval logopt = kno_get(opts,KNOSYM_LOGLEVEL,KNO_VOID);
+  int loglevel = ( (FIXNUMP(logopt)) && (KNO_FIX2INT(logopt)>0) && 
+		   (KNO_FIX2INT(logopt)<64) ) ?
+    (KNO_FIX2INT(logopt)) : (default_subproc_loglevel);
+
   lispval knox_opt = kno_getopt(opts,KNOSYM(knox),KNO_VOID);
   lispval interpreter_opt = kno_getopt(opts,KNOSYM(interpreter),KNO_VOID);
   u8_string interpreter =
@@ -833,8 +860,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
     doexec(flags,cprogname,cwd,in,out,err,argv,envp,opts);
     result=kno_seterr("ExecFailed","proc_open",progname,VOID);}
   else if (pid>0) {
-    int loglevel  = subproc_loglevel;
-    u8_log(subproc_loglevel+1,"SubprocStarted",
+    u8_log(loglevel+1,"SubprocStarted",
 	   "%s pid=%lld %s",idstring,(long long)pid,progname);
     result = cons_subproc
       (pid,idstring,cprogname,argv,envp,
@@ -844,6 +870,7 @@ static lispval proc_open_prim(int n,kno_argvec args)
 	(makein(out[0],u8_mkstring("(stdout)%s",idstring)))),
        (((err==NULL) || (err[0]<0)) ? (kno_incref(errfile)) :
 	(makein(err[0],u8_mkstring("(stderr)%s",idstring)))),
+       loglevel,
        kno_incref(opts));
     struct KNO_SUBPROC *subproc = (kno_subproc) result;
     if (!(KNO_FALSEP(wait_opt))) {
@@ -1610,23 +1637,32 @@ static lispval proc_stoppedp(lispval arg)
 static lispval cons_subproc(pid_t pid,u8_string id,
 			    char *cprogname,char **argv,char **envp,
 			    lispval in,lispval out,lispval err,
+			    int loglevel,
 			    lispval opts)
 {
   // TODO: Have a global list/array of subprocesses
   struct KNO_SUBPROC *proc = u8_alloc(struct KNO_SUBPROC);
+  double started = u8_elapsed_time();
   KNO_INIT_CONS(proc,kno_subproc_type);
   proc->annotations = KNO_EMPTY;
-  proc->proc_started = u8_elapsed_time();
-  proc->proc_pid = pid;
+
   proc->proc_id = id;
-  proc->proc_stdin = in;
-  proc->proc_stdout = out;
-  proc->proc_stderr = err;
-  proc->proc_opts = opts;
+  proc->proc_pid = pid;
+  proc->proc_status = 0;
+  proc->proc_loglevel = -1;
   proc->proc_progname = cprogname;
   proc->proc_argv = argv;
   proc->proc_envp = envp;
+
+  proc->proc_started = started;
   proc->proc_finished = -1;
+
+  proc->proc_stdin = in;
+  proc->proc_stdout = out;
+  proc->proc_stderr = err;
+
+  proc->proc_opts = opts;
+
   lispval pid_val = KNO_INT((long long)pid);
   lispval procval = (lispval) proc;
   int rv = kno_hashtable_store(proctable,pid_val,procval);
@@ -1715,7 +1751,7 @@ KNO_EXPORT void kno_init_procprims_c()
 
   kno_register_config
     ("SUBPROC:LOGLEVEL","Loglevel to use for subprocs",
-     kno_intconfig_get,kno_loglevelconfig_set,NULL);
+     kno_intconfig_get,kno_loglevelconfig_set,&default_subproc_loglevel);
 
   id_symbol = kno_intern("id");
   stdin_symbol = kno_intern("stdin");
