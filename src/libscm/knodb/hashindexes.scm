@@ -14,6 +14,7 @@
 		  hashindex/repack-keys
 		  hashindex/repack-buckets
 		  hashindex/repack-mapkeys
+		  hashindex/keyvec
 		  hashindex/keyset
 		  hashindex/slotkeyset})
 
@@ -37,7 +38,7 @@
 (define (hashindex/mapkeys mapfn index (opts #f))
   (let* ((n-buckets (indexctl index 'hash))
 	 (n-keys (indexctl index 'metadata 'keys))
-	 (span-width (getopt opts 'spanwidth (config 'SPANWIDTH 100000)))
+	 (span-width (getopt opts 'spanwidth (config 'SPANWIDTH 4000)))
 	 (spans (get-spans n-buckets span-width))
 	 (loop-init (getopt opts 'loop #[])))
     (let ((loopfn (lambda (span batch-state loop-state task-state)
@@ -56,6 +57,16 @@
 (define (hashindex/histogram index (opts #f) (table (make-hashtable)))
   (hashindex/mapkeys update-histogram index `#[loop #[histogram ,table]])
   table)
+
+(define (partition-keys span batch-state loop-state task-state)
+  (let* ((info (indexctl (get loop-state 'index) 'buckets (car span) (cdr span) 'vector)))
+    ((get loop-state 'addpart) (forseq (ki info) (get ki 'key)))))
+
+(define (hashindex/keyvec index (opts #f) (hashset (make-hashset)))
+  (let ((partitions '()))
+    (let ((addpart (slambda (vec) (unless (= (length vec) 0) (set! partitions (cons vec partitions))))))
+      (hashindex/mapkeys partition-keys index `#[loop #[addpart ,addpart]]))
+    (apply append partitions)))
 
 (define (update-keyset span batch-state loop-state task-state)
   (let* ((index (get loop-state 'index))
