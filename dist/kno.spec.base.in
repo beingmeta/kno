@@ -1,6 +1,6 @@
 Name:           kno
 Version:        @VERSION@
-Release:        @RPMVERSION@%{?dist}
+Release:        @KNO_PATCHLEVEL@%{?dist}
 Summary:        semantic development environment
 
 Group:          System Environment/Libraries
@@ -9,8 +9,8 @@ URL:            http://www.beingmeta.com/
 Source0:        kno-@VERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel libarchive-devel
-Requires:       libu8 >= 3.0 curl >= 7.15.1 libarchive >= 3.5 ldns csnappy libffi libzstd 
+BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel libarchive-devel rocksdb-devel leveldb-devel odbc-devel mariadb-devel
+Requires:       libu8 >= 3.0 curl >= 7.15.1 libarchive >= 3.5 ldns csnappy libffi libzstd leveldb rocksdb unixODBC mariadb-connector-c
 
 %description
 Kno is a distributed knowledge base and application environment.
@@ -47,7 +47,7 @@ You probably don\'t need it.
 %setup -q
 
 %build
-%configure --prefix=/usr --libdir=%{_libdir} --without-sudo --without-chowning --with-bootsystem=systemd --with-systemd=/etc/systemd/system --without-fastcgi --disable-devmode --with-admin-group=none --with-daemonid=none --with-parseltongue=3
+%configure --prefix=/usr --libdir=%{_libdir} --without-sudo --with-bootsystem=systemd --with-systemd=/etc/systemd/system --with-admin-group=none --with-daemonid=none --with-parseltongue=3
 make %{?_smp_mflags}
 
 %pre
@@ -63,6 +63,7 @@ fi
 %install
 rm -rf $RPM_BUILD_ROOT
 make install DESTDIR=$RPM_BUILD_ROOT
+make install-parseltongue DESTDIR=$RPM_BUILD_ROOT
 make install-support DESTDIR=$RPM_BUILD_ROOT
 make install-dev DESTDIR=$RPM_BUILD_ROOT
 make install-i18n DESTDIR=$RPM_BUILD_ROOT
@@ -103,10 +104,7 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/libkno.so.*
 %{_libdir}/libknowebtools.so.*
 %{_libdir}/libknotexttools.so.*
-%{_libdir}/kno/crypto.so*
-%{_libdir}/kno/sqlite.so*
-%{_libdir}/kno/testcapi.so*
-%{_libdir}/kno/archivetools.so*
+%{_libdir}/kno/*.so*
 %{_bindir}/*
 %{_mandir}/man1/*
 %{_mandir}/man8/*
@@ -116,8 +114,7 @@ rm -rf $RPM_BUILD_ROOT
 
 %files python
 /usr/lib64/kno/parseltongue.so
-/usr/lib64/kno/parseltongue.so.2106.0.0
-
+/usr/lib64/kno/parseltongue.so.@KNO_MAJOR@.@KNO_MINOR@
 
 %files devel
 %defattr(-,root,root,-)

@@ -2,7 +2,7 @@ Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn, librocksdb-dev, libleveldb-dev, libmariadb-dev, unixodbc-dev
 Standards-Version: 3.9.4
 Homepage: http://www.kno.dev/
 
@@ -62,11 +62,67 @@ Description: SQLite bindings for Kno
 Package: kno-sqlite-dbg
 Architecture: any
 Section: debug
-Depends: 
+Depends:
     kno-core-dbg (= ${binary:Version}),
     kno-sqlite (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-sqlite
+
+Package: kno-leveldb
+Architecture: any
+Depends: kno-core (= ${binary:Version}), libleveldb1d
+Description: Leveldb bindings for Kno
+
+Package: kno-leveldb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-leveldb (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-leveldb
+
+Package: kno-rocksdb
+Architecture: any
+Depends: kno-core (= ${binary:Version}), librocksdb5.17
+Description: Rocksdb bindings for Kno
+
+Package: kno-rocksdb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-rocksdb (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-rocksdb
+
+Package: kno-odbc
+Architecture: any
+Depends: kno-core (= ${binary:Version}), libodbc1
+Description: Odbc bindings for Kno
+
+Package: kno-odbc-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-odbc (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-odbc
+
+Package: kno-mariadb
+Architecture: any
+Depends: kno-core (= ${binary:Version}), mariadb | mariadb3 | libmariadb
+Description: Mariadb bindings for Kno
+
+Package: kno-mariadb-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-mariadb (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-mariadb
 
 Package: kno-parseltongue
 Architecture: any
