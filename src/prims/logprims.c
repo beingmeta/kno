@@ -83,6 +83,42 @@ static u8_context get_log_context(kno_stack stack)
   else return NULL;
 }
 
+static lispval log_printout(lispval port,lispval body,kno_lexenv env,kno_stack stack)
+{
+  lispval result = KNO_VOID;
+  U8_STATIC_OUTPUT(msg,1024);
+  if (u8_logprefix) u8_puts(msgout,u8_logprefix);
+  u8_byte _prefix[512];
+  u8_string prefix = u8_message_prefix(_prefix,sizeof(_prefix));
+  if (prefix) u8_puts(msgout,prefix);
+  u8_output outer_output = u8_current_output;
+  u8_set_default_output(msgout);
+  while (PAIRP(body)) {
+    lispval value = kno_eval(KNO_CAR(body),env,stack);
+    if (printout_helper(msgout,value)) {
+      kno_decref(value);}
+    else {
+      if (u8_logsuffix) u8_puts(msgout,u8_logsuffix);
+      result=value;
+      break;}
+    body = KNO_CDR(body);}
+  if (u8_logsuffix) u8_puts(msgout,u8_logsuffix);
+  int close_real = 0;
+  u8_output real = u8_current_output;
+  if (KNO_PORTP(port)) {
+    struct KNO_PORT *p=
+      kno_consptr(struct KNO_PORT *,port,kno_ioport_type);
+    if (p->port_output) real = p->port_output;}
+  else if (KNO_STRINGP(port)) {
+    /* Open file locked and in append mode */}
+  else NO_ELSE;
+  u8_set_default_output(outer_output);
+  u8_putn(real,msg.u8_outbuf,msg.u8_write-msg.u8_outbuf);
+  u8_close_output(msgout);
+  if (close_real) u8_close_output(real);
+  return result;
+}
+
 static lispval log_helper_evalfn(int loglevel,u8_condition condition,
 				 lispval body,
 				 kno_lexenv env,
@@ -108,17 +144,6 @@ static lispval log_helper_evalfn(int loglevel,u8_condition condition,
   if (temp_condition) u8_free(temp_condition);
   return VOID;
 }
-
-DEFC_EVALFN("message",message_evalfn,KNO_EVALFN_DEFAULTS,
-	    "`(message *printout args...*)` generates a log message "
-	    "with output specified by *printout args...*. This "
-	    "message will not be controlled by loglevels but will "
-	    "be handled by logging functions.")
-static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
-{
-  return log_helper_evalfn(U8_LOG_MSG,NULL,kno_get_body(expr,1),env,_stack);
-}
-
 
 DEFC_EVALFN("notify",notify_evalfn,KNO_EVALFN_DEFAULTS,
 	    "`(notify *printout args...*)` generates a log message "
@@ -273,6 +298,30 @@ static lispval logif_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return VOID;}
 }
 
+/* Message and logging to stdout */
+
+DEFC_EVALFN("message",message_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(message *printout args...*)` generates a log message "
+	    "with output specified by *printout args...*. This "
+	    "message will not be controlled by loglevels but will "
+	    "be handled by logging functions.")
+static lispval message_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  return log_printout(KNO_VOID,kno_get_body(expr,1),env,_stack);
+}
+
+DEFC_EVALFN("logprint",logprint_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(logprint *port* *printout args...*)` generates a log message "
+	    "to *port")
+static lispval logprint_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval port_arg = kno_get_arg(expr,1);
+  lispval port_val = kno_eval(port_arg,env,_stack);
+  lispval result = log_printout(port_val,kno_get_body(expr,2),env,_stack);
+  kno_incref(port_val);
+  return result;
+}
+
 /* Logging with the stack */
 
 DEFC_EVALFN("logstack",logstack_evalfn,KNO_EVALFN_DEFAULTS,
@@ -419,6 +468,7 @@ KNO_EXPORT void kno_init_logprims_c()
   u8_register_source_file(_FILEINFO);
 
   KNO_LINK_EVALFN(kno_sys_module,message_evalfn);
+  KNO_LINK_EVALFN(kno_sys_module,logprint_evalfn);
   KNO_LINK_EVALFN(kno_sys_module,notify_evalfn);
   KNO_LINK_EVALFN(kno_sys_module,status_evalfn);
   KNO_LINK_EVALFN(kno_sys_module,warning_evalfn);

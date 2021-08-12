@@ -325,9 +325,9 @@ CLEANDIRS=include/kno src/drivers/headers 		\
 	src/lisp src/apply src/sys 			\
 	src/storage src/drivers				\
 	src/eval src/prims				\
-	src/text src/textmods 			\
-	src/web src/webmods 			\
-	src/cmodules src/stdmods			\
+	src/text src/textmods 				\
+	src/web src/webmods 				\
+	src/cmodules src/cwrappers src/stdmods		\
 	etc
 
 KNO_HEADERS= \
@@ -454,7 +454,7 @@ SCHEME_MODULES=src/stdmods/*.scm \
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libkno@suffix@.@shared_suffix@
 
-ALL=testbin exe cmodules @TAGS_TARGET@
+ALL=testbin exe cmodules cwrappers @TAGS_TARGET@
 
 # Makefile targets
 
@@ -473,7 +473,7 @@ normal:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s testbin exe cmodules etc @TAGS_TARGET@
+	@+make -s testbin exe cmodules cwrappers etc @TAGS_TARGET@
 
 debugging:
 	@echo Building DEBUGGING configuration
@@ -486,7 +486,7 @@ debugging:
 	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  testbin exe cmodules etc @TAGS_TARGET@
+	  testbin exe cmodules cwrappers etc @TAGS_TARGET@
 
 profiling:
 	@echo Building PROFILING configuration
@@ -497,30 +497,30 @@ profiling:
 	          XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
 	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
 		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  	testbin libs exe cmodules etc @TAGS_TARGET@
+	  	testbin libs exe cmodules cwrappers etc @TAGS_TARGET@
 
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -DKNO_OPTIMIZING_BUILD=1" testbin exe cmodules etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-O3 -DKNO_OPTIMIZING_BUILD=1" testbin exe cmodules cwrappers etc @TAGS_TARGET@
 zooming:
 	@echo Building Zooming configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules cwrappers etc @TAGS_TARGET@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules cwrappers etc @TAGS_TARGET@
 distribution:
 	@echo Building DISTRIBUTION configuration
 	@+make -s XCFLAGS="$(XCFLAGS) KNO_DISTRIBUTION_BUILD=1" \
-		exe cmodules etc scripts @TAGS_TARGET@
+		exe cmodules cwrappers etc scripts @TAGS_TARGET@
 
-all: testbin debug-exe exe cmodules etc i18n @TAGS_TARGET@
-packaged: exe cmodules etc i18n
+all: testbin debug-exe exe cmodules cwrappers etc i18n @TAGS_TARGET@
+packaged: exe cmodules cwrappers etc i18n
 
 fresh: clean
 	make update
@@ -665,9 +665,23 @@ lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
+	@$(MSG) MACLIBTOOL  $@ $<l
 lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 	@ln -sf $(*F).dylib $@
+
+src/cwrappers/%.o: src/cwrappers/%.c ${CONFIG_HDRS}
+	$(CC) $(CFLAGS) $(MOD_CFLAGS) -o $@ -c $<
+	@$(MSG) CC_MODULE  $@ $<
+
+lib/kno/%.so: src/cwrappers/%.o
+	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
+	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
+	@$(MSG) MKSO  $@ $<
+lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
+	@$(MACLIBTOOL) -install_name \
+		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
+	@$(MSG) MACLIBTOOL  $@ $<
 
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
@@ -703,14 +717,14 @@ lib/%@suffix@.a:
 	@$(MSG) MKSTATIC $@
 lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
 	@ln -sf $(*F).so $@
-lib/%@suffix@.so:
-	@$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
+lib/lib%@suffix@.so:
+	$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
 		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS) $(LIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@echo MKSO $@
-lib/%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
+	@echo MKSO $@ $<
+lib/lib%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
-lib/%@suffix@.dylib:
+lib/lib%@suffix@.dylib:
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) -o $@ $^
@@ -831,6 +845,7 @@ libtestbin: libs tests/libtests/makefile
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/libtests
 cmodules: @CMODULES@
+cwrappers: @CWRAPPERS@
 
 dbg/knocgi.webuser: dbg/knocgi
 	@echo "Making" $@
@@ -1303,21 +1318,21 @@ debupdate:
 # Creating a source tree for packaging
 
 staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	git archive -o staging/kno.tar HEAD
+	git archive -o staging/knobase.tar HEAD
 	cd tests; git archive -o ../staging/tests.tar HEAD;
 	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
 	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
 	cd src/webmods; git archive -o ../../staging/webmods.tar HEAD;
 	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
 	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
-	cd staging/kno; tar xf ../kno.tar;
+	cd staging/kno; tar xf ../knobase.tar;
 	cd staging/kno/tests; tar xf ../../tests.tar;
 	cd staging/kno/src/stdmods; tar xf ../../../stdmods.tar;
 	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
 	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
 	cd staging/kno/src/brico; tar xf ../../../brico.tar;
 	cp REVISION FULL_REVISION staging/kno;
-	cd staging; rm -f kno.tar tests.tar stdlib.tar brico.tar
+	cd staging; rm -f knobase.tar tests.tar stdlib.tar brico.tar
 
 dist/kno.tar: staging/kno
 	cd staging; tar -cf ../dist/kno.tar kno;
@@ -1325,6 +1340,8 @@ dist/kno.tar: staging/kno
 	rm -rf staging/kno;
 dist/source.tar: dist/kno.tar
 	cd dist; ln -s kno.tar source.tar
+
+.PRECIOUS: dist/kno.tar
 
 # Creating staging areas from GIT
 
@@ -1390,6 +1407,9 @@ dist/debs.done: @DEB_BUILD_TARGET@
 dist/debsource.done: dist/debsource.signed
 	touch dist/debsource.done dist/debs.done
 
+unsigned-debs usdebs:
+	make GPGID=none dist/debs.done
+
 dist/debs.installed: dist/debs.done
 	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
 	   $(SUDO) dpkg -i dist/*.deb ) && \
@@ -1436,6 +1456,18 @@ dist/rpms.zip: dist/rpms.done
 		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
 		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
 
+redhat rpms rpm: dist/rpms.done
+
+unsigned-rpms usrpms:
+	make GPGID=none dist/rpms.done
+
+dist/rpms.installed: dist/rpms.done
+	@( $(SUDO) rpm -Uvh dist/@target_cpu@/kno*@KNO_VERSION@*.rpm ) && \
+	 ( $(SUDO) rpm -Uvh dist/kno-*@KNO_VERSION@*.src.rpm ) && \
+	 touch $@
+install-rpms rpminstall installrpms: dist/rpms.installed
+
+
 # Installation targets
 
 install-status:
@@ -1445,6 +1477,7 @@ install-status:
 install: install-status install-core 		\
 		install-static-libs     	\
 		install-cmodules		\
+		install-cwrappers		\
 		@install_libscm@ install-stdlib	\
 		install-dev			\
 		@setup_target@
@@ -1548,6 +1581,11 @@ install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_s
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archivetools.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
+
+install-cwrappers: @CWRAPPERS@
+	@for file in @CWRAPPERS@; do \
+	  u8_install_shared $${file} ${CMODULES} ${KNO_VERSION}; \
+	 done;
 
 # Setup targets
 
@@ -1963,6 +2001,20 @@ submodules update-submodules update-git update-modules:
 
 ### Executables #including src/exe/main.c
 $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
+
+### CWRAPPERS build rules
+
+lib/kno/rocksdb.so : MODLIBS=@ROCKSDB_LIBS@
+scr/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
+
+lib/kno/leveldb.so : MODLIBS=@LEVELDB_LIBS@
+scr/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
+
+lib/kno/odbc.so : MODLIBS=@ODBC_LIBS@
+scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
+
+lib/kno/mariadb.so : MODLIBS=@MARIADB_LIBS@
+src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@
 
 ### Depending on the .buildmode
 

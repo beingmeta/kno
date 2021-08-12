@@ -98,11 +98,15 @@ KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
-KNO_RELEASE=$(echo ${KNO_VERSION} | cut -d'.' -f3)
-KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
+if test -z "${KNO_PATCHLEVEL}"; then
+   KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+   KNO_CHANNEL=main;
+else
+   KNO_CHANNEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+fi;
+
 VERSION=$KNO_VERSION
-RPMVERSION=${KNO_RELEASE}
-DEBVERSION=${KNO_RELEASE}
 DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 EXESOURCE=exe
@@ -125,10 +129,11 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mariadb nng odbc rocksdb sundown tidy zeromq ziptools"
+EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
+CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -342,12 +347,9 @@ AC_SUBST(KNO_VERSION)
 AC_SUBST(KNO_MAJOR)
 AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_BRANCH)
-AC_SUBST(KNO_RELEASE)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(KNO_PATCHVERSION)
-AC_SUBST(RPMVERSION)
 AC_SUBST(DEB_BUILD_TARGET)
-AC_SUBST(DEBVERSION)
 AC_SUBST(LIBSOURCE)
 AC_SUBST(EXESOURCE)
 AC_SUBST(STATICEXE)
@@ -365,6 +367,7 @@ AC_SUBST(EXTMODS)
 AC_SUBST(CMODULES)
 AC_SUBST(INSTALL_CMODULES)
 AC_SUBST(TEST_CMODULES)
+AC_SUBST(CWRAPPERS)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(PKG_CFLAGS)
@@ -515,7 +518,7 @@ PKG_CFLAGS="-I$prefix/include/$host/ $PKG_CFLAGS"
 AC_DEFINE_UNQUOTED(KNO_VERSION,"$KNO_VERSION")
 AC_DEFINE_UNQUOTED(KNO_MAJOR_VERSION,$KNO_MAJOR)
 AC_DEFINE_UNQUOTED(KNO_MINOR_VERSION,$KNO_MINOR)
-AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_RELEASE)
+AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_PATCHLEVEL)
 AC_DEFINE_UNQUOTED(KNO_BRANCH,$KNO_BRANCH)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
@@ -1719,7 +1722,7 @@ if test "$with_parseltongue" != "no" &&
    test "${ax_python2_lib}" != "no"; then
    CMODULES="lib/kno/parseltongue2.$shared_suffix ${CMODULES}"
    INSTALL_CMODULES="install-parseltongue2 ${INSTALL_CMODULES}"
-else
+elif test "$with_parseltongue" != "3"; then
    auto_disabled="parseltongue2 ${auto_disabled}";
 fi
 if test "$with_parseltongue" != "no" &&
@@ -1728,7 +1731,7 @@ if test "$with_parseltongue" != "no" &&
    test "${ax_python3_lib}" != "no"; then
    CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
    INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
-else
+elif test "$with_parseltongue" != "2";then
    auto_disabled="parseltongue(3) ${auto_disabled}";
 fi
 
@@ -1865,6 +1868,116 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
+### CWRAPPERS config
+
+BUILD_LEVELDB_WRAPPERS=
+BUILD_ROCKSDB_WRAPPERS=
+BUILD_ODBC_WRAPPERS=
+BUILD_MARIADB_WRAPPERS=
+
+LEVELDB_CFLAGS=
+LEVELDB_LIBS=-lleveldb
+AC_SUBST(LEVELDB_CFLAGS)
+AC_SUBST(LEVELDB_LIBS)
+
+AC_ARG_WITH(leveldb,--with-leveldb Specify building with the LevelDB bindings,,with_leveldb=auto)
+AC_ARG_WITH(rocksdb,--with-rocksdb Specify building with the RocksDB bindings,,with_rocksdb=auto)
+AC_ARG_WITH(odbc,--with-odbc Specify building with the ODBC bindings,,with_odbc=auto)
+AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindings,,with_mariadb=auto)
+
+if test "${with_leveldb}" == "no"; then
+  manually_disabled="leveldb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
+  BUILD_LEVELDB_WRAPPERS=yes
+  LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
+  LEVELDB_LIBS=$(pkg-config --libs leveldb)
+else
+   AC_CHECK_HEADER(leveldb/c.h,HAVE_LEVELDB_HEADER=yes)
+   if test ! -z "${HAVE_LEVELDB_HEADER}"; then
+     AC_CHECK_LIB(leveldb,leveldb_open,BUILD_LEVELDB_WRAPPERS=yes)
+   fi;
+   if test ! -z "${BUILD_LEVELDB_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_leveldb}" = "force"; then
+      force_enabled="leveldb ${force_enabled}"
+      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="leveldb ${auto_disabled}";
+   fi;   
+fi;
+
+ROCKSDB_CFLAGS=
+ROCKSDB_LIBS=-lrocksdb
+AC_SUBST(ROCKSDB_CFLAGS)
+AC_SUBST(ROCKSDB_LIBS)
+
+if test "${with_rocksdb}" == "no"; then
+  manually_disabled="rocksdb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
+  BUILD_ROCKSDB_WRAPPERS=yes
+  ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
+  ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
+else
+   AC_CHECK_HEADER(rocksdb/c.h,HAVE_ROCKSDB_HEADER=yes)
+   if test ! -z "${HAVE_ROCKSDB_HEADER}"; then
+     AC_CHECK_LIB(rocksdb,rocksdb_open,BUILD_ROCKSDB_WRAPPERS=yes)
+   fi;
+   if test ! -z "${BUILD_ROCKSDB_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_rocksdb}" = "force"; then
+      force_enabled="rockdb ${force_enabled}"
+      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="rocksdb ${auto_disabled}";
+   fi;   
+fi;
+
+ODBC_CFLAGS=
+ODBC_LIBS=-lodbc
+AC_SUBST(ODBC_CFLAGS)
+AC_SUBST(ODBC_LIBS)
+
+if test "${with_odbc}" == "no"; then
+  manually_disabled="odbc ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
+  BUILD_ODBC_WRAPPERS=yes
+  ODBC_CFLAGS=$(pkg-config --cflags odbc)
+  ODBC_LIBS=$(pkg-config --libs odbc)
+else
+   AC_CHECK_HEADER(sql.h,HAVE_ODBC_HEADER=yes)
+   if test ! -z "${HAVE_ODBC_HEADER}"; then
+     AC_CHECK_LIB(odbc,SQLDriverConnect,BUILD_ODBC_WRAPPERS=yes)
+   fi;
+   if test ! -z "${BUILD_ODBC_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_rocksdb}" = "force"; then
+      force_enabled="odbc ${force_enabled}"
+      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="odbc ${auto_disabled}";
+   fi;   
+fi;
+
+MARIADB_CFLAGS=
+MARIADB_LIBS=-lmariadb
+AC_SUBST(MARIADB_CFLAGS)
+AC_SUBST(MARIADB_LIBS)
+
+if test "${with_mariadb}" == "no"; then
+  manually_disabled="mariadb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
+  MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
+  MARIADB_LIBS=$(pkg-config --libs libmariadb)
+  BUILD_MARIADB_WRAPPER=yes
+elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
+  MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
+  MARIADB_LIBS=$(pkg-config --libs bmariadb)
+  BUILD_MARIADB_WRAPPER=yes
+elif test "${with_mariadb}" = "force"; then
+  force_enabled="mariadb ${force_enabled}"
+  CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+else
+ auto_disabled="mariadb ${auto_disabled}";
+fi;
+
+
 ### These are components to preload
 
 AC_DEFINE_UNQUOTED(KNO_SCHEME_BUILTINS,$scheme_builtins_init)
@@ -1934,11 +2047,12 @@ if test ! -z "$gperftools"; then
 else
    echo "Built with malloc=$using_malloc";
 fi;
+echo "Channel is ${KNO_CHANNEL}";
 echo "Patch level is ${KNO_PATCHLEVEL}";
 echo $using_malloc > ./.malloc;
 if test ! -z "$missing"; then
    echo "+++ These important features can't be built: $missing";
-   echo "+++     Without them it won't be possible to use many KNO database files";
+   echo "+++     Without them it won't be possible to use some KNO features or read some KNO database files";
 fi
 if test ! -z "$auto_disabled"; then
    echo "+++ These components can't be built: $auto_disabled";

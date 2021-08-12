@@ -621,6 +621,13 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
+MARIADB_LIBS
+MARIADB_CFLAGS
+ODBC_CFLAGS
+ROCKSDB_LIBS
+ROCKSDB_CFLAGS
+LEVELDB_LIBS
+LEVELDB_CFLAGS
 sudo_program
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
@@ -720,6 +727,7 @@ MALLOC_FLAGS
 PKG_CFLAGS
 BOOTSETUP
 DATAFILES
+CWRAPPERS
 TEST_CMODULES
 INSTALL_CMODULES
 CMODULES
@@ -737,12 +745,9 @@ VERSION
 STATICEXE
 EXESOURCE
 LIBSOURCE
-DEBVERSION
 DEB_BUILD_TARGET
-RPMVERSION
 KNO_PATCHVERSION
 KNO_PATCHLEVEL
-KNO_RELEASE
 KNO_BRANCH
 KNO_MINOR
 KNO_MAJOR
@@ -873,7 +878,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -983,6 +987,10 @@ with_parseltongue
 with_sudo
 with_bootsystem
 with_systemd
+with_leveldb
+with_rocksdb
+with_odbc
+with_mariadb
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1034,7 +1042,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1287,15 +1294,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1433,7 +1431,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1586,7 +1584,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1710,6 +1707,10 @@ Optional Packages:
 --with/out-sudo use sudo with install
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
+--with-leveldb Specify building with the LevelDB bindings
+--with-rocksdb Specify building with the RocksDB bindings
+--with-odbc Specify building with the ODBC bindings
+--with-mariadb Specify building with the MariaDB/MySQL bindings
 
 Some influential environment variables:
   CC          C compiler command
@@ -4264,11 +4265,15 @@ KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
-KNO_RELEASE=$(echo ${KNO_VERSION} | cut -d'.' -f3)
-KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
+if test -z "${KNO_PATCHLEVEL}"; then
+   KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+   KNO_CHANNEL=main;
+else
+   KNO_CHANNEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
+fi;
+
 VERSION=$KNO_VERSION
-RPMVERSION=${KNO_RELEASE}
-DEBVERSION=${KNO_RELEASE}
 DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 EXESOURCE=exe
@@ -4291,10 +4296,11 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS="hyphenate imagetools leveldb mod_knocgi mongodb mariadb nng odbc rocksdb sundown tidy zeromq ziptools"
+EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
 INSTALL_CMODULES=""
 TEST_CMODULES=""
+CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -4471,8 +4477,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
 
 
 
@@ -6499,7 +6503,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_RELEASE_VERSION $KNO_RELEASE
+#define KNO_RELEASE_VERSION $KNO_PATCHLEVEL
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -9177,7 +9181,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9223,7 +9227,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9247,7 +9251,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9292,7 +9296,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9316,7 +9320,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -13236,7 +13240,7 @@ if test "$with_parseltongue" != "no" &&
    test "${ax_python2_lib}" != "no"; then
    CMODULES="lib/kno/parseltongue2.$shared_suffix ${CMODULES}"
    INSTALL_CMODULES="install-parseltongue2 ${INSTALL_CMODULES}"
-else
+elif test "$with_parseltongue" != "3"; then
    auto_disabled="parseltongue2 ${auto_disabled}";
 fi
 if test "$with_parseltongue" != "no" &&
@@ -13245,7 +13249,7 @@ if test "$with_parseltongue" != "no" &&
    test "${ax_python3_lib}" != "no"; then
    CMODULES="lib/kno/parseltongue.$shared_suffix ${CMODULES}"
    INSTALL_CMODULES="install-parseltongue ${INSTALL_CMODULES}"
-else
+elif test "$with_parseltongue" != "2";then
    auto_disabled="parseltongue(3) ${auto_disabled}";
 fi
 
@@ -13799,6 +13803,276 @@ if test "$prefix" != "/usr"; then
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
+
+### CWRAPPERS config
+
+BUILD_LEVELDB_WRAPPERS=
+BUILD_ROCKSDB_WRAPPERS=
+BUILD_ODBC_WRAPPERS=
+BUILD_MARIADB_WRAPPERS=
+
+LEVELDB_CFLAGS=
+LEVELDB_LIBS=-lleveldb
+
+
+
+
+# Check whether --with-leveldb was given.
+if test "${with_leveldb+set}" = set; then :
+  withval=$with_leveldb;
+else
+  with_leveldb=auto
+fi
+
+
+# Check whether --with-rocksdb was given.
+if test "${with_rocksdb+set}" = set; then :
+  withval=$with_rocksdb;
+else
+  with_rocksdb=auto
+fi
+
+
+# Check whether --with-odbc was given.
+if test "${with_odbc+set}" = set; then :
+  withval=$with_odbc;
+else
+  with_odbc=auto
+fi
+
+
+# Check whether --with-mariadb was given.
+if test "${with_mariadb+set}" = set; then :
+  withval=$with_mariadb;
+else
+  with_mariadb=auto
+fi
+
+
+if test "${with_leveldb}" == "no"; then
+  manually_disabled="leveldb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
+  BUILD_LEVELDB_WRAPPERS=yes
+  LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
+  LEVELDB_LIBS=$(pkg-config --libs leveldb)
+else
+   ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
+  HAVE_LEVELDB_HEADER=yes
+fi
+
+
+   if test ! -z "${HAVE_LEVELDB_HEADER}"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
+$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
+if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lleveldb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char leveldb_open ();
+int
+main ()
+{
+return leveldb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_leveldb_leveldb_open=yes
+else
+  ac_cv_lib_leveldb_leveldb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
+$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
+if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
+  BUILD_LEVELDB_WRAPPERS=yes
+fi
+
+   fi;
+   if test ! -z "${BUILD_LEVELDB_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_leveldb}" = "force"; then
+      force_enabled="leveldb ${force_enabled}"
+      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="leveldb ${auto_disabled}";
+   fi;
+fi;
+
+ROCKSDB_CFLAGS=
+ROCKSDB_LIBS=-lrocksdb
+
+
+
+if test "${with_rocksdb}" == "no"; then
+  manually_disabled="rocksdb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
+  BUILD_ROCKSDB_WRAPPERS=yes
+  ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
+  ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
+else
+   ac_fn_c_check_header_mongrel "$LINENO" "rocksdb/c.h" "ac_cv_header_rocksdb_c_h" "$ac_includes_default"
+if test "x$ac_cv_header_rocksdb_c_h" = xyes; then :
+  HAVE_ROCKSDB_HEADER=yes
+fi
+
+
+   if test ! -z "${HAVE_ROCKSDB_HEADER}"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rocksdb_open in -lrocksdb" >&5
+$as_echo_n "checking for rocksdb_open in -lrocksdb... " >&6; }
+if ${ac_cv_lib_rocksdb_rocksdb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrocksdb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char rocksdb_open ();
+int
+main ()
+{
+return rocksdb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rocksdb_rocksdb_open=yes
+else
+  ac_cv_lib_rocksdb_rocksdb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
+$as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
+if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
+  BUILD_ROCKSDB_WRAPPERS=yes
+fi
+
+   fi;
+   if test ! -z "${BUILD_ROCKSDB_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_rocksdb}" = "force"; then
+      force_enabled="rockdb ${force_enabled}"
+      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="rocksdb ${auto_disabled}";
+   fi;
+fi;
+
+ODBC_CFLAGS=
+ODBC_LIBS=-lodbc
+
+
+
+if test "${with_odbc}" == "no"; then
+  manually_disabled="odbc ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
+  BUILD_ODBC_WRAPPERS=yes
+  ODBC_CFLAGS=$(pkg-config --cflags odbc)
+  ODBC_LIBS=$(pkg-config --libs odbc)
+else
+   ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+if test "x$ac_cv_header_sql_h" = xyes; then :
+  HAVE_ODBC_HEADER=yes
+fi
+
+
+   if test ! -z "${HAVE_ODBC_HEADER}"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLDriverConnect in -lodbc" >&5
+$as_echo_n "checking for SQLDriverConnect in -lodbc... " >&6; }
+if ${ac_cv_lib_odbc_SQLDriverConnect+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lodbc  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SQLDriverConnect ();
+int
+main ()
+{
+return SQLDriverConnect ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_odbc_SQLDriverConnect=yes
+else
+  ac_cv_lib_odbc_SQLDriverConnect=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_odbc_SQLDriverConnect" >&5
+$as_echo "$ac_cv_lib_odbc_SQLDriverConnect" >&6; }
+if test "x$ac_cv_lib_odbc_SQLDriverConnect" = xyes; then :
+  BUILD_ODBC_WRAPPERS=yes
+fi
+
+   fi;
+   if test ! -z "${BUILD_ODBC_WRAPPERS}"; then
+      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   elif test "${with_rocksdb}" = "force"; then
+      force_enabled="odbc ${force_enabled}"
+      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   else auto_disabled="odbc ${auto_disabled}";
+   fi;
+fi;
+
+MARIADB_CFLAGS=
+MARIADB_LIBS=-lmariadb
+
+
+
+if test "${with_mariadb}" == "no"; then
+  manually_disabled="mariadb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
+  MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
+  MARIADB_LIBS=$(pkg-config --libs libmariadb)
+  BUILD_MARIADB_WRAPPER=yes
+elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
+  MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
+  MARIADB_LIBS=$(pkg-config --libs bmariadb)
+  BUILD_MARIADB_WRAPPER=yes
+elif test "${with_mariadb}" = "force"; then
+  force_enabled="mariadb ${force_enabled}"
+  CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+else
+ auto_disabled="mariadb ${auto_disabled}";
+fi;
+
 
 ### These are components to preload
 
@@ -15190,11 +15464,12 @@ if test ! -z "$gperftools"; then
 else
    echo "Built with malloc=$using_malloc";
 fi;
+echo "Channel is ${KNO_CHANNEL}";
 echo "Patch level is ${KNO_PATCHLEVEL}";
 echo $using_malloc > ./.malloc;
 if test ! -z "$missing"; then
    echo "+++ These important features can't be built: $missing";
-   echo "+++     Without them it won't be possible to use many KNO database files";
+   echo "+++     Without them it won't be possible to use some KNO features or read some KNO database files";
 fi
 if test ! -z "$auto_disabled"; then
    echo "+++ These components can't be built: $auto_disabled";
