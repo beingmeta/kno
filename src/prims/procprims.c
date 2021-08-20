@@ -120,15 +120,6 @@ static int default_subproc_loglevel = LOG_WARN;
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
 
-static int needs_scheme_escapep(u8_string s,int escape_flags)
-{
-  if ( (escape_flags&ARG_ESCAPE_CONFIGS) && (strchr(s,'=')) )
-    return 1;
-  else if (escape_flags&ARG_ESCAPE_SCHEME)
-    return ((strchr("@{#(\"",s[0])) || (isdigit(s[0])));
-  else return 0;
-}
-
 #if ! HAVE_EXECVPE
 extern char *const *environ;
 static int execvpe(char *prog,char *const argv[],char *const envp[])
@@ -141,11 +132,11 @@ static int execvpe(char *prog,char *const argv[],char *const envp[])
 DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
 DEF_KNOSYM(outdir); DEF_KNOSYM(chdir);
 DEF_KNOSYM(wait); DEF_KNOSYM(pid); DEF_KNOSYM(block);
-DEF_KNOSYM(fork); DEF_KNOSYM(lookup); DEF_KNOSYM(knox);
-DEF_KNOSYM(interpreter); DEF_KNOSYM(environment); DEF_KNOSYM(configs);
+DEF_KNOSYM(fork); DEF_KNOSYM(lookup);
+DEF_KNOSYM(environment);
 DEF_KNOSYM(procid); DEF_KNOSYM(progname); DEF_KNOSYM(started);
-DEF_KNOSYM(finished); DEF_KNOSYM(runtime); DEF_KNOSYM(keepenv);
-DEF_KNOSYM(keepconfigs); DEF_KNOSYM(file); DEF_KNOSYM(temp);
+DEF_KNOSYM(finished); DEF_KNOSYM(runtime);
+DEF_KNOSYM(file); DEF_KNOSYM(temp);
 DEF_KNOSYM(onfinish); DEF_KNOSYM(deleted);
 
 static int remove_output(u8_string file,u8_string kind)
@@ -640,7 +631,6 @@ static lispval proc_run_prim(int n,kno_argvec args)
 
   int argc = exec_args->count;
   char **argv = u8_alloc_n(argc+1,char *);
-  int arg_write = 0;
 
   lispval *scan_args = exec_args->elts;
   int arg_i = 0;

@@ -769,7 +769,9 @@ KNO_EXPORT lispval kno_reverse(lispval sequence)
       case kno_int_elt:
         result = make_int_vector(len,elts); break;
       case kno_long_elt:
-        result = make_long_vector(len,elts); break;}}
+        result = make_long_vector(len,elts); break;
+      default:
+	result = kno_makeseq(kno_vector_type,len,tmp);}}
     else result = kno_makeseq(KNO_TYPEOF(sequence),len,tmp);
     i = 0; while (i<len) {kno_decref(elts[i]); i++;}
     if (elts) u8_free(elts); if (tmp) u8_free(tmp);

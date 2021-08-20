@@ -119,7 +119,7 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     if (exe_name[0]=='/')
       exec_path = exe_name;
     else if ( (u8_file_existsp("/proc/self/exe")) &&
-              (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {
+	      (exec_path = u8_filestring("/proc/self/exe",NULL)) ) {
       /* Got from /proc */
     }
     else if (strchr(exe_name,'/'))
@@ -139,17 +139,17 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
   if (kno_argv!=NULL)  {
     if ((init_argc>0) && (argc != init_argc))
       u8_log(LOG_WARN,"InconsistentArgv/c",
-             "Trying to reprocess argv with a different argc (%d) length != %d",
-             argc,init_argc);
+	     "Trying to reprocess argv with a different argc (%d) length != %d",
+	     argc,init_argc);
     if (arglen_ptr) *arglen_ptr = kno_argc;
     return kno_argv;}
   else if (argc<=0) {
     u8_log(LOG_CRIT,"kno_handle_arg(invalid argv)",
-           _("The argc length %d is not valid (>0)"),argc);
+	   _("The argv length (argc) %d is not valid (>0)"),argc);
     return NULL;}
   else if (argv == NULL) {
     u8_log(LOG_CRIT,"kno_handle_arg(invalid argv)",
-           _("The argv argument cannot be NULL!"),argc);
+	   _("The argv argument cannot be NULL!"),argc);
     return NULL;}
   else {
     int i = 0, n = 0, config_i = 0;
@@ -169,33 +169,31 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     while (i<argc) {
       char *carg = argv[i];
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
+      int skip_parse = 0;
       u8_printf(&cmdargs,"(%d)\t%s\n",i,arg);
       if (i>0) u8_putc(&cmdline,' '); u8_puts(&cmdline,arg);
       KNO_VECTOR_SET(raw_args,i,kno_mkstring(arg));
       /* Don't include argv[0] in the arglists */
       if ( (i==0) || (arg_mask[i]) ) {
-        /* Skip first and masked args */
-        u8_free(arg);
-        i++;
-        continue;}
+	u8_free(arg); i++; continue;}
       else i++;
       if ((eq!=NULL) && (eq>arg) && (*(eq-1)!='\\')) {
 	if (arg!=NULL) u8_log(LOG_INFO,kno_ArgvConfig,"   %s",arg);
-        int retval = (arg!=NULL) ? (kno_config_assignment(arg)) : (-1);
+	int retval = (arg!=NULL) ? (kno_config_assignment(arg)) : (-1);
 	if (retval<0) {
-          u8_log(LOG_CRIT,"FailedConfig",
-                 "Couldn't handle the config argument `%s`",
-                 (arg == NULL) ? ((u8_string)carg) : (arg));
-          u8_clear_errors(0);}
+	  u8_log(LOG_CRIT,"FailedConfig",
+		 "Couldn't handle the config argument `%s`",
+		 (arg == NULL) ? ((u8_string)carg) : (arg));
+	  u8_clear_errors(0);}
 	else {
 	  KNO_VECTOR_SET(config_args,config_i,kno_mkstring(arg));
 	  config_i++;}
 	u8_free(arg);
-        continue;}
+	continue;}
       string_arg = kno_mkstring(arg);
       /* Note that kno_parse_arg should always return at least a lisp
-         string */
-      lisp_arg = kno_parse_arg(arg);
+	 string */
+      lisp_arg = (skip_parse) ? (knostring(arg)) : (kno_parse_arg(arg));
       if (return_args) {
 	return_args[n]=lisp_arg;
 	kno_incref(lisp_arg);}
@@ -217,7 +215,6 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
     app_argc = n;
     kno_argv = _kno_argv;
     kno_argc = n;
-    kno_configs_initialized = 1;
     if (return_args) {
       if (arglen_ptr) *arglen_ptr = n;
       return return_args;}

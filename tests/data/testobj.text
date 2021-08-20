@@ -1,0 +1,10 @@
+(#[foo 3 bar 8] 
+ "alpha" "b\u00c0ar" 
+ "real\vlylongst\aring\nreallylong\nstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstrin\fgreal\rlylon\bgstri\tngreallylongstring"
+ #"reallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstringreallylongstring"
+ #"ab\003cd\x04qnno\xffkk\xcd"
+ #t #f #\a () 9739 -3 3.1415 -2.7127
+ 715919103 -715919103 2415919103 -2415919103 12345678987654321 -12345678987654321
+ #"abc def gh\xaa jkl"
+ #\u45ab {} {A |aBc| "b" C 3} {} {C A 3 "b"} {"A"}
+ #((test) "te \" \" st" "" test #() b c))

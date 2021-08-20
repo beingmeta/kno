@@ -747,7 +747,7 @@ static unsigned char *do_uncompress
 KNO_EXPORT lispval kno_zread_dtype(struct KNO_INBUF *in)
 {
   lispval result;
-  ssize_t n_bytes = kno_read_varint(in), dbytes;
+  ssize_t n_bytes = kno_read_varint(in), dbytes = n_bytes;
   unsigned char *bytes = u8_malloc(n_bytes);
   int retval = kno_read_bytes(bytes,in,n_bytes);
   struct KNO_INBUF tmp = { 0 };

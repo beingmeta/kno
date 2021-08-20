@@ -32,7 +32,7 @@ STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
 TEST_EXEFLAGS     = @EXEFLAGS@
 LIBSOURCE	  = @LIBSOURCE@
-EXESOURCE	  = @EXESOURCE@
+SHAREDEXE	  = @SHAREDEXE@
 STATICEXE	  = @STATICEXE@
 XLIBS             =
 LIBS              = $(XLIBS) @LIBS@
@@ -178,7 +178,7 @@ LISP_OBJS=\
 
 SYS_OBJS=						\
 	src/sys/buildinfo.o src/sys/support.o		\
-	src/sys/config.o src/sys/errobjs.o		\
+	src/sys/configs.o src/sys/errobjs.o		\
 	src/sys/logging.o src/sys/getopt.o		\
 	src/sys/startup.o src/sys/fluid.o 		\
 	src/sys/signals.o src/sys/posix.o 		\
@@ -302,9 +302,9 @@ CMODULE_OBJS=src/cmodules/sqlite.o  	\
 	     src/cmodules/archivetools.o	\
 	     src/cmodules/testcapi.o
 
-EXECUTABLES=${EXESOURCE}/knox@suffix@ ${EXESOURCE}/knoc@suffix@ ${EXESOURCE}/knocgi@suffix@
+EXECUTABLES=${SHAREDEXE}/knox@suffix@ ${SHAREDEXE}/knoc@suffix@ ${SHAREDEXE}/knocgi@suffix@
 STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ ${STATICEXE}/knocgi@suffix@
-DEBUG_EXECUTABLES=dbg/knox dbg/knoc bg/knocgi
+DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knocgi
 SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knolaunch \
 	      src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall \
 	      src/shell/kno_start_daemons src/shell/kno_start_servlets src/shell/kno_stop_jobs \
@@ -312,7 +312,7 @@ SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig 
 	      src/shell/knorestart src/shell/knoctl src/shell/knogdb src/shell/knodbgexec \
 	      src/shell/knocleanup src/shell/knojob src/shell/knobuild \
 	      src/shell/flexsplit
-SCHEME_SCRIPTS=exe/scripts/knodb exe/scripts/knocall exe/scripts/knoserver exe/scripts/knapp \
+SCHEME_SCRIPTS=exe/scripts/knodb exe/scripts/knocall exe/scripts/knoserver \
 	       exe/scripts/pack-pool exe/scripts/pack-index exe/scripts/split-index \
 	       exe/scripts/merge-indexes exe/scripts/merge-index \
 	       exe/scripts/knopkg
@@ -344,7 +344,7 @@ KNO_SOURCES=									\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
 	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
 	src/sys/buildinfo.c src/sys/sourcebase.c 				\
-	src/sys/support.c src/sys/config.c src/sys/posix.c			\
+	src/sys/support.c src/sys/configs.c src/sys/posix.c			\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
@@ -1058,7 +1058,7 @@ clean: tidy
 	rm -f lib/*.a lib/*.so lib/*.dylib
 	rm -f lib/*.so lib/*.so.* lib/*.dylib lib/*.dylib.*
 	rm -f lib/kno/*.so lib/kno/*.so.* lib/kno/*.dylib lib/kno/*.dylib.*
-	rm -rf exe/kno* dbg/kno* static/kno* static/stripped/kno*
+	rm -rf exe/kn* dbg/kn* static/kn* static/stripped/kn*
 	rm -f TAGS
 	cd tests/libtests; make -s clean
 	cd tests; make -s clean
@@ -1550,8 +1550,10 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+	@$(DOINSTALL) ln -s knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
+	@$(DOINSTALL) ln -s knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -1584,7 +1586,7 @@ install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftool
 
 install-cwrappers: @CWRAPPERS@
 	@for file in @CWRAPPERS@; do \
-	  u8_install_shared $${file} ${CMODULES} ${KNO_VERSION}; \
+	  ${DOINSTALL} u8_install_shared $${file} ${CMODULES} ${KNO_VERSION}; \
 	 done;
 
 # Setup targets
@@ -2004,16 +2006,16 @@ $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe
 
 ### CWRAPPERS build rules
 
-lib/kno/rocksdb.so : MODLIBS=@ROCKSDB_LIBS@
+lib/kno/rocksdb.@shared_suffix@ : MODLIBS=@ROCKSDB_LIBS@
 scr/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
 
-lib/kno/leveldb.so : MODLIBS=@LEVELDB_LIBS@
+lib/kno/leveldb.@shared_suffix@ : MODLIBS=@LEVELDB_LIBS@
 scr/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
 
-lib/kno/odbc.so : MODLIBS=@ODBC_LIBS@
+lib/kno/odbc.@shared_suffix@ : MODLIBS=@ODBC_LIBS@
 scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
 
-lib/kno/mariadb.so : MODLIBS=@MARIADB_LIBS@
+lib/kno/mariadb.@shared_suffix@ : MODLIBS=@MARIADB_LIBS@
 src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@
 
 ### Depending on the .buildmode

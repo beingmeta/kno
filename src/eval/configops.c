@@ -30,39 +30,14 @@
 #include <math.h>
 #include "kno/cprims.h"
 
-u8_condition LoadConfig=_("Loading config");
 extern u8_condition UnconfiguredSource;
 
 static lispval simple_symbol = KNO_NULL;
-
-static u8_string get_config_path(u8_string spec)
-{
-  if (*spec == '/')
-    return u8_strdup(spec);
-  else if (((u8_string)(strstr(spec,"file:"))) == spec)
-    return u8_strdup(spec+7);
-  else if (strchr(spec,':')) /* It's got a schema, assume it's absolute */
-    return u8_strdup(spec);
-  else {
-    u8_string sourcebase = kno_sourcebase();
-    if (sourcebase) {
-      u8_string full = u8_mkpath(sourcebase,spec);
-      if (kno_probe_source(full,NULL,NULL,NULL))
-	return full;
-      else u8_free(full);}
-    u8_string abspath = u8_abspath(spec,NULL);
-    if (u8_file_existsp(abspath))
-      return abspath;
-    else {
-      u8_free(abspath);
-      return NULL;}}
-}
 
 /* Core functions */
 
 DEFC_PRIM("config",config_get,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
-	  "\n"
 	  "Gets the configuration setting named *name*, "
 	  "returning *default* if it isn't defined. *valfn*, "
 	  "if provided is either a function to call on the "
@@ -350,66 +325,6 @@ static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){
     return 1;}
   else return 0;}
 
-/* Loading config files */
-
-static int trace_config_load = 0;
-
-KNO_EXPORT int kno_load_config(u8_string sourceid)
-{
-  struct U8_INPUT stream; int retval;
-  u8_string sourcebase = NULL, outer_sourcebase = NULL;
-  u8_string fullpath = get_config_path(sourceid);
-  if (fullpath == NULL)
-    return KNO_ERR(-1,"MissingConfig","kno_load_config",sourceid,VOID);
-  u8_string content = kno_get_source(fullpath,NULL,&sourcebase,NULL,NULL);
-  u8_free(fullpath);
-  if (content == NULL)
-    return -1;
-  else if (sourcebase) {
-    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
-  else outer_sourcebase = NULL;
-  U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ( (trace_config_load) || (kno_trace_config) )
-    u8_log(LOG_WARN,LoadConfig,
-	   "Loading config %s (%d bytes)",sourcebase,u8_strlen(content));
-  retval = kno_read_config(&stream);
-  if ( (trace_config_load) || (kno_trace_config) )
-    u8_log(LOG_WARN,LoadConfig,"Loaded config %s",sourcebase);
-  if ( (sourcebase) || (outer_sourcebase) ) {
-    kno_restore_sourcebase(outer_sourcebase);
-    if (sourcebase) u8_free(sourcebase);}
-  u8_free(content);
-  return retval;
-}
-
-KNO_EXPORT int kno_load_default_config(u8_string sourceid)
-{
-  struct U8_INPUT stream; int retval;
-  u8_string sourcebase = NULL, outer_sourcebase = NULL;
-  u8_string fullpath = get_config_path(sourceid);
-  if (fullpath == NULL)
-    return KNO_ERR(-1,"MissingConfig","kno_load_default_config",sourceid,VOID);
-  u8_string content = kno_get_source(fullpath,NULL,&sourcebase,NULL,NULL);
-  u8_free(fullpath);
-  if (content == NULL)
-    return -1;
-  else if (sourcebase) {
-    outer_sourcebase = kno_bind_sourcebase(sourcebase);}
-  else outer_sourcebase = NULL;
-  U8_INIT_STRING_INPUT((&stream),-1,content);
-  if ( (trace_config_load) || (kno_trace_config) )
-    u8_log(LOG_WARN,LoadConfig,
-	   "Loading default config %s (%d bytes)",sourcebase,u8_strlen(content));
-  retval = kno_read_default_config(&stream);
-  if ( (trace_config_load) || (kno_trace_config) )
-    u8_log(LOG_WARN,LoadConfig,"Loaded default config %s",sourcebase);
-  if ( (sourcebase) || (outer_sourcebase) ) {
-    kno_restore_sourcebase(outer_sourcebase);
-    if (sourcebase) u8_free(sourcebase);}
-  u8_free(content);
-  return retval;
-}
-
 /* From Scheme */
 
 DEFC_PRIM("load-config",lisp_load_config,
@@ -481,98 +396,11 @@ static lispval lisp_read_config(lispval arg)
   else return KNO_INT2LISP(retval);
 }
 
-/* Config config */
-
-static u8_mutex config_file_lock;
-
-static KNO_CONFIG_RECORD *config_records = NULL, *config_stack = NULL;
-
-static lispval get_config_files(lispval var,void U8_MAYBE_UNUSED *data)
-{
-  struct KNO_CONFIG_RECORD *scan; lispval result = NIL;
-  u8_lock_mutex(&config_file_lock);
-  scan = config_records; while (scan) {
-    result = kno_conspair(kno_mkstring(scan->config_filename),result);
-    scan = scan->loaded_after;}
-  u8_unlock_mutex(&config_file_lock);
-  return result;
-}
-
-static int add_config_file_helper(lispval var,lispval val,
-				  void U8_MAYBE_UNUSED *data,
-				  int isopt,int isdflt)
-{
-  if (!(STRINGP(val))) return -1;
-  else if (STRLEN(val)==0) return 0;
-  else {
-    int retval;
-    struct KNO_CONFIG_RECORD on_stack, *scan, *newrec;
-    u8_string root = kno_sourcebase();
-    u8_string pathname = u8_abspath(CSTRING(val),root);
-    u8_lock_mutex(&config_file_lock);
-    scan = config_stack; while (scan) {
-      if (strcmp(scan->config_filename,pathname)==0) {
-	u8_unlock_mutex(&config_file_lock);
-	if ( (kno_trace_config) || (trace_config_load) )
-	  u8_log(LOGINFO,LoadConfig,
-		 "Skipping redundant reload of %s from the config %q",
-		 KNO_CSTRING(val),var);
-	u8_free(pathname);
-	return 0;}
-      else scan = scan->loaded_after;}
-    if ( (kno_trace_config) || (trace_config_load) )
-      u8_log(LOGWARN,LoadConfig,
-	     "Loading the config file %s in response to a %q directive",
-	     KNO_CSTRING(val),var);
-    memset(&on_stack,0,sizeof(struct KNO_CONFIG_RECORD));
-    on_stack.config_filename = pathname;
-    on_stack.loaded_after = config_stack;
-    config_stack = &on_stack;
-    u8_unlock_mutex(&config_file_lock);
-    if (isdflt)
-      retval = kno_load_default_config(pathname);
-    else retval = kno_load_config(pathname);
-    u8_lock_mutex(&config_file_lock);
-    if (retval<0) {
-      if (isopt) {
-	u8_free(pathname); config_stack = on_stack.loaded_after;
-	u8_unlock_mutex(&config_file_lock);
-	u8_pop_exception();
-	return 0;}
-      u8_free(pathname); config_stack = on_stack.loaded_after;
-      u8_unlock_mutex(&config_file_lock);
-      return retval;}
-    newrec = u8_alloc(struct KNO_CONFIG_RECORD);
-    newrec->config_filename = pathname;
-    newrec->loaded_after = config_records;
-    config_records = newrec;
-    config_stack = on_stack.loaded_after;
-    u8_unlock_mutex(&config_file_lock);
-    return retval;}
-}
-
-static int add_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
-{
-  return add_config_file_helper(var,val,data,0,0);
-}
-
-static int add_opt_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
-{
-  return add_config_file_helper(var,val,data,1,0);
-}
-
-static int add_default_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED *data)
-{
-  return add_config_file_helper(var,val,data,1,1);
-}
-
 /* Initialization */
 
 KNO_EXPORT void kno_init_configops_c()
 {
   u8_register_source_file(_FILEINFO);
-
-  u8_init_mutex(&config_file_lock);
 
   link_local_cprims();
 
@@ -591,15 +419,6 @@ KNO_EXPORT void kno_init_configops_c()
   kno_def_evalfn(kno_scheme_module,"#GLOM",string_macro,
 		 "#:GLOM(FOO 3 #:envHOME)\n"
 		 "evaluates to string made up of components");
-
-  kno_register_config("CONFIG","Add a CONFIG file/URI to process",
-		      get_config_files,add_config_file,NULL);
-  kno_register_config("DEFAULTS","Add a CONFIG file/URI to process as defaults",
-		      get_config_files,add_default_config_file,NULL);
-  kno_register_config("OPTCONFIG","Add an optional CONFIG file/URI to process",
-		      get_config_files,add_opt_config_file,NULL);
-  kno_register_config("TRACELOADCONFIG","Trace config file loading",
-		      kno_boolconfig_get,kno_boolconfig_set,&trace_config_load);
 }
 
 static void link_local_cprims()

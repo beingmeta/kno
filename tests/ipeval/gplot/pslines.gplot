@@ -1,0 +1,12 @@
+set terminal epslatex
+set output "dbrefs.eps"
+set ylabel "Query Execution Time (milliseconds)"
+set style data linespoints
+set xlabel "Number of Database References"
+plot "<sort -n -k3 data" using 3:5 title "w/o IPEVAL", "" using 3:6 title "w/IPEVAL"
+set output "exectime.eps"
+set xlabel "Final Execution Time"
+plot "<sort -n -k12 data" using 12:5 title "w/o IPEVAL", "" using 12:6 title "w/IPEVAL"
+set output "fetchtime.eps"
+set xlabel "Total Fetch Time"
+plot "<sort -n -k11 data" using 11:5 title "w/o IPEVAL", "" using 11:6 title "w/IPEVAL"

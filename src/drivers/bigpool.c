@@ -2249,7 +2249,7 @@ static kno_pool bigpool_create(u8_string spec,void *type_data,
   time_t now=time(NULL), ctime, mtime;
   long long generation=1;
   unsigned int flags = get_bigpool_format(storage_flags,opts);
-  unsigned int capacity, load;
+  unsigned int capacity = 0, load = 0;
   int rv = 0;
   if (u8_file_existsp(spec)) {
     kno_seterr(_("FileAlreadyExists"),"bigpool_create",spec,VOID);

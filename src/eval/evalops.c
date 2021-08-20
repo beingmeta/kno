@@ -256,7 +256,7 @@ DEFC_PRIM("%stack",getstack_prim,
 static lispval getstack_prim(lispval test,lispval count)
 {
   kno_stack cur = kno_stackptr;
-  int depth = cur->stack_depth, n;
+  int depth = cur->stack_depth, n = depth;
   if ( (KNO_VOIDP(count)) || (KNO_FALSEP(count)) )
     n = depth;
   else if (KNO_FIXNUMP(count)) {
@@ -734,7 +734,7 @@ DEFC_PRIM("getsyms",getsyms_prim,
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval getsyms_prim(lispval arg)
 {
-  u8_string seeking; lispval all, results = EMPTY;
+  u8_string seeking = NULL; lispval all, results = EMPTY;
   regex_t *regex = NULL; u8_mutex *lock = NULL;
   if (SYMBOLP(arg)) seeking = SYM_NAME(arg);
   else if (STRINGP(arg)) seeking = CSTRING(arg);
@@ -752,7 +752,7 @@ static lispval getsyms_prim(lispval arg)
 	if (rv == REG_NOMATCH) {}
 	else if (rv) {}
 	else {CHOICE_ADD(results,sym);}}
-      else if (strcasestr(name,seeking)) {
+      else if ( (seeking) && (strcasestr(name,seeking)) ) {
 	CHOICE_ADD(results,sym);}
       else NO_ELSE;}}
   kno_decref(all);

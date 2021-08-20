@@ -1,0 +1,6 @@
+load "gplot/pnglines.gplot"
+load "gplot/pslines.gplot"
+#load "gplot/lines.gplot"
+load "gplot/pngtimeline.gplot"
+load "gplot/pstimeline.gplot"
+#load "gplot/timeline.gplot"

@@ -150,6 +150,7 @@ KNO_EXPORT u8_condition kno_ThreadTerminated, kno_ThreadInterrupted;
 
 /* Generic support */
 
+#include "configs.h"
 #include "support.h"
 #include "errobjs.h"
 

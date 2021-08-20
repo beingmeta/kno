@@ -4,10 +4,8 @@
    Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
-#ifndef EMBEDDED_KNO
 #ifndef _FILEINFO
 #define _FILEINFO __FILE__
-#endif
 #endif
 
 #include "kno/knosource.h"
@@ -19,6 +17,7 @@
 #include "kno/drivers.h"
 #include "kno/eval.h"
 #include "kno/ports.h"
+#include "kno/getsource.h"
 #include "kno/cprims.h"
 
 #include <libu8/libu8.h>
@@ -49,16 +48,24 @@ static u8_string wait_for_file = NULL;
 
 static int debug_maxelts = 32, debug_maxchars = 80;
 
-static char *configs[MAX_CONFIGS], *exe_arg = NULL, *source_arg = NULL;
+static char *configs[MAX_CONFIGS], *exe_arg = NULL;
 static int n_configs = 0, eval_stdin = 0;
 
 static int chain_fast_exit=1;
 
 static u8_condition FileWait=_("FILEWAIT");
+static u8_condition MissingSource=_("MissingSource");
+
+static lispval app_source = KNO_VOID, app_main = KNO_VOID;
+static lispval real_main = KNO_VOID;
+static u8_string exe_name = NULL, app_path = NULL;
+static int exec_module = 0;
 
 static void exit_kno()
 {
   if (!(kno_be_vewy_quiet)) kno_log_status("Exit(kno)");
+  kno_decref(app_source);
+  if (app_path) u8_free(app_path);
 }
 
 static lispval load_stdin(kno_lexenv env)
@@ -74,9 +81,8 @@ static lispval load_stdin(kno_lexenv env)
 
 typedef char *charp;
 
-static lispval main_symbol = KNO_VOID, exec_source = KNO_FALSE;
-static lispval real_main = KNO_VOID;
-
+DEFC_PRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
+	   "Resets the current process to a fresh instance of knox");
 static lispval chain_prim(int n,lispval *args)
 {
   if (n_configs>=MAX_CONFIGS)
@@ -96,7 +102,7 @@ static lispval chain_prim(int n,lispval *args)
     char **cargv = u8_alloc_n(n+n_configs+4,charp);
     U8_INIT_STATIC_OUTPUT(argstring,512);
     cargv[cargc++]=exe_arg;
-    cargv[cargc++]=source_arg;
+    cargv[cargc++]=(char *)app_path;
     i = 0; while (i<n)
 	     if (KNO_STRINGP(args[i])) {
 	       u8_printf(&argstring," %s",CSTRING(args[i]));
@@ -127,17 +133,82 @@ static lispval chain_prim(int n,lispval *args)
     kno_close_pools();
     kno_close_indexes();
     u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
-	   exe_arg,u8_fromlibc(source_arg),argstring.u8_outbuf);
+	   exe_arg,app_path,argstring.u8_outbuf);
     u8_free(argstring.u8_outbuf);
     u8_log(LOG_NOTICE,"CHAIN","%s",
 	   "================================================================"
 	   "================================");
     rv = execvp(exe_arg,cargv);
     if (rv<0) {
-      u8_graberr(errno,"CHAIN",u8_strdup(source_arg));
+      u8_graberr(errno,"CHAIN",u8_strdup(app_path));
       return KNO_ERROR;}
     else return KNO_INT(rv);}
 }
+#if 0
+static lispval chain_prim(int n,lispval *args)
+{
+  if (n_configs>=MAX_CONFIGS)
+    return kno_err(_("Too many configs to CHAIN"),"chain_prim",NULL,VOID);
+  else if ( (stop_file) && (u8_file_existsp(stop_file)) ) {
+    u8_log(LOG_CRIT,"StopFile",
+	   "Not chaining because the file '%s' exists",stop_file);
+    return KNO_FALSE;}
+  else if ( (done_file) && (u8_file_existsp(done_file)) ) {
+    u8_log(LOG_CRIT,"DoneFile",
+	   "Not chaining because the file '%s' exists",done_file);
+    return KNO_FALSE;}
+  else {
+    int i = 0, cargc = 0, rv = -1;
+    /* This stream will contain the chaining message */
+    struct U8_OUTPUT argstring;
+    char **cargv = u8_alloc_n(n+n_configs+4,charp);
+    U8_INIT_STATIC_OUTPUT(argstring,512);
+    cargv[cargc++]=exe_arg;
+    cargv[cargc++]=first_arg;
+    i = 0; while (i<n)
+	     if (KNO_STRINGP(args[i])) {
+	       u8_printf(&argstring," %s",CSTRING(args[i]));
+	       cargv[cargc]=u8_tolibc(CSTRING(args[i]));
+	       i++; cargc++;}
+	     else {
+	       u8_string as_string = kno_lisp2string(args[i]);
+	       char *libc_string = u8_tolibc(as_string);
+	       u8_printf(&argstring," %s",as_string);
+	       u8_free(as_string);
+	       cargv[cargc]=libc_string;
+	       i++; cargc++;}
+    u8_puts(&argstring," LOGAPPEND=yes");
+    cargv[cargc++]=u8_strdup("LOGAPPEND=yes");
+    i = 0; while (i<n_configs) {
+      char *config = configs[i];
+      if ( (strncmp(config,"LOGAPPEND=",10) == 0) ||
+	   (strncmp(config,"PIDFILE=",10) == 0) )
+	i++;
+      else {
+	u8_string normalized = u8_fromlibc(configs[i]);
+	u8_printf(&argstring," %s",normalized);
+	u8_free(normalized);
+	cargv[cargc++]=configs[i++];}}
+    cargv[cargc++]=NULL;
+    fflush(stdout); fflush(stderr);
+    /* TODO: Should we run any exit methods here? */
+    u8_log(LOG_INFO,"CHAIN","Closing pools and indexes");
+    kno_fast_exit = chain_fast_exit;
+    kno_close_pools();
+    kno_close_indexes();
+    u8_log(LOG_NOTICE,"CHAIN",">> %s %s%s",
+	   exe_arg,u8_fromlibc(first_arg),argstring.u8_outbuf);
+    u8_free(argstring.u8_outbuf);
+    u8_log(LOG_NOTICE,"CHAIN","%s",
+	   "================================================================"
+	   "================================");
+    rv = execvp(exe_arg,cargv);
+    if (rv<0) {
+      u8_graberr(errno,"CHAIN",u8_strdup(first_arg));
+      return KNO_ERROR;}
+    else return KNO_INT(rv);}
+}
+#endif
 
 static void print_args(int argc,char **argv)
 {
@@ -148,25 +219,33 @@ static void print_args(int argc,char **argv)
     j++;}
 }
 
-static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
-			    u8_string *exe_namep,
-			    u8_string *source_specp,
+static lispval *handle_args(int argc,char **argv,size_t *arglenp,
 			    u8_string appid_prefix)
 {
+  /* This sets:
+   * exe_name (u8_string) name of interpreter (argv[0])
+   * app_source (moduleid or filename)
+   * app_main (name of the procedure defined within app_source)
+   * app_path (specified source)
+   */
   lispval *args = NULL;
-  u8_string tmp_string = NULL, source_spec = NULL, exe_name = NULL;
+  u8_string first_arg = NULL;
   /* Bit map of args which we handle */
   unsigned char arg_mask[argc];	 memset(arg_mask,0,argc);
-  int i = 1;
+  int i = 1, knapp = 0;
 
   if (getenv("KNO_SHOWARGV")) print_args(argc,argv);
 
   exe_arg = argv[0];
 
-  tmp_string = u8_fromlibc(exe_arg);
+  u8_string tmp_string = u8_fromlibc(exe_arg);
   exe_name = u8_basename(tmp_string,NULL);
   u8_free(tmp_string); tmp_string = NULL;
-  if (exe_namep) *exe_namep = exe_name;
+
+  /* Is it a knapp call (first arg is config, no source arg) */
+  if ( (strcmp(exe_name,"knapp")==0) ||
+       (u8_has_suffix(exe_name,".knapp",1)) )
+    knapp=1;
 
   while (i<argc) {
     if (isconfig(argv[i])) {
@@ -174,31 +253,43 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       if (n_configs >= MAX_CONFIGS) n_configs++;
       else configs[n_configs++] = u8_strdup(argv[i]);
       i++;}
-    else if (source_spec) {
+    else if (first_arg) {
       u8_log(LOG_INFO,"ARG","    %s",argv[i]);
       i++;}
     else {
-      u8_log(LOG_INFO,"Source","    %s",argv[i]);
-      source_arg = argv[i];
-      source_spec = u8_fromlibc(source_arg);
+      if (knapp)
+	u8_log(LOG_INFO,"Config","    %s",argv[i]);
+      else u8_log(LOG_INFO,"Scheme","    %s",argv[i]);
+      first_arg = u8_fromlibc(argv[i]);
       /* The arg_mask is used to tell kno_handle_argv which arguments
 	 to leave out of the arguments passed to the script */
       arg_mask[i] = 'X';
       i++;}}
 
-  if (source_spec == NULL) {}
-  else if (source_specp) {
-    *source_specp = source_spec;}
-  else {}
-
-  init_libraries();
+  if (first_arg) {
+    char *hash_mark = strrchr(first_arg,'#');
+    if (hash_mark) {
+      app_main = kno_intern(hash_mark+1);
+      *hash_mark='\0';}}
 
   args = kno_handle_argv(argc,argv,arg_mask,arglenp);
 
+  if (first_arg==NULL) {}
+  else if (knapp) {
+    int rv = kno_load_config(first_arg);
+    if (rv<0) {}}
+  else if (*first_arg == ':')
+    app_source = kno_intern(first_arg+1);
+  else app_source = knostring(first_arg);
+
+  if (first_arg)
+    app_path = first_arg;
+  else app_path = u8_fromlibc(exe_arg);
+
   if (u8_appid() == NULL) {
     u8_string base;
-    if (source_spec)
-      base = u8_basename(source_spec,"*");
+    if (first_arg)
+      base = u8_basename(first_arg,"*");
     else base = u8_basename(exe_name,NULL);
     if (appid_prefix == NULL)
       u8_default_appid(base);
@@ -208,20 +299,15 @@ static lispval *handle_argv(int argc,char **argv,size_t *arglenp,
       u8_free(combined);}
     u8_free(base);}
 
-  if (source_specp == NULL) u8_free(source_spec);
-  if (exe_namep == NULL) u8_free(exe_name);
+  kno_init_configs();
 
   return args;
-}
-
-static void link_local_cprims()
-{
 }
 
 static lispval find_exec_module(u8_string string)
 {
   lispval modname = kno_getsym(string), result = kno_find_module(modname,0);
-  if ( ((KNO_FALSEP(result))||(KNO_VOIDP(result))) && (!(strchr(string,'/'))) ) {
+  if ((KNO_FALSEP(result))||(KNO_VOIDP(result))) {
     u8_byte buf[100];
     u8_string newname = u8_bprintf(buf,"actions/%s",string);
     modname = kno_getsym(newname);
@@ -229,48 +315,8 @@ static lispval find_exec_module(u8_string string)
   return result;
 }
 
-int do_main(int argc,char **argv,
-	    u8_string exe_name,u8_string source_spec,
-	    lispval *args,size_t n_args)
+static void init_config_handlers()
 {
-  kno_lexenv env = kno_working_lexenv();
-  lispval main_proc = VOID, result = VOID;
-  int retval = 0, exec_module = 0;
-  u8_string source_base = NULL;
-
-  DEFC_PRIMN("CHAIN",chain_prim,KNO_VAR_ARGS|MIN_ARGS(0),
-	     "Resets the current process to a fresh instance of knox");
-  KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
-
-  link_local_cprims();
-
-  u8_register_source_file(_FILEINFO);
-
-  stop_file=u8_getenv("U8_STOPFILE");
-  if (stop_file == NULL)
-    stop_file=kno_runbase_filename(".stop");
-  done_file=u8_getenv("U8_DONEFILE");
-  if (done_file == NULL)
-    done_file=kno_runbase_filename(".done");
-
-  kno_set_app_env(env);
-
-  main_symbol = real_main = kno_intern("main");
-
-  u8_string main_ref =
-    (source_spec == NULL) ? (NULL) :
-    (source_spec[0]==':') ? (strchr(source_spec+1,':')) :
-    (strchr(source_spec,':'));
-  if (main_ref) {
-    main_symbol = kno_getsym(main_ref+1);
-    source_base = u8_slice(source_spec,main_ref);}
-  else if (source_spec)
-    source_base = u8_strdup(source_spec);
-  else source_base=NULL;
-
-  if (source_base)
-    exec_source = kno_wrapstring(source_base);
-
   kno_register_config
     ("DEBUGMAXCHARS",
      _("Max number of chars in strings output in error reports"),
@@ -296,17 +342,39 @@ int do_main(int argc,char **argv,
      kno_boolconfig_get,kno_boolconfig_set,
      &eval_stdin);
   kno_register_config
-    ("MAIN",
-     _("The name of the (main) routine for this file"),
+    ("MAIN",_("The name of the main routine for this application"),
      kno_lconfig_get,kno_symconfig_set,
-     &main_symbol);
+     &app_main);
   kno_register_config
+    ("APPSOURCE",_("The source module/file for this application"),
+     kno_lconfig_get,kno_lconfig_set,&app_source);
+  kno_register_config
+    ("APPMODULE",
+     _("The module implementing the main function for this application"),
+     kno_lconfig_get,kno_lconfig_set,&app_source);
+  /*
+    kno_register_config
     ("EXECSOURCE",
-     _("The name of the root file being executed for this application"),
-     kno_lconfig_get,NULL,&exec_source);
+    _("The name of the root file being executed for this application"),
+    kno_lconfig_get,NULL,&exec_source);
+  */
+}
+int run(int argc,char **argv,lispval *args,size_t n_args)
+{
+  kno_lexenv env = kno_working_lexenv();
+  lispval main_proc = VOID, result = VOID;
+  int retval = 0;
 
-  setlocale(LC_ALL,"");
-  /* Process command line arguments */
+  KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
+
+  stop_file=u8_getenv("U8_STOPFILE");
+  if (stop_file == NULL)
+    stop_file=kno_runbase_filename(".stop");
+  done_file=u8_getenv("U8_DONEFILE");
+  if (done_file == NULL)
+    done_file=kno_runbase_filename(".done");
+
+  kno_set_app_env(env);
 
   atexit(exit_kno);
 
@@ -339,30 +407,36 @@ int do_main(int argc,char **argv,
 	  u8_log(LOG_NOTICE,FileWait,"[%d] Waiting for '%s' to exist",
 		 n,wait_for_file);}}}
 
-  if (source_spec == NULL) {}
-  else if (strcmp(source_spec,"-")==0)
-    result = load_stdin(env);
-  else if (source_spec[0] == ':') { /* Definitely a module reference */
-    result = find_exec_module(source_spec+1);
-    if (KNO_VOIDP(result))
-      result = kno_err("NoExecModule","do_main",source_spec,KNO_VOID);
-    else exec_module=1;}
-  else if (u8_file_existsp(source_spec) ) {
-    lispval src = kno_wrapstring(u8_realpath(source_spec,NULL));
-    kno_set_config("SOURCE",src);
-    result = kno_load_source(source_spec,env,NULL);
-    if (KNO_ABORTED(result)) {
-      u8_exception ex = u8_current_exception;
-      if (ex == NULL)
-	u8_seterr("LoadFailed","knox/main()",u8_strdup(source_spec));}
-    kno_decref(src);}
-  else {
-    result = find_exec_module(source_spec);
-    if (KNO_TABLEP(result))
-      exec_module=1;
+  if (KNO_SYMBOLP(app_source)) {
+    result = kno_find_module(app_source,1);
+    exec_module = 1;}
+  else if (KNO_STRINGP(app_source)) {
+    u8_string path = KNO_CSTRING(app_source), realpath = NULL;
+    if (strcmp(path,"-")==0)
+      result = load_stdin(env);
+    else if (strcmp(path,".")==0) {}
+    else if (kno_probe_source(path,&realpath,NULL,NULL)) {
+      result = kno_load_source(realpath,env,NULL);
+      u8_free(realpath);}
     else {
-      kno_decref(result);
-      result = kno_err(kno_NoSuchFile,"do_main",source_spec,KNO_VOID);}}
+      result=find_exec_module(path);
+      if (KNO_CONSP(result)) exec_module=1;
+      else result = kno_err(MissingSource,"knox/run()",
+			    KNO_CSTRING(app_source),KNO_VOID);}}
+  else if (KNO_LEXENVP(app_source))
+    result = kno_incref(app_source);
+  else if ( (KNO_HASHTABLEP(app_source)) &&
+	    (kno_test(app_source,KNOSYM_MODULEID,KNO_VOID)) )
+    result = kno_incref(app_source);
+  else if (kno_test((lispval)env,app_main,KNO_VOID))
+    result = (lispval) env;
+  else result = kno_err(MissingSource,"knox/run()",NULL,app_source);
+
+  if (KNO_ABORTED(result)) {
+    /* Create an exception if there isn't one */
+    u8_exception ex = u8_current_exception;
+    if (ex == NULL)
+      u8_seterr("LoadFailed","knox:run()",u8_strdup(app_path));}
 
   if (!(kno_be_vewy_quiet)) {
     double startup_time = u8_elapsed_time()-kno_load_start;
@@ -376,45 +450,45 @@ int do_main(int argc,char **argv,
 	       kno_n_primary_indexes);}
 
   if (KNO_ABORTED(result)) {}
-  else if (!(SYMBOLP(main_symbol))) {
+  else if (!(SYMBOLP(app_main))) {
     kno_decref(result);
-    result = kno_err("BadMain","knox.main()",source_spec,main_symbol);
+    result = kno_err("BadMain","knox:run()",app_path,app_main);
     main_proc = KNO_VOID;}
   else if (exec_module) {
     if (KNO_LEXENVP(result)) {
       kno_lexenv env = (kno_lexenv) result;
       if (KNO_VOIDP(env->env_exports))
-	main_proc = kno_get(env->env_bindings,main_symbol,KNO_VOID);
+	main_proc = kno_get(env->env_bindings,app_main,KNO_VOID);
       else if (KNO_TABLEP(env->env_exports))
-	main_proc = kno_get(env->env_exports,main_symbol,KNO_VOID);
-      else main_proc = kno_get(env->env_bindings,main_symbol,KNO_VOID);}
-    else main_proc = kno_get(result,main_symbol,KNO_VOID);
+	main_proc = kno_get(env->env_exports,app_main,KNO_VOID);
+      else main_proc = kno_get(env->env_bindings,app_main,KNO_VOID);}
+    else main_proc = kno_get(result,app_main,KNO_VOID);
     if (KNO_VOIDP(main_proc)) {
-      u8_log(LOG_ERROR,kno_NoHandler,"No handler for %s --- %q in %q",
-	     source_spec,main_symbol,result);
-      main_proc = kno_err(kno_NoHandler,"knox",source_spec,result);}
+      u8_log(LOG_ERROR,kno_NoHandler,"No handler for %q --- %q in %q",
+	     app_source,app_main,result);
+      main_proc = kno_err(kno_NoHandler,"knox",app_path,result);}
     else if (!(KNO_APPLICABLEP(main_proc))) {
-      u8_log(LOG_ERROR,kno_BadHandler,"No handler for %s --- %q in %q\n  %q",
-	     source_spec,main_symbol,result,main_proc);
-      lispval err = kno_err(kno_BadHandler,"knox",source_spec,main_proc);
+      u8_log(LOG_ERROR,kno_BadHandler,"No handler for %q --- %q in %q\n  %q",
+	     app_source,app_main,result,main_proc);
+      lispval err = kno_err(kno_BadHandler,"knox",app_path,main_proc);
       kno_decref(main_proc);
       main_proc=err;}}
-  else main_proc = kno_symeval(main_symbol,env);
+  else main_proc = kno_symeval(app_main,env);
 
   if (!(KNO_ABORTP(result))) {
     if (KNO_VOIDP(main_proc)) {
-      if (source_spec == NULL) {
+      if (app_path == NULL) {
 	int i = 0;
-	if (main_symbol == real_main)
+	if (app_main == real_main)
 	  fprintf(stderr,"Error: %s no filename or (MAIN) specified",
 		  exe_name);
 	else fprintf(stderr,"Error: %s no filename or main (%s) specified",
-		     exe_name,KNO_SYMBOL_NAME(main_symbol));
+		     exe_name,KNO_SYMBOL_NAME(app_main));
 	while (i<argc) {
 	  fprintf(stderr,"argv[%d]=%s\n",i,argv[i]);
 	  i++;}
 	fprintf(stderr,"Usage: %s [action|execfile] [config=val|arg]*\n",exe_name);
-	result = kno_err("No MAIN","main()",NULL,main_symbol);}
+	result = kno_err("No MAIN","main()",NULL,app_main);}
       else {
 	/* Nothing to do */
 	kno_decref(result);
@@ -427,11 +501,9 @@ int do_main(int argc,char **argv,
     else {
       u8_log(LOGWARN,"BadMain",
 	     "The main procedure for %s (%q) isn't applicable",
-	     ((source_spec) ? (source_spec) : (U8S("stdin")) ),
+	     ((app_path) ? (app_path) : (U8S("stdin")) ),
 	     main_proc);
-      result = kno_err("BadMain","main()",KNO_SYMBOL_NAME(main_symbol),
-		       main_proc);}}
-  if (source_spec) source_spec = NULL;
+      result = kno_err("BadMain","main()",KNO_SYMBOL_NAME(app_main),main_proc);}}
   if (KNO_TROUBLEP(result)) {
     u8_exception e = u8_erreify();
     if (e == NULL) {
@@ -464,26 +536,27 @@ int do_main(int argc,char **argv,
   return retval;
 }
 
-#ifndef EMBEDDED_KNO
 int main(int argc,char **argv)
 {
-  u8_string source_spec = NULL, exe_name = NULL;
   lispval *args = NULL; size_t n_args = 0;
   int i = 0, retval = 0;
 
   u8_log_show_procinfo=1;
-
+  app_main = real_main = kno_intern("main");
   kno_main_errno_ptr = &errno;
 
   KNO_INIT_STACK_ROOT();
+  init_libraries();
+  link_local_cprims();
+  u8_register_source_file(_FILEINFO);
+  init_config_handlers();
 
 #if KNO_TESTCONFIG
   kno_autoload_config("TESTMODS","TESTLOAD","TESTINIT");
 #endif
 
-  args = handle_argv(argc,argv,&n_args,&exe_name,&source_spec,NULL);
-
-  retval = do_main(argc,argv,exe_name,source_spec,args,n_args);
+  args = handle_args(argc,argv,&n_args,NULL);
+  retval = run(argc,argv,args,n_args);
 
   kno_pop_stack(_stack);
 
@@ -492,14 +565,15 @@ int main(int argc,char **argv)
     kno_decref(arg);}
   u8_free(args);
 
-  if (exe_name) u8_free(exe_name);
-  if (source_spec) u8_free(source_spec);
-
   /* Call this here, where it might be easier to debug, even
      though it's alos an atexit handler */
   _kno_finish_threads();
 
  return retval;
 }
-#endif
+
+static void link_local_cprims()
+{
+}
+
 

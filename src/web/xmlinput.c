@@ -350,7 +350,7 @@ static void ns_add(KNO_XML *xml,u8_string prefix,u8_string url)
 {
   int prefix_len = strlen(prefix), url_len = strlen(url);
   u8_byte *entry = u8_malloc(prefix_len+url_len+2);
-  strncpy(entry,prefix,prefix_len);
+  strncpy(entry,prefix,prefix_len+1);
   entry[prefix_len]=':';
   strcpy(entry+prefix_len+1,url);
   if (xml->xml_size>=xml->xml_limit) {
@@ -621,7 +621,8 @@ static void process_attribs(int (*attribfn)(KNO_XML *,u8_string,u8_string,int),
   int i = 0; while (i< n) {
     u8_byte *item = (u8_byte *)attribs[i++], *end = item+strlen(item)-1;
     u8_byte *equals = strchr(item,'='), *name_end = equals;
-    u8_string name = item, val; int quote = -1;
+    u8_string name = item, val = (equals)?(equals+1):(NULL);
+    int quote = -1;
     if (equals) {
       const u8_byte *scan = item; int c = u8_sgetc(&scan);
       /* Find the end of the name, ignoring any whitespace before

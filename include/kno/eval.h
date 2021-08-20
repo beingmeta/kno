@@ -296,18 +296,12 @@ typedef struct KNO_QCODE {
 
 /* Loading files and config data */
 
-KNO_EXPORT int kno_load_config(u8_string sourceid);
-KNO_EXPORT int kno_load_default_config(u8_string sourceid);
 KNO_EXPORT lispval kno_load_stream
   (u8_input loadstream,kno_lexenv env,u8_string sourcebase);
 KNO_EXPORT lispval kno_load_source
   (u8_string sourceid,kno_lexenv env,u8_string enc_name);
 KNO_EXPORT lispval kno_load_source_with_date
   (u8_string sourceid,kno_lexenv env,u8_string enc_name,time_t *modtime);
-
-typedef struct KNO_CONFIG_RECORD {
-  u8_string config_filename;
-  struct KNO_CONFIG_RECORD *loaded_after;} KNO_CONFIG_RECORD;
 
 /* The Evaluator */
 

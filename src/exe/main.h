@@ -37,6 +37,7 @@ static u8_string default_libscm = NULL;
 
 static void init_libraries()
 {
+  setlocale(LC_ALL,"");
 #if (!(HAVE_CONSTRUCTOR_ATTRIBUTES))
   u8_initialize_u8stdio();
   u8_init_chardata_c();

@@ -919,6 +919,7 @@ int main(int argc,char **argv)
       source_file = argv[i++];}}
 
   kno_handle_argv(argc,argv,arg_mask,NULL);
+  kno_init_configs();
 
   KNO_INIT_STACK_ROOT();
 

@@ -2033,6 +2033,7 @@ int main(int argc,char **argv)
 
   /* Process the command line */
   kno_handle_argv(argc,argv,arg_mask,NULL);
+  kno_init_configs();
 
   if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@'))) {
     if (u8_appid())

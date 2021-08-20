@@ -1,0 +1,351 @@
+# -*- Mode: Makefile; -*-
+# Copyright (C) 2004-2020 beingmeta, inc.
+# Copyright (C) 2020-2021 beingmeta, LLC
+# This file is a part of beingmeta's Kno implementation
+
+KNO_LOADPATH=../../src/stdlib/:
+export KNO_LOADPATH
+KNO_DLOADPATH=../../lib/kno
+export KNO_DLOADPATH
+LD_LIBRARY_PATH=../../lib
+export LD_LIBRARY_PATH
+DYLD_LIBRARY_PATH=../../lib
+export DYLD_LIBRARY_PATH
+PPROF_PATH      = @GOOGLE_PPROF@
+export PPROF_PATH
+
+CC		= @CC@
+XCFLAGS		=
+CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ @GCOV_CFLAGS@ \
+		  @DREENTRANT@ @dynamic_cflag@ 		\
+		  -I../../include $(XCFLAGS)
+LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ @GCOV_LDFLAGS@ -L../../lib
+RPATH           = @rpath@
+RPATHFLAGS      = @RPATHFLAGS@
+BASELIBS        = @LIBS@ -lm -lz
+BMLIBS          = -lu8stdio -lu8io -lu8data -lu8
+LIBS            = $(BASELIBS) $(BMLIBS)
+EXEFLAGS        = @EXEFLAGS@
+EXELIBS         = @EXELIBS@
+
+DESTDIR		=
+prefix		= @prefix@
+exec_prefix	= @exec_prefix@
+LIBINSTALLDIR	= $(DESTDIR)@libdir@
+CLEAN		= @CLEAN@
+INSTALL		= @INSTALL@
+RANLIB		= @RANLIB@
+VALGRIND	= valgrind --tool=memcheck --leak-check=yes --num-callers=9 --error-exitcode=-1
+TESTPROG	= 
+RUNENV		= 
+RUNTEST		= $(RUNENV)$(TESTPROG)
+CHOICEFLAGS	= 
+
+NETBRICOPOOL	= brico@dev.beingmeta.com
+FILEBRICOPOOL	= /data/brico/brico.pool
+ZFILEBRICOPOOL	= /data/bg/brico.pool
+NETBRICOINDEX	= brico@dev.beingmeta.com
+FILEBRICOINDEX	= /data/brico/brico.index
+ZFILEBRICOINDEX	= /data/bg/brico.index
+BRICOPOOL	= $(FILEBRICOPOOL)
+BRICOINDEX	= $(FILEBRICOINDEX)
+
+TESTBIN=makedtype printdtype copydtype testcapi \
+        choicetest slotmaptest \
+	hashtabletest \
+	intersectiontest uniontest \
+	differencetest \
+        maketable resizetable \
+	tablekeys readtable \
+	pool-get dtcall indexop index-get dbtool
+SHAREDBIN=\
+        makedtype.shared printdtype.shared copydtype.shared testcapi.shared \
+        choicetest.shared slotmaptest.shared \
+	hashtabletest.shared \
+	intersectiontest.shared uniontest.shared \
+	differencetest.shared \
+        maketable.shared resizetable.shared \
+	tablekeys.shared readtable.shared \
+	pool-get.shared dtcall.shared indexop.shared \
+        index-get.shared dbtool.shared
+
+# Rules
+
+%.o: %.c
+	@$(CC) $(CFLAGS) -o $@ $<
+	@echo CC $@ $<
+
+# Note that we don't add @suffix@ to these executables because they're
+# never installed
+%: %.c ../../lib/libkno@suffix@.a
+	@echo MKTEST_STATIC $@
+	@$(CC) $(CFLAGS) $(EXEFLAGS) @STATICLDFLAGS@ $(LDFLAGS) $(EXELIBS) -o $@ $^ \
+		$(LIBS) $(EXELIBS)
+
+# This is for making shared (dynamically linked) versions of the test programs
+%.shared: %.c
+	@echo MKTEST_SHARED $@
+	@$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS) -o $@ $^ $(LIBS) $(EXELIBS) \
+		-lkno@suffix@ $(LIBS) $(EXELIBS)
+
+# Targets
+
+all: $(TESTBIN) $(SHAREDBIN)
+
+memtests:
+	make "TESTPROG=$(VALGRIND)" mosttests
+# Use tcmalloc heap checking
+heaptests:
+	make "RUNENV=HEAPCHECK=normal" mosttests
+alltests: dtypetests choicetests mergechoicetests \
+		tabletests slotmaptests slotmaptests2 \
+		allpooltests allindextests
+#		smallbricotests mediumbricotests bigbricotests
+mosttests: dtypetests choicetests tabletests slotmaptests slotmaptests2
+#		smallbricotests
+dtypetests:
+	@echo "***" Testing calls from C API
+	$(RUNTEST) ./testcapi@suffix@
+	@echo "***" Testing dtype parsing and binary writing
+	$(RUNTEST) ./makedtype@suffix@ fixnum.dtype 33
+	$(RUNTEST) ./makedtype@suffix@ flonum.dtype 33.0
+	$(RUNTEST) ./makedtype@suffix@ big.dtype 12345678987654321
+	$(RUNTEST) ./makedtype@suffix@ googleplus.dtype 10000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001
+	$(RUNTEST) ./makedtype@suffix@ nil.dtype "()"
+	$(RUNTEST) ./makedtype@suffix@ empty.dtype "{}"
+	$(RUNTEST) ./makedtype@suffix@ bool.dtype \#f
+	$(RUNTEST) ./makedtype@suffix@ oid.dtype @314/55
+	$(RUNTEST) ./makedtype@suffix@ symbol.dtype foo
+	$(RUNTEST) ./makedtype@suffix@ oddsymbol.dtype \|bar\|
+	@echo "***" Testing dtype binary reading and unparsing
+	$(RUNTEST) ./printdtype@suffix@ fixnum.dtype
+	$(RUNTEST) ./printdtype@suffix@ flonum.dtype
+	$(RUNTEST) ./printdtype@suffix@ big.dtype
+	$(RUNTEST) ./printdtype@suffix@ nil.dtype
+	$(RUNTEST) ./printdtype@suffix@ empty.dtype
+	$(RUNTEST) ./printdtype@suffix@ bool.dtype
+	$(RUNTEST) ./printdtype@suffix@ oid.dtype
+	$(RUNTEST) ./printdtype@suffix@ symbol.dtype
+	$(RUNTEST) ./printdtype@suffix@ oddsymbol.dtype
+	$(RUNTEST) ./printdtype@suffix@ ../data/testobj@suffix@.dtype
+	@echo "***" Testing dtype binary reading and writing together
+	$(RUNTEST) ./copydtype@suffix@ ../data/testobj.dtype testobj.dtype
+	$(RUNTEST) ./printdtype@suffix@ ../data/testobj.dtype
+	$(RUNTEST) ./printdtype@suffix@ testobj.dtype
+	$(RUNTEST) ./makedtype@suffix@ temp.dtype -f../data/testobj.text
+	diff ../data/testobj.dtype testobj.dtype
+	diff temp.dtype testobj.dtype
+
+mergechoicetests:
+	@echo "***" Testing choice merge/union operations 
+	make "CHOICEFLAGS=MERGECHOICES=20" choicetests
+
+choicetests: intchoicetests oidchoicetests objchoicetests compchoicetests
+
+intchoicetests: ../data/intall.data
+	@echo "***" Testing merge/unions on integer choices
+	rm -f intersection.data nintersection.data \
+	      union.data union.ndata diff.data diff.ndata
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) intintersection.data \
+		../data/int?.data
+	sort intintersection.data > intintersection.sorted
+	sort ../data/intcommon.data | diff - intintersection.sorted
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) intunion.data ../data/int?.data
+	sort intunion.data > intunion.sorted
+	sort ../data/intmerged.data | diff - intunion.sorted
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) intdiff.data \
+                    ../data/intall.data intunion.sorted
+	sort intdiff.data > intdiff.sorted
+	sort ../data/intmissing.data | diff - intdiff.sorted
+
+oidchoicetests: ../data/oidall.data
+	@echo "***" Testing merge/unions on oid choices
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) oidintersection.data \
+		../data/oid?.data
+	sort oidintersection.data > oidintersection.sorted
+	sort ../data/oidcommon.data | diff - oidintersection.sorted
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) oidunion.data ../data/oid?.data
+	sort oidunion.data > oidunion.sorted
+	sort ../data/oidmerged.data | diff - oidunion.sorted
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) oiddiff.data \
+                    ../data/oidall.data oidunion.sorted
+	sort oiddiff.data > oiddiff.sorted
+	sort ../data/oidmissing.data | diff - oiddiff.sorted
+
+# Note that we don't do diffing here because some of the objects
+# are slotmaps which aren't canonically ordered
+objchoicetests: ../data/objall.data
+	@echo "***" Testing merge/unions on heterogenous object choices
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) objintersection.data \
+		../data/obj?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) objunion.data ../data/obj?.data
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) objdiff.data \
+                    ../data/objall.data objunion.data
+
+compchoicetests: ../data/compall.data
+	@echo "***" Testing merge/unions on heterogenous compound object choices
+	$(RUNTEST) ./intersectiontest@suffix@ $(CHOICEFLAGS) compintersection.data \
+		../data/comp?.data
+	$(RUNTEST) ./uniontest@suffix@ $(CHOICEFLAGS) compunion.data ../data/comp?.data
+	$(RUNTEST) ./differencetest@suffix@ $(CHOICEFLAGS) compdiff.data \
+                    ../data/compall.data compunion.data
+
+../data/intall.data:
+	cd ../data; make intall.data
+../data/oidall.data:
+	cd ../data; make oidall.data
+../data/objall.data:
+	cd ../data; make objall.data
+../data/compall.data:
+	cd ../data; make compall.data
+
+tabletests:
+	@echo "***" Checking basic hashtable operations
+	rm -f temp.table
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo 33
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo +444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo +5555
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar 88
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar 99
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo -444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar +66
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar "+\"sixty-six\""
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 33 foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 444 foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 5555 +foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 5555
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 444
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table 33
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table foo
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table bar
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)"
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" cons
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" pair
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" +2
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" +99
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)" "+\"string\""
+	$(RUNTEST) ./hashtabletest@suffix@ temp.table "(A . B)"
+
+slotmaptests:
+	@echo "***" Checking basic slotmap operations
+	rm -f temp.smap
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo +444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo +5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar 88
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar 99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo -444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar +66
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar "+\"sixty-six\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 33 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 444 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 5555 +foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap bar
+
+slotmaptests2:
+	@echo "***" Checking more slotmap operations
+	rm -f temp.smap2
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)"
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" cons
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" pair
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo +444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo +5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar 88
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar 99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo -444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar +66
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar "+\"sixty-six\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 33 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 444 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 5555 +foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 5555
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 444
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 33
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 foo
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 bar
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" +2
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" +99
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)" "+\"string\""
+	$(RUNTEST) ./slotmaptest@suffix@ temp.smap2 "(A . B)"
+
+smallbricotests: ../data/bricosmall.dump
+	@echo "***" Running tests on a modestly large hashtable
+	$(RUNTEST) ./maketable@suffix@ ../data/bricosmall.dump bricosmall.table
+	$(RUNTEST) ./readtable@suffix@ bricosmall.table
+mediumbricotests: ../data/bricosample.dump
+	@echo "***" Running tests on a larger hashtable
+	$(RUNTEST) ./maketable@suffix@ ../data/bricosample.dump bricosample.table
+	$(RUNTEST) ./readtable@suffix@ bricosample.table
+bigbricotests: ../data/brico.dump
+	@echo "***" Running tests on a pretty big hashtable
+	$(RUNTEST) ./maketable@suffix@ ../data/brico.dump brico.table
+	$(RUNTEST) ./readtable@suffix@ brico.table
+
+../data/bricosmall.dump:
+	@echo "***" Trying to make the data for a modestly large hashtable
+	cd ../data; make BRICO=/data/brico/brico bricosmall.dump
+../data/bricosample.dump:
+	@echo "***" Trying to make the data for a larger hashtable
+	cd ../data; make BRICO=/data/brico/brico bricosample.dump
+../data/brico.dump:
+	@echo "***" Trying to make the data for a pretty big hashtable
+	cd ../data; make BRICO=/data/brico/brico brico.dump
+
+# Storage tests
+
+pooltests:
+	$(RUNTEST) ./pool-get $(BRICOPOOL) @1/13800
+	$(RUNTEST) ./pool-get $(BRICOPOOL) @1/13800 @1/13ad9 \
+			@1/1525d @1/1bbe8 @1/1bdff @1/1cb47
+	$(RUNTEST) ./pool-get $(BRICOPOOL) @/brico/13800 @/brico/13ad9 \
+			@/brico/1525d @/brico/1bbe8 @/brico/1bdff @/brico/1cb47
+
+filepooltests:
+	@echo "***" Running file pool tests
+	make BRICOPOOL=$(FILEBRICOPOOL) pooltests
+netpooltests:
+	@echo "***" Running netpool tests
+	make BRICOPOOL=$(NETBRICOPOOL) pooltests
+
+allpooltests: filepooltests netpooltests
+
+indextests:
+	$(RUNTEST) ./index-get $(BRICOINDEX) "(@1/2c1c7 . \"example\")"
+	$(RUNTEST) ./index-get $(BRICOINDEX) "(@1/2c1c7 . \"example\")" \
+		"(@1/2c1c7 . \"fish\")" "(@1/2c1c7 . \"dog\")"
+
+fileindextests:
+	@echo "***" Running file index tests
+	make BRICOINDEX=$(FILEBRICOINDEX) indextests
+netindextests:
+	@echo "***" Running netindex tests
+	make BRICOINDEX=$(NETBRICOINDEX) indextests
+
+allindextests: fileindextests netindextests
+
+# Note that we don't add @suffix@ to these executables because they're
+# never installed
+$(TESTBIN): ../../lib/libkno@suffix@.a
+
+../../lib/libkno@suffix@.a:
+	cd ../..; make lib/libkno@suffix@.a
+
+testclean:
+	@rm -f *.data *.dump *.table *.sorted
+
+clean: testclean
+	@rm -f u8makedtype $(TESTBIN)

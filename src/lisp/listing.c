@@ -261,7 +261,7 @@ static int list_elements(u8_output out,
 {
   int count = 0, show_elts, n_elts = 0;
   u8_byte indentbuf[64] = { 0 }, startbuf[128] = { 0 };
-  u8_string start, end, elt_indent;
+  u8_string start = "", end = "", elt_indent = "";
 
   if (KNO_CHOICEP(result)) {
     n_elts = KNO_CHOICE_SIZE(result);

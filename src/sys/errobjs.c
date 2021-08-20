@@ -887,7 +887,7 @@ static ssize_t write_exception_xtype
   else KNO_VECTOR_SET(vector,8,KNO_FALSE);
 
   struct KNO_OUTBUF tmpbuf;
-  unsigned char bytes[8000];
+  unsigned char bytes[16000];
   KNO_INIT_OUTBUF(&tmpbuf,bytes,16000,
 		  KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_STATIC_BUFFER|
 		  KNO_WRITE_OPAQUE);

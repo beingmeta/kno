@@ -83,7 +83,7 @@ case ${option} in
     apkrepo)
         echo "@APKREPO@";;
     ldflags)
-	echo "@LDFLAGS@ @PTHREAD_LIBS@ -L@abs_top_srcdir@/include/kno ${XLDFLAGS}";;
+	echo "@LDFLAGS@ @PTHREAD_LIBS@ -L@abs_top_srcdir@/lib ${XLDFLAGS}";;
     include)
 	echo "@abs_top_srcdir@/include/kno";;
     lib)

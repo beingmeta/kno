@@ -1,0 +1,11 @@
+set ylabel "Query Execution Time (milliseconds)"
+set style data linespoints
+set xlabel "Number of Database References"
+set terminal X11 0
+plot "<sort -n -k3 data" using 3:5 title "w/o IPEVAL", "" using 3:6 title "w/IPEVAL"
+set xlabel "Final Execution Time"
+set terminal X11 1
+plot "<sort -n -k12 data" using 12:5 title "w/o IPEVAL", "" using 12:6 title "w/IPEVAL"
+set terminal X11 2
+set xlabel "Total Fetch Time"
+plot "<sort -n -k11 data" using 11:5 title "w/o IPEVAL", "" using 11:6 title "w/IPEVAL"

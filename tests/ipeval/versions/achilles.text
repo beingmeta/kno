@@ -1,0 +1,60 @@
+THE ACHILLES HEEL OF SEMANTIC WEB SERVICES
+
+The vision of the Semantic Web, and its more common cousin the web
+services vision, is widely imagined to be the shape of the information
+technology future.  A machine-usable web --- which both of these
+visions have at their core --- is expected to do for applications what
+the World Wide Web did for human information access: lead to an
+explosion in capabilities and markets.  
+
+Unfortunately, both of these visions of a machine-usable web have an
+Achilles heel though it is more sensitive for the Semantic Web.  That
+Achilles Heel is *latency* which is, briefly, the time it takes to get
+a simple answer across a network.  While bandwdith capacities of
+networks have been growing by leaps and bounds, latency has only
+improved slowly.
+
+Latency is not that much of a problem for the human web, since humans
+are relatively slow processors of information and typical network
+latencies are practically imperceptible.  For computers, however,
+latency is more of a problem because they are so much faster and slow
+responses means that they are spending more and more of their time
+idle.
+
+Latency has two major causes, neither of which is likely to diminish.
+The first is transmission delay, which is firmly limited by the speed
+of light.  This may seem a distant limit, but consider a client
+program executing a query on a computer in Los Angeles which uses data
+from a server in Boston.  The round trip of 6000 miles, even if it
+went at the speed of light (186,000 miles/second), would take roughly
+32 milliseconds.  This is on the same order (and quite a bit larger in
+some cases) than the normal execution time of many of the queries we
+describe below, which make tens, hundreds, or thousands of such
+references.  Clearly there is a problem.
+
+The second cause of latency is the number of switchers and routers
+along a typical path between processing nodes.  This grows with the
+size and complexity of the network and while it is reduced by faster
+computation, it still plays a significant factor.
+
+For both causes, parts of the problem can be addressed by local
+replication or mirroring, moving copies of information closer (in
+distance and network jumps) to the client.  This is already done for
+human content by companies like Akamai and it is well understood.
+However, it requires some significant up-front work and may not be
+able to scale to the million-producer model of the Semantic Web
+vision.
+
+The method we describe here, iterated partial evaluation, helps solve
+this problem in two ways.  First, it introduces the notion of bundling
+transactions together to reduce the impact of latency costs.  And
+second, it uses iterated partial evaluation to extract bundles of
+transactions from complex procedural queries.  While other methods,
+such as formal query analysis, could identify those same bundles, they
+may be difficult to determine in general and may invoke their own
+local performance issues.
+
+The benchmarks show below were executed on a local area network where
+the average measured latency (round-trip-time by ping) between client
+and server was 134 microseconds.  On the other hand, the average
+latency to a server 1500 miles away (in Texas) was 25 milliseconds.

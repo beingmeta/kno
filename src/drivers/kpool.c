@@ -216,15 +216,15 @@ static kno_size_t get_maxpos(kno_kpool p)
 
 #define XREFS_FLAGS (XTYPE_REFS_ADD_OIDS|XTYPE_REFS_ADD_SYMS)
 
-DEF_KNOSYM(xrefs_zero);
+DEF_KNOSYM(zeroxrefs);
 
 static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 			   lispval opts)
 {
   KNO_OID base = KNO_NULL_OID_INIT;
   unsigned int hi, lo, magicno, capacity, load;
-  int xrefs_max = -1, xrefs_zero=-1, n_xrefs;
-  unsigned int xref_flags = 0, kpool_format = 0;
+  int xrefs_max = -1, n_xrefs;
+  unsigned int xref_flags = 0, xrefs_zero = -1, kpool_format = 0;
   kno_off_t label_loc, metadata_loc, xrefs_loc, xrefs_size;
   lispval label;
   struct KNO_KPOOL *pool = u8_alloc(struct KNO_KPOOL);
@@ -359,7 +359,7 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
 	  lispval new_metadata = kno_read_xtype(in,NULL);
 	  kno_decref(metadata);
 	  metadata=new_metadata;
-	  { lispval xrefs_zero_val=kno_get(metadata,KNOSYM(xrefs_zero),KNO_VOID);
+	  { lispval xrefs_zero_val=kno_get(metadata,KNOSYM(zeroxrefs),KNO_VOID);
 	    if (KNO_UINTP(xrefs_zero_val))
 	      xrefs_zero=KNO_FIX2INT(xrefs_zero_val);
 	    kno_decref(xrefs_zero_val);}}
@@ -450,12 +450,12 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
       xrefs[i++]=xref;}
     kno_close_inbuf(in);
     kno_init_xrefs(&(pool->pool_xrefs),xref_flags,
-		   -1,n_xrefs,xrefs_length,xrefs_max,
+		   xrefs_zero,n_xrefs,xrefs_length,xrefs_max,
 		   xrefs,NULL);}
   else {
     lispval *xrefs = u8_alloc_n(256,lispval);
     kno_init_xrefs(&(pool->pool_xrefs),xref_flags,
-		   -1,0,256,xrefs_max,
+		   xrefs_zero,0,256,xrefs_max,
 		   xrefs,NULL);}
 
   pool->pool_offdata = NULL;

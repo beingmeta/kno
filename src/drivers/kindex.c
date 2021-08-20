@@ -1557,6 +1557,7 @@ static void kindex_getstats(struct KNO_KINDEX *kx,
     *nf = 0; *max = 0; *singles = 0; *n2sum = 0;
     return;}
   buckets = u8_big_alloc_n(total_keys,KNO_CHUNK_REF);
+  buckets_len = total_keys;
   /* If we don't have chunk offsets in memory, we keep the stream
      locked while we get them. */
   if (offdata) {

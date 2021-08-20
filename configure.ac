@@ -109,7 +109,7 @@ fi;
 VERSION=$KNO_VERSION
 DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
-EXESOURCE=exe
+SHAREDEXE=exe
 STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
 mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
@@ -351,7 +351,7 @@ AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(KNO_PATCHVERSION)
 AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(LIBSOURCE)
-AC_SUBST(EXESOURCE)
+AC_SUBST(SHAREDEXE)
 AC_SUBST(STATICEXE)
 AC_SUBST(VERSION)
 AC_SUBST(PROFILING)
@@ -563,7 +563,7 @@ fi
 AC_ARG_ENABLE(stripping,--enable-stripping strip libraries and executables before installing,,enable_stripping="no")
 if test "$enable_stripping" != "no"; then
    LIBSOURCE=lib/stripped
-   EXESOURCE=exe/stripped
+   SHAREDEXE=exe/stripped
    STATICEXE=static/stripped
 fi
 

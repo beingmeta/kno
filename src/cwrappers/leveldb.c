@@ -245,7 +245,7 @@ static leveldb_writeoptions_t *get_write_options(kno_leveldb db,lispval opts_arg
 
 /* Initializing xrefs */
 
-DEF_KNOSYM(xrefs); DEF_KNOSYM(maxrefs); DEF_KNOSYM(debug);
+DEF_KNOSYM(xrefs); DEF_KNOSYM(debug);
 
 static int init_leveldb_xrefs(struct KNO_LEVELDB *db,lispval opts)
 {
@@ -320,7 +320,6 @@ static int setup_leveldb_xrefs(struct KNO_LEVELDB *db,lispval opts)
 {
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   struct XTYPE_REFS *xrefs = &(db->xrefs);
-  struct BYTEVEC _prefix = {0}, *prefix;
   int rv = 0, i = -1, found = 0;
   leveldb_iterator_t *iterator = leveldb_create_iterator(db->dbptr,readopts);
   ssize_t n_xrefs = 0, max_xrefs = 0, xrefs_len = 0;
@@ -363,7 +362,7 @@ static int setup_leveldb_xrefs(struct KNO_LEVELDB *db,lispval opts)
 	goto corrupted_xrefs;}
       if (i>=xrefs_len) {
 	ssize_t new_len = xrefs_len + 1;
-	refs = u8_realloc(refs,sizeof(lispval)*xrefs_len);}
+	refs = u8_realloc(refs,sizeof(lispval)*new_len);}
       refs[i++]=ref;}
     leveldb_iter_next(iterator);}
   if (i > n_xrefs) n_xrefs=i;
@@ -797,9 +796,9 @@ static struct LEVELDB_KEYBUF *fetchn(struct KNO_LEVELDB *db,int n,
 DEFC_PRIM("leveldb/getn",leveldb_getn_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	  "**undocumented**",
-	  "leveldb",KNO_LEVELDB_TYPE,KNO_VOID,
-	  "keys",kno_vector_type,KNO_VOID,
-	  "opts",kno_any_type,KNO_VOID)
+	  {"leveldb",KNO_LEVELDB_TYPE,KNO_VOID},
+	  {"keys",kno_vector_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID});
 static lispval leveldb_getn_prim(lispval leveldb,lispval keys,lispval opts)
 {
   struct KNO_LEVELDB_CONS *dbcons = (kno_leveldb_cons)leveldb;
@@ -886,7 +885,6 @@ static int leveldb_scanner(struct KNO_LEVELDB *db,lispval opts,
 			   void *state)
 {
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
-  struct XTYPE_REFS *xrefs = &(db->xrefs);
   struct BYTEVEC _prefix = {0}, *prefix;
   int rv = 0, free_prefix=0;
   if (use_prefix)
@@ -917,6 +915,7 @@ static int leveldb_scanner(struct KNO_LEVELDB *db,lispval opts,
   return rv;
 }
 
+#if 0
 static int leveldb_key_scanner(struct KNO_LEVELDB *db,lispval opts,
 			       leveldb_iterator_t *use_iterator,
 			       lispval key,struct BYTEVEC *use_prefix,
@@ -925,7 +924,6 @@ static int leveldb_key_scanner(struct KNO_LEVELDB *db,lispval opts,
 {
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   struct BYTEVEC _prefix = {0}, *prefix;
-  xtype_refs xrefs = &(db->xrefs);
   int rv = 0, free_prefix=0;
   if (use_prefix)
     prefix=use_prefix;
@@ -956,6 +954,7 @@ static int leveldb_key_scanner(struct KNO_LEVELDB *db,lispval opts,
   if (use_iterator == NULL) leveldb_iter_destroy(iterator);
   return rv;
 }
+#endif
 
 static int leveldb_editor(struct KNO_LEVELDB *db,lispval opts,
 			  leveldb_iterator_t *use_iterator,
@@ -1180,7 +1179,7 @@ static ssize_t leveldb_add_helper(struct KNO_LEVELDB *db,
   struct BYTEVEC keybuf = {0}, valbuf = {0};
   leveldb_readoptions_t *readopts = get_read_options(db,opts);
   char *errmsg=NULL;
-  long long n_vals=0, n_blocks=0, header_type=0;
+  long long n_vals=0, n_blocks=0;
   ssize_t rv = 0;
   KNO_INIT_BYTE_OUTPUT(&keyout,1000);
   rv=db_write_xtype(db,&keyout,key);

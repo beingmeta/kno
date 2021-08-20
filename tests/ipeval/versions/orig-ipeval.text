@@ -1,0 +1,36 @@
+While pushing the development of FramerD further, Dr. Haase invented a
+technique, iterated partial evaluation, for optimizing complex queries
+against large databases.  Applied to general procedural queries that
+may involve complex data dependencies, the method produces speedups of
+50-1000% on even simple queries.
+
+The technique is based on the distinction between bandwidth and
+latency in accessing server-based or file-based databases.  As
+technology has grown, bandwidth and volume related performance has
+tended to grow exponentially with Moore’s Law, while latency and
+transaction-related costs have grown linearly.  This shift has
+increased the performance advantage of combining multiple operations
+into a single transaction.
+
+The method leverages this advantage by repeatedly but incompletely
+executing a procedural query.  Whenever the query execution requires
+access to storage (network or disk), the request is queued and that
+part of the query procedure fails.  When the procedure has completed
+its incomplete execution, the requests are bundled together, processed
+and the results cached. The next execution of the procedure will not
+need to go to storage for those results.  Eventually, all of the
+needed data has been cached and the procedure is completely executed.
+
+This repeated execution approach is counter-intuitive but makes sense
+because processors and main memory have grown dramatically faster than
+disk and network access.  Even on simple queries, the technique yields
+speedups of 2-5 times over straight-line single execution when
+accessing networked data sources.  The gains are less dramatic for
+file based data sources where the latencies (and thus the advantage to
+bundling) is lower.
+
+beingmeta has filed for a patent on this method and has continued to
+explore refinements, mostly based on further internal caching which
+further lessens the cost of the repeated executions.  In addition,
+there may be other refinements that could make use of multi-way SMP
+machines, new multi-core processors, and asynchronous disk I/O.

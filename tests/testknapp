@@ -1,0 +1,12 @@
+#!/bin/sh
+ROOT=$(dirname $0)
+#echo "ROOT=${ROOT}";
+#echo "ARGS=$*";
+if [ -z "${ROOT}" ]; then ROOT=.; fi
+if [ -f ${ROOT}/../dbg/runenv.sh ]; then
+    . ${ROOT}/../dbg/runenv.sh;
+fi;
+if [ -f ${ROOT}/testenv.sh ]; then
+   . ${ROOT}/testenv.sh;
+fi;
+exec ${ROOT}/knapp $*

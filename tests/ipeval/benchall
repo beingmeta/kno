@@ -1,0 +1,9 @@
+#!/bin/sh
+#export PARAMS="SERVER=beingmeta.com TRIALCOUNT=10"
+#export PARAMS="SERVER=gemini.dot.beingmeta.com TRIALCOUNT=10"
+dobench $PARAMS :hyponyms 1000 inputs/a/descent.samples $1/hyponyms/raw
+dobench $PARAMS :subclasses 1000 inputs/a/descent.samples $1/subclasses/raw
+dobench $PARAMS :getrelated 1000 inputs/a/getrelated.samples $1/subclasses/raw
+dobench $PARAMS :disambig 250 inputs/a/keylists.dtype $1/disambig/raw
+#dobench $PARAMS :getrefs 250 inputs/a/passages.dtype $1/getrefs/raw
+
