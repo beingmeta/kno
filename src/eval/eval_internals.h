@@ -166,8 +166,8 @@ static U8_MAYBE_UNUSED lispval unwrap_qchoice(lispval val)
 }
 
 INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
-			     kno_stack stack,
-			     int tail)
+			  kno_stack stack,
+			  int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_cons_type: {
@@ -184,6 +184,11 @@ INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
       return eval_schemap(x,env,stack);
     case kno_slotmap_type:
       return kno_deep_copy(x);
+    case kno_lambda_type: {
+      kno_lambda l = (kno_lambda) x;
+      if (l->lambda_env)
+	return kno_incref(x);
+      else return eval_lambda(NULL,l,env);}
     default:
       return kno_incref(x);}}
   case kno_immediate_ptr_type: {

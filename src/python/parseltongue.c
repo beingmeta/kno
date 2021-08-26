@@ -1805,7 +1805,7 @@ static lispval pyhandle(int n,kno_argvec lisp_args)
   struct KNO_PYTHON_OBJECT *pyo=(struct KNO_PYTHON_OBJECT *) obj;
   PyObject *po = pyo->pyval;
   PyObject *args[n];
-  PyObject *r;
+  PyObject *r = NULL;
   int i = 2; while (i<n) {
     args[i] = lisp2py(lisp_args[i]); i++;}
   switch (n) {
@@ -1864,7 +1864,7 @@ static lispval pytry(int n,kno_argvec lisp_args)
   struct KNO_PYTHON_OBJECT *pyo=(struct KNO_PYTHON_OBJECT *) obj;
   PyObject *po = pyo->pyval;
   PyObject *args[n];
-  PyObject *r;
+  PyObject *r = NULL;
   int i = 2; while (i<n) {
     args[i] = lisp2py(lisp_args[i]); i++;}
   switch (n) {

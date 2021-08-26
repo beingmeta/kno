@@ -201,36 +201,6 @@ int lambda_setup(kno_stack stack,kno_stack origin,
 /* This isn't currently used because the locals are initialized in the body,
    which is probably the right thing ? */
 
-#if 0
-int init_locals(kno_stack stack,kno_lexenv env,
-		const lispval *inits,
-		lispval *vals,
-		int n_locals)
-{
-  int i = 0; while (i<n_locals) {
-    lispval expr = inits[i], init;
-    if (CONSP(expr)) {
-      if (PAIRP(expr))
-	init = vm_eval(KNO_CAR(expr),expr,env,stack,0);
-      else if (KNO_CHOICEP(expr))
-	init = eval_choice(expr,env,stack);
-      else if (KNO_SCHEMAPP(expr))
-	init = eval_schemap(expr,env,stack);
-      else init = kno_incref(expr);}
-    else if (IMMEDIATEP(expr)) {
-      if (KNO_LEXREFP(expr))
-	init = eval_lexref(expr,env);
-      else if (KNO_SYMBOLP(expr))
-	init = eval_symbol(expr,env);
-      else init = expr;}
-    else init=expr;
-    if (KNO_ABORTED(init)) return -1;
-    vals[i++]=init;}
-  return i;
-}
-#endif
-
-
 /* Doing the call itself */
 
 lispval lambda_call(kno_stack stack,

@@ -566,8 +566,12 @@ lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
     op = eval_symbol(head,env);
   else if (KNO_CONSP(head)) {
     kno_lisp_type headtype = KNO_CONS_TYPEOF(head);
-    if ( (headtype == kno_evalfn_type) ||
-	 (KNO_APPLICABLE_TYPEP(headtype)) )
+    if (headtype == kno_lambda_type)  {
+      kno_lambda l = (kno_lambda) head;
+      if (l->lambda_env) return head;
+      else op = eval_lambda(NULL,l,env);}
+    else if ( (headtype == kno_evalfn_type) ||
+	      (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
     else if  (headtype == kno_pair_type)
       op = lisp_eval(KNO_CAR(head),head,env,stack,0);
@@ -620,8 +624,8 @@ lispval eval_apply(lispval fn,lispval exprs,
 
 /* Evaluating pair expressions using stack frames for each subexpression */
 lispval lisp_eval(lispval head,lispval expr,
-			kno_lexenv env,kno_stack stack,
-			int tail)
+		  kno_lexenv env,kno_stack stack,
+		  int tail)
 {
   if (KNO_OPCODEP(head))
     return vm_eval(head,expr,env,stack,tail);
