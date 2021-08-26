@@ -1058,7 +1058,7 @@ clean: tidy
 	rm -f lib/*.a lib/*.so lib/*.dylib
 	rm -f lib/*.so lib/*.so.* lib/*.dylib lib/*.dylib.*
 	rm -f lib/kno/*.so lib/kno/*.so.* lib/kno/*.dylib lib/kno/*.dylib.*
-	rm -rf exe/kn* dbg/kn* static/kn* static/stripped/kn*
+	rm -rf exe/kno* dbg/kno* static/kno* static/stripped/kno*
 	rm -f TAGS
 	cd tests/libtests; make -s clean
 	cd tests; make -s clean
