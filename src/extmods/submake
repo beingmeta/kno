@@ -1,5 +1,5 @@
 #!/bin/sh
-ALLDIRS="hyphenate imagetools mariadb odbc sundown tidy zeromq leveldb rocksdb nng ziptools"
+ALLDIRS="hyphenate imagetools sundown tidy zeromq nng ziptools"
 DIRS=
 ROOT=$(pwd)
 ARGS=

@@ -1086,26 +1086,14 @@ static int webservefn(u8_client ucl)
              uri,path,proc,(unsigned long)ucl);
     result = kno_apply(proc,0,NULL);}
   else if (KNO_LAMBDAP(proc)) {
-    struct KNO_LAMBDA *sp = KNO_CONSPTR(kno_lambda,proc);
     if ((forcelog)||(traceweb>1))
       u8_log(LOG_NOTICE,"START",
              "Handling %q (%q) with lambda procedure %q (#%lx)",
              uri,path,proc,(unsigned long)ucl);
-    base_env = sp->lambda_env;
-    threadcache = checkthreadcache(sp->lambda_env);
+    base_env = KNO_LAMBDA_ENV(proc);
+    /* If environment sets threadcache to #t, use a threadcache */
+    threadcache = checkthreadcache(base_env);
     result = kno_cgiexec(proc,cgidata);}
-  else if ((KNO_PAIRP(proc))&&
-           (KNO_LAMBDAP((KNO_CAR(proc))))) {
-    struct KNO_LAMBDA *sp = KNO_CONSPTR(kno_lambda,KNO_CAR(proc));
-    if ((forcelog)||(traceweb>1))
-      u8_log(LOG_NOTICE,"START",
-             "Handling %q (%q) with lambda procedure %q (#%lx)",
-             uri,path,proc,(unsigned long)ucl);
-    threadcache = checkthreadcache(sp->lambda_env);
-    /* This should possibly put the CDR of proc into the environment chain,
-       but it no longer does. ?? */
-    base_env = sp->lambda_env;
-    result = kno_cgiexec(KNO_CAR(proc),cgidata);}
   else if (KNO_PAIRP(proc)) {
     /* This is handling KNOML */
     lispval setup_proc = VOID;

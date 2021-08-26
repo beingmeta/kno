@@ -11,7 +11,7 @@
 #define KNO_EVAL_INTERNALS 1
 #define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS	(!(KNO_AVOID_INLINE))
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
@@ -224,7 +224,7 @@ static lispval track_ipeval_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 #endif
 
-/* Extend fcnid parsing to incluce functional compounds */
+/* Extend qonst parsing to incluce functional compounds */
 
 /* Initialization */
 

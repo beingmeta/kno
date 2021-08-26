@@ -9,7 +9,7 @@
 #endif
 
 #define KNO_INLINE_TABLES      (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS      (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -290,7 +290,7 @@ static lispval synchronizerp_prim(lispval arg)
   if (KNO_TYPEP(arg,kno_synchronizer_type))
     return KNO_TRUE;
   else if (KNO_LAMBDAP(arg)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,arg,kno_lambda_type);
+    struct KNO_LAMBDA *sp = KNO_LAMBDA_INFO(arg);
     if (sp->lambda_synchronized)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -433,7 +433,7 @@ static lispval sync_lock(lispval lck)
     lock_synchronizer(sync);
     return KNO_TRUE;}
   else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    struct KNO_LAMBDA *sp = KNO_LAMBDA_INFO(lck);
     if (sp->lambda_synchronized) {
       u8_lock_mutex(&(sp->lambda_lock));}
     else return kno_type_error("lockable","synchro_lock",lck);
@@ -455,7 +455,7 @@ static lispval sync_unlock(lispval lck)
     unlock_synchronizer(sync);
     return KNO_TRUE;}
   else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    struct KNO_LAMBDA *sp = KNO_LAMBDA_INFO(lck);
     if (sp->lambda_synchronized) {
       u8_unlock_mutex(&(sp->lambda_lock));}
     else return kno_type_error("lockable","synchro_lock",lck);
@@ -500,7 +500,7 @@ static lispval with_lock_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     case sync_condvar:
       mutex = &(sync->obj.condvar.lock); break;}}
   else if (KNO_LAMBDAP(lck)) {
-    struct KNO_LAMBDA *sp = kno_consptr(kno_lambda,lck,kno_lambda_type);
+    struct KNO_LAMBDA *sp = KNO_LAMBDA_INFO(lck);
     if (sp->lambda_synchronized) {
       mutex = &(sp->lambda_lock);}
     else {

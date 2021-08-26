@@ -783,7 +783,7 @@ KNO_EXPORT u8_condition kno_get_pointer_exception(lispval x)
     else switch (ptype) {
       case kno_symbol_type: return _("BadSymbol");
       case kno_constant_type: return _("BadConstant");
-      case kno_fcnid_type: return _("BadFcnId");
+      case kno_qonst_type: return _("BadQonst");
       case kno_opcode_type: return _("BadOpcode");
       case kno_lexref_type: return _("BadLexref");
       default:

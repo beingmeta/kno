@@ -1180,7 +1180,7 @@ static int U8_MAYBE_UNUSED cgiexecstep(void *data)
   if (call->outlen<0)
     call->outlen = call->cgiout->u8_write-call->cgiout->u8_outbuf;
   else call->cgiout->u8_write = call->cgiout->u8_outbuf+call->outlen;
-  value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
+  value = kno_xapply_lambda(proc,(void *)cgidata,
                             (lispval (*)(void *,lispval))cgigetvar);
   call->result = value;
   return 1;
@@ -1215,7 +1215,7 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
     int ipeval = 0;
 #endif
     if (!(ipeval))
-      value = kno_xapply_lambda((kno_lambda)proc,(void *)cgidata,
+      value = kno_xapply_lambda(proc,(void *)cgidata,
 				(lispval (*)(void *,lispval))cgigetvar);
 #if KNO_IPEVAL_ENABLED
     else {

@@ -8,7 +8,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_QONSTS 1
 #define KNO_INLINE_STACKS 1
 #define KNO_INLINE_LEXENV 1
 #define KNO_INLINE_APPLY  1
@@ -321,12 +321,13 @@ static lispval lexenv_dispatch(lispval env,lispval message,
 
 KNO_EXPORT void kno_init_lexenv_c()
 {
-  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(KNO_CTYPE(kno_lexenv_type));
-  typeinfo->type_dispatchfn = lexenv_dispatch;
-
   kno_unparsers[kno_lexenv_type]=unparse_lexenv;
   kno_copiers[kno_lexenv_type]=lisp_copy_lexenv;
   kno_recyclers[kno_lexenv_type]=recycle_lexenv;
+
+  struct KNO_TYPEINFO *typeinfo = kno_use_typeinfo(KNO_CTYPE(kno_lexenv_type));
+  typeinfo->type_dispatchfn = lexenv_dispatch;
+
 #if LEXENV_DTYPE
   kno_dtype_writers[kno_lexenv_type]=lexenv_dtype;
 #endif

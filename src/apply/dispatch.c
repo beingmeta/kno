@@ -8,7 +8,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_QONSTS 1
 #define KNO_INLINE_APPLY  1
 #define KNO_INLINE_OBJTYPE 1
 #define KNO_SOURCE 1

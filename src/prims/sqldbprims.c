@@ -193,7 +193,7 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
 static lispval callsqlproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
 {
   struct KNO_SQLPROC *dbp = (struct KNO_SQLPROC *)xdbproc;
-  return dbp->fcn_handler.xcalln((kno_stack)kno_stackptr,xdbproc,n,args);
+  return dbp->fcn_handler.xcalln((kno_stack)kno_stackptr,(lispval)xdbproc,n,args);
 }
 
 /* SQLDB primitives */

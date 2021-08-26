@@ -88,10 +88,12 @@
 	     (do-choices (restore-mod (car matches))
 	       (let ((mod (get-module restore-mod)))
 		 (if mod
-		     (logctl! mod #f)
+		     (begin (logwarn |LogCTL| "Reset " mod)
+		       (logctl! mod #f))
 		     (logerr |BadModuleToRestore| restore-mod))))
 	     (sset! levels (difference saved-levels matches))))
-	  (val (logctl! val (getloglevel level)))
+	  (val (logwarn |LogCTL| "Set " (write val) " to " level)
+	       (logctl! val (getloglevel level)))
 	  (else (irritant val "Bad module argument")))))
 
 (config-def! 'logdeluge (make-logconfigfn %deluge%))

@@ -9,7 +9,7 @@
 #endif
 
 #define KNO_INLINE_CHOICES KNO_DO_INLINE
-#define KNO_INLINE_FCNIDS KNO_DO_INLINE
+#define KNO_INLINE_QONSTS KNO_DO_INLINE
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

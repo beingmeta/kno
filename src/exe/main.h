@@ -1,5 +1,6 @@
 #include <libu8/u8stdio.h>
 #include <errno.h>
+#include <locale.h>
 
 KNO_EXPORT void kno_init_webtools(void);
 KNO_EXPORT void kno_init_texttools(void);

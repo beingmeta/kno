@@ -24,10 +24,10 @@
 #include <errno.h>
 #include <math.h>
 
-static lispval choice_prim, choice_fcnid, push_prim, push_fcnid;
-static lispval plus_prim, plus_fcnid, minus_prim, minus_fcnid, minus_prim;
-static lispval plusone_prim, plusone_fcnid, minusone_prim, minusone_fcnid;
-static lispval difference_prim, difference_fcnid;
+static lispval choice_prim, choice_qonst, push_prim, push_qonst;
+static lispval plus_prim, plus_qonst, minus_prim, minus_qonst, minus_prim;
+static lispval plusone_prim, plusone_qonst, minusone_prim, minusone_qonst;
+static lispval difference_prim, difference_qonst;
 
 DEF_KNOSYM(consfn); DEF_KNOSYM(stringfn);
 DEF_KNOSYM(dumpfn); DEF_KNOSYM(restorefn);
@@ -235,14 +235,14 @@ static lispval applicablep(lispval x)
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("fcnid?",fcnidp,
+DEFC_PRIM("qonst?",qonstp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns true if *x* is a function ID, an immediate value "
 	  "which refers to a function",
 	  {"x",kno_any_type,KNO_VOID})
-static lispval fcnidp(lispval x)
+static lispval qonstp(lispval x)
 {
-  if (KNO_FCNIDP(x))
+  if (KNO_QONSTP(x))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
@@ -253,7 +253,7 @@ DEFC_PRIM("macro?",macrop,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval macrop(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (TYPEP(x,kno_macro_type)) return KNO_TRUE;
   else return KNO_FALSE;
 }
@@ -264,7 +264,7 @@ DEFC_PRIM("lambda?",lambdap,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval lambdap(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_LAMBDAP(x))
     return KNO_TRUE;
   else return KNO_FALSE;
@@ -277,7 +277,7 @@ DEFC_PRIM("evalfn?",evalfnp,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval evalfnp(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (TYPEP(x,kno_evalfn_type))
     return KNO_TRUE;
   else return KNO_FALSE;
@@ -289,7 +289,7 @@ DEFC_PRIM("primitive?",primitivep,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval primitivep(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (TYPEP(x,kno_cprim_type))
     return KNO_TRUE;
   else return KNO_FALSE;
@@ -302,8 +302,10 @@ DEFC_PRIM("procedure?",procedurep,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedurep(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_FUNCTIONP(x))
+    return KNO_TRUE;
+  else if (KNO_TYPEP(x,kno_closure_type))
     return KNO_TRUE;
   else return KNO_FALSE;
 }
@@ -316,9 +318,9 @@ DEFC_PRIM("thunk?",thunkp,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval thunkp(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_FUNCTIONP(x)) {
-    kno_function f = (kno_function) x;
+    kno_function f = KNO_FUNCTION_INFO(x);
     if (f->fcn_arity==0) return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -827,29 +829,29 @@ static lispval compound_set(lispval x,lispval offset,lispval value,lispval tag)
 static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
 {
   if ( (modifier == KNOSYM_ADD) ||
-       (modifier == choice_fcnid) ||
+       (modifier == choice_qonst) ||
        (modifier == choice_prim) ) {
     kno_incref(old_value); kno_incref(value);
     CHOICE_ADD(old_value,value);
     return old_value;}
   else if ( (modifier == KNOSYM_DROP) ||
-	    (modifier == difference_fcnid) ||
+	    (modifier == difference_qonst) ||
 	    (modifier == difference_prim) )
     return kno_difference(old_value,value);
   else if ( (modifier == KNOSYM_PLUS) ||
-	    (modifier == plus_fcnid) ||
+	    (modifier == plus_qonst) ||
 	    (modifier == plus_prim) )
     return kno_plus(old_value,value);
   else if  ( (modifier == KNOSYM_MINUS) ||
-	     (modifier == minus_fcnid) ||
+	     (modifier == minus_qonst) ||
 	     (modifier == minus_prim) )
     return kno_subtract(old_value,value);
   else if (modifier == KNOSYM_STORE)
     return kno_incref(value);
   else {
-    if (KNO_FCNIDP(modifier)) modifier = kno_fcnid_ref(modifier);
+    if (KNO_QONSTP(modifier)) modifier = kno_qonst_val(modifier);
     if (KNO_FUNCTIONP(modifier)) {
-      kno_function fcn = (kno_function) modifier;
+      kno_function fcn = KNO_FUNCTION_INFO(modifier);
       if (fcn->fcn_arity==1)
 	return kno_apply(modifier,1,&old_value);
       else {
@@ -1254,7 +1256,7 @@ static lispval set_handler_cprim(lispval type,lispval message,lispval handler)
     return KNO_ERROR;}
   else if (KNO_VOIDP(message)) {
     if (KNO_FUNCTIONP(handler)) {
-      kno_function f = (kno_function) handler;
+      kno_function f = KNO_FUNCTION_INFO(handler);
       if (f->fcn_name) message = kno_intern(f->fcn_name);}
     if (KNO_VOIDP(message))
       return kno_err("NoMessageName","set_handler_cprim",NULL,handler);}
@@ -1436,22 +1438,22 @@ KNO_EXPORT void kno_init_typeops_c()
   lispval scheme = kno_scheme_module; 
 
   choice_prim = kno_get(scheme,kno_intern("choice"),KNO_VOID);
-  choice_fcnid  = kno_register_fcnid(choice_prim);
+  choice_qonst  = kno_qonst_ref(kno_intern("choice"),scheme,choice_prim);
 
   push_prim = kno_get(scheme,kno_intern("push"),KNO_VOID);
-  push_fcnid  = kno_register_fcnid(push_prim);
+  push_qonst  = kno_qonst_ref(kno_intern("push"),scheme,push_prim);
 
   plus_prim = kno_get(scheme,kno_intern("+"),KNO_VOID);
-  plus_fcnid  = kno_register_fcnid(plus_prim);
+  plus_qonst  = kno_qonst_ref(kno_intern("plus"),scheme,plus_prim);
 
   minus_prim = kno_get(scheme,kno_intern("-"),KNO_VOID);
-  minus_fcnid  = kno_register_fcnid(minus_prim);
+  minus_qonst  = kno_qonst_ref(kno_intern("minus"),scheme,minus_prim);
 
   minusone_prim = kno_get(scheme,kno_intern("-1+"),KNO_VOID);
-  minusone_fcnid  = kno_register_fcnid(minusone_prim);
+  minusone_qonst  = kno_qonst_ref(kno_intern("-1+"),scheme,minusone_prim);
 
   plusone_prim = kno_get(scheme,kno_intern("1+"),KNO_VOID);
-  plusone_fcnid  = kno_register_fcnid(plusone_prim);
+  plusone_qonst  = kno_qonst_ref(kno_intern("1+"),scheme,plusone_prim);
 
   link_local_cprims();
 }
@@ -1494,7 +1496,7 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("ctype?",ctypep_prim,scheme_module);
   KNO_LINK_ALIAS("typep",hastypep_prim,scheme_module);
 
-  KNO_LINK_CPRIM("fcnid?",fcnidp,1,scheme_module);
+  KNO_LINK_CPRIM("qonst?",qonstp,1,scheme_module);
   KNO_LINK_CPRIM("applicable?",applicablep,1,scheme_module);
   KNO_LINK_CPRIM("procedure?",procedurep,1,scheme_module);
   KNO_LINK_CPRIM("primitive?",primitivep,1,scheme_module);

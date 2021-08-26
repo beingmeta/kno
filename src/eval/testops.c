@@ -103,9 +103,9 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
     lispval arg = args[i];
     u8_putc(&testid,' ');
     if (KNO_FUNCTIONP(arg)) {
-      lispval f = (KNO_FCNIDP(arg)) ? (kno_fcnid_ref(arg)) : (arg);
+      lispval f = (KNO_QONSTP(arg)) ? (kno_qonst_val(arg)) : (arg);
       if (KNO_FUNCTIONP(f)) {
-	kno_function fcn = (kno_function) f;
+	kno_function fcn = KNO_FUNCTION_INFO(f);
 	if (fcn->fcn_name)
 	  u8_puts(&testid,fcn->fcn_name);
 	else kno_unparse(&testid,arg);}
@@ -128,7 +128,7 @@ static lispval applytest(int n,kno_argvec args)
   const lispval *argstart = args+2;
   int n_args = n-2;
   if (KNO_FUNCTIONP(expected)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(expected);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(expected);
     if ( (f) && (f->fcn_arity==1) )
       predicate=expected;
     else if ( (f) &&

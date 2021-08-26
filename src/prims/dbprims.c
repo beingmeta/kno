@@ -2631,12 +2631,12 @@ KNO_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int dat
   else if ((SYMBOLP(pred)) || (OIDP(pred)))
     return 0;
   else if (KNO_APPLICABLEP(pred)) {
-    if (KNO_FCNIDP(pred)) pred = kno_fcnid_ref(pred);
+    if (KNO_QONSTP(pred)) pred = kno_qonst_val(pred);
     lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */
     if ((KNO_LAMBDAP(pred)) || (TYPEP(pred,kno_cprim_type))) {
-      kno_function fcn = KNO_GETFUNCTION(pred); int retval = -1;
+      kno_function fcn = KNO_FUNCTION_INFO(pred); int retval = -1;
       if (fcn->fcn_min_arity == 2) {
 	rail[0]=f; rail[1]=val;
 	result = kno_apply(pred,2,rail);

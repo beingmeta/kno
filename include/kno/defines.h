@@ -79,8 +79,8 @@
 #endif /* KNO_CORE */
 
 #if KNO_LANG_CORE
-#ifndef KNO_INLINE_FCNIDS
-#define KNO_INLINE_FCNIDS 1
+#ifndef KNO_INLINE_QONSTS
+#define KNO_INLINE_QONSTS 1
 #endif
 #ifndef KNO_INLINE_LEXENV
 #define KNO_INLINE_LEXENV 1
@@ -565,6 +565,9 @@ typedef double kno_double;
 #define ABORTED(x) (KNO_ABORTED(x))
 #define STRLEN(x)  (KNO_STRLEN(x))
 #define CSTRING(x) (KNO_CSTRING(x))
+#define VECTOR_LENGTH(x)  (KNO_VECTOR_LENGTH(x))
+#define VECTOR_ELTS(x)  (KNO_VECTOR_DATA(x))
+#define VECTOR_REF(x,i) (KNO_VECTOR_REF((x),(i)))
 #define VEC_LEN(x)  (KNO_VECTOR_LENGTH(x))
 #define VEC_DATA(x)  (KNO_VECTOR_DATA(x))
 #define VEC_REF(x,i) (KNO_VECTOR_REF((x),(i)))

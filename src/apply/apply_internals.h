@@ -61,8 +61,8 @@ int check_argtypes(struct KNO_FUNCTION *f,int n,kno_argvec args)
 static int arg_type_error(lispval fn,lispval arg,lispval type,int i)
 {
   u8_byte buf[100];
-  u8_string fcn_name = (KNO_FUNCTIONP(fn)) ? (((kno_function)fn)->fcn_name) :
-    (NULL);
+  kno_function f = KNO_FUNCTION_INFO(fn);
+  u8_string fcn_name = (f) ? (f->fcn_name) : (NULL);
   u8_string details =
     ( (fcn_name) ?
       (u8_bprintf(buf,"%s[%d]!=%q",fcn_name,i,type)) :
@@ -71,21 +71,21 @@ static int arg_type_error(lispval fn,lispval arg,lispval type,int i)
   return -1;
 }
 
-static int arg_error(lispval f,lispval arg,int i)
+static int arg_error(lispval fn,lispval arg,int i)
 {
   u8_byte buf[100];
-  u8_string fcn_name = (KNO_FUNCTIONP(f)) ? (((kno_function)f)->fcn_name) :
-    (NULL);
+  kno_function f = KNO_FUNCTION_INFO(fn);
+  u8_string fcn_name = (f) ? (f->fcn_name) : (NULL);
   u8_string details =
     ( (fcn_name) ?
       (u8_bprintf(buf,"%s[%d]",fcn_name,i)) :
-      (u8_bprintf(buf,"arg[%d] for %q",i,f)) );
+      (u8_bprintf(buf,"arg[%d] for %q",i,fn)) );
   if (arg == KNO_NULL)
-    kno_seterr(kno_NullPtr,"docall",details,f);
+    kno_seterr(kno_NullPtr,"docall",details,fn);
   else if (KNO_ABORTP(arg))
-    kno_seterr("ArgumentError","docall",details,f);
+    kno_seterr("ArgumentError","docall",details,fn);
   else if (KNO_VOIDP(arg))
-    kno_seterr(kno_VoidArgument,"docall",details,f);
+    kno_seterr(kno_VoidArgument,"docall",details,fn);
   else kno_badptr_err(arg,"docall",details);
   return -1;
 }
@@ -229,7 +229,7 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
   if (rv<0)
     return KNO_ERROR;
   else if (FCN_XCALLP(cp))
-    return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
+    return cp->fcn_handler.xcalln(stack,(lispval)cp,n,args);
   else if ( (FCN_VARARGP(cp)) || (arity < 0) )
     return cp->fcn_handler.calln(n,args);
   else switch (arity) {
@@ -296,7 +296,7 @@ KNO_FASTOP lispval cprim_call(u8_string fname,kno_cprim cp,
 	 args[12],args[13],args[14]);
     default:
       if (FCN_XCALLP(cp))
-	return cp->fcn_handler.xcalln(stack,(kno_function)cp,n,args);
+	return cp->fcn_handler.xcalln(stack,(lispval)cp,n,args);
       else return cp->fcn_handler.calln(n,args);}
 }
 

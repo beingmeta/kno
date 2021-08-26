@@ -17,6 +17,7 @@ KNO_EXPORT int kno_trace_config, kno_trace_config_load;
 #define KNO_CONFIG_MODIFIED	    0x01
 #define KNO_CONFIG_SINGLE_VALUE	    0x02
 #define KNO_CONFIG_DELAYED	    0x04
+#define KNO_CONFIG_LOCKED	    0x08
 
 typedef lispval (*kno_config_getfn)(lispval var,void *data);
 typedef int (*kno_config_setfn)(lispval var,lispval val,void *data);
@@ -39,13 +40,13 @@ typedef struct KNO_CONFIG_FINDER *kno_config_finders;
 
 KNO_EXPORT lispval kno_config_get(u8_string var);
 KNO_EXPORT int kno_set_config(u8_string var,lispval val);
-KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val);
-KNO_EXPORT int kno_default_config(u8_string var,lispval val);
-KNO_EXPORT int kno_default_config_sym(lispval symbol,lispval val);
+KNO_EXPORT int kno_handle_config(lispval symbol,lispval val);
+KNO_EXPORT int kno_set_default_config(u8_string var,lispval val);
+KNO_EXPORT int kno_handle_default_config(lispval symbol,lispval val);
 KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val);
 #define kno_config_set(var,val) kno_set_config(var,val)
 #define kno_config_set_consed(var,val) kno_set_config_consed(var,val)
-#define kno_config_default(var,val) kno_default_config(var,val)
+#define kno_config_default(var,val) kno_set_default_config(var,val)
 
 KNO_EXPORT int kno_configs_initialized;
 KNO_EXPORT int kno_init_configs(void);

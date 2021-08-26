@@ -12,6 +12,8 @@
 
 /* Typeinfo */
 
+KNO_EXPORT u8_condition kno_UnDumpable;
+
 typedef struct KNO_TYPEINFO *kno_typeinfo;
 typedef int (*kno_type_unparsefn)(u8_output out,lispval,kno_typeinfo);
 typedef lispval (*kno_type_consfn)(int n,lispval *,kno_typeinfo);
@@ -65,5 +67,7 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_ctypeinfo[KNO_TYPE_MAX];
 KNO_EXPORT kno_subtypefn kno_subtypefns[KNO_TYPE_MAX];
 
 KNO_EXPORT kno_typeinfo kno_register_tag_type(lispval tag,long int longcode);
+KNO_EXPORT lispval kno_restore_tagged(lispval tag,lispval data,kno_typeinfo info);
+
 
 #endif

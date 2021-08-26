@@ -8,7 +8,7 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_QONSTS 1
 #define KNO_INLINE_STACKS 1
 
 #include "kno/knosource.h"
@@ -178,7 +178,6 @@ static struct KNO_CPRIM *make_cprim(u8_string name,
   f->fcn_argnames = NULL;
   f->fcn_typeinfo = typeinfo;
   f->fcn_defaults = defaults;
-  f->fcnid = VOID;
   f->cprim_name = cname;
   if ( (arity>=0) && (min_arity>arity)) {
     u8_log(LOG_CRIT,_("Bad primitive definition"),
@@ -261,7 +260,6 @@ static struct KNO_CPRIM *make_xcprim(u8_string name,
   f->fcn_argnames    = schema;
   f->fcn_typeinfo    = typeinfo;
   f->fcn_defaults    = defaults;
-  f->fcnid = VOID;
   f->cprim_name = cname;
   if ( (arity>=0) && (min_arity>arity)) {
     u8_log(LOG_CRIT,_("Bad primitive definition"),

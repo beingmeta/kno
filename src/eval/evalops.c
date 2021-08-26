@@ -191,9 +191,7 @@ int kno_opcode_class(lispval opcode)
 
 /* Call/cc */
 
-static lispval call_continuation(struct KNO_STACK *stack,
-				 struct KNO_FUNCTION *f,
-				 int n,kno_argvec args)
+static lispval call_continuation(struct KNO_STACK *stack,lispval f,int n,kno_argvec args)
 {
   struct KNO_CONTINUATION *cont = (struct KNO_CONTINUATION *)f;
   lispval arg = args[0];
@@ -760,57 +758,6 @@ static lispval getsyms_prim(lispval arg)
   return results;
 }
 
-/* Environment functions */
-
-DEFC_PRIM("fcn/getalias",fcn_getalias_prim,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "tries to return a function alias for *sym* in "
-	  "*module*",
-	  {"sym",kno_symbol_type,KNO_VOID},
-	  {"env_arg",kno_any_type,KNO_VOID})
-static lispval fcn_getalias_prim(lispval sym,lispval env_arg)
-{
-  lispval use_env = KNO_VOID, result = KNO_VOID;
-  if ( (KNO_SYMBOLP(env_arg)) || (KNO_STRINGP(env_arg)) )
-    use_env = kno_find_module(env_arg,1);
-  else if (KNO_LEXENVP(env_arg))
-    use_env = env_arg;
-  else if ( (KNO_HASHTABLEP(env_arg)) &&
-	    (kno_test(env_arg,KNOSYM_MODULEID,KNO_VOID)) )
-    use_env = env_arg;
-  else return kno_err("NotAModule","fcn_getalias_prim",
-		      KNO_SYMBOL_NAME(sym),
-		      env_arg);
-  if (KNO_ABORTED(use_env))
-    return use_env;
-  else if (KNO_VOIDP(use_env))
-    result = kno_err("BadEnvArg","fcnalias_prim",
-		     KNO_SYMBOL_NAME(sym),
-		     env_arg);
-  else NO_ELSE;
-  if (KNO_VOIDP(result)) {
-    lispval val = (KNO_LEXENVP(use_env)) ?
-      (kno_symeval(sym,(kno_lexenv)env_arg)) :
-      (KNO_TABLEP(use_env)) ?
-      (kno_get(use_env,sym,KNO_VOID)) :
-      (KNO_VOID);
-    if (KNO_ABORTED(val))
-      result = val;
-    else if (KNO_VOIDP(val))
-      result = kno_err("Unbound","fcnalias_prim",
-		       KNO_SYMBOL_NAME(sym),
-		       use_env);
-    else if ( (KNO_CONSP(val)) &&
-	      ( (KNO_FUNCTIONP(val)) ||
-		(KNO_APPLICABLEP(val)) ||
-		(KNO_EVALFNP(val)) ||
-		(KNO_MACROP(val)) ))
-      result = kno_fcn_ref(sym,use_env,val);
-    else result = kno_incref(val);}
-  if ( use_env != env_arg) kno_decref(use_env);
-  return result;
-}
-
 /* Access to kno_exec, the database layer interpreter */
 
 DEFC_PRIM("kno/exec",kno_exec_prim,
@@ -866,8 +813,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("symbol-bound-in?",symbol_boundin_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("%choiceref",choiceref_prim,2,kno_scheme_module);
   KNO_LINK_CPRIM("get-arg",get_arg_prim,3,kno_scheme_module);
-
-  KNO_LINK_CPRIM("fcn/getalias",fcn_getalias_prim,2,kno_scheme_module);
 
   KNO_LINK_CPRIM("documentation",get_documentation,1,kno_scheme_module);
   KNO_LINK_CPRIM("getsyms",getsyms_prim,1,kno_scheme_module);

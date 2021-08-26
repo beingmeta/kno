@@ -127,6 +127,14 @@ optscheme optschemetests:
 	  numbers regex xml texttools eval binders conditionals errfns \
           requests gctests crypto gcoverflow
 	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
+faslscheme faslschemetests:
+	@${header} "■■■■■■■■ Running optimized (fasl) scheme tests ${RUNCONF}"
+	make RUNCONF="TESTOPTIMIZED=yes OPTIMIZE:FASL=yes ${RUNCONF}" \
+	  r4rs choices sequences misctest configs types reflect eval lambda tail defines \
+	  exceptions picktest cachecall timeprims sysprims compounds i18n fileprims \
+	  numbers regex xml texttools eval binders conditionals errfns \
+          requests gctests crypto gcoverflow
+	@${header} "■■■■■■■■ Completed optimized scheme tests ${RUNCONF}"
 ziptest: libscm.zip
 	@${header} "■■■■■■■■ Running scheme tests with zip sources ${RUNCONF}"
 	make RUNCONF="LIBSCM=zip:libscm.zip ${RUNCONF}" \
@@ -628,9 +636,10 @@ packtest packtests:
 	@${RUN} ${KNOX} framedb.scm packtest init \
 		COUNT=${TESTSIZE} ${FRAMEDB_FILES} \
 		${RUNCONF};
+	@${RUN} ${KNOX} framedb.scm packtest COUNT=${TESTSIZE} ${RUNCONF} PHASE=prepack CACHELEVEL=2;
 	@${RUN} ${KNOX} knodb/actions/packpool packtest.pool
-	@${RUN} ${KNOX} knodb/actions/packindex packtest.index
-	@${RUN} ${KNOX} framedb.scm packtest COUNT=${TESTSIZE} ${RUNCONF} CACHELEVEL=2;
+	@${RUN} ${KNOX} knodb/actions/packindex packtest.index packtest.index.packed
+	@${RUN} ${KNOX} framedb.scm packtest COUNT=${TESTSIZE} ${RUNCONF} PHASE=postpack CACHELEVEL=2;
 	@${RUN} ${KNOX} knodb/actions/splitindex packtest.index packhead.index packtail.index
 	@rm -f packhead.* packtail.*
 	@${RUN} ${KNOX} knodb/actions/splitindex packtest.index packhead.index packtail.index 2

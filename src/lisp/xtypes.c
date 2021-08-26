@@ -60,8 +60,8 @@ lispval restore_bigint(ssize_t n_digits,unsigned char *bytes,int negp);
 
 /* Object restoration */
 
-static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs);
-static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs);
+static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs,int);
+static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs,int);
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs);
 
 static lispval read_bigtable(lispval tag,kno_inbuf in,xtype_refs refs);
@@ -476,6 +476,7 @@ KNO_EXPORT ssize_t kno_embed_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 
 static lispval read_xtype(kno_inbuf in,xtype_refs refs)
 {
+  unsigned int flags = in->buf_flags;
   if (RARELY(KNO_ISWRITING(in)))
     return kno_lisp_iswritebuf(in);
   else if (USUALLY(havebytes(in,1))) {
@@ -725,7 +726,7 @@ static lispval read_xtype(kno_inbuf in,xtype_refs refs)
     case xt_tagged: {
       lispval tag = read_xtype(in,refs);
       if (ABORTED(tag)) return tag;
-      return read_tagged(tag,in,refs);}
+      return read_tagged(tag,in,refs,flags);}
 
     case xt_pair:
     case xt_mimeobj: case xt_compressed:
@@ -786,7 +787,7 @@ KNO_EXPORT lispval kno_decode_xtype(unsigned char *bytes,size_t len,xtype_refs x
   return read_xtype(&in,xrefs);
 }
 
-static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
+static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs,int flags)
 {
   if ( tag == kno_bigtable_xtag )
     return read_bigtable(tag,in,refs);
@@ -797,7 +798,7 @@ static lispval read_tagged(lispval tag,kno_inbuf in,xtype_refs refs)
     if (ABORTED(data)) {
       kno_decref(tag);
       return data;}
-    lispval restored = restore_tagged(tag,data,refs);
+    lispval restored = restore_tagged(tag,data,refs,flags);
     kno_decref(tag);
     kno_decref(data);
     return restored;}
@@ -1186,7 +1187,7 @@ static ssize_t write_opaque(kno_outbuf out, lispval x,xtype_refs refs)
 
 /* Restore handlers */
 
-static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
+static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs,int flags)
 {
   if (tag == kno_timestamp_xtag) {
     if (FIXNUMP(data))
@@ -1200,14 +1201,15 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
     if (PAIRP(data))
       return kno_make_complex(KNO_CAR(data),KNO_CDR(data));}
   else NO_ELSE;
-  struct KNO_TYPEINFO *e = kno_use_typeinfo(tag);
+  struct KNO_TYPEINFO *e = (flags&XTYPE_SKIP_RESTORE) ? (NULL) :
+    (kno_use_typeinfo(tag));
   if ((e) && (e->type_restorefn)) {
     lispval result = e->type_restorefn(tag,data,e);
     return result;}
   else if ((e) && (kno_default_restorefn)) {
     lispval result = kno_default_restorefn(tag,data,e);
     return result;}
-  else {
+  else if (e) {
     int flags = KNO_COMPOUND_INCREF;
     if (e) {
       if (e->type_isopaque)
@@ -1225,6 +1227,11 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs)
 					 KNO_VECTOR_LENGTH(data),
 					 KNO_VECTOR_ELTS(data));
     else return kno_init_compound(NULL,tag,flags,1,data);}
+  else if (KNO_VECTORP(data))
+    return kno_init_compound_from_elts(NULL,tag,flags,
+				       KNO_VECTOR_LENGTH(data),
+				       KNO_VECTOR_ELTS(data));
+  else return kno_init_compound(NULL,tag,flags,1,data);
 }
 
 static lispval restore_compressed(lispval tag,lispval data,xtype_refs refs)

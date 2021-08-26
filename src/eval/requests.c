@@ -110,11 +110,10 @@ static lispval reqcall_prim(lispval proc)
   if (!(KNO_APPLICABLEP(proc)))
     value = kno_type_error("applicable","cgicall",proc);
   else {
-    lispval fn = kno_fcnid_ref(proc);
-    if (KNO_LAMBDAP(fn))
-      value=kno_xapply_lambda((kno_lambda)fn,
-                              (void *)VOID,
-                              (lispval (*)(void *,lispval))reqgetvar);
+    lispval fn = kno_qonst_val(proc);
+    if ( (KNO_LAMBDAP(fn)) || (KNO_TYPEP(fn,kno_closure_type)) )
+      value=kno_xapply_lambda
+	(fn,(void *)VOID,(lispval (*)(void *,lispval))reqgetvar);
     else value = kno_apply(fn,0,NULL);}
   return value;
 }

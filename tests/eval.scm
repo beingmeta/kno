@@ -159,13 +159,13 @@
 
 (test-macros)
 
-(define (test-fcnids)
-  (let ((lambda-id (fcnid/register test-macros))
-	(prim-id (fcnid/register car))
-	(plus-id (fcnid/register +))
-	(n2s-id (fcnid/register number->string))
-	(evalfn-id (fcnid/register if))
-	(list-id (fcnid/register list)))
+(define (test-qonsts)
+  (let ((lambda-id (fcn/alias test-macros))
+	(prim-id (fcn/alias car))
+	(plus-id (fcn/alias +))
+	(n2s-id (fcn/alias number->string))
+	(evalfn-id (fcn/alias if))
+	(list-id (fcn/alias list)))
     (applytest string? lisp->string lambda-id)
     (applytest string? lisp->string prim-id)
     (applytest string? lisp->string plus-id)
@@ -173,12 +173,12 @@
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string evalfn-id)
     (applytest string? lisp->string list-id)
-    (applytest fcnid? fcnid/register prim-id)
-    (applytest 'err fcnid/set! lambda-id 3)
-    (applytest eq? lambda-id fcnid/set! lambda-id test-macros)
-    (applytest eq? lambda-id fcnid/set! lambda-id test-macros)))
+    (applytest qonst? fcn/alias prim-id)
+    (applytest 'err qonst/set! lambda-id 3)
+    (applytest eq? lambda-id qonst/set! lambda-id test-macros)
+    (applytest eq? lambda-id qonst/set! lambda-id test-macros)))
 
-(test-fcnids)
+(test-qonsts)
 
 ;;; Typeof testing
 
@@ -200,7 +200,8 @@
 (evaltest "choice" (typeof #{"one" "two" 3}))
 (applytest {"fixnum" "string"} typeof {"one" "two" 3})
 (applytest "cprim" typeof car)
-(applytest "lambda" typeof test-macros)
+(applytest (if (config 'kno:enclose-lambdas) "closure" "lambda") typeof test-macros)
+;;(applytest "lambda" typeof test-macros)
 
 ;;; Error in default args
 

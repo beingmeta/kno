@@ -43,7 +43,7 @@ lispval vm_eval(lispval head,lispval expr,
 		int tail);
 
 lispval lambda_call(kno_stack stack,
-		    struct KNO_LAMBDA *proc,
+		    lispval lambda,
 		    int n,kno_argvec args,
 		    int free_given,
 		    int tail);
@@ -129,9 +129,9 @@ INLINE_DEF lispval eval_symbol(lispval symbol,kno_lexenv env)
   return kno_err(kno_UnboundIdentifier,"kno_eval",
 		 KNO_SYMBOL_NAME(symbol),symbol);
 }
-INLINE_DEF lispval eval_fcnid(lispval fcnid)
+INLINE_DEF lispval eval_qonst(lispval qonst)
 {
-  lispval v = kno_fcnid_ref(fcnid);
+  lispval v = kno_qonst_val(qonst);
   kno_incref(v);
   return v;
 }
@@ -166,8 +166,8 @@ static U8_MAYBE_UNUSED lispval unwrap_qchoice(lispval val)
 }
 
 INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
-			     kno_stack stack,
-			     int tail)
+			  kno_stack stack,
+			  int tail)
 {
   switch (KNO_PTR_MANIFEST_TYPE(x)) {
   case kno_cons_type: {
@@ -184,6 +184,11 @@ INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
       return eval_schemap(x,env,stack);
     case kno_slotmap_type:
       return kno_deep_copy(x);
+    case kno_lambda_type: {
+      kno_lambda l = (kno_lambda) x;
+      if (l->lambda_env)
+	return kno_incref(x);
+      else return eval_lambda(NULL,l,env);}
     default:
       return kno_incref(x);}}
   case kno_immediate_ptr_type: {
@@ -192,8 +197,8 @@ INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
       return eval_lexref(x,env);
     case kno_symbol_type:
       return eval_symbol(x,env);
-    case kno_fcnid_type:
-      return eval_fcnid(x);
+    case kno_qonst_type:
+      return eval_qonst(x);
     default:
       return x;}}
   default:

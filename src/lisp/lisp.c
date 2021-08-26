@@ -9,6 +9,7 @@
 #endif
 
 #define KNO_LISP_CORE 1
+#define KNO_INLINE_QONSTS 1
 #define KNO_INLINE_XTYPEP 1
 
 #include "kno/knosource.h"
@@ -296,6 +297,13 @@ KNO_EXPORT void _kno_refcount_overflow(lispval x,long long count,u8_context op)
   if (debug_max_refcount) _kno_debug(x);
 }
 
+/* QONSTs */
+
+KNO_EXPORT lispval _kno_qonst_val(lispval x)
+{
+  return kno_qonst_val(x);
+}
+
 /* Initialization procedures */
 
 extern void kno_init_choices_c(void);
@@ -329,7 +337,7 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_constant_type,_("constant"),_("constant")},
    { kno_character_type,_("character"),_("character")},
    { kno_symbol_type,_("symbol"),_("symbol")},
-   { kno_fcnid_type,_("fcnid"),_("fcnid")},
+   { kno_qonst_type,_("qonst"),_("qonst")},
    { kno_lexref_type,_("lexref"),_("lexref")},
    { kno_opcode_type,_("opcode"),_("opcode")},
    { kno_typeref_type,_("typeref"),_("typeref")},
@@ -374,6 +382,7 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_lambda_type,_("lambda"),_("lambda")},
    { kno_ffi_type,_("ffi"),_("ffi")},
    { kno_rpc_type,_("netproc"),_("netproc")},
+   { kno_closure_type,_("closure"),_("closure")},
 
    { kno_lexenv_type,_("lexenv"),_("lexenv")},
    { kno_evalfn_type,_("evalfn"),_("evalfn")},
@@ -478,7 +487,6 @@ void kno_init_choices_c(void);
 void kno_init_support(void);
 void kno_init_consblocks_c(void);
 void kno_init_sequences_c(void);
-void kno_init_fcnids_c(void);
 void kno_init_stacks_c(void);
 void kno_init_apply_c(void);
 void kno_init_build_info(void);
@@ -569,7 +577,6 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_init_sequences_c();
   kno_init_compounds_c();
   kno_init_consblocks_c();
-  kno_init_fcnids_c();
   kno_init_build_info();
 
   int typecode = 0; while (typecode < KNO_TYPE_MAX) {

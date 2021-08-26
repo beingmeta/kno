@@ -66,7 +66,7 @@ KNO_EXPORT int kno_choice_evalp(lispval x);
 #define KNO_IMMEDIATE_EVAL(expr,env)			\
   ( (KNO_LEXREFP(expr)) ? (kno_lexref(expr,env)) :	\
     (KNO_SYMBOLP(expr)) ? (kno_eval_symbol(expr,env)) : \
-    (KNO_FCNIDP(expr)) ? (kno_fcnid_eval(expr,env)) : \
+    (KNO_QONSTP(expr)) ? (kno_qonst_eval(expr,env)) : \
     (expr))
 
 KNO_EXPORT u8_string kno_evalstack_type, kno_ndevalstack_type;
@@ -268,8 +268,38 @@ typedef struct KNO_LAMBDA {
   KNO_LAMBDA;
 typedef struct KNO_LAMBDA *kno_lambda;
 
+KNO_EXPORT int kno_enclose_lambdas;
 KNO_EXPORT int kno_record_source;
 KNO_EXPORT int kno_tail_max;
+
+KNO_EXPORT kno_lambda _KNO_LAMBDA_INFO(lispval x);
+KNO_EXPORT kno_lexenv _KNO_LAMBDA_ENV(lispval x);
+
+#if KNO_INLINE_EVAL
+KNO_FASTOP kno_lambda KNO_LAMBDA_INFO(lispval x)
+{
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
+  if (KNO_TYPEP(x,kno_lambda_type))
+    return (kno_lambda)x;
+  else if ( (KNO_TYPEP(x,kno_closure_type)) &&
+	    (KNO_TYPEP((((kno_pair)x)->car),kno_lambda_type)) )
+    return (kno_lambda) (((kno_pair)x)->car);
+  else return NULL;
+}
+KNO_FASTOP kno_lexenv KNO_LAMBDA_ENV(lispval x)
+{
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
+  if (KNO_TYPEP(x,kno_lambda_type))
+    return ((kno_lambda)x)->lambda_env;
+  else if ( (KNO_TYPEP(x,kno_closure_type)) &&
+	    (KNO_TYPEP((((kno_pair)x)->car),kno_lambda_type)) )
+    return (kno_lexenv) (((kno_pair)x)->cdr);
+  else return NULL;
+}
+#else
+#define KNO_LAMBDA_INFO _KNO_LAMBDA_INFO
+#define KNO_LAMBDA_ENV _KNO_LAMBDA_ENV
+#endif
 
 #define KNO_SET_LAMBDA_SOURCE(lambda,src)                        \
   if (kno_record_source) {                               \
@@ -279,8 +309,7 @@ KNO_EXPORT int kno_tail_max;
 
 KNO_EXPORT lispval kno_apply_lambda(kno_stack,struct KNO_LAMBDA *fn,
                                     int n,kno_argvec args);
-KNO_EXPORT lispval kno_xapply_lambda
-(struct KNO_LAMBDA *fn,void *data,lispval (*getval)(void *,lispval));
+KNO_EXPORT lispval kno_xapply_lambda(lispval fn,void *data,lispval (*getval)(void *,lispval));
 
 KNO_EXPORT lispval kno_make_lambda(u8_string name,
                                  lispval arglist,lispval body,kno_lexenv env,
@@ -334,7 +363,7 @@ KNO_EXPORT lispval kno_lexref(lispval lexref,kno_lexenv env);
 KNO_EXPORT lispval kno_eval_symbol(lispval sym,kno_lexenv env);
 KNO_EXPORT lispval kno_lexref_name(lispval lexref,kno_lexenv env);
 
-KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val);
+KNO_EXPORT lispval kno_qonst_ref(lispval sym,lispval from,lispval val);
 
 #define kno_simplify_value(v) \
   ( (KNO_PRECHOICEP(v)) ? (kno_simplify_choice(v)) : (v) )

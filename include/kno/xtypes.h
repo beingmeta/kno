@@ -125,6 +125,7 @@ KNO_EXPORT kno_xtype_fn kno_xtype_writers[KNO_TYPE_MAX];
 #define XTYPE_WRITE_OPAQUE    (XTYPE_FLAGS_BASE)
 #define XTYPE_NATSORT_VALUES  (XTYPE_FLAGS_BASE << 1)
 #define XTYPE_NO_XTREFS	      (XTYPE_FLAGS_BASE << 2)
+#define XTYPE_SKIP_RESTORE    (XTYPE_FLAGS_BASE << 4)
 
 KNO_EXPORT ssize_t kno_add_xtype_ref(lispval x,xtype_refs refs);
 KNO_EXPORT ssize_t _kno_xtype_ref(lispval x,xtype_refs refs,int add);

@@ -12,7 +12,7 @@
 #define KNO_EVAL_INTERNALS 1
 #define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS	(!(KNO_AVOID_INLINE))
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
@@ -48,7 +48,7 @@ int kno_scheme_initialized = 0;
 
 int kno_enable_tail_calls = 1;
 
-lispval _kno_comment_symbol, fcnids_symbol, sourceref_tag;
+lispval _kno_comment_symbol, qonsts_symbol, sourceref_tag;
 
 static lispval comment_symbol, source_symbol;
 
@@ -280,12 +280,12 @@ KNO_EXPORT int kno_bind_value(lispval sym,lispval val,kno_lexenv env)
     if ( (KNO_CONSP(val)) &&
 	 ( (KNO_FUNCTIONP(val)) || (KNO_APPLICABLEP(val)) ) &&
 	 (KNO_HASHTABLEP(bindings)) ) {
-      /* Update fcnids if needed */
-      lispval fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);
-      if (KNO_HASHTABLEP(fcnids)) {
-	lispval fcnid = kno_get(fcnids,sym,KNO_VOID);
-	if (KNO_FCNIDP(fcnid)) kno_set_fcnid(fcnid,val);}
-      kno_decref(fcnids);}
+      /* Update qonsts if needed */
+      lispval qonsts = kno_get(bindings,qonsts_symbol,KNO_VOID);
+      if (KNO_HASHTABLEP(qonsts)) {
+	lispval qonst = kno_get(qonsts,sym,KNO_VOID);
+	if (KNO_QONSTP(qonst)) kno_set_qonst(qonst,val);}
+      kno_decref(qonsts);}
     /* If there are exports, modify this variable if needed. */
     if (HASHTABLEP(exports))
       kno_hashtable_op((kno_hashtable)(exports),kno_table_replace,sym,val);
@@ -320,122 +320,6 @@ KNO_EXPORT int kno_assign_value(lispval symbol,lispval value,kno_lexenv env)
       return kno_reterr(kno_ReadOnlyEnv,"kno_assign_value",NULL,symbol);
     else return kno_bind_value(symbol,value,env);}
   return 0;
-}
-
-/* FCN/REF */
-
-KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val)
-{
-  if ( (KNO_LEXENVP(from)) || (KNO_HASHTABLEP(from)) ) {
-    if (! ( (KNO_CONSP(val)) &&
-	    ( (KNO_FUNCTIONP(val)) ||
-	      (KNO_APPLICABLEP(val)) ||
-	      (KNO_EVALFNP(val)) ||
-	      (KNO_MACROP(val)) )) ) {
-      u8_log(LOGWARN,"BadAliasValue","The value of '%q cannot be aliased: %q",
-	     sym,val);
-      return kno_incref(val);}
-    lispval bindings = (KNO_HASHTABLEP(from)) ? (from) :
-      (((kno_lexenv)from)->env_bindings);
-    if (KNO_HASHTABLEP(bindings)) {
-      /* Create fcnids if needed */
-      lispval fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);
-      if (!(KNO_HASHTABLEP(fcnids))) {
-	lispval use_table = kno_make_hashtable(NULL,19);
-	kno_hashtable_op((kno_hashtable)bindings,
-			 kno_table_default,fcnids_symbol,use_table);
-	kno_decref(use_table);
-	fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);}
-      lispval fcnid = kno_get(fcnids,sym,KNO_VOID);
-      if (!(KNO_FCNIDP(fcnid))) {
-	lispval new_fcnid = kno_register_fcnid(val);
-	/* In rare cases, this may leak a fcnid reference, but
-	   we're not worrying about that. */
-	kno_hashtable_op((kno_hashtable)fcnids,
-			 kno_table_default,sym,new_fcnid);
-	fcnid = kno_get(fcnids,sym,KNO_VOID);}
-      if ( (KNO_FCNIDP(fcnid)) && (KNO_CONSP(val)) &&
-	   ( (KNO_FUNCTIONP(val)) || (KNO_APPLICABLEP(val)) )) {
-	kno_set_fcnid(fcnid,val);}
-      kno_decref(fcnids);
-      return fcnid;}
-    else return kno_incref(val);}
-  else return kno_incref(val);
-}
-
-static lispval fcnalias_evalfn(lispval expr,kno_lexenv env,kno_stack stack)
-{
-  lispval sym = kno_get_arg(expr,1);
-  if (!(KNO_SYMBOLP(sym)))
-    return kno_err(kno_SyntaxError,"fcnalias_evalfn",NULL,expr);
-  lispval env_expr = kno_get_arg(expr,2), env_arg = KNO_VOID;
-  lispval source_table = KNO_VOID;
-  kno_lexenv source_env = NULL;
-  if (!( (KNO_DEFAULTP(env_expr)) || (KNO_VOIDP(env_expr)) )) {
-    env_arg = kno_eval(env_expr,env,stack);
-    if (KNO_LEXENVP(env_arg)) {
-      kno_lexenv e = (kno_lexenv) env_arg;
-      if (kno_test(e->env_bindings,sym,KNO_VOID)) {
-	source_env = e;}
-      else e = kno_find_binding(e,sym,0);
-      if (KNO_HASHTABLEP(e->env_bindings))
-	source_env = (kno_lexenv) env_arg;}
-    else if (KNO_HASHTABLEP(env_arg))
-      source_table = env_arg;
-    else if (KNO_SYMBOLP(env_arg)) {
-      env_arg = kno_find_module(env_arg,1);
-      if (KNO_LEXENVP(env_arg))
-	source_env = (kno_lexenv)env_arg;
-      else if (KNO_HASHTABLEP(env_arg))
-	source_table = env_arg;
-      else NO_ELSE;}
-    else NO_ELSE;
-    if ( (source_env == NULL) && (!(KNO_TABLEP(source_table))) ) {
-      kno_seterr("InvalidSourceEnv","fcnalias_evalfn",
-		 KNO_SYMBOL_NAME(sym),
-		 env_arg);
-      kno_decref(env_arg);
-      return KNO_ERROR;}}
-  else {
-    kno_lexenv e = kno_find_binding(env,sym,1);
-    if (e == NULL) {
-      kno_seterr("UnboundVariable","fcnalias_evalfn",
-		 KNO_SYMBOL_NAME(sym),
-		 KNO_VOID);
-      return KNO_ERROR;}
-    source_env = e;}
-  if (KNO_TABLEP(source_table)) {
-    lispval val = kno_get(source_table,sym,KNO_VOID);
-    if (KNO_VOIDP(val)) {
-      kno_seterr("UnboundVariable","fcnalias_evalfn",
-		 KNO_SYMBOL_NAME(sym),
-		 source_table);
-      kno_decref(env_arg);
-      return KNO_ERROR;}
-    lispval ref = kno_fcn_ref(sym,source_table,val);
-    kno_decref(val);
-    kno_decref(env_arg);
-    return ref;}
-  lispval val = symeval(sym,source_env);
-  if (KNO_ABORTED(val)) {
-    kno_decref(env_arg);
-    return val;}
-  else if ( (KNO_CONSP(val)) &&
-	    ( (KNO_FUNCTIONP(val)) ||
-	      (KNO_APPLICABLEP(val)) ||
-	      (KNO_EVALFNP(val)) ||
-	      (KNO_MACROP(val)) ) ) {
-    lispval fcnid = kno_fcn_ref(sym,(lispval)source_env,val);
-    kno_decref(env_arg);
-    kno_decref(val);
-    return fcnid;}
-  else {
-    kno_decref(env_arg);
-    kno_decref(val);
-    u8_log(LOG_WARN,"BadAlias",
-	   "Can't make alias of the value of '%s: %q",
-	   KNO_SYMBOL_NAME(sym),val);
-    return val;}
 }
 
 /* Quote */
@@ -559,7 +443,7 @@ lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
 {
   lispval op = KNO_VOID;
   if (KNO_OPCODEP(head)) return head;
-  else if (KNO_FCNIDP(head)) op = head;
+  else if (KNO_QONSTP(head)) op = head;
   else if (KNO_LEXREFP(head))
     op = eval_lexref(head,env);
   else if (KNO_SYMBOLP(head))
@@ -569,13 +453,19 @@ lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
     if ( (headtype == kno_evalfn_type) ||
 	 (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
-    else if  (headtype == kno_pair_type)
-      op = lisp_eval(KNO_CAR(head),head,env,stack,0);
+    else if  (headtype == kno_pair_type) {
+      lispval car = KNO_CAR(head);
+      if (car == KNO_JIT_OPCODE) {
+	lispval cdr = KNO_CDR(head);
+	if ( (KNO_PAIRP(cdr)) && (KNO_CAR(cdr)!=KNO_DEFAULT) ) {
+	  op=KNO_CAR(cdr); goto gotop;}}
+      op = lisp_eval(KNO_CAR(head),head,env,stack,0);}
     else if (headtype == kno_choice_type)
       op = eval_choice(head,env,stack);
     else op = KNO_VOID;}
   else NO_ELSE;
-  if (KNO_FCNIDP(op)) op=kno_fcnid_ref(op);
+  gotop:
+  if (KNO_QONSTP(op)) op=kno_qonst_val(op);
   else if (KNO_MALLOCDP(op))
     kno_stackvec_push(&(stack->stack_refs),op);
   else NO_ELSE;
@@ -620,8 +510,8 @@ lispval eval_apply(lispval fn,lispval exprs,
 
 /* Evaluating pair expressions using stack frames for each subexpression */
 lispval lisp_eval(lispval head,lispval expr,
-			kno_lexenv env,kno_stack stack,
-			int tail)
+		  kno_lexenv env,kno_stack stack,
+		  int tail)
 {
   if (KNO_OPCODEP(head))
     return vm_eval(head,expr,env,stack,tail);
@@ -633,7 +523,7 @@ lispval lisp_eval(lispval head,lispval expr,
  entry:
   KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
   _stack->eval_source = source;
-  if (KNO_FCNIDP(head)) op = kno_fcnid_ref(head);
+  if (KNO_QONSTP(head)) op = kno_qonst_val(head);
   else op = get_evalop(head,env,_stack);
   if (op == KNO_EMPTY) _return op;
   else if (KNO_ABORTED(op)) _return op;
@@ -642,7 +532,7 @@ lispval lisp_eval(lispval head,lispval expr,
   kno_lisp_type optype = KNO_TYPEOF(op);
   switch (optype) {
   case kno_choice_type: case kno_cprim_type: case kno_lambda_type:
-  case kno_ffi_type: case kno_rpc_type:
+  case kno_ffi_type: case kno_rpc_type: case kno_closure_type:
     result = eval_apply(op,KNO_CDR(expr),env,_stack,tail);
     goto got_result;
   case kno_evalfn_type: {
@@ -667,7 +557,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 		   kno_lexenv env,kno_stack stack,
 		   int tail)
 {
-  kno_function f = (KNO_FUNCTIONP(fn)) ? ((kno_function)fn) : (NULL);
+  kno_function f = KNO_FUNCTION_INFO(fn);
   int call_bits = (f) ? (f->fcn_call) : (0);
   int width = (f) ? (f->fcn_call_width) : (INIT_ARGBUF_LEN), n_args = 0;
   if (KNO_PAIRP(exprs)) { /* count args */
@@ -722,12 +612,17 @@ lispval eval_apply(lispval fn,lispval exprs,
 
   if ( (!(need_iter)) && (qchoice_args)) unwrap_qchoices(n_args,argbuf);
 
-  if ( (fntype == kno_lambda_type) && (!(need_iter) ) ) {
-    struct KNO_LAMBDA *proc = (kno_lambda) fn;
-  lambda:
-    KNO_STACK_RESET_ARGS(stack);
-    result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,1,tail);}
-  else {
+  int tail_call = 0;
+
+  if (!(need_iter) ) {
+    kno_lambda proc = KNO_LAMBDA_INFO(fn);
+    if (proc) {
+    lambda_tail:
+      KNO_STACK_RESET_ARGS(stack);
+      result = lambda_call(stack,fn,n_args,(kno_argvec)argbuf,1,tail);
+      tail_call=1;}}
+
+  if (tail_call==0) {
     KNO_STACK_SET_ARGS(stack,argbuf,width,n_args,
 		       ((decref_args) ? (KNO_STACK_DECREF_ARGS) : (0)));
     if (need_iter)
@@ -1286,37 +1181,18 @@ static int lispenv_add(lispval e,lispval s,lispval v)
 
 KNO_EXPORT u8_string kno_get_documentation(lispval x)
 {
-  lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (proctype == kno_lambda_type) {
-    struct KNO_LAMBDA *lambda = (kno_lambda)proc;
-    if (lambda->fcn_doc)
-      return u8_strdup(lambda->fcn_doc);
-    else {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
-      lispval arglist = lambda->lambda_arglist, scan = arglist;
-      if (lambda->fcn_name)
-	u8_puts(&out,lambda->fcn_name);
-      else u8_puts(&out,"λ");
-      while (PAIRP(scan)) {
-	lispval arg = KNO_CAR(scan);
-	if (SYMBOLP(arg))
-	  u8_printf(&out," %ls",SYM_NAME(arg));
-	else if ((PAIRP(arg))&&(SYMBOLP(KNO_CAR(arg))))
-	  u8_printf(&out," [%ls]",SYM_NAME(KNO_CAR(arg)));
-	else u8_printf(&out," %q",arg);
-	scan = KNO_CDR(scan);}
-      if (SYMBOLP(scan))
-	u8_printf(&out," [%ls...]",SYM_NAME(scan));
-      lambda->fcn_doc = out.u8_outbuf;
-      lambda->fcn_free |= KNO_FCN_FREE_DOC;
-      return u8_strdup(out.u8_outbuf);}}
-  else if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(proc);
-    return u8_strdup(f->fcn_doc);}
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
+  kno_function info = KNO_FUNCTION_INFO(x);
+  if (info) {
+    if (info->fcn_doc)
+      return u8_strdup(info->fcn_doc);
+    else return u8_strdup("**undocumented**");}
   else if (TYPEP(x,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = (kno_evalfn)proc;
+    struct KNO_EVALFN *sf = (kno_evalfn)x;
     return u8_strdup(sf->evalfn_documentation);}
+  else if (TYPEP(x,kno_macro_type)) {
+    struct KNO_MACRO *m = (kno_macro)x;
+    return kno_get_documentation(m->macro_transformer);}
   else return NULL;
 }
 
@@ -1426,7 +1302,7 @@ static void init_types_and_tables()
 
   _kno_comment_symbol = comment_symbol = kno_intern("comment");
   source_symbol = kno_intern("%source");
-  fcnids_symbol = kno_intern("%fcnids");
+  qonsts_symbol = kno_intern("%qonsts");
   sourceref_tag = kno_intern("%sourceref");
 
   kno_init_module_tables();
@@ -1462,9 +1338,7 @@ static void init_localfns()
   kno_def_evalfn(kno_scheme_module,"quote",quote_evalfn,
 		 "`(quote *x*)` returns the subexpression *x*, "
 		 "which is *not* evaluated.");
-  kno_def_evalfn(kno_scheme_module,"fcn/alias",fcnalias_evalfn,
-		 "`(fcn/alias *sym*)` returns a *fcnid* pointer aliasing the "
-		 "definition of *sym* in the current environment.");
+
   kno_def_evalfn(kno_scheme_module,"%env",env_evalfn,
 		 "`(%env)` returns the current lexical environment.");
   kno_def_evalfn(kno_scheme_module,"%modref",modref_evalfn,
@@ -1555,8 +1429,11 @@ void kno_init_eval_testops_c(void);
 void kno_init_configops_c(void);
 void kno_init_srvcall_c(void);
 
+void init_qonsts_c(void);
+
 static void init_eval_core()
 {
+  init_qonsts_c();
   init_localfns();
   init_vm_c();
 
@@ -1659,4 +1536,5 @@ KNO_EXPORT int kno_init_scheme()
 
 static void link_local_cprims()
 {
+  
 }
