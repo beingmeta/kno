@@ -110,7 +110,7 @@ static lispval config_get(lispval symbol)
   else return probe;
 }
 
-int set_config(lispval symbol,lispval val)
+int record_config(lispval symbol,lispval val)
 {
   lispval current = kno_hashtable_get(configuration_table,symbol,VOID);
   if (VOIDP(current)) {
@@ -150,7 +150,7 @@ KNO_EXPORT lispval kno_config_get(u8_string var)
   return config_get(symbol);
 }
 
-KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
+int set_config(lispval symbol,lispval val)
 {
   int retval = 0;
   struct KNO_CONFIG_HANDLER *scan = config_handlers;
@@ -172,64 +172,25 @@ KNO_EXPORT int kno_set_config_sym(lispval symbol,lispval val)
   if ((!(scan))&&(kno_trace_config))
     u8_log(LOG_WARN,"ConfigSet","Configuring %s with %q",
            SYM_NAME(symbol),val);
-  if (retval>=0) set_config(symbol,val);
+  if (retval>=0) record_config(symbol,val);
   return retval;
 }
 
 KNO_EXPORT int kno_set_config(u8_string var,lispval val)
 {
   lispval symbol = config_intern(var);
-  return kno_set_config_sym(symbol,val);
+  return set_config(symbol,val);
 }
 
-KNO_EXPORT int kno_default_config_sym(lispval var,lispval val)
+KNO_EXPORT int kno_handle_config(lispval symbol,lispval val)
 {
-  int retval = 1;
-  lispval symbol = config_intern(KNO_SYMBOL_NAME(var));
-  if (kno_hashtable_probe(configuration_table,symbol)) {
-    if (kno_trace_config)
-      u8_log(LOG_INFO,"ConfigDefault/ignored",
-	     "Config %q already set, ignoring default %q",
-	     var,val);
-    return 0;}
-  else {
-    struct KNO_CONFIG_HANDLER *scan = config_handlers;
-    while (scan) {
-      if (KNO_EQ(scan->configname,symbol)) {
-	if ( (scan->configflags) & (KNO_CONFIG_MODIFIED) )
-	  return 0;
-	scan->configflags |= KNO_CONFIG_MODIFIED;
-	retval = scan->config_set_method(symbol,val,scan->configdata);
-	if (kno_trace_config)
-	  u8_log(LOG_WARN,"ConfigSet",
-		 "Using handler to configure default %s with %q",
-		 SYM_NAME(symbol),val);
-	break;}
-      else scan = scan->config_next;}
-    if (!(kno_configs_initialized)) {
-      kno_hashtable_store(configuration_defaults,symbol,val);}
-    else if (!(kno_hashtable_test(configuration_table,symbol,KNO_VOID)))  {
-      if ((!(scan))&&(kno_trace_config))
-	u8_log(LOG_WARN,"ConfigSet","Configuring %s with %q",
-	       SYM_NAME(symbol),val);
-      retval = set_config(symbol,val);}
-    else retval = 0;
-    if (retval<0) {
-      u8_string errsum = kno_errstring(NULL);
-      u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
-      u8_free(errsum);}
-    return retval;}
-}
-
-KNO_EXPORT int kno_default_config(u8_string var,lispval val)
-{
-  lispval symbol = config_intern(var);
-  return kno_default_config_sym(symbol,val);
+  return set_config(symbol,val);
 }
 
 KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val)
 {
-  int retval = kno_set_config(var,val);
+  lispval symbol = config_intern(var);
+  int retval = set_config(symbol,val);
   if (retval<0) return retval;
   kno_decref(val);
   return retval;
@@ -237,7 +198,9 @@ KNO_EXPORT int kno_set_config_consed(u8_string var,lispval val)
 
 static int init_config_val(struct KNO_CONFIG_HANDLER *entry,lispval current,int err)
 {
-  if (KNO_ABORTP(current)) {
+  /* This initializes a config entry using a specified value. */
+  if ( (entry->configflags) & KNO_CONFIG_MODIFIED ) return 0;
+  else if (KNO_ABORTP(current)) {
     kno_clear_errors(1);
     return -1;}
   if (VOIDP(current)) return 0;
@@ -245,7 +208,7 @@ static int init_config_val(struct KNO_CONFIG_HANDLER *entry,lispval current,int 
   lispval name =entry->configname;
   void *usedata = entry->configdata;
   if ( (PAIRP(current)) &&
-            (!(entry->configflags&KNO_CONFIG_SINGLE_VALUE)) ) {
+       (!(entry->configflags&KNO_CONFIG_SINGLE_VALUE)) ) {
     /* There have been multiple configuration specifications,
        so run them all backwards. */
     int n = 0;
@@ -254,7 +217,9 @@ static int init_config_val(struct KNO_CONFIG_HANDLER *entry,lispval current,int 
     int count = 0;
     {KNO_DOLIST(cv,current) *write++=cv;}
     n--; while (n>=0) {
-      int rv = entry->config_set_method(name,vals[n],usedata);
+      int rv = (entry->config_set_method) ?
+	(entry->config_set_method(name,vals[n],usedata)) :
+	(0);
       if (rv<0) {
 	if (err) { u8_free(vals); return rv; }
 	u8_exception ex = u8_pop_exception();
@@ -267,12 +232,72 @@ static int init_config_val(struct KNO_CONFIG_HANDLER *entry,lispval current,int 
     u8_free(vals);
     return count;}
   else if (KNO_PAIRP(current)) {
+    /* KNO_CONFIG_SINGLE_VALUE, so just use the latest */
     lispval last = KNO_CAR(current), scan = KNO_CDR(current);
     while (PAIRP(scan)) {
       last = KNO_CAR(scan);
       scan = KNO_CDR(scan); }
     return entry->config_set_method(name,last,usedata);}
-  else return entry->config_set_method(name,current,usedata);  
+  else if (entry->config_set_method)
+    return entry->config_set_method(name,current,usedata);
+  else return 0;
+}
+
+/* Default configs */
+
+KNO_EXPORT int set_default_config(lispval var,lispval val)
+{
+  int retval = 0;
+  lispval symbol = config_intern(KNO_SYMBOL_NAME(var));
+  if (kno_hashtable_probe(configuration_table,symbol)) {
+    if (kno_trace_config)
+      u8_log(LOG_INFO,"ConfigDefault/ignored",
+	     "Config %q already set, ignoring default %q",
+	     var,val);
+    return 0;}
+  else if (!(kno_configs_initialized)) {
+    /* If configs haven't finished initialization, just store it in
+       the default configs table */
+    if (!(kno_hashtable_test(configuration_table,symbol,KNO_VOID)) )
+      kno_hashtable_store(configuration_defaults,symbol,val);
+    return 1;}
+  else {
+    struct KNO_CONFIG_HANDLER *scan = config_handlers;
+    while (scan) {
+      if (KNO_EQ(scan->configname,symbol)) {
+	if ( (scan->configflags) & (KNO_CONFIG_MODIFIED) )
+	  return 0;
+	scan->configflags |= KNO_CONFIG_MODIFIED;
+	if (scan->config_set_method)
+	  retval = scan->config_set_method(symbol,val,scan->configdata);
+	if (kno_trace_config)
+	  u8_log(LOG_WARN,"ConfigSet",
+		 "Using handler to configure default %s with %q",
+		 SYM_NAME(symbol),val);
+	break;}
+      else scan = scan->config_next;}
+    if (retval<0) {
+      u8_string errsum = kno_errstring(NULL);
+      u8_log(LOG_WARN,kno_ConfigError,"Config error %q=%q: %s",symbol,val,errsum);
+      u8_free(errsum);}
+    else if (retval == 0) {
+      if (kno_trace_config)
+	u8_log(LOG_WARN,"ConfigSet","Saving config %s with %q",
+	       SYM_NAME(symbol),val);
+      retval = record_config(symbol,val);}
+    else retval = record_config(symbol,val);
+    return retval;}
+}
+
+KNO_EXPORT int kno_set_default_config(u8_string var,lispval val)
+{
+  lispval symbol = config_intern(var);
+  return kno_handle_default_config(symbol,val);
+}
+
+KNO_EXPORT int kno_handle_default_config(lispval var,lispval val)
+{
+  return set_default_config(var,val);
 }
 
 /* Registering new configuration handlers */
@@ -754,7 +779,7 @@ static int read_config(U8_INPUT *in,int dflt)
 		 (PAIRP(KNO_CDR(entry)))) {
 	  lispval val = kno_interpret_config(KNO_CADR(entry));
 	  int rv = (dflt) ?
-	    (kno_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
+	    (kno_set_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
 	    (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
 	  if (rv < 0) {
 	    kno_decref(val);
@@ -775,7 +800,7 @@ static int read_config(U8_INPUT *in,int dflt)
 	      if (! ( (KNO_VOIDP(val)) || (KNO_DEFAULTP(val)) || (KNO_EMPTYP(val)) ) ) {
 		KNO_DO_CHOICES(v,val) {
 		  int rv = (dflt) ?
-		    (kno_default_config(conf_name,v)) :
+		    (kno_set_default_config(conf_name,v)) :
 		    (kno_set_config(conf_name,v));
 		  if (rv) count++;}
 		kno_decref(val);}}}

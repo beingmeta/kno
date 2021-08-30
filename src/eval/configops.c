@@ -196,10 +196,10 @@ static lispval set_config(int n,kno_argvec args)
     lispval var = args[i++], val = args[i++], use_val = val;
     if (TYPEP(val,kno_promise_type))
       use_val = kno_force_promise(val);
-    if (STRINGP(var))
+    if (SYMBOLP(var))
+      retval = kno_set_config(SYMBOL_NAME(var),use_val);
+    else if (STRINGP(var))
       retval = kno_set_config(CSTRING(var),use_val);
-    else if (SYMBOLP(var))
-      retval = kno_set_config(SYM_NAME(var),use_val);
     else return kno_type_error(_("string or symbol"),"set_config",var);
     if (use_val != val) kno_decref(use_val);
     if (retval<0) return KNO_ERROR;}
@@ -222,9 +222,9 @@ static lispval set_default_config(lispval var,lispval val)
   if (TYPEP(val,kno_promise_type))
     use_val = kno_force_promise(val);
   if (STRINGP(var))
-    retval = kno_default_config(CSTRING(var),use_val);
+    retval = kno_set_default_config(CSTRING(var),use_val);
   else if (SYMBOLP(var))
-    retval = kno_default_config(SYM_NAME(var),use_val);
+    retval = kno_set_default_config(SYM_NAME(var),use_val);
   else {
     if (use_val != val) kno_decref(use_val);
     return kno_type_error(_("string or symbol"),"config_default",var);}
