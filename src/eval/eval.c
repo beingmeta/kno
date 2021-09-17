@@ -327,7 +327,24 @@ KNO_EXPORT int kno_assign_value(lispval symbol,lispval value,kno_lexenv env)
 KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val)
 {
   if ( (KNO_LEXENVP(from)) || (KNO_HASHTABLEP(from)) ) {
-    if (! ( (KNO_CONSP(val)) &&
+    int decref_val = 0;
+    if (KNO_VOIDP(val)) {
+      if (KNO_LEXENVP(from)) {
+	kno_lexenv env = (kno_lexenv) from;
+	if (kno_test(env->env_bindings,sym,KNO_VOID)) {
+	  val = kno_get(env->env_bindings,sym,KNO_VOID);
+	  if (CONSP(val)) decref_val=1;}
+	else {}}
+      else if (KNO_HASHTABLEP(from))
+	val = kno_get(from,sym,KNO_VOID);
+      else NO_ELSE;
+      if (KNO_VOIDP(val)) {
+	u8_log(LOGWARN,"UnboundOrigin",
+	       "The symbol '%q isn't bound in %q",
+	       sym,from);
+	return KNO_VOID;}}
+    if (KNO_FCNIDP(val)) return val;
+    else if (! ( (KNO_CONSP(val)) &&
 	    ( (KNO_FUNCTIONP(val)) ||
 	      (KNO_APPLICABLEP(val)) ||
 	      (KNO_EVALFNP(val)) ||
@@ -335,8 +352,7 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val)
       u8_log(LOGWARN,"BadAliasValue","The value of '%q cannot be aliased: %q",
 	     sym,val);
       return kno_incref(val);}
-    lispval bindings = (KNO_HASHTABLEP(from)) ? (from) :
-      (((kno_lexenv)from)->env_bindings);
+    lispval bindings = (KNO_HASHTABLEP(from)) ? (from) : (((kno_lexenv)from)->env_bindings);
     if (KNO_HASHTABLEP(bindings)) {
       /* Create fcnids if needed */
       lispval fcnids = kno_get(bindings,fcnids_symbol,KNO_VOID);
@@ -353,12 +369,15 @@ KNO_EXPORT lispval kno_fcn_ref(lispval sym,lispval from,lispval val)
 	   we're not worrying about that. */
 	kno_hashtable_op((kno_hashtable)fcnids,
 			 kno_table_default,sym,new_fcnid);
-	fcnid = kno_get(fcnids,sym,KNO_VOID);}
-      if ( (KNO_FCNIDP(fcnid)) && (KNO_CONSP(val)) &&
-	   ( (KNO_FUNCTIONP(val)) || (KNO_APPLICABLEP(val)) )) {
-	kno_set_fcnid(fcnid,val);}
+	fcnid = kno_get(fcnids,sym,KNO_VOID);
+	if (fcnid == new_fcnid)
+	  kno_hashtable_store((kno_hashtable)fcnids,fcnid,sym);}
+      kno_set_fcnid(fcnid,val);
       kno_decref(fcnids);
+      if (decref_val) kno_decref(val);
       return fcnid;}
+    else if (decref_val)
+      return val;
     else return kno_incref(val);}
   else return kno_incref(val);
 }
@@ -573,12 +592,18 @@ lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
     else if ( (headtype == kno_evalfn_type) ||
 	      (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
-    else if  (headtype == kno_pair_type)
-      op = lisp_eval(KNO_CAR(head),head,env,stack,0);
+    else if  (headtype == kno_pair_type) {
+      lispval car = KNO_CAR(head);
+      if (car == KNO_JIT_OPCODE) {
+	lispval cdr = KNO_CDR(head);
+	if ( (KNO_PAIRP(cdr)) && (KNO_CAR(cdr)!=KNO_DEFAULT) ) {
+	  op=KNO_CAR(cdr); goto gotop;}}
+      op = lisp_eval(KNO_CAR(head),head,env,stack,0);}
     else if (headtype == kno_choice_type)
       op = eval_choice(head,env,stack);
     else op = KNO_VOID;}
   else NO_ELSE;
+  gotop:
   if (KNO_FCNIDP(op)) op=kno_fcnid_ref(op);
   else if (KNO_MALLOCDP(op))
     kno_stackvec_push(&(stack->stack_refs),op);

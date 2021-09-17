@@ -1201,8 +1201,8 @@ static lispval restore_tagged(lispval tag,lispval data,xtype_refs refs,int flags
     if (PAIRP(data))
       return kno_make_complex(KNO_CAR(data),KNO_CDR(data));}
   else NO_ELSE;
-  struct KNO_TYPEINFO *e = (flags&XTYPE_SKIP_RESTORE) ?
-    (kno_use_typeinfo(tag)) : (NULL);
+  struct KNO_TYPEINFO *e = (flags&XTYPE_SKIP_RESTORE) ? (NULL) :
+    (kno_use_typeinfo(tag));
   if ((e) && (e->type_restorefn)) {
     lispval result = e->type_restorefn(tag,data,e);
     return result;}

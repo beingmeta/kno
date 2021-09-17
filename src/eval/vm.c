@@ -45,6 +45,8 @@
 #include <pthread.h>
 #include <errno.h>
 
+lispval fcnids_symbol;
+
 static lispval isa_op(lispval args,kno_lexenv env,kno_stack stack,int require);
 
 typedef lispval (*op_handler)(int,lispval *,kno_lexenv,kno_stack,int);
@@ -700,6 +702,42 @@ static kno_lexenv copied_env(kno_lexenv env,lispval **vals)
       kno_seterr("EnvironmentCorruption","locals",NULL,(lispval)copied_env);
       return NULL;}}
   else return env;
+}
+
+static lispval handle_symref_opcode(lispval args)
+{
+  lispval sym = pop_arg(args);
+  if (!(USUALLY(KNO_SYMBOLP(sym))))
+    return kno_err(kno_OpcodeSyntaxError,"handle_symref_opcode",NULL,sym);
+  lispval module = (KNO_SYMBOLP(args)) ? (kno_find_module(args,1)) :
+    (KNO_STRINGP(args)) ? (kno_find_module(args,1)) :
+    (KNO_HASHTABLEP(args)) ? (args) : (KNO_LEXENVP(args)) ? (args) :
+    (KNO_TABLEP(args)) ? (args) :
+    (KNO_VOID);
+  if (KNO_ABORTED(module)) return module;
+  else if (KNO_VOIDP(module))
+    return kno_err(kno_NoSuchModule,"handle_symref_opcode",SYMBOL_NAME(sym),args);
+  lispval value = kno_get(module,sym,KNO_VOID);
+  if (args!=module) kno_decref(module);
+  return value;}
+
+
+static lispval handle_fcnref_opcode(lispval args)
+{
+  lispval sym = pop_arg(args);
+  if (!(USUALLY(KNO_SYMBOLP(sym))))
+    return kno_err(kno_OpcodeSyntaxError,"handle_symref_opcode",NULL,sym);
+  lispval module = (KNO_SYMBOLP(args)) ? (kno_find_module(args,1)) :
+    (KNO_STRINGP(args)) ? (kno_find_module(args,1)) :
+    (KNO_HASHTABLEP(args)) ? (args) : (KNO_LEXENVP(args)) ? (args) :
+    (KNO_TABLEP(args)) ? (args) :
+    (KNO_VOID);
+  if (KNO_ABORTED(module)) return module;
+  else if (KNO_VOIDP(module))
+    return kno_err(kno_NoSuchModule,"handle_symref_opcode",SYMBOL_NAME(sym),args);
+  lispval result = kno_fcn_ref(sym,module,KNO_VOID);
+  if (args!=module) kno_decref(module);
+  return result;
 }
 
 static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack)
@@ -1509,18 +1547,25 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     lispval type_val = pop_arg(args);
     lispval val_expr = args;
     return assignop(_stack,env,var,val_expr,combiner,type_val);}
-  case KNO_SYMREF_OPCODE: {
-    lispval refenv=pop_arg(args);
-    lispval sym=pop_arg(args);
-    if (KNO_RARELY(!(KNO_SYMBOLP(sym))))
-      return kno_err(kno_SyntaxError,"KNO_SYMREF_OPCODE/badsym",NULL,expr);
-    if (HASHTABLEP(refenv))
-      return kno_hashtable_get((kno_hashtable)refenv,sym,KNO_UNBOUND);
-    else if (KNO_LEXENVP(refenv))
-      return symeval(sym,(kno_lexenv)refenv);
-    else if (TABLEP(refenv))
-      return kno_get(refenv,sym,KNO_UNBOUND);
-    else return kno_err(kno_SyntaxError,"KNO_SYMREF_OPCODE/badenv",NULL,expr);}
+  case KNO_SYMREF_OPCODE:
+    return handle_symref_opcode(args);
+  case KNO_FCNREF_OPCODE:
+    return handle_fcnref_opcode(args);
+
+  case KNO_JIT_OPCODE: {
+    lispval use_value = KNO_CAR(args);
+    if (KNO_DEFAULTP(use_value)) {
+      lispval method = KNO_CDR(args);
+      lispval computed = doeval(method,env,_stack,0);
+      if (KNO_ABORTED(computed)) return computed;
+      else if (RARELY(KNO_DEFAULTP(computed)))
+	return computed;
+      else {
+	KNO_SETCAR(args,computed);
+	kno_incref(computed);
+	return computed;}}
+    else return kno_incref(use_value);}
+
   case KNO_BIND_OPCODE: {
     lispval vars=pop_arg(args);
     lispval inits=pop_arg(args);
@@ -1672,7 +1717,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
 
   case KNO_LOCALS_OPCODE:
     return handle_locals_opcode(expr,env,_stack);
-    
+
   default:
     return kno_err("BadOpcode","handle_special_opcode",NULL,expr);
   }

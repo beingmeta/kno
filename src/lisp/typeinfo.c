@@ -29,6 +29,8 @@ struct KNO_TYPEINFO *kno_ctypeinfo[KNO_TYPE_MAX] = { NULL };
 kno_type_dumpfn kno_default_dumpfn = NULL;
 kno_type_restorefn kno_default_restorefn = NULL;
 
+u8_condition kno_UnDumpable = _("Unable to dump (serialize) object");
+
 /* Default objtype handler */
 
 KNO_EXPORT struct KNO_TYPEINFO *_kno_objtype(lispval obj)
@@ -302,6 +304,17 @@ static void release_typeinfo()
       kno_ctypeinfo[i]=NULL;
       recycle_typeinfo((struct KNO_RAW_CONS *)info);}
     i++;}
+}
+
+/* Restoring tagged objects to compounds (fallback function) */
+
+KNO_EXPORT lispval kno_restore_tagged(lispval tag,lispval data,kno_typeinfo info)
+{
+  if (KNO_VECTORP(data))
+    return kno_init_compound_from_elts(NULL,tag,KNO_COMPOUND_INCREF,
+				       KNO_VECTOR_LENGTH(data),
+				       KNO_VECTOR_ELTS(data));
+  else return kno_init_compound(NULL,tag,KNO_COMPOUND_INCREF,1,data);
 }
 
 void kno_init_typeinfo_c()

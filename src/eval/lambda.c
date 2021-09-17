@@ -489,7 +489,7 @@ static lispval scan_body(lispval body,u8_string name,
 }
 
 DEF_KNOSYM(synchronized); DEF_KNOSYM(sync);
-DEF_KNOSYM(choiceop); DEF_KNOSYM(choicefn);
+DEF_KNOSYM(choiceop); DEF_KNOSYM(choicefn); DEF_KNOSYM(ndcall);
 
 static lispval
 _make_lambda(u8_string name,
@@ -617,7 +617,7 @@ _make_lambda(u8_string name,
   if (env == NULL)
     s->lambda_env = env;
   else s->lambda_env = kno_copy_env(env);
-
+  
   if (sync) {
     s->lambda_synchronized = 1;
     u8_init_mutex(&(s->lambda_lock));}
@@ -660,6 +660,151 @@ KNO_EXPORT lispval kno_make_lambda(u8_string name,
 {
   return make_lambda(name,arglist,body,env,kno_stackptr,nd,sync);
 }
+
+/* Restoring lambda objects */
+
+static lispval *vector2elts(lispval vec,ssize_t n)
+{
+  if (KNO_VECTORP(vec)) {
+    ssize_t len = KNO_VECTOR_LENGTH(vec);
+    ssize_t alloc_len = (len>n) ? (len) : (n);
+    lispval *elts = KNO_VECTOR_ELTS(vec);
+    lispval *copy = u8_alloc_n(alloc_len,lispval);
+    ssize_t i=0; while (i<len) {
+      lispval elt = elts[i]; kno_incref(elt); copy[i++]=elt;}
+    while (i<alloc_len) copy[i++]=KNO_VOID;
+    return copy;}
+  else return NULL;
+}
+
+lispval restore_lambda(lispval name,lispval attribs,lispval env,
+		       lispval xschema,lispval xinits,lispval xtypes,
+		       lispval args,lispval body,lispval doc,lispval source,
+		       lispval entry)
+{
+  u8_string namestring = (SYMBOLP(name)) ? (SYMBOL_NAME(name)) :
+    (STRINGP(name)) ? (CSTRING(name)) : (NULL);
+  if (!(KNO_VECTORP(xschema)))
+    return kno_err("NotAVector","restore_lambda/schema",namestring,xschema);
+  int n = KNO_VECTOR_LENGTH(xschema);
+
+  int sync = 0, nd = 0;
+  struct KNO_LAMBDA *s = u8_alloc(struct KNO_LAMBDA);
+  lispval result = KNO_ERROR;
+  KNO_INIT_FRESH_CONS(s,kno_lambda_type);
+
+  if (KNO_TABLEP(attribs)) {
+    if ( (kno_test(attribs,KNOSYM(synchronized),KNO_VOID)) ||
+	 (kno_test(attribs,KNOSYM(sync),KNO_VOID)) )
+      sync=1;
+    if ( (kno_test(attribs,KNOSYM(choiceop),KNO_VOID)) ||
+	 (kno_test(attribs,KNOSYM(choicefn),KNO_VOID)) ||
+	 (kno_test(attribs,KNOSYM(ndcall),KNO_VOID)) ) {
+      s->fcn_call = (KNO_CALL_NDCALL);
+      nd=1;}
+    if (namestring == NULL) {
+      lispval name_opt = kno_get(attribs,KNOSYM_NAME,KNO_VOID);
+      if (KNO_STRINGP(name_opt))
+	namestring=KNO_CSTRING(name_opt);
+      else if (KNO_SYMBOLP(name_opt))
+	namestring=KNO_SYMBOL_NAME(name_opt);
+      else NO_ELSE;
+      kno_decref(name_opt);}}
+  s->fcn_name = u8_strdup(namestring);
+
+  s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
+  s->fcn_filename = NULL;
+  s->fcn_attribs = kno_incref(attribs);
+  s->fcnid = VOID;
+  s->lambda_consblock = NULL;
+  s->lambda_source = kno_incref(source);
+
+  s->lambda_body = kno_incref(body);
+  s->lambda_arglist = kno_incref(body);
+  s->lambda_entry = kno_incref(entry);
+
+  if (KNO_STRINGP(doc)) {
+    s->fcn_doc = u8_strdup(KNO_CSTRING(doc));
+    s->fcn_free |= KNO_FCN_FREE_DOC;}
+
+  lispval *schema = u8_alloc_n(n,lispval);
+  kno_set_lambda_schema
+    (s,n,VECTOR_ELTS(xschema),
+     (VECTORP(xinits)) ? (VECTOR_ELTS(xinits)) : (NULL),
+     (VECTORP(xtypes)) ? (VECTOR_ELTS(xtypes)) : (NULL));
+
+  kno_lexenv use_env = (KNO_LEXENVP(env)) ? ((kno_lexenv)env) : (NULL);
+  if ( (use_env== NULL) && ( (KNO_SYMBOLP(env)) || (KNO_STRINGP(env)) ) ) {}
+
+  return result;
+}
+
+/*
+  name (symbol or string or #f);
+  opts{arity,min_arity,ndetc} (table);
+  attribs (table);
+  filename (string or false);
+  module (symbol or false);
+  schema (vector);
+  inits (vector);
+  types (vector);
+  arglist (list);
+  body (list);
+  source (expr);
+  doc (string or false);
+  entry (expr);
+  env (symbol or string or #f);
+*/
+
+/* Copying lambda objects */
+
+KNO_EXPORT lispval copy_lambda(lispval c,int flags)
+{
+  struct KNO_LAMBDA *lambda = (struct KNO_LAMBDA *)c;
+  if (lambda->lambda_synchronized) {
+    lispval sp = (lispval)lambda;
+    kno_incref(sp);
+    return sp;}
+  else {
+    struct KNO_LAMBDA *fresh = u8_alloc(struct KNO_LAMBDA);
+    int n_vars = lambda->lambda_n_vars;
+    memcpy(fresh,lambda,sizeof(struct KNO_LAMBDA));
+
+    /* This sets a new reference count or declares it static */
+    KNO_INIT_CONS(fresh,kno_lambda_type);
+
+    if (lambda->fcn_doc) {
+      if (KNO_FCN_FREE_DOCP(lambda))
+	fresh->fcn_doc = u8_strdup(lambda->fcn_doc);
+      else fresh->fcn_doc = lambda->fcn_doc;}
+    if (lambda->fcn_name)
+      fresh->fcn_name = u8_strdup(lambda->fcn_name);
+    if (lambda->fcn_filename)
+      fresh->fcn_filename = u8_strdup(lambda->fcn_filename);
+    if (lambda->lambda_env)
+      fresh->lambda_env = kno_copy_env(lambda->lambda_env);
+    fresh->fcn_attribs = VOID;
+
+    fresh->lambda_arglist = kno_copier(lambda->lambda_arglist,flags);
+    fresh->lambda_body = kno_copier(lambda->lambda_body,flags);
+    fresh->lambda_source = lambda->lambda_source;
+    kno_incref(lambda->lambda_source);
+    fresh->lambda_consblock = NULL;
+    if (lambda->lambda_vars)
+      fresh->lambda_vars = kno_copy_vec(lambda->lambda_vars,n_vars,NULL,flags);
+    if (lambda->lambda_inits) {
+      fresh->lambda_inits = kno_copy_vec(lambda->lambda_inits,n_vars,NULL,flags);}
+
+    fresh->lambda_entry = fresh->lambda_body;
+    fresh->lambda_consblock = NULL;
+
+    if (U8_BITP(flags,KNO_STATIC_COPY)) {
+      KNO_MAKE_CONS_STATIC(fresh);}
+
+    return (lispval) fresh;}
+}
+
+/* Recycling lambda objects */
 
 KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
 {
@@ -713,6 +858,8 @@ KNO_EXPORT void recycle_lambda(struct KNO_RAW_CONS *c)
     memset(lambda,0,sizeof(struct KNO_LAMBDA));
     u8_free(lambda);}
 }
+
+/* Unparsing lambdas */
 
 static void output_callsig(u8_output out,lispval arglist);
 
@@ -775,52 +922,6 @@ static void output_callsig(u8_output out,lispval arglist)
     u8_putc(out,')');
   else if (SYMBOLP(scan))
     u8_printf(out,"%s…)",SYM_NAME(scan));
-}
-
-KNO_EXPORT lispval copy_lambda(lispval c,int flags)
-{
-  struct KNO_LAMBDA *lambda = (struct KNO_LAMBDA *)c;
-  if (lambda->lambda_synchronized) {
-    lispval sp = (lispval)lambda;
-    kno_incref(sp);
-    return sp;}
-  else {
-    struct KNO_LAMBDA *fresh = u8_alloc(struct KNO_LAMBDA);
-    int n_vars = lambda->lambda_n_vars;
-    memcpy(fresh,lambda,sizeof(struct KNO_LAMBDA));
-
-    /* This sets a new reference count or declares it static */
-    KNO_INIT_CONS(fresh,kno_lambda_type);
-
-    if (lambda->fcn_doc) {
-      if (KNO_FCN_FREE_DOCP(lambda))
-	fresh->fcn_doc = u8_strdup(lambda->fcn_doc);
-      else fresh->fcn_doc = lambda->fcn_doc;}
-    if (lambda->fcn_name)
-      fresh->fcn_name = u8_strdup(lambda->fcn_name);
-    if (lambda->fcn_filename)
-      fresh->fcn_filename = u8_strdup(lambda->fcn_filename);
-    if (lambda->lambda_env)
-      fresh->lambda_env = kno_copy_env(lambda->lambda_env);
-    fresh->fcn_attribs = VOID;
-
-    fresh->lambda_arglist = kno_copier(lambda->lambda_arglist,flags);
-    fresh->lambda_body = kno_copier(lambda->lambda_body,flags);
-    fresh->lambda_source = lambda->lambda_source;
-    kno_incref(lambda->lambda_source);
-    fresh->lambda_consblock = NULL;
-    if (lambda->lambda_vars)
-      fresh->lambda_vars = kno_copy_vec(lambda->lambda_vars,n_vars,NULL,flags);
-    if (lambda->lambda_inits) {
-      fresh->lambda_inits = kno_copy_vec(lambda->lambda_inits,n_vars,NULL,flags);}
-
-    fresh->lambda_entry = fresh->lambda_body;
-    fresh->lambda_consblock = NULL;
-
-    if (U8_BITP(flags,KNO_STATIC_COPY)) {
-      KNO_MAKE_CONS_STATIC(fresh);}
-
-    return (lispval) fresh;}
 }
 
 /* LAMBDA generators */
@@ -1248,7 +1349,7 @@ static int better_unparse_fcnid(u8_output out,lispval x)
       u8_printf(out,"#<~%d<λ%s%s",
 		KNO_GET_IMMEDIATE(x,kno_fcnid_type),
 		codes,lambda->fcn_name);
-    else u8_printf(out,"#<~%d<λ%s0x%04x",
+    else u8_printf(out,"#<~%dλ%s0x%04x",
 		   KNO_GET_IMMEDIATE(x,kno_fcnid_type),
 		   codes,((addr>>2)%0x10000));
     if (PAIRP(arglist)) {

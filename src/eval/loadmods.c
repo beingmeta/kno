@@ -983,7 +983,6 @@ KNO_EXPORT void kno_init_loadmods_c()
   kno_finish_cmodule(loadmods_module);
 }
 
-
 static void link_local_cprims()
 {
   KNO_LINK_CPRIM("dynamic-load",dynamic_load_prim,2,kno_scheme_module);
