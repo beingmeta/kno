@@ -17,6 +17,7 @@
 ;;; Top level functions
 
 (define (index/copy! from to (opts #f))
+  (logdebug |Index/Copy| from " ==> " to)
   (let ((out (if (index? to) to
 		 (if (string? to)
 		     (open-index to (get-write-opts opts))
@@ -31,6 +32,7 @@
 	      (else (index/copy-keys! in out opts)))))))
 
 (define (index/pack! from (to #f) (opts #f))
+  (logdebug |Index/Pack| from " ==> " to)
   (let* ((in (if (index? from) from
 		 (if (string? from)
 		     (open-index from (get-read-opts opts))
@@ -120,6 +122,7 @@
     ok))
 
 (define (index/install! index file)
+  (logdebug |Index/Install| index " ==> " file)
   (close-index index)
   (unless (equal? (realpath (index-source index)) (realpath file))
     (when (file-exists? file)
@@ -254,6 +257,7 @@
     (table-increment! batch-state 'values value-count)))
 
 (define (index/copy-keys! in out (opts #f))
+  (logdebug |Index/copy-keys| in " ==> " out "\n" opts)
   (let* ((started (elapsed-time))
 	 (keys (getkeys in))
 	 (tail (getopt opts 'tail {}))

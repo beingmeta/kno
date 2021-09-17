@@ -7,7 +7,7 @@
 (use-module '{varconfig logger text/stringfmts optimize kno/mttools})
 (use-module '{knodb/indexes})
 
-(define %loglevel (config 'loglevel %notice%))
+(define-init %loglevel (config 'loglevel %notice%))
 (define %optmods '{knodb/actions/packindex
 		   knodb/indexes
 		   knodb/hashindexes

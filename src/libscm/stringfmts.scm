@@ -1,5 +1,3 @@
 ;;; -*- Mode: Scheme; -*-
 
-(in-module 'stringfmts)
-
-(module-alias! 'text/stringfmts)
+(module-alias! 'stringfmts 'text/stringfmts)
