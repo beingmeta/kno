@@ -34,7 +34,7 @@
 
 KNO_EXPORT int kno_init_sqlite(void) KNO_LIBINIT_FN;
 static struct KNO_SQLDB_HANDLER sqlite_handler;
-static lispval sqlitecallproc(struct KNO_STACK *stack,struct KNO_FUNCTION *fn,
+static lispval sqlitecallproc(struct KNO_STACK *stack,lispval fn,
 			      int n,kno_argvec args);
 
 typedef struct KNO_SQLITE {
@@ -482,10 +482,10 @@ static void recycle_knosqliteproc(struct KNO_SQLPROC *c)
 
 /* Calling a SQLITE proc */
 
-static lispval sqlitecallproc(struct KNO_STACK *stack,
-			      struct KNO_FUNCTION *fn,
+static lispval sqlitecallproc(struct KNO_STACK *stack,lispval f,
 			      int n,kno_argvec args)
 {
+  struct KNO_FUNCTION *fn = KNO_FUNCTION_INFO(f);
   struct KNO_SQLITE_PROC *dbproc = (struct KNO_SQLITE_PROC *)fn;
   /* We use this for the lock */
   struct KNO_SQLITE *knos = (struct KNO_SQLITE *)(dbproc->sqldbptr);

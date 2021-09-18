@@ -43,7 +43,7 @@ lispval vm_eval(lispval head,lispval expr,
 		int tail);
 
 lispval lambda_call(kno_stack stack,
-		    struct KNO_LAMBDA *proc,
+		    lispval lambda,
 		    int n,kno_argvec args,
 		    int free_given,
 		    int tail);

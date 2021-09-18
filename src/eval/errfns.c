@@ -176,7 +176,7 @@ static lispval irritant_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (SYMBOLP(op))
 	cxt=KNO_SYMBOL_NAME(op);
       else if (KNO_FUNCTIONP(op)) {
-	struct KNO_FUNCTION *fcn = KNO_GETFUNCTION(op);
+	struct KNO_FUNCTION *fcn = KNO_FUNCTION_INFO(op);
 	if (fcn->fcn_name)
 	  cxt=fcn->fcn_name;
 	else cxt="FUNCTIONCALL";}
@@ -695,7 +695,7 @@ static int thunkp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (USUALLY(KNO_FUNCTIONP(x))) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     if (f->fcn_arity==0)
       return 1;
     else if ((f->fcn_arity<0) && (f->fcn_min_arity==0))

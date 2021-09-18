@@ -818,8 +818,10 @@ static lispval docall(lispval fn,int n,kno_argvec args,kno_stack stack,
     lispval result = cprim_call(prim->fcn_name,prim,n,args,stack);
     if (free_args) kno_decref_elts((lispval *)args,n);
     return kno_simplify_choice(result);}
-  else if (fntype == kno_lambda_type)
-    return lambda_call(stack,(kno_lambda)fn,n,args,free_args,tail);
+  else if ( (fntype == kno_lambda_type) ||
+	    ( (fntype == kno_closure_type) &&
+	      (KNO_TYPEP((((kno_pair)fn)->car),kno_lambda_type)) ) )
+    return lambda_call(stack,fn,n,args,free_args,tail);
   else {
     lispval result = kno_dcall(stack,fn,n,args);
     if (free_args) kno_decref_elts((lispval *)args,n);
@@ -839,11 +841,11 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
     else if (KNO_ABORTED(fn)) return fn;
     else NO_ELSE;}
   else fn = get_evalop(fn_arg,env,stack);
-  if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
+  kno_function f = KNO_FUNCTION_INFO(fn);
+  if (f==NULL) {
+    if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);}
   int nd_call = 0, prune_call = 1, ambig_fn =0, traced = 0, profiled = 0;
-  kno_function f = NULL;
-  if ( (KNO_FUNCTIONP(fn)) ) {
-    f = (kno_function) fn;
+  if ( f ) {
     if (f->fcn_call & KNO_CALL_NDCALL) nd_call = 1;
     if (f->fcn_call & KNO_CALL_XPRUNE) prune_call = 0;
     if (f->fcn_profile) profiled=1;

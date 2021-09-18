@@ -66,7 +66,7 @@ static u8_context get_log_context(kno_stack stack)
   if (scan==NULL) return NULL;
   lispval op = scan->stack_op;
   if (KNO_FUNCTIONP(op)) {
-    struct KNO_FUNCTION *f = (kno_function) op;
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(op);
     lispval module = f->fcn_moduleid;
     u8_string name = f->fcn_name;
     if ( (name) && (KNO_SYMBOLP(module)) )

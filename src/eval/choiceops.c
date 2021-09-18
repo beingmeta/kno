@@ -468,12 +468,12 @@ static lispval qchoicep_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 #define SKIP_ERRS 1
 #define PASS_ERRS 0
 
-static int test_exists(struct KNO_FUNCTION *fn,
+static int test_exists(lispval fn,
 		       int i,int n,kno_argvec nd_args,lispval *d_args,
 		       int skip_errs)
 {
   if (i == n) {
-    lispval val = kno_dapply((lispval)fn,n,d_args);
+    lispval val = kno_dapply(fn,n,d_args);
     if ((FALSEP(val)) || (EMPTYP(val))) {
       return 0;}
     else if (KNO_ABORTED(val))
@@ -512,8 +512,7 @@ static lispval exists_helper(int n,kno_argvec nd_args,int skip_errs)
 	KNO_STOP_DO_CHOICES;
 	return kno_type_error(_("function"),"exists_helper",nd_args[0]);}}
   {DO_CHOICES(fcn,nd_args[0]) {
-      struct KNO_FUNCTION *f = (kno_function)fcn;
-      int retval = test_exists(f,0,n-1,nd_args+1,d_args,skip_errs);
+      int retval = test_exists(fcn,0,n-1,nd_args+1,d_args,skip_errs);
       if (retval == 0) continue;
       KNO_STOP_DO_CHOICES;
       if (retval<0)
@@ -625,7 +624,7 @@ static lispval forall_helper(int n,kno_argvec nd_args,int skip_errs)
 	return kno_type_error(_("function"),"forall_helper",nd_args[0]);}}
   lispval d_args[n-1];
   {DO_CHOICES(fcn,nd_args[0]) {
-      struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+      struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(fcn);
       int retval = test_forall(f,0,n-1,nd_args+1,d_args,skip_errs);
       if ( (retval < 0) && (skip_errs == 0) )
 	return KNO_ERROR;
@@ -1106,8 +1105,9 @@ static int reduce_functionp(kno_function f)
 
 static int reduce_operatorp(lispval f)
 {
-  if (KNO_FUNCTIONP(f))
-    return reduce_functionp((kno_function)f);
+  kno_function info = KNO_FUNCTION_INFO(f);
+  if (info)
+    return reduce_functionp(info);
   else if (KNO_APPLICABLEP(f))
     return 1;
   else return 0;
@@ -1115,9 +1115,9 @@ static int reduce_operatorp(lispval f)
 
 static int non_deterministicp(lispval fn)
 {
-  if (KNO_FUNCTIONP(fn)) {
-    kno_function f = (kno_function) fn;
-    return (FCN_NDOPP(f));}
+  kno_function info = KNO_FUNCTION_INFO(fn);
+  if (info)
+    return (FCN_NDOPP(info));
   else if (KNO_APPLICABLEP(fn))
     return 1;
   else return 0;

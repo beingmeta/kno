@@ -644,8 +644,8 @@ static void concise_stack_frame(u8_output out,struct KNO_STACK *stack)
   if (KNO_SYMBOLP(op))
     u8_printf(out," point=:%s",SYM_NAME(op));
   else if ( (KNO_FUNCTIONP(op)) &&
-	    ((KNO_GETFUNCTION(op))->fcn_name) ) {
-    struct KNO_FUNCTION *fn=KNO_GETFUNCTION(op);
+	    ((KNO_FUNCTION_INFO(op))->fcn_name) ) {
+    struct KNO_FUNCTION *fn=KNO_FUNCTION_INFO(op);
     u8_string prefix = (KNO_CPRIMP(op)) ? ("c#") :
       (KNO_LAMBDAP(op)) ? ("l#") : ("#");
     u8_printf(out," point=%s%s",prefix,fn->fcn_name);}

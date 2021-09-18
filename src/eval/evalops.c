@@ -191,9 +191,7 @@ int kno_opcode_class(lispval opcode)
 
 /* Call/cc */
 
-static lispval call_continuation(struct KNO_STACK *stack,
-				 struct KNO_FUNCTION *f,
-				 int n,kno_argvec args)
+static lispval call_continuation(struct KNO_STACK *stack,lispval f,int n,kno_argvec args)
 {
   struct KNO_CONTINUATION *cont = (struct KNO_CONTINUATION *)f;
   lispval arg = args[0];

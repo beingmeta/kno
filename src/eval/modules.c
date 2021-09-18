@@ -318,9 +318,9 @@ int kno_module_finished(lispval module,int flags)
 KNO_EXPORT lispval kno_get_moduleid(lispval x,int err)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = (kno_function)(x);
-    lispval id = f->fcn_moduleid;
+  kno_function info = KNO_FUNCTION_INFO(x);
+  if (info) {
+    lispval id = info->fcn_moduleid;
     if ( (KNO_NULLP(id)) || (KNO_VOIDP(id)) ) return KNO_FALSE;
     else return kno_incref(id);}
   else if (TYPEP(x,kno_evalfn_type)) {
@@ -727,6 +727,7 @@ static lispval get_exports_table_prim(lispval arg)
 static lispval get_source(lispval arg)
 {
   lispval ids = KNO_EMPTY;
+  kno_function info = NULL;
   if (KNO_VOIDP(arg)) {
     u8_string path = kno_sourcebase();
     if (path) return kno_mkstring(path);
@@ -748,22 +749,20 @@ static lispval get_source(lispval arg)
     kno_decref(mod);
     return mod_source;}
   /* These aren't strictly modules, but they're nice to have here */
-  else if (KNO_LAMBDAP(arg)) {
-    struct KNO_LAMBDA *f = (kno_lambda) kno_fcnid_ref(arg);
-    if (f->fcn_filename)
-      return kno_make_string(NULL,-1,f->fcn_filename);
-    else {
-      lispval sourceinfo =
-	kno_get(f->lambda_env->env_bindings,source_symbol,VOID);
-      if (KNO_STRINGP(sourceinfo))
-	return sourceinfo;
-      else {
-	kno_decref(sourceinfo);
-	return KNO_FALSE;}}}
-  else if (KNO_FUNCTIONP(arg)) {
-    struct KNO_FUNCTION *f = (kno_function) kno_fcnid_ref(arg);
-    if (f->fcn_filename)
-      return kno_make_string(NULL,-1,f->fcn_filename);
+  else if ((info=KNO_FUNCTION_INFO(arg))) {
+    if (info->fcn_filename)
+      return kno_make_string(NULL,-1,info->fcn_filename);
+    else if (KNO_TYPEP(arg,kno_closure_type)) {
+      kno_pair closure = (kno_pair)arg;
+      if (KNO_LEXENVP(closure->cdr)) {
+	kno_lexenv lambda_env = (kno_lexenv)(closure->cdr);
+	lispval sourceinfo = kno_get(lambda_env->env_bindings,source_symbol,VOID);
+	if (KNO_STRINGP(sourceinfo))
+	  return sourceinfo;
+	else {
+	  kno_decref(sourceinfo);
+	  return KNO_FALSE;}}
+      else return KNO_FALSE;}
     else return KNO_FALSE;}
   else if (TYPEP(arg,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = (kno_evalfn) kno_fcnid_ref(arg);
@@ -771,9 +770,9 @@ static lispval get_source(lispval arg)
       return kno_mkstring(sf->evalfn_filename);
     else return KNO_FALSE;}
   else if (KNO_TYPEP(arg,kno_macro_type)) {
-    struct KNO_FUNCTION *f = (kno_function) kno_fcnid_ref(arg);
-    if (f->fcn_filename)
-      return kno_make_string(NULL,-1,f->fcn_filename);
+    struct KNO_MACRO *f = (kno_macro) kno_fcnid_ref(arg);
+    if (f->macro_filename)
+      return kno_make_string(NULL,-1,f->macro_filename);
     else return KNO_FALSE;}
   else return kno_type_error(_("module"),"module_binds_prim",arg);
   if (KNO_VOIDP(ids))

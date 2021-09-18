@@ -90,7 +90,8 @@ typedef lispval (*kno_cprim15)(lispval,lispval,lispval,
 			       lispval,lispval,lispval);
 typedef lispval (*kno_cprimn)(int n,kno_argvec);
 
-typedef lispval (*kno_xprimn)(kno_stack,kno_function,int n,kno_argvec);
+typedef lispval (*kno_xprimn)(kno_stack,lispval,int n,kno_argvec);
+typedef lispval (*kno_cxprimn)(kno_stack,lispval,kno_function,lispval,int n,kno_argvec);
 
 typedef struct KNO_ARGINFO {
   lispval name;
@@ -98,14 +99,14 @@ typedef struct KNO_ARGINFO {
   lispval default_value;
   unsigned int bits;} *kno_arginfo;
 
-#define KNO_FUNCTION_FIELDS						   \
+#define KNO_FUNCTION_FIELDS						\
   KNO_CONS_HEADER;							\
   u8_string fcn_name, fcn_filename;					\
   u8_string fcn_doc;							\
   lispval fcn_moduleid;							\
   unsigned char fcn_call, fcn_trace, fcn_free, fcn_other;		\
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
-  lispval *fcn_argnames;							\
+  lispval *fcn_argnames;						\
   lispval *fcn_typeinfo;						\
   lispval fcnid;							\
   lispval fcn_attribs;							\
@@ -119,6 +120,7 @@ typedef struct KNO_ARGINFO {
     kno_cprim15 call15;							\
     kno_cprimn calln;							\
     kno_xprimn xcalln;							\
+    kno_cxprimn cxcalln;						\
     void *fnptr;}							\
     fcn_handler
 
@@ -127,13 +129,15 @@ typedef struct KNO_ARGINFO {
 #define KNO_CALL_NOTAIL   0x04
 #define KNO_CALL_CPRIM    0x08
 #define KNO_CALL_XCALL    0x10
-#define KNO_CALL_XPRUNE   0x20
+#define KNO_CALL_CXCALL   0x20
+#define KNO_CALL_XPRUNE   0x40
 
 #define KNO_FCN_FREE_DOC        0x01
 #define KNO_FCN_FREE_TYPEINFO   0x02
 #define KNO_FCN_FREE_DEFAULTS   0x04
 #define KNO_FCN_FREE_SCHEMA     0x08
 #define KNO_FCN_DECREF_TYPEINFO 0x10
+#define KNO_FCN_DONT_COPY       0x20
 
 #define KNO_FCN_TRACE_ENTER     0x01
 #define KNO_FCN_TRACE_EXIT      0x02
@@ -147,22 +151,23 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_TRACEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_TRACEFN) )
 #define KNO_FCN_BREAKP(f)   ( ((f)->fcn_trace) & (KNO_CALL_BREAK) )
 
-#define KNO_FCN_ITERP(f)   (! ( ((f)->fcn_call) & (KNO_CALL_XITER) ) )
+#define KNO_FCN_ITERP(f)   (!(((f)->fcn_call) & (KNO_CALL_XITER) ))
 #define KNO_FCN_VARARGP(f) (  ((f)->fcn_call) & (KNO_CALL_VARARGS) )
 #define KNO_FCN_NOTAILP(f) (  ((f)->fcn_call) & (KNO_CALL_NOTAIL) )
 #define KNO_FCN_CPRIMP(f)  (  ((f)->fcn_call) & (KNO_CALL_CPRIM) )
 #define KNO_FCN_XCALLP(f)  (  ((f)->fcn_call) & (KNO_CALL_XCALL) )
-#define KNO_FCN_PRUNEP(f)  (! (((f)->fcn_call) & (KNO_CALL_XPRUNE) ) )
+#define KNO_FCN_CXCALLP(f) (  ((f)->fcn_call) & (KNO_CALL_CXCALL) )
+#define KNO_FCN_PRUNEP(f)  (!(((f)->fcn_call) & (KNO_CALL_XPRUNE) ))
 
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
-
-#define KNO_FCN_FREE_DOCP(f)	  ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
-#define KNO_FCN_FREE_TYPEINFOP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_TYPEINFO) )
-#define KNO_FCN_FREE_DEFAULTSP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_DEFAULTS) )
 
 struct KNO_FUNCTION {
   KNO_FUNCTION_FIELDS;
 };
+
+#define KNO_FCN_FREE_DOCP(f)	  ( ((f)->fcn_free) & (KNO_FCN_FREE_DOC) )
+#define KNO_FCN_FREE_TYPEINFOP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_TYPEINFO) )
+#define KNO_FCN_FREE_DEFAULTSP(f) ( ((f)->fcn_free) & (KNO_FCN_FREE_DEFAULTS) )
 
 #define KNO_FCN_NAME(x) (((kno_function)x)->fcn_name)
 #define KNO_FCN_FILENAME(x) (((kno_function)x)->fcn_filename)
@@ -177,6 +182,15 @@ struct KNO_FUNCTION {
 #define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_fcnid)
 #define KNO_FCN_PROFILE(x) (((kno_function)x)->fcn_profile)
 #define KNO_FCN_PROFILEP(x) ((((kno_function)x)->fcn_profile)!=NULL)
+
+KNO_FASTOP int KNO_FCN_TYPEP(kno_function fcn,kno_lisp_type code)
+{
+  return ( ((fcn->conshead)&KNO_CONS_TYPE_MASK) == (code-(KNO_CONS_TYPE_OFF)));
+}
+KNO_FASTOP kno_lisp_type KNO_FCN_TYPEOF(kno_function fcn)
+{
+  return (kno_lisp_type) (((fcn->conshead)&KNO_CONS_TYPE_MASK)+(KNO_CONS_TYPE_OFF));
+}
 
 struct KNO_CPRIM {
   KNO_FUNCTION_FIELDS;
@@ -256,6 +270,9 @@ KNO_EXPORT lispval kno_cons_cprimN
 
 /* Useful macros */
 
+KNO_EXPORT kno_function _KNO_FUNCTION_INFO(lispval x);
+KNO_EXPORT int _KNO_FUNCTION_INFOP(lispval x);
+
 KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode);
 KNO_EXPORT int _KNO_FUNCTIONP(lispval x);
 
@@ -265,13 +282,16 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 #if KNO_EXTREME_PROFILING
 #define KNO_FUNCTIONP _KNO_FUNCTIONP
 #define KNO_FUNCTION_TYPEP _KNO_FUNCTION_TYPEP
+#define KNO_FUNCTION_INFO _KNO_FUNCTION_INFO
 #else
 #define KNO_FUNCTION_TYPEP(typecode) \
   ( (((typecode)&0xfc) == kno_function_type) ||	\
+    ((typecode)==kno_closure_type) ||		\
     (kno_isfunctionp[typecode]) )
 #define KNO_FAST_FUNCTIONP(obj) \
-  ( (KNO_CONSP(obj)) && \
-    (((KNO_CONS_TYPEOF(obj))&0xfc) == kno_function_type) )
+  ( (KNO_CONSP(obj)) &&					    \
+    ( (((KNO_CONS_TYPEOF(obj))&0xfc) == kno_function_type) ||	\
+      ((typecode)==kno_closure_type) ) )
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
@@ -279,21 +299,32 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
       (KNO_FUNCTION_TYPEP(KNO_TYPEOF(kno_fcnid_ref(x)))) :	\
       (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) ))
 
-KNO_FASTOP kno_function KNO_XFUNCTION(lispval x)
+#define KNO_FUNCTION_INFO_TYPEP(typecode) \
+  ( (((typecode)&0xfc) == kno_function_type) || (kno_isfunctionp[typecode]) )
+
+KNO_FASTOP kno_function KNO_FUNCTION_INFO(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x))
+  if (KNO_TYPEP(x,kno_closure_type))
+    return (kno_function) ( (kno_pair) x)->car;
+  else if (KNO_FUNCTIONP(x))
     return (kno_function) x;
-  else return KNO_ERR(NULL,kno_TypeError,"function",NULL,x);
+  else return (kno_function) NULL;
+}
+KNO_FASTOP int KNO_FUNCTION_INFOP(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_TYPEP(x,kno_closure_type))
+    return KNO_FUNCTION_INFO_TYPEP(( (kno_pair) x)->car);
+  else return KNO_FUNCTION_INFO_TYPEP(x);
 }
 #endif
 
 #define KNO_FUNCTION_ARITY(x)						\
   ((KNO_FUNCTIONP(x)) ?							\
-   (((struct KNO_FUNCTION *)(KNO_CONS_DATA(kno_fcnid_ref(x))))->fcn_arity) : \
+   ((KNO_FUNCTION_INFO(x))->fcn_arity) :					\
    (0))
 
-/* #define KNO_XFUNCTION(x) (kno_consptr(struct KNO_FUNCTION *,x,kno_cprim_type)) */
 #define KNO_PRIMITIVEP(x)				 \
   ((KNO_FCNIDP(x)) ?					 \
    (KNO_TYPEP((kno_fcnid_ref(x)),kno_cprim_type)) :	   \
@@ -307,10 +338,13 @@ KNO_EXPORT int _KNO_LAMBDAP(lispval x);
 #if KNO_EXTREME_PROFILING
 #define KNO_LAMBDAP _KNO_LAMBDAP
 #else
-#define KNO_LAMBDAP(x)					 \
-  ((KNO_FCNIDP(x)) ?					 \
-   (KNO_TYPEP((kno_fcnid_ref(x)),kno_lambda_type)) :	   \
-   (KNO_TYPEP((x),kno_lambda_type)))
+KNO_FASTOP int KNO_LAMBDAP(lispval x)
+{
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  return ( (KNO_TYPEP(x,kno_lambda_type)) ||
+	   ( (KNO_TYPEP(x,kno_closure_type)) &&
+	     (KNO_TYPEP(((kno_pair)x)->car,kno_lambda_type)) ) );
+}
 #endif
 
 KNO_EXPORT lispval kno_make_ndprim(lispval prim);
@@ -391,10 +425,10 @@ typedef int (*kno_function_tracefn)
 (lispval *,kno_function,int,kno_argvec,kno_stack,lispval *);
 KNO_EXPORT kno_function_tracefn kno_call_tracefn;
 
-KNO_EXPORT int kno_trace_call(kno_stack stack,kno_function f,
+KNO_EXPORT int kno_trace_call(kno_stack stack,lispval fn,kno_function f,
 			      int n,kno_argvec argvec);
 
-KNO_EXPORT int kno_trace_exit(kno_stack stack,lispval r,kno_function f,
+KNO_EXPORT int kno_trace_exit(kno_stack stack,lispval r,lispval fn,kno_function f,
 				int n,kno_argvec argvec);
 
 
@@ -415,7 +449,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 #define KNO_APPLICABLE_TYPEP _KNO_APPLICABLE_TYPEP
 #else
 #define KNO_APPLICABLE_TYPEP(typecode) \
-  ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_rpc_type) ) || \
+  ( ( ((typecode) >= kno_cprim_type) && ((typecode) <= kno_closure_type) ) || \
     ( (kno_applyfns[typecode]) != NULL) )
 
 #define KNO_APPLICABLEP(x)				  \
@@ -432,19 +466,18 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x);
 
-#if KNO_EXTREME_PROFILING
-#define KNO_GETFUNCTION _KNO_GETFUNCTION
-#else
-#define KNO_GETFUNCTION(x)		\
-  ((KNO_FCNIDP(x)) ?		       \
-   ((kno_function)(kno_fcnid_ref(x))) : \
-   ((kno_function)x))
-#endif
-
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 KNO_EXPORT void kno_html_backtrace(u8_output out,lispval rep);
 
 KNO_EXPORT int kno_extended_profiling;
+
+/* Closures */
+
+typedef kno_pair kno_closure;
+
+#define KNO_CLOSUREP(x)     (KNO_TYPEP((x),kno_closure_type))
+#define KNO_CLOSURE_FCN(x)  (((kno_pair)x)->car)
+#define KNO_CLOSURE_DATA(x) (((kno_pair)x)->cdr)
 
 /* Unparsing */
 
@@ -457,7 +490,10 @@ KNO_EXPORT int kno_unparse_function
 #define FCN_NDOPP KNO_FCN_NDCALLP
 #define FCN_NOTAILP KNO_FCN_NOTAILP
 #define FCN_XCALLP KNO_FCN_XCALLP
+#define FCN_CXCALLP KNO_FCN_CXCALLP
 #define FCN_VARARGP KNO_FCN_VARARGP
+#define FCN_TYPEP KNO_FCN_TYPEP
+#define FCN_TYPEOF KNO_FCN_TYPEOF
 #endif
 
 #endif /* KNO_APPLY_H */

@@ -581,7 +581,7 @@ static lispval xmlapply(u8_output out,lispval fn,lispval xml,
       kno_consptr(kno_evalfn,fn,kno_evalfn_type);
     result = sf->evalfn_handler(xml,scheme_env,kno_stackptr);}
   else if (KNO_LAMBDAP(fn))
-    result = kno_xapply_lambda((struct KNO_LAMBDA *)fn,&cxt,xmlgetarg);
+    result = kno_xapply_lambda(fn,&cxt,xmlgetarg);
   else {
     kno_decref(bind);
     return kno_type_error("function","xmlapply",fn);}

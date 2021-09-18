@@ -57,9 +57,12 @@ KNO_EXPORT lispval kno_register_fcnid(lispval x)
   _kno_fcnids[serialno/KNO_FCNID_BLOCKSIZE][serialno%KNO_FCNID_BLOCKSIZE]=
     (struct KNO_CONS *) (kno_make_simple_choice(x));
   u8_unlock_mutex(&_kno_fcnid_lock);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = (kno_function)x;
-    f->fcnid = LISPVAL_IMMEDIATE(kno_fcnid_type,serialno);}
+  kno_function info = KNO_FUNCTION_INFO(x);
+  if ( (info) &&
+       (KNO_VOIDP(info->fcnid)) &&
+       (KNO_TYPEP(x,kno_closure_type)) &&
+       (KNO_FCN_TYPEP(info,kno_lambda_type)) )
+    info->fcnid = LISPVAL_IMMEDIATE(kno_fcnid_type,serialno);
   return LISPVAL_IMMEDIATE(kno_fcnid_type,serialno);
 }
 
@@ -70,7 +73,8 @@ KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
   else if (!(CONSP(value)))
     return kno_type_error("cons","kno_set_fcnid",value);
   else if (!((KNO_FUNCTIONP(value))||
-             (TYPEP(value,kno_evalfn_type))))
+             (TYPEP(value,kno_closure_type))||
+	     (TYPEP(value,kno_evalfn_type))))
     return kno_type_error("function/fexpr","kno_set_fcnid",value);
   else {
     u8_lock_mutex(&_kno_fcnid_lock);
@@ -82,7 +86,6 @@ KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
       return kno_err(kno_InvalidFCNID,"kno_set_fcnid",NULL,id);}
     else {
       struct KNO_CONS **block=_kno_fcnids[block_num];
-      struct KNO_FUNCTION *fcn = (kno_function)value;
       if (!(block)) {
         /* We should never get here, but let's check anyway */
         u8_unlock_mutex(&_kno_fcnid_lock);
@@ -93,7 +96,8 @@ KNO_EXPORT lispval kno_set_fcnid(lispval id,lispval value)
           u8_unlock_mutex(&_kno_fcnid_lock);
           return id;}
         block[block_off]=(kno_cons) kno_make_simple_choice(value);
-        fcn->fcnid = id;
+	kno_function fcn = KNO_FUNCTION_INFO(value);
+	if (fcn) fcn->fcnid = id;
         if (!(_kno_leak_fcnids)) {
           /* This is dangerous if, for example, a module is being reloaded
              (and fcnid's redefined) while another thread is using the old
@@ -110,7 +114,8 @@ KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value)
   else if (!(CONSP(value)))
     return 0;
   else if (!((KNO_FUNCTIONP(value))||
-             (TYPEP(value,kno_evalfn_type))))
+	     (TYPEP(value,kno_closure_type))||
+	     (TYPEP(value,kno_evalfn_type))))
     return 0;
   else {
     u8_lock_mutex(&_kno_fcnid_lock);

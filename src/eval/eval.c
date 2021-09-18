@@ -585,12 +585,8 @@ lispval get_evalop(lispval head,kno_lexenv env,kno_stack stack)
     op = eval_symbol(head,env);
   else if (KNO_CONSP(head)) {
     kno_lisp_type headtype = KNO_CONS_TYPEOF(head);
-    if (headtype == kno_lambda_type)  {
-      kno_lambda l = (kno_lambda) head;
-      if (l->lambda_env) return head;
-      else op = eval_lambda(NULL,l,env);}
-    else if ( (headtype == kno_evalfn_type) ||
-	      (KNO_APPLICABLE_TYPEP(headtype)) )
+    if ( (headtype == kno_evalfn_type) ||
+	 (KNO_APPLICABLE_TYPEP(headtype)) )
       return head;
     else if  (headtype == kno_pair_type) {
       lispval car = KNO_CAR(head);
@@ -671,7 +667,7 @@ lispval lisp_eval(lispval head,lispval expr,
   kno_lisp_type optype = KNO_TYPEOF(op);
   switch (optype) {
   case kno_choice_type: case kno_cprim_type: case kno_lambda_type:
-  case kno_ffi_type: case kno_rpc_type:
+  case kno_ffi_type: case kno_rpc_type: case kno_closure_type:
     result = eval_apply(op,KNO_CDR(expr),env,_stack,tail);
     goto got_result;
   case kno_evalfn_type: {
@@ -696,7 +692,7 @@ lispval eval_apply(lispval fn,lispval exprs,
 		   kno_lexenv env,kno_stack stack,
 		   int tail)
 {
-  kno_function f = (KNO_FUNCTIONP(fn)) ? ((kno_function)fn) : (NULL);
+  kno_function f = KNO_FUNCTION_INFO(fn);
   int call_bits = (f) ? (f->fcn_call) : (0);
   int width = (f) ? (f->fcn_call_width) : (INIT_ARGBUF_LEN), n_args = 0;
   if (KNO_PAIRP(exprs)) { /* count args */
@@ -751,12 +747,17 @@ lispval eval_apply(lispval fn,lispval exprs,
 
   if ( (!(need_iter)) && (qchoice_args)) unwrap_qchoices(n_args,argbuf);
 
-  if ( (fntype == kno_lambda_type) && (!(need_iter) ) ) {
-    struct KNO_LAMBDA *proc = (kno_lambda) fn;
-  lambda:
-    KNO_STACK_RESET_ARGS(stack);
-    result = lambda_call(stack,proc,n_args,(kno_argvec)argbuf,1,tail);}
-  else {
+  int tail_call = 0;
+
+  if (!(need_iter) ) {
+    kno_lambda proc = KNO_LAMBDA_INFO(fn);
+    if (proc) {
+    lambda_tail:
+      KNO_STACK_RESET_ARGS(stack);
+      result = lambda_call(stack,fn,n_args,(kno_argvec)argbuf,1,tail);
+      tail_call=1;}}
+
+  if (tail_call==0) {
     KNO_STACK_SET_ARGS(stack,argbuf,width,n_args,
 		       ((decref_args) ? (KNO_STACK_DECREF_ARGS) : (0)));
     if (need_iter)
@@ -1315,37 +1316,18 @@ static int lispenv_add(lispval e,lispval s,lispval v)
 
 KNO_EXPORT u8_string kno_get_documentation(lispval x)
 {
-  lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (proctype == kno_lambda_type) {
-    struct KNO_LAMBDA *lambda = (kno_lambda)proc;
-    if (lambda->fcn_doc)
-      return u8_strdup(lambda->fcn_doc);
-    else {
-      struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,120);
-      lispval arglist = lambda->lambda_arglist, scan = arglist;
-      if (lambda->fcn_name)
-	u8_puts(&out,lambda->fcn_name);
-      else u8_puts(&out,"λ");
-      while (PAIRP(scan)) {
-	lispval arg = KNO_CAR(scan);
-	if (SYMBOLP(arg))
-	  u8_printf(&out," %ls",SYM_NAME(arg));
-	else if ((PAIRP(arg))&&(SYMBOLP(KNO_CAR(arg))))
-	  u8_printf(&out," [%ls]",SYM_NAME(KNO_CAR(arg)));
-	else u8_printf(&out," %q",arg);
-	scan = KNO_CDR(scan);}
-      if (SYMBOLP(scan))
-	u8_printf(&out," [%ls...]",SYM_NAME(scan));
-      lambda->fcn_doc = out.u8_outbuf;
-      lambda->fcn_free |= KNO_FCN_FREE_DOC;
-      return u8_strdup(out.u8_outbuf);}}
-  else if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(proc);
-    return u8_strdup(f->fcn_doc);}
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  kno_function info = KNO_FUNCTION_INFO(x);
+  if (info) {
+    if (info->fcn_doc)
+      return u8_strdup(info->fcn_doc);
+    else return u8_strdup("**undocumented**");}
   else if (TYPEP(x,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = (kno_evalfn)proc;
+    struct KNO_EVALFN *sf = (kno_evalfn)x;
     return u8_strdup(sf->evalfn_documentation);}
+  else if (TYPEP(x,kno_macro_type)) {
+    struct KNO_MACRO *m = (kno_macro)x;
+    return kno_get_documentation(m->macro_transformer);}
   else return NULL;
 }
 

@@ -136,6 +136,9 @@ typedef int _kno_sptr;
 typedef enum KNO_LISP_TYPE {
   kno_any_type = -1,
 
+  /* These are types reserved as constants */
+  /* Changes here may introduce binary incompatability */
+
   kno_cons_type = 0, kno_immediate_type = 1,
   kno_fixnum_type = 2, kno_oid_type = 3,
 
@@ -143,7 +146,7 @@ typedef enum KNO_LISP_TYPE {
   kno_character_type = KNO_IMMEDIATE_TYPECODE(1),
   kno_symbol_type = KNO_IMMEDIATE_TYPECODE(2),
 
-  /* Reserved as constants */
+  /* Immediate typecodes */
   kno_fcnid_type = KNO_IMMEDIATE_TYPECODE(3),
   kno_lexref_type = KNO_IMMEDIATE_TYPECODE(4),
   kno_opcode_type = KNO_IMMEDIATE_TYPECODE(5),
@@ -156,6 +159,7 @@ typedef enum KNO_LISP_TYPE {
   kno_pooltype_type = KNO_IMMEDIATE_TYPECODE(12),
   kno_indextype_type = KNO_IMMEDIATE_TYPECODE(13),
 
+  /* Cons typecodes */
   kno_string_type = KNO_CONS_TYPECODE(0),
   kno_packet_type = KNO_CONS_TYPECODE(1),
   kno_vector_type = KNO_CONS_TYPECODE(2),
@@ -192,47 +196,49 @@ typedef enum KNO_LISP_TYPE {
 
   /* Evaluator/apply types, defined here to be constant */
 
-  kno_function_type = KNO_CONS_TYPECODE(20),
+  kno_function_type = KNO_CONS_TYPECODE(20), /* 'meta` type */
   /* These types are arranged so that their top bits are the same,
      allowing them to be used with KNO_XXCONS macros */
   kno_cprim_type = KNO_CONS_TYPECODE(20),
-  kno_lambda_type = KNO_CONS_TYPECODE(21),
-  kno_ffi_type = KNO_CONS_TYPECODE(22),
+  kno_ffi_type = KNO_CONS_TYPECODE(21),
+  kno_lambda_type = KNO_CONS_TYPECODE(22),
   kno_rpc_type = KNO_CONS_TYPECODE(23),
 
-  kno_lexenv_type = KNO_CONS_TYPECODE(24),
-  kno_evalfn_type = KNO_CONS_TYPECODE(25),
-  kno_macro_type = KNO_CONS_TYPECODE(26),
-  kno_stackframe_type = KNO_CONS_TYPECODE(27),
-  kno_exception_type = KNO_CONS_TYPECODE(28),
-  kno_promise_type = KNO_CONS_TYPECODE(29),
-  kno_thread_type = KNO_CONS_TYPECODE(30),
-  kno_synchronizer_type = KNO_CONS_TYPECODE(31),
+  kno_closure_type = KNO_CONS_TYPECODE(24),
 
-  kno_consblock_type = KNO_CONS_TYPECODE(32),
+  kno_lexenv_type = KNO_CONS_TYPECODE(25),
+  kno_evalfn_type = KNO_CONS_TYPECODE(26),
+  kno_macro_type = KNO_CONS_TYPECODE(27),
+  kno_stackframe_type = KNO_CONS_TYPECODE(28),
+  kno_exception_type = KNO_CONS_TYPECODE(29),
+  kno_promise_type = KNO_CONS_TYPECODE(30),
+  kno_thread_type = KNO_CONS_TYPECODE(31),
+  kno_synchronizer_type = KNO_CONS_TYPECODE(32),
 
-  kno_complex_type = KNO_CONS_TYPECODE(33),
-  kno_rational_type = KNO_CONS_TYPECODE(34),
-  kno_flonum_type = KNO_CONS_TYPECODE(35),
+  kno_consblock_type = KNO_CONS_TYPECODE(33),
 
-  kno_timestamp_type = KNO_CONS_TYPECODE(36),
-  kno_uuid_type = KNO_CONS_TYPECODE(37),
+  kno_complex_type = KNO_CONS_TYPECODE(34),
+  kno_rational_type = KNO_CONS_TYPECODE(35),
+  kno_flonum_type = KNO_CONS_TYPECODE(36),
+
+  kno_timestamp_type = KNO_CONS_TYPECODE(37),
+  kno_uuid_type = KNO_CONS_TYPECODE(38),
 
   /* Other types, not strictly core, but defined here so they'll be
      constant for the compiler */
-  kno_mystery_type = KNO_CONS_TYPECODE(38),
+  kno_mystery_type = KNO_CONS_TYPECODE(39),
 
-  kno_stream_type = KNO_CONS_TYPECODE(39),
+  kno_stream_type = KNO_CONS_TYPECODE(40),
 
-  kno_service_type = KNO_CONS_TYPECODE(40),
+  kno_service_type = KNO_CONS_TYPECODE(41),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(41),
-  kno_sqlproc_type = KNO_CONS_TYPECODE(42),
+  kno_sqldb_type = KNO_CONS_TYPECODE(42),
+  kno_sqlproc_type = KNO_CONS_TYPECODE(43),
 
-  kno_consed_index_type = KNO_CONS_TYPECODE(43),
-  kno_consed_pool_type = KNO_CONS_TYPECODE(44),
+  kno_consed_index_type = KNO_CONS_TYPECODE(44),
+  kno_consed_pool_type = KNO_CONS_TYPECODE(45),
 
-  kno_subproc_type = KNO_CONS_TYPECODE(45),
+  kno_subproc_type = KNO_CONS_TYPECODE(46),
 
   /* Extended types */
 
@@ -263,7 +269,7 @@ typedef enum KNO_LISP_TYPE {
 
 } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 46
+#define KNO_BUILTIN_CONS_TYPES 47
 #define KNO_BUILTIN_IMMEDIATE_TYPES 14
 #define KNO_BUILTIN_EXTENDED_TYPES 11
 
@@ -904,6 +910,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_FUNCTION_TYPE KNO_CTYPE(kno_function_type)
 #define KNO_CPRIM_TYPE KNO_CTYPE(kno_cprim_type)
 #define KNO_LAMBDA_TYPE KNO_CTYPE(kno_lambda_type)
+#define KNO_CLOSURE_TYPE KNO_CTYPE(kno_closure_type)
 #define KNO_FFI_TYPE KNO_CTYPE(kno_ffi_type)
 #define KNO_RPC_TYPE KNO_CTYPE(kno_rpc_type)
 #define KNO_LEXENV_TYPE KNO_CTYPE(kno_lexenv_type)

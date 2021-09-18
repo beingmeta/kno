@@ -200,7 +200,8 @@
 (evaltest "choice" (typeof #{"one" "two" 3}))
 (applytest {"fixnum" "string"} typeof {"one" "two" 3})
 (applytest "cprim" typeof car)
-(applytest "lambda" typeof test-macros)
+(applytest (if (config 'kno:enclose-lambdas) "closure" "lambda") typeof test-macros)
+;;(applytest "lambda" typeof test-macros)
 
 ;;; Error in default args
 

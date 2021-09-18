@@ -95,7 +95,7 @@ static int run_init(lispval init,kno_lexenv env,kno_stack stack)
       u8_lock_mutex(&init_lock);
       if (KNO_APPLICABLEP(init)) {
 	if (KNO_FUNCTIONP(init)) {
-	  struct KNO_FUNCTION *f = (kno_function) init;
+	  struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(init);
 	  v = (f->fcn_arity==0) ?
 	    (kno_dcall(stack,init,0,NULL)) :
 	    (kno_dcall(stack,init,1,(lispval *)(&env)));}

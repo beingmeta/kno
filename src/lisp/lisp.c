@@ -374,6 +374,7 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_lambda_type,_("lambda"),_("lambda")},
    { kno_ffi_type,_("ffi"),_("ffi")},
    { kno_rpc_type,_("netproc"),_("netproc")},
+   { kno_closure_type,_("closure"),_("closure")},
 
    { kno_lexenv_type,_("lexenv"),_("lexenv")},
    { kno_evalfn_type,_("evalfn"),_("evalfn")},

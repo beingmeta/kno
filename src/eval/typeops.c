@@ -305,6 +305,8 @@ static lispval procedurep(lispval x)
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x))
     return KNO_TRUE;
+  else if (KNO_TYPEP(x,kno_closure_type))
+    return KNO_TRUE;
   else return KNO_FALSE;
 }
 
@@ -318,7 +320,7 @@ static lispval thunkp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    kno_function f = (kno_function) x;
+    kno_function f = KNO_FUNCTION_INFO(x);
     if (f->fcn_arity==0) return KNO_TRUE;
     else return KNO_FALSE;}
   else return KNO_FALSE;
@@ -849,7 +851,7 @@ static lispval apply_modifier(lispval modifier,lispval old_value,lispval value)
   else {
     if (KNO_FCNIDP(modifier)) modifier = kno_fcnid_ref(modifier);
     if (KNO_FUNCTIONP(modifier)) {
-      kno_function fcn = (kno_function) modifier;
+      kno_function fcn = KNO_FUNCTION_INFO(modifier);
       if (fcn->fcn_arity==1)
 	return kno_apply(modifier,1,&old_value);
       else {
@@ -1254,7 +1256,7 @@ static lispval set_handler_cprim(lispval type,lispval message,lispval handler)
     return KNO_ERROR;}
   else if (KNO_VOIDP(message)) {
     if (KNO_FUNCTIONP(handler)) {
-      kno_function f = (kno_function) handler;
+      kno_function f = KNO_FUNCTION_INFO(handler);
       if (f->fcn_name) message = kno_intern(f->fcn_name);}
     if (KNO_VOIDP(message))
       return kno_err("NoMessageName","set_handler_cprim",NULL,handler);}

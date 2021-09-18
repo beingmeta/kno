@@ -33,13 +33,13 @@ DEFC_PRIM("procedure-name",procedure_name,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_name(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
-    if (f->fcn_name)
-      return kno_mkstring(f->fcn_name);
+  kno_function info = KNO_FUNCTION_INFO(x);
+  if (info) {
+    if (info->fcn_name)
+      return kno_mkstring(info->fcn_name);
     else return KNO_FALSE;}
-  else if (KNO_APPLICABLEP(x))
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_APPLICABLEP(x))
     return KNO_FALSE;
   else if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
@@ -66,9 +66,9 @@ DEFC_PRIM("procedure-tracing",procedure_tracing,
 	  {"proc",kno_any_type,KNO_VOID})
 static lispval procedure_tracing(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     int bits = f->fcn_trace;
     if (bits==0) return KNO_FALSE;
     else {
@@ -124,9 +124,8 @@ static lispval procedure_set_trace(lispval proc,lispval flags)
       if (KNO_ABORTED(v)) return v;
       else kno_decref(v);}
     return KNO_VOID;}
-  if (KNO_FCNIDP(proc)) proc = kno_fcnid_ref(proc);
-  if (KNO_FUNCTIONP(proc)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(proc);
+  kno_function f = KNO_FUNCTION_INFO(proc);
+  if (f) {
     if (KNO_FIXNUMP(flags)) {
       long long intval = KNO_FIX2INT(flags);
       if ( (intval<0) || (intval>=0x100) )
@@ -153,7 +152,8 @@ static lispval procedure_set_trace(lispval proc,lispval flags)
       kno_decref(keys);}
     else return kno_err(kno_TypeError,"procedure_set_trace","flags",flags);
     return KNO_VOID;}
-  else if (KNO_APPLICABLEP(proc)) {
+  if (KNO_FCNIDP(proc)) proc = kno_fcnid_ref(proc);
+  if (KNO_APPLICABLEP(proc)) {
     u8_log(LOGWARN,"OpaqueFunction",
 	   "The applicable function %q is *opaque* and can't be traced",
 	   proc);
@@ -169,9 +169,8 @@ DEFC_PRIM("procedure-args",procedure_args,
 	  {"fcn",kno_any_type,KNO_VOID})
 static lispval procedure_args(lispval fcn)
 {
-  if (KNO_FCNIDP(fcn)) fcn = kno_fcnid_ref(fcn);
-  if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+  kno_function f = KNO_FUNCTION_INFO(fcn);
+  if (f) {
     if (f->fcn_argnames)
       return kno_make_vector(f->fcn_arginfo_len,f->fcn_argnames);
     else return KNO_FALSE;}
@@ -184,18 +183,21 @@ DEFC_PRIM("procedure-cname",procedure_cname,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_cname(lispval x)
 {
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
+    if (KNO_TYPEP(x,kno_cprim_type)) {
+      struct KNO_CPRIM *f = (kno_cprim) x;
+      if (f->cprim_name)
+	return knostring(f->cprim_name);
+      else return KNO_FALSE;}
+    else if (KNO_TYPEP(x,kno_ffi_type)) {
+      struct KNO_FFI_PROC *f = (kno_ffi_proc) x;
+      if (f->fcn_name)
+	return knostring(f->fcn_name);
+      else return KNO_FALSE;}
+    else return KNO_FALSE;}
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_TYPEP(x,kno_cprim_type)) {
-    struct KNO_CPRIM *f = (kno_cprim) x;
-    if (f->cprim_name)
-      return knostring(f->cprim_name);
-    else return KNO_FALSE;}
-  else if (KNO_TYPEP(x,kno_ffi_type)) {
-    struct KNO_FFI_PROC *f = (kno_ffi_proc) x;
-    if (f->fcn_name)
-      return knostring(f->fcn_name);
-    else return KNO_FALSE;}
-  else if (KNO_APPLICABLEP(x))
+  if (KNO_APPLICABLEP(x))
     return KNO_FALSE;
   else return kno_type_error("function","procedure_cname",x);
 }
@@ -209,13 +211,13 @@ DEFC_PRIM("procedure-fileinfo",procedure_fileinfo,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_fileinfo(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = (kno_function)(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     if (f->fcn_filename)
       return kno_mkstring(f->fcn_filename);
     else return KNO_FALSE;}
-  else if (TYPEP(x,kno_evalfn_type)) {
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
       return kno_mkstring(sf->evalfn_filename);
@@ -244,13 +246,13 @@ DEFC_PRIM("procedure-filename",procedure_filename,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_filename(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = (kno_function) x;
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     if (f->fcn_filename)
       return strip_filename(f->fcn_filename);
     else return KNO_FALSE;}
-  else if (TYPEP(x,kno_evalfn_type)) {
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_filename)
       return strip_filename(sf->evalfn_filename);
@@ -279,13 +281,13 @@ DEFC_PRIM("procedure-symbol",procedure_symbol,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_symbol(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     if (f->fcn_name)
       return kno_getsym(f->fcn_name);
     else return KNO_FALSE;}
-  else if (TYPEP(x,kno_evalfn_type)) {
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return kno_getsym(sf->evalfn_name);
@@ -304,13 +306,13 @@ DEFC_PRIM("procedure-id",procedure_id,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_id(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     if (f->fcn_name)
       return kno_intern(f->fcn_name);
     else return kno_incref(x);}
-  else if (TYPEP(x,kno_evalfn_type)) {
+  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (TYPEP(x,kno_evalfn_type)) {
     struct KNO_EVALFN *sf = GETEVALFN(x);
     if (sf->evalfn_name)
       return kno_intern(sf->evalfn_name);
@@ -339,22 +341,24 @@ DEFC_PRIM("set-documentation!",set_documentation,
 	  {"doc",kno_string_type,KNO_VOID})
 static lispval set_documentation(lispval x,lispval doc)
 {
-  lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     u8_string to_free = ( (f->fcn_doc) && (KNO_FCN_FREE_DOCP(f)) ) ?
       (f->fcn_doc) : (NULL);
     f->fcn_doc = u8_strdup(CSTRING(doc));
     f->fcn_free |= KNO_FCN_FREE_DOC;
     if (to_free) u8_free(to_free);
     return VOID;}
-  else if (TYPEP(proc,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = GETEVALFN(proc);
+  else if (TYPEP(x,kno_evalfn_type)) {
+    struct KNO_EVALFN *sf = GETEVALFN(x);
     u8_string prev = sf->evalfn_documentation;
     sf->evalfn_documentation = u8_strdup(CSTRING(doc));
     if (prev) u8_free(prev);
     return VOID;}
+  else if (TYPEP(x,kno_macro_type)) {
+    struct KNO_MACRO *m = (kno_macro) x;
+    lispval transformer = m->macro_transformer;
+    return set_documentation(transformer,doc);}
   else return kno_err("Not Handled","set_procedure_documentation",NULL,x);
 }
 
@@ -366,10 +370,8 @@ DEFC_PRIM("tailable?",procedure_tailablep,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval procedure_tailablep(lispval x)
 {
-  lispval proc = (KNO_FCNIDP(x)) ? (kno_fcnid_ref(x)) : (x);
-  kno_lisp_type proctype = KNO_TYPEOF(proc);
-  if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+  kno_function f = KNO_FUNCTION_INFO(x);
+  if (f) {
     if (FCN_NOTAILP(f))
       return KNO_FALSE;
     else return KNO_TRUE;}
@@ -386,17 +388,15 @@ DEFC_PRIM("set-tailable!",set_tailablep,
 	  {"bool",kno_any_type,KNO_VOID})
 static lispval set_tailablep(lispval procedure,lispval bool)
 {
-  lispval proc = (KNO_FCNIDP(procedure)) ?
-    (kno_fcnid_ref(procedure)) : (procedure);
-  if (KNO_LAMBDAP(proc)) {
-    struct KNO_LAMBDA *f = (kno_lambda) proc;
+  struct KNO_LAMBDA *f = KNO_LAMBDA_INFO(procedure);
+  if (f) {
     if (KNO_FALSEP(bool))
       f->fcn_call |= KNO_CALL_NOTAIL;
     else f->fcn_call &= ~KNO_CALL_NOTAIL;
     return KNO_TRUE;}
-  else if (KNO_APPLICABLEP(proc))
+  else if (KNO_APPLICABLEP(procedure))
     return KNO_FALSE;
-  else return kno_err("Not Handled","set_procedure_tailable",NULL,proc);
+  else return kno_err("Not Handled","set_procedure_tailable",NULL,procedure);
 }
 
 DEFC_PRIM("procedure-arity",procedure_arity,
@@ -407,7 +407,7 @@ static lispval procedure_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     int arity = f->fcn_arity;
     if (arity<0) return KNO_FALSE;
     else return KNO_INT(arity);}
@@ -424,7 +424,7 @@ static lispval non_deterministicp(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_APPLICABLEP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     if (FCN_NDOPP(f))
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -439,9 +439,8 @@ DEFC_PRIM("synchronized?",synchronizedp,
 	  {"x",kno_any_type,KNO_VOID})
 static lispval synchronizedp(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
-  if (TYPEP(x,kno_lambda_type)) {
-    kno_lambda f = (kno_lambda)x;
+  struct KNO_LAMBDA *f = KNO_LAMBDA_INFO(x);
+  if (f) {
     if (f->lambda_synchronized)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -459,7 +458,7 @@ static lispval procedure_min_arity(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     int arity = f->fcn_min_arity;
     return KNO_INT(arity);}
   else if (KNO_APPLICABLEP(x))
@@ -477,7 +476,7 @@ static lispval procedure_typeinfo(lispval x)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_FUNCTIONP(x)) {
-    struct KNO_FUNCTION *fcn = (kno_function) x;
+    struct KNO_FUNCTION *fcn = KNO_FUNCTION_INFO(x);
     int arity = fcn->fcn_arity;
     int info_len = fcn->fcn_arginfo_len;
     int result_len = (arity>info_len) ? (arity) : (info_len);
@@ -551,8 +550,11 @@ static lispval get_proc_attribs(lispval x,int create)
 {
   if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   kno_lisp_type proctype = KNO_TYPEOF(x);
+  if (proctype == kno_closure_type) {
+    struct KNO_PAIR *closure = (kno_pair) x;
+    x = closure->car; proctype=KNO_TYPEOF(x);}
   if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     lispval attribs = f->fcn_attribs;
     if (!(create)) {
       if ((attribs!=KNO_NULL)&&(TABLEP(attribs)))
@@ -588,7 +590,7 @@ static lispval set_procedure_attribs(lispval x,lispval value)
 {
   kno_lisp_type proctype = KNO_TYPEOF(x);
   if (kno_isfunctionp[proctype]) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(x);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     lispval table = f->fcn_attribs;
     if (table!=KNO_NULL) kno_decref(table);
     f->fcn_attribs = kno_incref(value);
@@ -672,11 +674,10 @@ DEFC_PRIM("lambda-args",lambda_args,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_args(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
-    return kno_incref(proc->lambda_arglist);}
-  else return kno_type_error("lambda","lambda_args",x);
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc)
+    return kno_incref(proc->lambda_arglist);
+  else return kno_type_error("lambda","lambda_args",lambda);
 }
 
 DEFC_PRIM("lambda-vars",lambda_vars,
@@ -685,13 +686,12 @@ DEFC_PRIM("lambda-vars",lambda_vars,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_vars(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
     if (proc->lambda_vars)
       return kno_make_vector(proc->lambda_n_vars,proc->lambda_vars);
     else return kno_make_vector(0,NULL);}
-  else return kno_type_error("lambda","lambda_vars",x);
+  else return kno_type_error("lambda","lambda_vars",lambda);
 }
 
 DEFC_PRIM("lambda-inits",lambda_inits,
@@ -700,9 +700,8 @@ DEFC_PRIM("lambda-inits",lambda_inits,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_inits(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
     if (proc->lambda_inits) {
       int n = proc->lambda_n_vars;
       lispval result = kno_make_vector(n,NULL);
@@ -714,7 +713,7 @@ static lispval lambda_inits(lispval lambda)
 	*write++=kno_incref(init);}
       return result;}
     else return kno_make_vector(0,NULL);}
-  else return kno_type_error("lambda","lambda_inits",x);
+  else return kno_type_error("lambda","lambda_inits",lambda);
 }
 
 DEFC_PRIM("lambda-types",lambda_types,
@@ -723,62 +722,47 @@ DEFC_PRIM("lambda-types",lambda_types,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_types(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)x;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
     if (proc->fcn_typeinfo) {
       lispval *scan = proc->fcn_typeinfo, *limit = scan+proc->lambda_n_vars;
       while (scan<limit) { kno_incref(*scan); scan++;}
       return kno_make_vector(proc->lambda_n_vars,proc->fcn_typeinfo);}
     else return kno_make_vector(0,NULL);}
-  else return kno_type_error("lambda","lambda_inits",x);
+  else return kno_type_error("lambda","lambda_inits",lambda);
 }
-
-#if 0
-DEFC_PRIM("set-lambda-args!",set_lambda_args,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "Sets the argument list of *lambda* to *list*.",
-	  {"lambda",kno_lambda_type,KNO_VOID},
-	  {"list",kno_any_type,KNO_VOID})
-static lispval set_lambda_args(lispval lambda,lispval list)
-{
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  lispval arglist = proc->lambda_arglist;
-  proc->lambda_arglist = kno_incref(list);
-  kno_decref(arglist);
-  return VOID;
-}
-#endif
 
 DEFC_PRIM("set-lambda-inits!",set_lambda_inits,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "Sets the initialization expressions of *lambda* to *inits*",
-	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"lambda",kno_any_type,KNO_VOID},
 	  {"inits",kno_vector_type,KNO_VOID})
 static lispval set_lambda_inits(lispval lambda,lispval inits)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  int n = KNO_VECTOR_LENGTH(inits);
-  if ( (n == 0) && (proc->lambda_inits==NULL) ) return VOID;
-  else if (n!=proc->lambda_n_vars)
-    return kno_err("TwoFewInits","set_lambda_inits",proc->fcn_name,inits);
-  lispval *read=KNO_VECTOR_ELTS(inits), *scan=proc->lambda_inits, *limit=read+n;
-  if (scan) {
-    while (read<limit) {
-      lispval cur = *scan, init=*read;
-      if (init == KNO_QVOID) init = KNO_VOID;
-      *scan=kno_incref(init);
-      kno_decref(cur);
-      scan++;
-      read++;}}
-  else {
-    scan = proc->lambda_inits = u8_alloc_n(n,lispval);
-    while (read<limit) {
-      lispval init = *read++;
-      if (init == KNO_QVOID) init = KNO_VOID;
-      kno_incref(init);
-      *scan++=init;}}
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    int n = KNO_VECTOR_LENGTH(inits);
+    if ( (n == 0) && (proc->lambda_inits==NULL) ) return VOID;
+    else if (n!=proc->lambda_n_vars)
+      return kno_err("TwoFewInits","set_lambda_inits",proc->fcn_name,inits);
+    lispval *read=KNO_VECTOR_ELTS(inits), *scan=proc->lambda_inits, *limit=read+n;
+    if (scan) {
+      while (read<limit) {
+	lispval cur = *scan, init=*read;
+	if (init == KNO_QVOID) init = KNO_VOID;
+	*scan=kno_incref(init);
+	kno_decref(cur);
+	scan++;
+	read++;}}
+    else {
+      scan = proc->lambda_inits = u8_alloc_n(n,lispval);
+      while (read<limit) {
+	lispval init = *read++;
+	if (init == KNO_QVOID) init = KNO_VOID;
+	kno_incref(init);
+	*scan++=init;}}
+    return VOID;}
+  else return kno_type_error("lambda","set_lambda_types",lambda);
 }
 
 DEFC_PRIM("set-lambda-types!",set_lambda_types,
@@ -788,24 +772,26 @@ DEFC_PRIM("set-lambda-types!",set_lambda_types,
 	  {"types",kno_vector_type,KNO_VOID})
 static lispval set_lambda_types(lispval lambda,lispval types)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  int n = KNO_VECTOR_LENGTH(types);
-  if (n!=proc->lambda_n_vars)
-    return kno_err("TwoFewTypes","set_lambda_types",proc->fcn_name,types);
-  lispval *read=KNO_VECTOR_ELTS(types), *scan=proc->fcn_typeinfo, *limit=read+n;
-  if (scan) {
-    while (read<limit) {
-      lispval cur = *scan, new=*read;
-      *scan=kno_incref(new);
-      kno_decref(cur);
-      scan++; read++;}}
-  else {
-    scan = proc->fcn_typeinfo = u8_alloc_n(n,lispval);
-    while (read<limit) {
-      lispval type = *read++;
-      kno_incref(type);
-      *scan++=type;}}
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    int n = KNO_VECTOR_LENGTH(types);
+    if (n!=proc->lambda_n_vars)
+      return kno_err("TwoFewTypes","set_lambda_types",proc->fcn_name,types);
+    lispval *read=KNO_VECTOR_ELTS(types), *scan=proc->fcn_typeinfo, *limit=read+n;
+    if (scan) {
+      while (read<limit) {
+	lispval cur = *scan, new=*read;
+	*scan=kno_incref(new);
+	kno_decref(cur);
+	scan++; read++;}}
+    else {
+      scan = proc->fcn_typeinfo = u8_alloc_n(n,lispval);
+      while (read<limit) {
+	lispval type = *read++;
+	kno_incref(type);
+	*scan++=type;}}
+    return VOID;}
+  else return kno_type_error("lambda","set_lambda_types",lambda);
 }
 
 DEFC_PRIM("lambda-env",lambda_env,
@@ -814,11 +800,14 @@ DEFC_PRIM("lambda-env",lambda_env,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_env(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    return (lispval) kno_copy_env(proc->lambda_env);}
-  else return kno_type_error("lambda","lambda_env",x);
+  if (KNO_TYPEP(lambda,kno_closure_type)) {
+    kno_pair closure = (kno_pair) lambda;
+    return kno_incref(closure->cdr);}
+  else {
+    struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+    if (proc)
+      return (lispval) kno_copy_env(proc->lambda_env);
+    else return kno_type_error("lambda","lambda_env",lambda);}
 }
 
 DEFC_PRIM("lambda-body",lambda_body,
@@ -827,11 +816,10 @@ DEFC_PRIM("lambda-body",lambda_body,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_body(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
-    return kno_incref(proc->lambda_body);}
-  else return kno_type_error("lambda","lambda_body",x);
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc)
+    return kno_incref(proc->lambda_body);
+  else return kno_type_error("lambda","lambda_body",lambda);
 }
 
 DEFC_PRIM("lambda-entry",lambda_entry,
@@ -840,14 +828,13 @@ DEFC_PRIM("lambda-entry",lambda_entry,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_entry(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
     lispval start = proc->lambda_entry;
     if ( (KNO_CONSP(start)) && (KNO_STATIC_CONSP(start)) )
       return kno_copier(start,KNO_DEEP_COPY);
     else return kno_incref(proc->lambda_entry);}
-  else return kno_type_error("lambda","lambda_entry",x);
+  else return kno_type_error("lambda","lambda_entry",lambda);
 }
 
 DEFC_PRIM("lambda-source",lambda_source,
@@ -856,12 +843,11 @@ DEFC_PRIM("lambda-source",lambda_source,
 	  {"lambda",kno_any_type,KNO_VOID})
 static lispval lambda_source(lispval lambda)
 {
-  lispval x = kno_fcnid_ref(lambda);
-  if (KNO_LAMBDAP(x)) {
-    struct KNO_LAMBDA *proc = (kno_lambda)kno_fcnid_ref(x);
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
     if (VOIDP(proc->lambda_source)) return KNO_FALSE;
     else return kno_incref(proc->lambda_source);}
-  else return kno_type_error("lambda","lambda_source",x);
+  else return kno_type_error("lambda","lambda_source",lambda);
 }
 
 DEFC_PRIM("set-lambda-body!",set_lambda_body,
@@ -869,43 +855,47 @@ DEFC_PRIM("set-lambda-body!",set_lambda_body,
 	  "Sets the body of *lambda* to *new_body*. "
 	  "Note that this will delete any optimized body "
 	  "for the lambda.",
-	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"lambda",kno_any_type,KNO_VOID},
 	  {"new_body",kno_any_type,KNO_VOID})
 static lispval set_lambda_body(lispval lambda,lispval new_body)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  lispval old_body = proc->lambda_body;
-  proc->lambda_body = kno_incref(new_body);
-  if (proc->lambda_consblock) {
-    lispval cb = (lispval) (proc->lambda_consblock);
-    kno_decref(cb);
-    proc->lambda_consblock = NULL;}
-  else if (old_body != proc->lambda_entry) {
-    kno_decref(proc->lambda_entry);}
-  else NO_ELSE;
-  proc->lambda_body  = new_body;
-  proc->lambda_entry = new_body;
-  kno_decref(old_body);
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    lispval old_body = proc->lambda_body;
+    proc->lambda_body = kno_incref(new_body);
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      kno_decref(cb);
+      proc->lambda_consblock = NULL;}
+    else if (old_body != proc->lambda_entry) {
+      kno_decref(proc->lambda_entry);}
+    else NO_ELSE;
+    proc->lambda_body  = new_body;
+    proc->lambda_entry = new_body;
+    kno_decref(old_body);
+    return VOID;}
+  else return kno_type_error("lambda","set-lambda-body",lambda);
 }
 
 DEFC_PRIM("set-lambda-entry!",set_lambda_entry,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "Sets the optimized body of *lambda* to *optimized*.",
-	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"lambda",kno_any_type,KNO_VOID},
 	  {"optimized",kno_any_type,KNO_VOID})
 static lispval set_lambda_entry(lispval lambda,lispval optimized)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  lispval old_entry = proc->lambda_entry;
-  proc->lambda_entry = kno_incref(optimized);
-  if (old_entry != proc->lambda_body)
-    kno_decref(old_entry);
-  if (proc->lambda_consblock) {
-    lispval cb = (lispval) (proc->lambda_consblock);
-    kno_decref(cb);
-    proc->lambda_consblock = NULL;}
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    lispval old_entry = proc->lambda_entry;
+    proc->lambda_entry = kno_incref(optimized);
+    if (old_entry != proc->lambda_body)
+      kno_decref(old_entry);
+    if (proc->lambda_consblock) {
+      lispval cb = (lispval) (proc->lambda_consblock);
+      kno_decref(cb);
+      proc->lambda_consblock = NULL;}
+    return VOID;}
+  else return kno_type_error("lambda","set-lambda-entry!",lambda);
 }
 
 DEFC_PRIM("optimize-lambda-body!",optimize_lambda_body,
@@ -915,50 +905,54 @@ DEFC_PRIM("optimize-lambda-body!",optimize_lambda_body,
 	  "If *optimized* is #f, this deletes the currently optimized "
 	  "body (essentially unoptimizing it), if *optimized* is #t, "
 	  "this replaces the optimized body a copy of the unoptoimized body",
-	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"lambda",kno_any_type,KNO_VOID},
 	  {"optimized",kno_any_type,KNO_VOID})
 static lispval optimize_lambda_body(lispval lambda,lispval optimized)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  if (KNO_FALSEP(optimized)) {
-    if (proc->lambda_consblock) {
-      lispval cb = (lispval) (proc->lambda_consblock);
-      proc->lambda_consblock = NULL;
-      kno_decref(cb);}
-    else if (proc->lambda_entry != proc->lambda_body)
-      kno_decref(proc->lambda_entry);
-    else NO_ELSE;
-    proc->lambda_entry = proc->lambda_body;}
-  else {
-    lispval new_consblock = (KNO_TRUEP(optimized)) ?
-      (kno_make_consblock(proc->lambda_body)) :
-      (kno_make_consblock(optimized));
-    if (ABORTED(new_consblock)) return new_consblock;
-    else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
-      struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
-      proc->lambda_entry = cb->consblock_head;}
-    else proc->lambda_entry = new_consblock;
-    if (proc->lambda_consblock) {
-      lispval cb = (lispval) (proc->lambda_consblock);
-      kno_decref(cb);}
-    if (KNO_TYPEP(new_consblock,kno_consblock_type))
-      proc->lambda_consblock = (kno_consblock) new_consblock;
-    else proc->lambda_consblock = NULL;}
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    if (KNO_FALSEP(optimized)) {
+      if (proc->lambda_consblock) {
+	lispval cb = (lispval) (proc->lambda_consblock);
+	proc->lambda_consblock = NULL;
+	kno_decref(cb);}
+      else if (proc->lambda_entry != proc->lambda_body)
+	kno_decref(proc->lambda_entry);
+      else NO_ELSE;
+      proc->lambda_entry = proc->lambda_body;}
+    else {
+      lispval new_consblock = (KNO_TRUEP(optimized)) ?
+	(kno_make_consblock(proc->lambda_body)) :
+	(kno_make_consblock(optimized));
+      if (ABORTED(new_consblock)) return new_consblock;
+      else if (KNO_TYPEP(new_consblock,kno_consblock_type)) {
+	struct KNO_CONSBLOCK *cb = (kno_consblock) new_consblock;
+	proc->lambda_entry = cb->consblock_head;}
+      else proc->lambda_entry = new_consblock;
+      if (proc->lambda_consblock) {
+	lispval cb = (lispval) (proc->lambda_consblock);
+	kno_decref(cb);}
+      if (KNO_TYPEP(new_consblock,kno_consblock_type))
+	proc->lambda_consblock = (kno_consblock) new_consblock;
+      else proc->lambda_consblock = NULL;}
+    return VOID;}
+  else return kno_type_error("lambda","optimize-lambda-body!",lambda);
 }
 
 DEFC_PRIM("set-lambda-source!",set_lambda_source,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
 	  "Sets the recorded source for *lambda* to *source*",
-	  {"lambda",kno_lambda_type,KNO_VOID},
+	  {"lambda",kno_any_type,KNO_VOID},
 	  {"source",kno_any_type,KNO_VOID})
 static lispval set_lambda_source(lispval lambda,lispval source)
 {
-  struct KNO_LAMBDA *proc = (kno_lambda)lambda;
-  lispval old_source = proc->lambda_source;
-  proc->lambda_source = kno_incref(source);
-  kno_decref(old_source);
-  return VOID;
+  struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
+  if (proc) {
+    lispval old_source = proc->lambda_source;
+    proc->lambda_source = kno_incref(source);
+    kno_decref(old_source);
+    return VOID;}
+  else return kno_type_error("lambda","set-lambda-source!",lambda);
 }
 
 /* Function IDs */
@@ -1310,7 +1304,7 @@ DEFC_PRIM("reflect/profile!",profile_fcn_prim,
 static lispval profile_fcn_prim(lispval fcn,lispval bool)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(fcn);
     struct KNO_PROFILE *profile = f->fcn_profile;
     if (KNO_FALSEP(bool)) {
       if (profile) {
@@ -1331,7 +1325,7 @@ DEFC_PRIM("profile/reset!",profile_reset_prim,
 static lispval profile_reset_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(fcn);
     struct KNO_PROFILE *profile = f->fcn_profile;
     if (profile == NULL) return KNO_FALSE;
 #if HAVE_STDATOMIC_H
@@ -1359,7 +1353,7 @@ DEFC_PRIM("reflect/profiled?",profiledp_prim,
 static lispval profiledp_prim(lispval fcn)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(fcn);
     if (f->fcn_profile)
       return KNO_TRUE;
     else return KNO_FALSE;}
@@ -1376,7 +1370,7 @@ static int getprofile_info(lispval fcn,int err,
 			   long long *faults_ptr)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    struct KNO_FUNCTION *f = KNO_GETFUNCTION(fcn);
+    struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(fcn);
     struct KNO_PROFILE *p = f->fcn_profile;
     if (p==NULL)
       return 0;
