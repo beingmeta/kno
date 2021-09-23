@@ -163,7 +163,7 @@ SRC_HEADERS=src/lisp/biginternals.h 		\
 	src/drivers/headers/netpool.h
 
 LISP_OBJS=\
-	src/lisp/oids.o src/lisp/fcnids.o 			\
+	src/lisp/oids.o	 					\
 	src/lisp/symbols.o src/lisp/cons.o src/lisp/typeinfo.o	\
 	src/lisp/recycle.o src/lisp/copy.o 			\
 	src/lisp/compare.o src/lisp/walk.o			\
@@ -222,6 +222,7 @@ DRIVER_OBJS=\
 CORE_SCHEME_OBJS=		\
 	src/eval/eval.o		\
 	src/eval/vm.o		\
+	src/eval/qonsts.o 	\
 	src/eval/debug.o	\
 	src/eval/options.o	\
 	src/eval/testops.o	\
@@ -338,7 +339,7 @@ KNO_HEADERS= \
 KNO_SOURCES=									\
 	src/lisp/cons.c src/lisp/typeinfo.c src/lisp/oids.c src/lisp/symbols.c	\
 	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
-        src/lisp/compare.c src/lisp/walk.c src/lisp/fcnids.c			\
+        src/lisp/compare.c src/lisp/walk.c					\
 	src/lisp/choices.c src/lisp/sequences.c					\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
         src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
@@ -366,7 +367,7 @@ KNO_SOURCES=									\
 	src/drivers/hashindex.c src/drivers/bigpool.c				\
 	src/drivers/logindex.c							\
 	src/eval/eval.c src/eval/vm.c src/eval/opcode_info.h			\
-	src/eval/options.c src/eval/appenv.c					\
+	src/eval/options.c src/eval/appenv.c src/eval/qonsts.c			\
 	src/eval/testops.c src/eval/debug.c					\
 	src/eval/binders.c src/eval/lambda.c 					\
 	src/eval/macros.c src/eval/errfns.c     				\

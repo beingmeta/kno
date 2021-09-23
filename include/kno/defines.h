@@ -79,8 +79,8 @@
 #endif /* KNO_CORE */
 
 #if KNO_LANG_CORE
-#ifndef KNO_INLINE_FCNIDS
-#define KNO_INLINE_FCNIDS 1
+#ifndef KNO_INLINE_QONSTS
+#define KNO_INLINE_QONSTS 1
 #endif
 #ifndef KNO_INLINE_LEXENV
 #define KNO_INLINE_LEXENV 1

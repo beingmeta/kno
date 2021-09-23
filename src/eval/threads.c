@@ -9,7 +9,7 @@
 #endif
 
 #define KNO_INLINE_TABLES      (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS      (!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS      (!(KNO_AVOID_INLINE))
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"

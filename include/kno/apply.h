@@ -108,7 +108,6 @@ typedef struct KNO_ARGINFO {
   short fcn_arity, fcn_min_arity, fcn_call_width, fcn_arginfo_len;	\
   lispval *fcn_argnames;						\
   lispval *fcn_typeinfo;						\
-  lispval fcnid;							\
   lispval fcn_attribs;							\
   struct KNO_PROFILE *fcn_profile;					\
   union {								\
@@ -179,7 +178,7 @@ struct KNO_FUNCTION {
 #define KNO_FCN_ARGINFO_LEN(x) (((kno_function)x)->fcn_arginfo_len)
 #define KNO_FCN_ARGNAMES(x) (((kno_function)x)->fcn_argnames)
 #define KNO_FCN_ATTRIBS(x) (((kno_function)x)->fcn_attribs)
-#define KNO_FCN_FCNID(x) (((kno_function)x)->fcn_fcnid)
+#define KNO_FCN_QONST(x) (((kno_function)x)->fcn_qonst)
 #define KNO_FCN_PROFILE(x) (((kno_function)x)->fcn_profile)
 #define KNO_FCN_PROFILEP(x) ((((kno_function)x)->fcn_profile)!=NULL)
 
@@ -295,8 +294,8 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 #define KNO_FUNCTIONP(x)		       \
   ( (KNO_XXCONS_TYPEP(x,kno_function_type)) ||		\
-    ( ( KNO_FCNIDP(x) ) ?					\
-      (KNO_FUNCTION_TYPEP(KNO_TYPEOF(kno_fcnid_ref(x)))) :	\
+    ( ( KNO_QONSTP(x) ) ?					\
+      (KNO_FUNCTION_TYPEP(KNO_TYPEOF(kno_qonst_val(x)))) :	\
       (KNO_FUNCTION_TYPEP(KNO_TYPEOF(x))) ))
 
 #define KNO_FUNCTION_INFO_TYPEP(typecode) \
@@ -304,7 +303,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
 
 KNO_FASTOP kno_function KNO_FUNCTION_INFO(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_TYPEP(x,kno_closure_type))
     return (kno_function) ( (kno_pair) x)->car;
   else if (KNO_FUNCTIONP(x))
@@ -313,7 +312,7 @@ KNO_FASTOP kno_function KNO_FUNCTION_INFO(lispval x)
 }
 KNO_FASTOP int KNO_FUNCTION_INFOP(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_TYPEP(x,kno_closure_type))
     return KNO_FUNCTION_INFO_TYPEP(( (kno_pair) x)->car);
   else return KNO_FUNCTION_INFO_TYPEP(x);
@@ -326,8 +325,8 @@ KNO_FASTOP int KNO_FUNCTION_INFOP(lispval x)
    (0))
 
 #define KNO_PRIMITIVEP(x)				 \
-  ((KNO_FCNIDP(x)) ?					 \
-   (KNO_TYPEP((kno_fcnid_ref(x)),kno_cprim_type)) :	   \
+  ((KNO_QONSTP(x)) ?					 \
+   (KNO_TYPEP((kno_qonst_val(x)),kno_cprim_type)) :	   \
    (KNO_TYPEP((x),kno_cprim_type)))
 
 /* Forward reference. Note that kno_lambda_type is defined in the
@@ -340,7 +339,7 @@ KNO_EXPORT int _KNO_LAMBDAP(lispval x);
 #else
 KNO_FASTOP int KNO_LAMBDAP(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   return ( (KNO_TYPEP(x,kno_lambda_type)) ||
 	   ( (KNO_TYPEP(x,kno_closure_type)) &&
 	     (KNO_TYPEP(((kno_pair)x)->car,kno_lambda_type)) ) );
@@ -359,7 +358,7 @@ KNO_EXPORT lispval kno_make_ndprim(lispval prim);
 #define KNO_CPRIMP(x) (KNO_TYPEP(x,kno_cprim_type))
 #define KNO_XCPRIM(x)					   \
   ((KNO_CPRIMP(x)) ?						     \
-   ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_fcnid_ref(x)))) :	     \
+   ((struct KNO_CPRIM *)(KNO_CONS_DATA(kno_qonst_val(x)))) :	     \
    ((struct KNO_CPRIM *)(kno_raisex(kno_TypeError,"function",NULL),NULL)))
 
 
@@ -453,8 +452,8 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode);
     ( (kno_applyfns[typecode]) != NULL) )
 
 #define KNO_APPLICABLEP(x)				  \
-  ((KNO_TYPEP(x,kno_fcnid_type)) ?			  \
-   (KNO_APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x))) :	  \
+  ((KNO_TYPEP(x,kno_qonst_type)) ?			  \
+   (KNO_APPLICABLE_TYPEP(KNO_QONST_TYPEOF(x))) :	  \
    (KNO_APPLICABLE_TYPEP(KNO_PRIM_TYPE(x))) )
 
 #endif

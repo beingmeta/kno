@@ -24,7 +24,7 @@
 #endif
 
 static lispval source_symbol, loadstamp_symbol, dlsource_symbol;
-static lispval fcnids_symbol, modinfo_symbol;
+static lispval qonsts_symbol, modinfo_symbol;
 
 u8_condition kno_NotAModule=_("Argument is not a module (table)");
 u8_condition kno_NoSuchModule=_("Can't find named module");
@@ -183,7 +183,7 @@ KNO_EXPORT lispval kno_register_module_x(lispval name,lispval module,int flags)
 
   if (KNO_HASHTABLEP(module)) {
     lispval fcnrefs_table = kno_make_hashtable(NULL,19);
-    kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+    kno_hashtable_op((kno_hashtable)module,kno_table_default,qonsts_symbol,
 		     fcnrefs_table);
     kno_decref(fcnrefs_table);}
 
@@ -225,7 +225,7 @@ KNO_EXPORT lispval kno_new_module(char *name,int flags)
   else kno_decref(as_stored);
   if (flags&KNO_MODULE_DEFAULT) kno_add_default_module(module);
   lispval fcnrefs_table = kno_make_hashtable(NULL,19);
-  kno_hashtable_op((kno_hashtable)module,kno_table_default,fcnids_symbol,
+  kno_hashtable_op((kno_hashtable)module,kno_table_default,qonsts_symbol,
 		   fcnrefs_table);
   kno_decref(fcnrefs_table);
   return module;
@@ -317,7 +317,7 @@ int kno_module_finished(lispval module,int flags)
 
 KNO_EXPORT lispval kno_get_moduleid(lispval x,int err)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   kno_function info = KNO_FUNCTION_INFO(x);
   if (info) {
     lispval id = info->fcn_moduleid;
@@ -765,12 +765,12 @@ static lispval get_source(lispval arg)
       else return KNO_FALSE;}
     else return KNO_FALSE;}
   else if (TYPEP(arg,kno_evalfn_type)) {
-    struct KNO_EVALFN *sf = (kno_evalfn) kno_fcnid_ref(arg);
+    struct KNO_EVALFN *sf = (kno_evalfn) kno_qonst_val(arg);
     if (sf->evalfn_filename)
       return kno_mkstring(sf->evalfn_filename);
     else return KNO_FALSE;}
   else if (KNO_TYPEP(arg,kno_macro_type)) {
-    struct KNO_MACRO *f = (kno_macro) kno_fcnid_ref(arg);
+    struct KNO_MACRO *f = (kno_macro) kno_qonst_val(arg);
     if (f->macro_filename)
       return kno_make_string(NULL,-1,f->macro_filename);
     else return KNO_FALSE;}
@@ -854,7 +854,7 @@ get_binding_helper(lispval modarg,lispval symbol,lispval dflt,
 		(KNO_APPLICABLEP(value)) ||
 		(KNO_EVALFNP(value)) ||
 		(KNO_MACROP(value)) ) )
-      return kno_fcn_ref(symbol,module,value);
+      return kno_qonst_ref(symbol,module,value);
     else return value;}
   else if (KNO_LEXENVP(module)) {
     kno_lexenv env = (kno_lexenv) module;
@@ -1094,7 +1094,7 @@ void kno_init_module_tables()
   if (module_tables_initialized) return;
   else module_tables_initialized=1;
 
-  fcnids_symbol = kno_intern("%fcnids");
+  qonsts_symbol = kno_intern("%qonsts");
   loadstamp_symbol = kno_intern("%loadstamp");
   source_symbol = kno_intern("%source");
   dlsource_symbol = kno_intern("%dlsource");

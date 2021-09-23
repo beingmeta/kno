@@ -2631,7 +2631,7 @@ KNO_FASTOP int test_selector_relation(lispval f,lispval pred,lispval val,int dat
   else if ((SYMBOLP(pred)) || (OIDP(pred)))
     return 0;
   else if (KNO_APPLICABLEP(pred)) {
-    if (KNO_FCNIDP(pred)) pred = kno_fcnid_ref(pred);
+    if (KNO_QONSTP(pred)) pred = kno_qonst_val(pred);
     lispval rail[2], result = VOID;
     /* Handle the case where the 'slotid' is a unary function which can
        be used to extract an argument. */

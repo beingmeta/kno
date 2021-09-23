@@ -418,7 +418,7 @@ static lispval get_pprint_rule(lispval car,pprint_context ppcxt)
     else kno_decref(new_rule);}
   else if (KNO_TRUEP(rule)) {}
   else if ( (KNO_SYMBOLP(car)) ||
-            (KNO_FCNIDP(car)) ||
+            (KNO_QONSTP(car)) ||
             (KNO_TYPEP(car,kno_cprim_type)) ||
             (KNO_TYPEP(car,kno_lambda_type)) ||
             (KNO_TYPEP(car,kno_evalfn_type)) )

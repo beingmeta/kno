@@ -67,7 +67,7 @@ rpms: extmods
 freshrpms: extmods
 	domake ${EXTMODS} GPGID=none freshrpms
 
-STDMODS=hyphenate leveldb rocksdb mongodb mariadb nng odbc sundown tidy zeromq ziptools
+STDMODS=hyphenate mongodb nng sundown tidy zeromq ziptools
 
 symlinks:
 	@for dir in ${STDMODS}; do make $${dir}/.git; done;

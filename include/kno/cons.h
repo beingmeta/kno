@@ -1093,8 +1093,8 @@ U8_MAYBE_UNUSED static int _kno_applicablep(lispval x)
     return ( (objtype == kno_cprim_type) ||
 	     (objtype == kno_lambda_type) ||
 	     (kno_applyfns[objtype] != NULL) );}
-  else if (KNO_IMMEDIATE_TYPEP(x,kno_fcnid_type)) {
-      lispval fcn = kno_fcnid_ref(x);
+  else if (KNO_IMMEDIATE_TYPEP(x,kno_qonst_type)) {
+      lispval fcn = kno_qonst_val(x);
       kno_lisp_type objtype = KNO_TYPEOF(fcn);
       return ( (objtype == kno_cprim_type) ||
 	       (objtype == kno_lambda_type) ||

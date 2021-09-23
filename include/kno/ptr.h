@@ -147,7 +147,7 @@ typedef enum KNO_LISP_TYPE {
   kno_symbol_type = KNO_IMMEDIATE_TYPECODE(2),
 
   /* Immediate typecodes */
-  kno_fcnid_type = KNO_IMMEDIATE_TYPECODE(3),
+  kno_qonst_type = KNO_IMMEDIATE_TYPECODE(3),
   kno_lexref_type = KNO_IMMEDIATE_TYPECODE(4),
   kno_opcode_type = KNO_IMMEDIATE_TYPECODE(5),
   kno_typeref_type = KNO_IMMEDIATE_TYPECODE(6),
@@ -877,7 +877,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_CONSTANT_TYPE KNO_CTYPE(kno_constant_type)
 #define KNO_CHARACTER_TYPE KNO_CTYPE(kno_character_type)
 #define KNO_SYMBOL_TYPE KNO_CTYPE(kno_symbol_type)
-#define KNO_FCNID_TYPE KNO_CTYPE(kno_fcnid_type)
+#define KNO_QONST_TYPE KNO_CTYPE(kno_qonst_type)
 #define KNO_LEXREF_TYPE KNO_CTYPE(kno_lexref_type)
 #define KNO_OPCODE_TYPE KNO_CTYPE(kno_opcode_type)
 #define KNO_TYPEREF_TYPE KNO_CTYPE(kno_typeref_type)
@@ -1039,52 +1039,56 @@ KNO_EXPORT lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
    persistent pointers are not subject to GC, so they can
    be passed much more quickly and without thread contention. */
 
-#define KNO_FCNIDP(x) (KNO_IMMEDIATE_TYPEP(x,kno_fcnid_type))
+#define KNO_QONSTP(x) (KNO_IMMEDIATE_TYPEP(x,kno_qonst_type))
 
-KNO_EXPORT struct KNO_CONS **_kno_fcnids[];
-KNO_EXPORT int _kno_fcnid_count;
-KNO_EXPORT u8_mutex _kno_fcnid_lock;
-KNO_EXPORT int _kno_leak_fcnids;
+KNO_EXPORT struct KNO_CONS **_kno_qonsts[];
+KNO_EXPORT int _kno_qonst_count;
+KNO_EXPORT u8_mutex _kno_qonst_lock;
+KNO_EXPORT int _kno_leak_qonsts;
 
-#ifndef KNO_FCNID_BLOCKSIZE
-#define KNO_FCNID_BLOCKSIZE 256
+#ifndef KNO_QONST_BLOCKSIZE
+#define KNO_QONST_BLOCKSIZE 256
 #endif
 
-#ifndef KNO_FCNID_NBLOCKS
-#define KNO_FCNID_NBLOCKS 256
+#ifndef KNO_QONST_NBLOCKS
+#define KNO_QONST_NBLOCKS 256
 #endif
 
-#ifndef KNO_INLINE_FCNIDS
-#define KNO_INLINE_FCNIDS 0
+#ifndef KNO_INLINE_QONSTS
+#define KNO_INLINE_QONSTS 0
 #endif
 
-KNO_EXPORT lispval kno_resolve_fcnid(lispval ref);
-KNO_EXPORT lispval kno_register_fcnid(lispval obj);
-KNO_EXPORT lispval kno_set_fcnid(lispval ref,lispval newval);
-KNO_EXPORT int kno_deregister_fcnid(lispval id,lispval value);
+KNO_EXPORT lispval kno_resolve_qonst(lispval ref);
+KNO_EXPORT lispval kno_register_qonst(lispval key,lispval val);
+KNO_EXPORT lispval kno_probe_qonst(lispval key);
+KNO_EXPORT lispval kno_qonst_keys(lispval qonst);
+KNO_EXPORT lispval kno_set_qonst(lispval ref,lispval newval);
 
-KNO_EXPORT u8_condition kno_InvalidFCNID, kno_FCNIDOverflow;
+KNO_EXPORT u8_condition kno_InvalidQONST, kno_QONSTOverflow;
 
-#if KNO_INLINE_FCNIDS
-static U8_MAYBE_UNUSED lispval _kno_fcnid_ref(lispval ref)
+KNO_EXPORT lispval _kno_qonst_val(lispval ref);
+
+#if KNO_INLINE_QONSTS
+static U8_MAYBE_UNUSED lispval kno_qonst_val(lispval ref)
 {
-  if (KNO_IMMEDIATE_TYPEP(ref,kno_fcnid_type)) {
-    int serialno = KNO_GET_IMMEDIATE(ref,kno_fcnid_type);
-    if (KNO_RARELY(serialno>_kno_fcnid_count))
-      return kno_err(kno_InvalidFCNID,"_kno_fcnid_ref",NULL,ref);
-    else return (lispval) _kno_fcnids
-	   [serialno/KNO_FCNID_BLOCKSIZE]
-	   [serialno%KNO_FCNID_BLOCKSIZE];}
+  if (KNO_IMMEDIATE_TYPEP(ref,kno_qonst_type)) {
+    int serialno = KNO_GET_IMMEDIATE(ref,kno_qonst_type);
+    if (KNO_RARELY(serialno>_kno_qonst_count))
+      return kno_err(kno_InvalidQONST,"_kno_qonst_val",NULL,ref);
+    else return (lispval) _kno_qonsts
+	   [serialno/KNO_QONST_BLOCKSIZE]
+	   [serialno%KNO_QONST_BLOCKSIZE];}
   else return ref;
 }
-#define kno_fcnid_ref(x) ((KNO_FCNIDP(x))?(_kno_fcnid_ref(x)):(x))
 #else
-#define kno_fcnid_ref(x) ((KNO_FCNIDP(x))?(kno_resolve_fcnid(x)):(x))
+#define kno_qonst_val(x) ((KNO_QONSTP(x))?(_kno_qonst_val(x)):(x))
 #endif
 
-#define KNO_FCNID_TYPEP(x,tp)	   (KNO_TYPEP(kno_fcnid_ref(x),tp))
-#define KNO_FCNID_TYPEOF(x)	   (KNO_TYPEOF(kno_fcnid_ref(x)))
-#define KNO_RESOLVE_FCNID_REF(ref) ref=kno_fcnid_ref(ref)
+#define kno_resolve_qonst(x) (kno_qonst_val(x))
+
+#define KNO_QONST_TYPEP(x,tp)	   (KNO_TYPEP(kno_qonst_val(x),tp))
+#define KNO_QONST_TYPEOF(x)	   (KNO_TYPEOF(kno_qonst_val(x)))
+#define KNO_RESOLVE_QONST_VAL(ref) ref=kno_qonst_val(ref)
 
 /* Numeric macros */
 

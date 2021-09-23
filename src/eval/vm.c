@@ -13,7 +13,7 @@
 #define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS	(!(KNO_AVOID_INLINE))
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
@@ -45,7 +45,7 @@
 #include <pthread.h>
 #include <errno.h>
 
-lispval fcnids_symbol;
+lispval qonsts_symbol;
 
 static lispval isa_op(lispval args,kno_lexenv env,kno_stack stack,int require);
 
@@ -735,7 +735,7 @@ static lispval handle_fcnref_opcode(lispval args)
   if (KNO_ABORTED(module)) return module;
   else if (KNO_VOIDP(module))
     return kno_err(kno_NoSuchModule,"handle_symref_opcode",SYMBOL_NAME(sym),args);
-  lispval result = kno_fcn_ref(sym,module,KNO_VOID);
+  lispval result = kno_qonst_ref(sym,module,KNO_VOID);
   if (args!=module) kno_decref(module);
   return result;
 }
@@ -843,7 +843,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
   else fn = get_evalop(fn_arg,env,stack);
   kno_function f = KNO_FUNCTION_INFO(fn);
   if (f==NULL) {
-    if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);}
+    if (KNO_QONSTP(fn)) fn = kno_qonst_val(fn);}
   int nd_call = 0, prune_call = 1, ambig_fn =0, traced = 0, profiled = 0;
   if ( f ) {
     if (f->fcn_call & KNO_CALL_NDCALL) nd_call = 1;
@@ -1632,7 +1632,7 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     lispval evalfn = KNO_CAR(args);
     lispval expr   = KNO_CDR(args);
     lispval result = KNO_VOID;
-    if (KNO_FCNIDP(evalfn)) evalfn=kno_fcnid_ref(evalfn);
+    if (KNO_QONSTP(evalfn)) evalfn=kno_qonst_val(evalfn);
     struct KNO_EVALFN *handler = (kno_evalfn) evalfn;
     _stack->stack_label=handler->evalfn_name;
     KNO_PUSH_EVAL(evalfn_stack,handler->evalfn_name,evalfn,env);

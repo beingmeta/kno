@@ -143,7 +143,7 @@
       optimized))
 
 (define (optimizable? arg)
-  (and (not (fcnid? arg)) (lambda? arg)))
+  (and (not (qonst? arg)) (lambda? arg)))
 
 (define (needs-eval? x)
   (cond ((fail? x) #f)
@@ -181,7 +181,7 @@
 
 (define-init static-refs (make-hashtable))
 
-(define-init fcnids (make-hashtable))
+(define-init qonsts (make-hashtable))
 
 (define %volatile '{optwarn useopcodes %loglevel})
 
@@ -255,7 +255,7 @@
 	((and sym from (module? from)
 	      (or (special-form? value) (primitive? value))
 	      (use-fcnrefs? opts))
-	 (get-fcnid sym from value))
+	 (qonst/register sym from value))
 	((not (symbol? sym)) value)
 	((or (%test env '%constants sym)
 	     (and from (%test from '%constants sym)))
@@ -266,70 +266,71 @@
 	     (test from '%volatile sym))
 	 (cons* (try (tryif (use-opcodes? opts) #OP_SYMREF)
 		     (tryif (use-fcnrefs? opts)
-		       (force-fcnid %modref))
+		       (force-qonst %modref))
 		     %modref)
 		sym (or from env)))
-	((and (test from '%fcnids) (fail? (get from '%fcnids))) sym)
-	((module? from) (get-fcnid sym from value))
+	((and (test from '%qonsts) (fail? (get from '%qonsts))) sym)
+	((module? from) (qonst/register sym from value))
 	(else sym)))
 
-;;; FCNIDs
+;;; QONSTs
 
-(define-init get-fcnids
-  (slambda (env)
-    (try (get env '%fcnids)
-	 (let ((table (make-hashtable)))
-	   (store! env '%fcnids table)
-	   table))))
+;; (define-init get-qonsts
+;;   (slambda (env)
+;;     (try (get env '%qonsts)
+;; 	 (let ((table (make-hashtable)))
+;; 	   (store! env '%qonsts table)
+;; 	   table))))
 
-(define new-fcnid
-  (slambda (symbol env value internal)
-    (if (not (symbol? symbol))
-	(try (get fcnids value)
-	     (let ((fcnid (fcnid/register value)))
-	       (store! fcnids symbol fcnid)
-	       fcnid))
-	(try (if internal
-		 (get (get internal '%fcnids) symbol)
-		 (get fcnids (cons env symbol)))
-	     (let ((fcnid (fcnid/register value)))
-	       (if internal
-		   (store! (try (get internal '%fcnids) (get-fcnids internal))
-		       symbol fcnid)
-		   (store! fcnids (cons env symbol) fcnid))
-	       fcnid)))))
+;; (define new-qonst
+;;   (slambda (symbol env value internal)
+;;     (if (not (symbol? symbol))
+;; 	(try (get qonsts value)
+;; 	     (let ((qonst (qonst/register value)))
+;; 	       (store! qonsts symbol qonst)
+;; 	       qonst))
+;; 	(try (if internal
+;; 		 (get (get internal '%qonsts) symbol)
+;; 		 (get qonsts (cons env symbol)))
+;; 	     (let ((qonst (qonst/register value)))
+;; 	       (if internal
+;; 		   (store! (try (get internal '%qonsts) (get-qonsts internal))
+;; 		       symbol qonst)
+;; 		   (store! qonsts (cons env symbol) qonst))
+;; 	       qonst)))))
 
-(define (probe-fcnid symbol env (internal))
-  (default! internal (module-bindings env))
-  (if internal
-      (try (get (get internal '%fcnids) symbol)
-	   (get (get-fcnids internal) symbol))
-      (get fcnids (cons env symbol))))
+;; (define (probe-qonst symbol env (internal))
+;;   (default! internal (module-bindings env))
+;;   (if internal
+;;       (try (get (get internal '%qonsts) symbol)
+;; 	   (get (get-qonsts internal) symbol))
+;;       (get qonsts (cons env symbol))))
 
-(define (get-fcnid symbol env value (internal) (update #f))
-  (default! internal (module-bindings env))
-  (get-fcnid-internal symbol env value internal update))
-(define (get-fcnid-internal symbol env value internal update)
-  (if (cons? value)
-      (begin
-	(default! internal (module-bindings env))
-	(let* ((known (probe-fcnid symbol env internal))
-	       (fcnid (try known (new-fcnid symbol env value internal))))
-	  (when (and update (exists? known)
-		     (or (fail? (fcnid/ref fcnid)) 
-			 (not (eq? (fcnid/ref fcnid) value))))
-	    (fcnid/set! fcnid value))
-	  fcnid))
-      value))
-(define (update-fcnid! symbol env value (internal))
-  (default! internal (module-bindings env))
-  (get-fcnid symbol env value internal #t))
+;; (define (get-qonst symbol env value (internal) (update #f))
+;;   (default! internal (module-bindings env))
+;;   (get-qonst-internal symbol env value internal update))
+;; (define (get-qonst-internal symbol env value internal update)
+;;   (if (cons? value)
+;;       (begin
+;; 	(default! internal (module-bindings env))
+;; 	(let* ((known (probe-qonst symbol env internal))
+;; 	       (qonst (try known (new-qonst symbol env value internal))))
+;; 	  (when (and update (exists? known)
+;; 		     (or (fail? (qonst/ref qonst)) 
+;; 			 (not (eq? (qonst/ref qonst) value))))
+;; 	    (qonst/set! qonst value))
+;; 	  qonst))
+;;       value))
 
-(define (force-fcnid value)
-  (if (cons? value)
-      (try (get fcnids value)
-	   (new-fcnid value #f value #f))
-      value))
+;; (define (update-qonst! symbol env value (internal))
+;;   (default! internal (module-bindings env))
+;;   (get-qonst symbol env value internal #t))
+
+;; (define (force-qonst value)
+;;   (if (cons? value)
+;;       (try (get qonsts value)
+;; 	   (new-qonst value #f value #f))
+;;       value))
 
 (define (static-ref ref)
   (if (static? ref) ref
@@ -344,8 +345,8 @@
 	       copy)))))
 
 (define (->evalfn x)
-  (if (fcnid? x)
-      (if (evalfn? (fcnid/ref x)) (fcnid/ref x)
+  (if (qonst? x)
+      (if (evalfn? (qonst/ref x)) (qonst/ref x)
 	  (irritant x '|NotEvalFN|))
       (if (evalfn? x) x
 	  (irritant x '|NotEvalFN|))))
@@ -732,7 +733,7 @@
 		;; fcnref and uses that for the symbol
 		(else (cons* (try (tryif use-opcodes #OP_SYMREF)
 				  (tryif (use-fcnrefs? opts)
-				    (force-fcnid %modref))
+				    (force-qonst %modref))
 				  %modref)
 			     expr module)))))))
 
@@ -1071,15 +1072,16 @@
 	    (set! count (1+ count))
 	    (set+! optimized var)
 	    (optimize-procedure! value opts))
-	  (when (and usefcnrefs (exists? value) (applicable? value))
-	    (update-fcnid! var module value)))))
+	  ;; (when (and usefcnrefs (exists? value) (applicable? value))
+	  ;;   (update-qonst! var module value))
+	  )))
     (cond ((hashtable? module)
 	   (loginfo |OpaqueModule| 
 	     "Not optimizing opaque module " (get module '%moduleid)))
 	  ((exists symbol? (get module '%moduleid))
 	   (when (fail? modinfo) (set! modinfo (init-modinfo! module)))
 	   (store! modinfo 'optimized optimized)
-	   (store! modinfo 'fcnids (try (table-size (get module '%fcnids)) 0))
+	   (store! modinfo 'qonsts (try (table-size (get module '%qonsts)) 0))
 	   (let* ((referenced-modules (get module '%modrefs))
 		  (used-modules
 		   (eval `(within-module
@@ -1269,7 +1271,7 @@
 	((or (hashtable? arg) (slotmap? arg) (schemap? arg)
 	     (environment? arg))
 	 (optimize-module! arg))
-	((and (fcnid? arg) (compound-procedure? arg)) arg)
+	((and (qonst? arg) (compound-procedure? arg)) arg)
 	(else (irritant arg |TypeError| OPTIMIZED
 			"Not a compound procedure, environment, or module")))
   arg)

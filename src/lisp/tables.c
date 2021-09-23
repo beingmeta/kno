@@ -3359,10 +3359,7 @@ KNO_EXPORT int kno_static_hashtable(struct KNO_HASHTABLE *ptr,int type)
             lispval value=kvscan->kv_val;
             if (!(KNO_STATICP(value))) {
               lispval static_value=kno_static_copy(value);
-              if (static_value==value) {
-                kno_decref(static_value);
-                static_value=kno_register_fcnid(kvscan->kv_val);}
-              else {
+              if (static_value!=value) {
                 kvscan->kv_val=static_value;
                 kno_decref(value);
                 n_conversions++;}}}

@@ -12,7 +12,7 @@
 #define KNO_INLINE_CHECKTYPE    (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_CHOICES      (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_TABLES       (!(KNO_AVOID_INLINE))
-#define KNO_INLINE_FCNIDS	(!(KNO_AVOID_INLINE))
+#define KNO_INLINE_QONSTS	(!(KNO_AVOID_INLINE))
 #define KNO_INLINE_STACKS       (!(KNO_AVOID_INLINE))
 #define KNO_INLINE_LEXENV       (!(KNO_AVOID_INLINE))
 
@@ -516,7 +516,6 @@ _make_lambda(u8_string name,
   s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
   s->fcn_filename = NULL;
   s->fcn_attribs = KNO_EMPTY;
-  s->fcnid = VOID;
   s->lambda_consblock = NULL;
   s->lambda_source = VOID;
 
@@ -732,7 +731,6 @@ lispval restore_lambda(lispval name,lispval attribs,lispval env,
   s->fcn_handler.xcalln = (kno_xprimn) lambda_docall;
   s->fcn_filename = NULL;
   s->fcn_attribs = kno_incref(attribs);
-  s->fcnid = VOID;
   s->lambda_consblock = NULL;
   s->lambda_source = kno_incref(source);
 
@@ -1176,7 +1174,7 @@ static lispval define_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else if (kno_bind_value(var,value,env)>=0) {
       if (init_definition(value,expr,env)) {}
       else {
-	lispval fvalue = (KNO_FCNIDP(value))?(kno_fcnid_ref(value)):(value);
+	lispval fvalue = (KNO_QONSTP(value))?(kno_qonst_val(value)):(value);
 	if (KNO_MACROP(fvalue)) {
 	  struct KNO_MACRO *macro = (kno_macro) fvalue;
 	  if (KNO_VOIDP(macro->macro_moduleid)) {
@@ -1292,7 +1290,7 @@ static lispval defambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 KNO_EXPORT kno_lambda _KNO_LAMBDA_INFO(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_TYPEP(x,kno_lambda_type))
     return (kno_lambda)x;
   else if ( (KNO_TYPEP(x,kno_closure_type)) &&
@@ -1303,7 +1301,7 @@ KNO_EXPORT kno_lambda _KNO_LAMBDA_INFO(lispval x)
 
 KNO_EXPORT kno_lexenv _KNO_LAMBDA_ENV(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (KNO_TYPEP(x,kno_lambda_type))
     return ((kno_lambda)x)->lambda_env;
   else if ( (KNO_TYPEP(x,kno_closure_type)) &&
@@ -1443,11 +1441,11 @@ static int walk_closure(kno_walker walker,lispval obj,void *walkdata,
   else return 3;
 }
 
-/* Unparsing fcnids referring to lambdas */
+/* Unparsing qonsts referring to lambdas */
 
-static int better_unparse_fcnid(u8_output out,lispval x)
+static int better_unparse_qonst(u8_output out,lispval x)
 {
-  lispval lp = kno_fcnid_ref(x);
+  lispval lp = kno_qonst_val(x);
   if (TYPEP(lp,kno_lambda_type)) {
     struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,lp,kno_lambda_type);
     kno_ptrval addr = (kno_ptrval) lambda;
@@ -1459,10 +1457,10 @@ static int better_unparse_fcnid(u8_output out,lispval x)
        (ndcallp)?("∀"):(""));
     if (lambda->fcn_name)
       u8_printf(out,"#<~%d<λ%s%s",
-		KNO_GET_IMMEDIATE(x,kno_fcnid_type),
+		KNO_GET_IMMEDIATE(x,kno_qonst_type),
 		codes,lambda->fcn_name);
     else u8_printf(out,"#<~%dλ%s0x%04x",
-		   KNO_GET_IMMEDIATE(x,kno_fcnid_type),
+		   KNO_GET_IMMEDIATE(x,kno_qonst_type),
 		   codes,((addr>>2)%0x10000));
     if (PAIRP(arglist)) {
       int first = 1; lispval scan = lambda->lambda_arglist;
@@ -1522,15 +1520,15 @@ static int better_unparse_fcnid(u8_output out,lispval x)
       strcat(arity,"]");}
     if (name)
       u8_printf(out,"#<~%d<%s%s%s%s%s%s>>",
-		KNO_GET_IMMEDIATE(x,kno_fcnid_type),
+		KNO_GET_IMMEDIATE(x,kno_qonst_type),
 		codes,name,arity,U8OPTSTR("'",filename,"'"));
     else u8_printf(out,"#<~%d<Φ%s0x%04x%s #!%p%s%s%s>>",
-		   KNO_GET_IMMEDIATE(x,kno_fcnid_type),
+		   KNO_GET_IMMEDIATE(x,kno_qonst_type),
 		   codes,((addr>>2)%0x10000),arity,fcn,
 		   arity,U8OPTSTR("'",filename,"'"));
     return 1;}
   else u8_printf(out,"#<~%ld %q>",
-		 KNO_GET_IMMEDIATE(x,kno_fcnid_type),lp);
+		 KNO_GET_IMMEDIATE(x,kno_qonst_type),lp);
   return 1;
 }
 
@@ -1598,7 +1596,7 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_recyclers[kno_closure_type]=recycle_closure;
   kno_walkers[kno_closure_type]=walk_closure;
 
-  kno_unparsers[kno_fcnid_type]=better_unparse_fcnid;
+  kno_unparsers[kno_qonst_type]=better_unparse_qonst;
 
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
   kno_dtype_writers[kno_closure_type] = write_lambda_dtype;

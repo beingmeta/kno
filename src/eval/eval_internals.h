@@ -129,9 +129,9 @@ INLINE_DEF lispval eval_symbol(lispval symbol,kno_lexenv env)
   return kno_err(kno_UnboundIdentifier,"kno_eval",
 		 KNO_SYMBOL_NAME(symbol),symbol);
 }
-INLINE_DEF lispval eval_fcnid(lispval fcnid)
+INLINE_DEF lispval eval_qonst(lispval qonst)
 {
-  lispval v = kno_fcnid_ref(fcnid);
+  lispval v = kno_qonst_val(qonst);
   kno_incref(v);
   return v;
 }
@@ -197,8 +197,8 @@ INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
       return eval_lexref(x,env);
     case kno_symbol_type:
       return eval_symbol(x,env);
-    case kno_fcnid_type:
-      return eval_fcnid(x);
+    case kno_qonst_type:
+      return eval_qonst(x);
     default:
       return x;}}
   default:

@@ -9,7 +9,7 @@
 #endif
 /* KNO_MODULE = scheme */
 
-#define KNO_INLINE_FCNIDS 1
+#define KNO_INLINE_QONSTS 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -196,7 +196,7 @@ KNO_EXPORT lispval kno_mapseq(lispval fn,int n_seqs,kno_argvec sequences)
   lispval firstseq = sequences[0];
   lispval result, *results, _argvec[8], *argvec = NULL;
   kno_lisp_type result_type = KNO_TYPEOF(firstseq);
-  if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
+  if (KNO_QONSTP(fn)) fn = kno_qonst_val(fn);
   if ((TABLEP(fn)) || (ATOMICP(fn))) {
     if (n_seqs>1)
       return kno_err(kno_TooManyArgs,"kno_mapseq",NULL,fn);
@@ -272,7 +272,7 @@ KNO_EXPORT lispval kno_foreach(lispval fn,int n_seqs,kno_argvec sequences)
   lispval firstseq = sequences[0];
   lispval _argvec[8], *argvec = NULL;
   kno_lisp_type result_type = KNO_TYPEOF(firstseq);
-  if ((TABLEP(fn)) || ((ATOMICP(fn)) && (KNO_FCNIDP(fn)))) {
+  if ((TABLEP(fn)) || ((ATOMICP(fn)) && (KNO_QONSTP(fn)))) {
     if (n_seqs>1)
       return kno_err(kno_TooManyArgs,"kno_foreach",NULL,fn);
     else if (NILP(firstseq))

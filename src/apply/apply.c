@@ -8,7 +8,6 @@
 #define _FILEINFO __FILE__
 #endif
 
-#define KNO_INLINE_FCNIDS 1
 #define KNO_INLINE_STACKS 1
 #define KNO_INLINE_LEXENV 1
 #define KNO_INLINE_XTYPEP 1
@@ -224,11 +223,6 @@ KNO_FASTOP int setup_call_stack(kno_stack stack,
 				lispval fn,int n,kno_argvec args,
 				kno_function *fcnp)
 {
-  kno_lisp_type ftype=KNO_TYPEOF(fn);
-  if (ftype==kno_fcnid_type) {
-    fn=kno_fcnid_ref(fn);
-    ftype=KNO_TYPEOF(fn);}
-
   kno_function f = KNO_FUNCTION_INFO(fn);
 
   if (f) {
@@ -266,7 +260,6 @@ static lispval profiled_dcall
     struct KNO_PROFILE *profile = NULL;
     struct KNO_STACK stack = { 0 };
     KNO_SETUP_STACK((&stack),NULL);
-    if (KNO_FCNIDP(fn)) fn = kno_fcnid_ref(fn);
     int setup = setup_call_stack(&stack,fn,n,argvec,&f);
     if (setup < 0) return KNO_ERROR;
     else if ( (f) && (f->fcn_name) )
@@ -563,13 +556,12 @@ static lispval ndcall(struct KNO_STACK *stack,lispval h,int n,kno_argvec args)
 }
 
 KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
-			    lispval fp,int n,kno_argvec args)
+			    lispval handler,int n,kno_argvec args)
 {
-  lispval handler = (KNO_FCNIDP(fp) ? (kno_fcnid_ref(fp)) : (fp));
   if (EMPTYP(handler)) return EMPTY;
   int iter_choices = 1, qchoice_args = 0, prune_calls = 1;
   int ambig_args   = ( (KNO_CHOICEP(handler)) || (KNO_PRECHOICEP(handler)) );
-  kno_function f = KNO_FUNCTION_INFO(fp);
+  kno_function f = KNO_FUNCTION_INFO(handler);
   if (f) {
     if (f->fcn_call & KNO_CALL_NDCALL)
       iter_choices = 0;
@@ -675,7 +667,6 @@ void kno_init_ffi_c(void);
 void kno_init_exec_c(void);
 void kno_init_dispatch_c(void);
 void kno_init_services_c(void);
-void kno_init_netprocs_c(void);
 
 /* PROFILED functions config */
 
@@ -717,9 +708,7 @@ KNO_EXPORT int _KNO_APPLICABLE_TYPEP(int typecode)
 }
 KNO_EXPORT int _KNO_APPLICABLEP(lispval x)
 {
-  if (KNO_TYPEP(x,kno_fcnid_type))
-    return (APPLICABLE_TYPEP(KNO_FCNID_TYPEOF(x)));
-  else return APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
+  return APPLICABLE_TYPEP(KNO_PRIM_TYPE(x));
 }
 
 static int FUNCTION_TYPEP(int typecode)
@@ -735,14 +724,11 @@ KNO_EXPORT int _KNO_FUNCTION_TYPEP(int typecode)
 }
 KNO_EXPORT int _KNO_FUNCTIONP(lispval x)
 {
-  if (KNO_TYPEP(x,kno_fcnid_type))
-    return (FUNCTION_TYPEP(KNO_FCNID_TYPEOF(x)));
-  else return FUNCTION_TYPEP(KNO_PRIM_TYPE(x));
+  return FUNCTION_TYPEP(KNO_PRIM_TYPE(x));
 }
 
 KNO_EXPORT int _KNO_LAMBDAP(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   return ( (KNO_TYPEP(x,kno_lambda_type)) ||
 	   ( (KNO_TYPEP(x,kno_closure_type)) &&
 	     (KNO_TYPEP(((kno_pair)x)->car,kno_lambda_type)) ) );
@@ -750,7 +736,6 @@ KNO_EXPORT int _KNO_LAMBDAP(lispval x)
 
 KNO_EXPORT kno_function _KNO_FUNCTION_INFO(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_TYPEP(x,kno_closure_type))
     return (kno_function) ( (kno_pair) x)->car;
   else if (KNO_FUNCTIONP(x))
@@ -760,7 +745,6 @@ KNO_EXPORT kno_function _KNO_FUNCTION_INFO(lispval x)
 
 KNO_EXPORT int _KNO_FUNCTION_INFOP(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
   if (KNO_TYPEP(x,kno_closure_type))
     return KNO_FUNCTION_INFO_TYPEP(( (kno_pair) x)->car);
   else return KNO_FUNCTION_INFO_TYPEP(x);
@@ -983,8 +967,6 @@ KNO_EXPORT int kno_trace_exit
 
 KNO_EXPORT void kno_init_apply_c()
 {
-  kno_isfunctionp[kno_fcnid_type]=1;
-
   kno_applyfns[kno_cprim_type]=simple_dcall;
 
   u8_register_source_file(_FILEINFO);

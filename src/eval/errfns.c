@@ -693,7 +693,7 @@ static lispval exception_summary(lispval x,lispval with_irritant)
 
 static int thunkp(lispval x)
 {
-  if (KNO_FCNIDP(x)) x = kno_fcnid_ref(x);
+  if (KNO_QONSTP(x)) x = kno_qonst_val(x);
   if (USUALLY(KNO_FUNCTIONP(x))) {
     struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
     if (f->fcn_arity==0)

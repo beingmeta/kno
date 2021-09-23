@@ -103,7 +103,7 @@ static u8_string get_testid(lispval fn,int n,kno_argvec args)
     lispval arg = args[i];
     u8_putc(&testid,' ');
     if (KNO_FUNCTIONP(arg)) {
-      lispval f = (KNO_FCNIDP(arg)) ? (kno_fcnid_ref(arg)) : (arg);
+      lispval f = (KNO_QONSTP(arg)) ? (kno_qonst_val(arg)) : (arg);
       if (KNO_FUNCTIONP(f)) {
 	kno_function fcn = KNO_FUNCTION_INFO(f);
 	if (fcn->fcn_name)
