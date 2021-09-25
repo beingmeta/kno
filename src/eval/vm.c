@@ -45,8 +45,6 @@
 #include <pthread.h>
 #include <errno.h>
 
-lispval qonsts_symbol;
-
 static lispval isa_op(lispval args,kno_lexenv env,kno_stack stack,int require);
 
 typedef lispval (*op_handler)(int,lispval *,kno_lexenv,kno_stack,int);
@@ -722,7 +720,7 @@ static lispval handle_symref_opcode(lispval args)
   return value;}
 
 
-static lispval handle_fcnref_opcode(lispval args)
+static lispval handle_qonstref_opcode(lispval args)
 {
   lispval sym = pop_arg(args);
   if (!(USUALLY(KNO_SYMBOLP(sym))))
@@ -1551,8 +1549,8 @@ static lispval handle_special_opcode(lispval opcode,lispval args,lispval expr,
     return assignop(_stack,env,var,val_expr,combiner,type_val);}
   case KNO_SYMREF_OPCODE:
     return handle_symref_opcode(args);
-  case KNO_FCNREF_OPCODE:
-    return handle_fcnref_opcode(args);
+  case KNO_QONSTREF_OPCODE:
+    return handle_qonstref_opcode(args);
 
   case KNO_JIT_OPCODE: {
     lispval use_value = KNO_CAR(args);

@@ -78,7 +78,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
-extra_sources=
+extra_gdb_sources=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r "
 TESTLIBS=
@@ -96,7 +96,6 @@ KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
-KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
 KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
 if test -z "${KNO_PATCHLEVEL}"; then
@@ -112,7 +111,6 @@ LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
-mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
 CLEAN="rm -f "
 I18N=""
@@ -132,6 +130,7 @@ source_dir=""
 EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
 INSTALL_CMODULES=""
+INSTALL_CWRAPPERS=""
 TEST_CMODULES=""
 CWRAPPERS=""
 DATAFILES="etc/base_version"
@@ -308,7 +307,7 @@ AC_SUBST(servlet_bugjar)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
 AC_SUBST(setup_target)
-AC_SUBST(extra_sources)
+AC_SUBST(extra_gdb_sources)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
 AC_SUBST(debuglibs)
@@ -368,6 +367,7 @@ AC_SUBST(CMODULES)
 AC_SUBST(INSTALL_CMODULES)
 AC_SUBST(TEST_CMODULES)
 AC_SUBST(CWRAPPERS)
+AC_SUBST(INSTALL_CWRAPPERS)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(PKG_CFLAGS)
@@ -415,7 +415,7 @@ AC_SUBST(U8BIN)
 AC_SUBST(u8run)
 
 AC_PATH_PROG(binenv,env)
-AC_CHECK_PROG(SCRIPT_SHELL,sh,,/bin/sh)
+AC_PATH_PROG(SCRIPT_SHELL,sh)
 AC_CHECK_PROG(ECHO,echo,,/bin/echo)
 AC_CHECK_PROG(MKDIR_DEFAULT,mkdir,,/bin/mkdir)
 AC_CHECK_PROG(CHMOD_DEFAULT,chmod,,/bin/chmod)
@@ -557,7 +557,7 @@ AC_ARG_WITH(sourcedir,--with-sourcedir source directory,source_dir=$withval,sour
 
 AC_ARG_WITH(extra_sources,--with-extra_sources Configure extra source directories for gdb,,with_extra_sources="none")
 if test "$with_extra_sources" != "none"; then
-   extra_sources=${with_extra_sources};
+   extra_gdb_sources=:${with_extra_sources};
 fi
 
 AC_ARG_ENABLE(stripping,--enable-stripping strip libraries and executables before installing,,enable_stripping="no")
@@ -1870,10 +1870,10 @@ fi
 
 ### CWRAPPERS config
 
-BUILD_LEVELDB_WRAPPERS=
-BUILD_ROCKSDB_WRAPPERS=
-BUILD_ODBC_WRAPPERS=
-BUILD_MARIADB_WRAPPERS=
+WITH_LEVELDB_WRAPPER=
+WITH_ROCKSDB_WRAPPER=
+WITH_ODBC_WRAPPER=
+WITH_MARIADB_WRAPPER=
 
 LEVELDB_CFLAGS=
 LEVELDB_LIBS=-lleveldb
@@ -1888,22 +1888,25 @@ AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindi
 if test "${with_leveldb}" == "no"; then
   manually_disabled="leveldb ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
-  BUILD_LEVELDB_WRAPPERS=yes
   LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
   LEVELDB_LIBS=$(pkg-config --libs leveldb)
+  WITH_LEVELDB_WRAPPER=yes
 else
    AC_CHECK_HEADER(leveldb/c.h,HAVE_LEVELDB_HEADER=yes)
    if test ! -z "${HAVE_LEVELDB_HEADER}"; then
-     AC_CHECK_LIB(leveldb,leveldb_open,BUILD_LEVELDB_WRAPPERS=yes)
+     AC_CHECK_LIB(leveldb,leveldb_open,WITH_LEVELDB_WRAPPER=yes)
    fi;
-   if test ! -z "${BUILD_LEVELDB_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_leveldb}" = "force"; then
-      force_enabled="leveldb ${force_enabled}"
-      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="leveldb ${auto_disabled}";
-   fi;   
 fi;
+if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
+   force_enabled="leveldb ${force_enabled}"
+   WITH_LEVELDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
+else auto_disabled="leveldb ${auto_disabled}";
+fi;   
+
 
 ROCKSDB_CFLAGS=
 ROCKSDB_LIBS=-lrocksdb
@@ -1913,22 +1916,25 @@ AC_SUBST(ROCKSDB_LIBS)
 if test "${with_rocksdb}" == "no"; then
   manually_disabled="rocksdb ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
-  BUILD_ROCKSDB_WRAPPERS=yes
   ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
   ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
+  WITH_ROCKSDB_WRAPPER=yes
 else
    AC_CHECK_HEADER(rocksdb/c.h,HAVE_ROCKSDB_HEADER=yes)
    if test ! -z "${HAVE_ROCKSDB_HEADER}"; then
-     AC_CHECK_LIB(rocksdb,rocksdb_open,BUILD_ROCKSDB_WRAPPERS=yes)
+     AC_CHECK_LIB(rocksdb,rocksdb_open,WITH_ROCKSDB_WRAPPER=yes)
    fi;
-   if test ! -z "${BUILD_ROCKSDB_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_rocksdb}" = "force"; then
-      force_enabled="rockdb ${force_enabled}"
-      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="rocksdb ${auto_disabled}";
-   fi;   
 fi;
+
+if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
+   force_enabled="rocksdb ${force_enabled}"
+   WITH_ROCKSDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
+else auto_disabled="rocksdb ${auto_disabled}";
+fi;   
 
 ODBC_CFLAGS=
 ODBC_LIBS=-lodbc
@@ -1938,22 +1944,25 @@ AC_SUBST(ODBC_LIBS)
 if test "${with_odbc}" == "no"; then
   manually_disabled="odbc ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
-  BUILD_ODBC_WRAPPERS=yes
   ODBC_CFLAGS=$(pkg-config --cflags odbc)
   ODBC_LIBS=$(pkg-config --libs odbc)
+  WITH_ODBC_WRAPPER=yes
 else
    AC_CHECK_HEADER(sql.h,HAVE_ODBC_HEADER=yes)
    if test ! -z "${HAVE_ODBC_HEADER}"; then
-     AC_CHECK_LIB(odbc,SQLDriverConnect,BUILD_ODBC_WRAPPERS=yes)
+     AC_CHECK_LIB(odbc,SQLDriverConnect,WITH_ODBC_WRAPPER=yes)
    fi;
-   if test ! -z "${BUILD_ODBC_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_rocksdb}" = "force"; then
-      force_enabled="odbc ${force_enabled}"
-      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="odbc ${auto_disabled}";
-   fi;   
 fi;
+
+if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
+   force_enabled="odbc ${force_enabled}"
+   WITH_ODBC_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ODBC_WRAPPER}"; then
+   CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
+else auto_disabled="odbc ${auto_disabled}";
+fi;   
 
 MARIADB_CFLAGS=
 MARIADB_LIBS=-lmariadb
@@ -1965,18 +1974,22 @@ if test "${with_mariadb}" == "no"; then
 elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
   MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
   MARIADB_LIBS=$(pkg-config --libs libmariadb)
-  BUILD_MARIADB_WRAPPER=yes
+  WITH_MARIADB_WRAPPER=yes
 elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
   MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
   MARIADB_LIBS=$(pkg-config --libs bmariadb)
-  BUILD_MARIADB_WRAPPER=yes
-elif test "${with_mariadb}" = "force"; then
-  force_enabled="mariadb ${force_enabled}"
-  CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
-else
- auto_disabled="mariadb ${auto_disabled}";
+  WITH_MARIADB_WRAPPER=yes
 fi;
 
+if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
+   force_enabled="mariadb ${force_enabled}"
+   WITH_MARIADB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_MARIADB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
+else auto_disabled="leveldb ${auto_disabled}";
+fi;   
 
 ### These are components to preload
 

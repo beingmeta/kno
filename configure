@@ -727,6 +727,7 @@ MALLOC_FLAGS
 PKG_CFLAGS
 BOOTSETUP
 DATAFILES
+INSTALL_CWRAPPERS
 CWRAPPERS
 TEST_CMODULES
 INSTALL_CMODULES
@@ -783,7 +784,7 @@ profilecflags
 debuglibs
 debugldflags
 debugcflags
-extra_sources
+extra_gdb_sources
 setup_target
 versionsh
 archflags
@@ -878,7 +879,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -1043,7 +1043,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1296,15 +1295,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1442,7 +1432,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1595,7 +1585,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -4257,7 +4246,7 @@ suffix=""
 rpath=""
 daemon_identity_default="daemon"
 setup_target="setup-unix"
-extra_sources=
+extra_gdb_sources=
 DREENTRANT="-D_REENTRANT"
 MKSTATIC="ld -r "
 TESTLIBS=
@@ -4275,7 +4264,6 @@ KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
-KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
 KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
 if test -z "${KNO_PATCHLEVEL}"; then
@@ -4291,7 +4279,6 @@ LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
-mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
 CLEAN="rm -f "
 I18N=""
@@ -4311,6 +4298,7 @@ source_dir=""
 EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
 INSTALL_CMODULES=""
+INSTALL_CWRAPPERS=""
 TEST_CMODULES=""
 CWRAPPERS=""
 DATAFILES="etc/base_version"
@@ -4661,6 +4649,7 @@ ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config
 
 
 
+
 # Extract the first word of "env", so it can be a program name with args.
 set dummy env; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
@@ -4705,20 +4694,22 @@ fi
 set dummy sh; ac_word=$2
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for $ac_word" >&5
 $as_echo_n "checking for $ac_word... " >&6; }
-if ${ac_cv_prog_SCRIPT_SHELL+:} false; then :
+if ${ac_cv_path_SCRIPT_SHELL+:} false; then :
   $as_echo_n "(cached) " >&6
 else
-  if test -n "$SCRIPT_SHELL"; then
-  ac_cv_prog_SCRIPT_SHELL="$SCRIPT_SHELL" # Let the user override the test.
-else
-as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
+  case $SCRIPT_SHELL in
+  [\\/]* | ?:[\\/]*)
+  ac_cv_path_SCRIPT_SHELL="$SCRIPT_SHELL" # Let the user override the test with a path.
+  ;;
+  *)
+  as_save_IFS=$IFS; IFS=$PATH_SEPARATOR
 for as_dir in $PATH
 do
   IFS=$as_save_IFS
   test -z "$as_dir" && as_dir=.
     for ac_exec_ext in '' $ac_executable_extensions; do
   if as_fn_executable_p "$as_dir/$ac_word$ac_exec_ext"; then
-    ac_cv_prog_SCRIPT_SHELL=""
+    ac_cv_path_SCRIPT_SHELL="$as_dir/$ac_word$ac_exec_ext"
     $as_echo "$as_me:${as_lineno-$LINENO}: found $as_dir/$ac_word$ac_exec_ext" >&5
     break 2
   fi
@@ -4726,10 +4717,10 @@ done
   done
 IFS=$as_save_IFS
 
-  test -z "$ac_cv_prog_SCRIPT_SHELL" && ac_cv_prog_SCRIPT_SHELL="/bin/sh"
+  ;;
+esac
 fi
-fi
-SCRIPT_SHELL=$ac_cv_prog_SCRIPT_SHELL
+SCRIPT_SHELL=$ac_cv_path_SCRIPT_SHELL
 if test -n "$SCRIPT_SHELL"; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $SCRIPT_SHELL" >&5
 $as_echo "$SCRIPT_SHELL" >&6; }
@@ -6598,7 +6589,7 @@ else
 fi
 
 if test "$with_extra_sources" != "none"; then
-   extra_sources=${with_extra_sources};
+   extra_gdb_sources=:${with_extra_sources};
 fi
 
 # Check whether --enable-stripping was given.
@@ -9193,7 +9184,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9239,7 +9230,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9263,7 +9254,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9308,7 +9299,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9332,7 +9323,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -13818,10 +13809,10 @@ fi
 
 ### CWRAPPERS config
 
-BUILD_LEVELDB_WRAPPERS=
-BUILD_ROCKSDB_WRAPPERS=
-BUILD_ODBC_WRAPPERS=
-BUILD_MARIADB_WRAPPERS=
+WITH_LEVELDB_WRAPPER=
+WITH_ROCKSDB_WRAPPER=
+WITH_ODBC_WRAPPER=
+WITH_MARIADB_WRAPPER=
 
 LEVELDB_CFLAGS=
 LEVELDB_LIBS=-lleveldb
@@ -13864,9 +13855,9 @@ fi
 if test "${with_leveldb}" == "no"; then
   manually_disabled="leveldb ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
-  BUILD_LEVELDB_WRAPPERS=yes
   LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
   LEVELDB_LIBS=$(pkg-config --libs leveldb)
+  WITH_LEVELDB_WRAPPER=yes
 else
    ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
 if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
@@ -13912,18 +13903,21 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
 $as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
 if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
-  BUILD_LEVELDB_WRAPPERS=yes
+  WITH_LEVELDB_WRAPPER=yes
 fi
 
    fi;
-   if test ! -z "${BUILD_LEVELDB_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_leveldb}" = "force"; then
-      force_enabled="leveldb ${force_enabled}"
-      CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="leveldb ${auto_disabled}";
-   fi;
 fi;
+if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
+   force_enabled="leveldb ${force_enabled}"
+   WITH_LEVELDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
+else auto_disabled="leveldb ${auto_disabled}";
+fi;
+
 
 ROCKSDB_CFLAGS=
 ROCKSDB_LIBS=-lrocksdb
@@ -13933,9 +13927,9 @@ ROCKSDB_LIBS=-lrocksdb
 if test "${with_rocksdb}" == "no"; then
   manually_disabled="rocksdb ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
-  BUILD_ROCKSDB_WRAPPERS=yes
   ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
   ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
+  WITH_ROCKSDB_WRAPPER=yes
 else
    ac_fn_c_check_header_mongrel "$LINENO" "rocksdb/c.h" "ac_cv_header_rocksdb_c_h" "$ac_includes_default"
 if test "x$ac_cv_header_rocksdb_c_h" = xyes; then :
@@ -13981,17 +13975,20 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
 $as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
 if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
-  BUILD_ROCKSDB_WRAPPERS=yes
+  WITH_ROCKSDB_WRAPPER=yes
 fi
 
    fi;
-   if test ! -z "${BUILD_ROCKSDB_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_rocksdb}" = "force"; then
-      force_enabled="rockdb ${force_enabled}"
-      CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="rocksdb ${auto_disabled}";
-   fi;
+fi;
+
+if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
+   force_enabled="rocksdb ${force_enabled}"
+   WITH_ROCKSDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
+else auto_disabled="rocksdb ${auto_disabled}";
 fi;
 
 ODBC_CFLAGS=
@@ -14002,9 +13999,9 @@ ODBC_LIBS=-lodbc
 if test "${with_odbc}" == "no"; then
   manually_disabled="odbc ${manually_disabled}";
 elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
-  BUILD_ODBC_WRAPPERS=yes
   ODBC_CFLAGS=$(pkg-config --cflags odbc)
   ODBC_LIBS=$(pkg-config --libs odbc)
+  WITH_ODBC_WRAPPER=yes
 else
    ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
 if test "x$ac_cv_header_sql_h" = xyes; then :
@@ -14050,17 +14047,20 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_odbc_SQLDriverConnect" >&5
 $as_echo "$ac_cv_lib_odbc_SQLDriverConnect" >&6; }
 if test "x$ac_cv_lib_odbc_SQLDriverConnect" = xyes; then :
-  BUILD_ODBC_WRAPPERS=yes
+  WITH_ODBC_WRAPPER=yes
 fi
 
    fi;
-   if test ! -z "${BUILD_ODBC_WRAPPERS}"; then
-      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   elif test "${with_rocksdb}" = "force"; then
-      force_enabled="odbc ${force_enabled}"
-      CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   else auto_disabled="odbc ${auto_disabled}";
-   fi;
+fi;
+
+if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
+   force_enabled="odbc ${force_enabled}"
+   WITH_ODBC_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ODBC_WRAPPER}"; then
+   CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
+else auto_disabled="odbc ${auto_disabled}";
 fi;
 
 MARIADB_CFLAGS=
@@ -14073,18 +14073,22 @@ if test "${with_mariadb}" == "no"; then
 elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
   MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
   MARIADB_LIBS=$(pkg-config --libs libmariadb)
-  BUILD_MARIADB_WRAPPER=yes
+  WITH_MARIADB_WRAPPER=yes
 elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
   MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
   MARIADB_LIBS=$(pkg-config --libs bmariadb)
-  BUILD_MARIADB_WRAPPER=yes
-elif test "${with_mariadb}" = "force"; then
-  force_enabled="mariadb ${force_enabled}"
-  CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
-else
- auto_disabled="mariadb ${auto_disabled}";
+  WITH_MARIADB_WRAPPER=yes
 fi;
 
+if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
+   force_enabled="mariadb ${force_enabled}"
+   WITH_MARIADB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_MARIADB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
+else auto_disabled="leveldb ${auto_disabled}";
+fi;
 
 ### These are components to preload
 

@@ -756,9 +756,6 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@echo Installing $@ from $<
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-$(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
@@ -770,15 +767,11 @@ ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
-${CMODULES}/%.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@
-	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
-	@make -s ${CMODULES}/$(*F.@mmshared_suffix@ \
-		 ${CMODULES}/$(*F).@mshared_suffix@
+	@make -s ${CMODULES}/$(*F).@mshared_suffix@
 	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
@@ -1427,8 +1420,8 @@ staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
 	tar -czf staging/kno_@KNO_VERSION@.tar.gz -C staging kno_@KNO_VERSION@
 	cd staging; ln -s kno.tar.gz kno_@KNO_VERSION@.tar.gz
 
-dist/rpms.ready: staging/kno-@KNO_VERSION@ \
-	staging/kno-@KNO_VERSION@.tar.gz
+dist/rpms.ready:
+	@make staging/kno-@KNO_VERSION@ staging/kno-@KNO_VERSION@.tar.gz
 	@buildrpm@ $(RPMFLAGS)  			\
 	   --define="_rpmdir $(RPMDIR)"			\
 	   --define="_srcrpmdir $(RPMDIR)" 		\
@@ -1436,9 +1429,9 @@ dist/rpms.ready: staging/kno-@KNO_VERSION@ \
 	    staging/kno-@KNO_VERSION@.tar.gz && 	\
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
-	@if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then 			\
-	    touch dist/rpms.done;				\
-	else 						\
+	@if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then	\
+            sleep 2; touch dist/rpms.done;			\
+	else 							\
 	     echo "Enter passphrase for '$(GPGID)':"; 		\
 	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
@@ -1518,15 +1511,12 @@ install-static-libs: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
     $(LIBINSTALLDIR)/libkno@suffix@.@vshared_suffix@			\
-    $(LIBINSTALLDIR)/libkno@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
-    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@shared_suffix@
 
@@ -1584,11 +1574,12 @@ install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_s
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
 install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archivetools.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
+install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
+install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
+install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
+install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
 
-install-cwrappers: @CWRAPPERS@
-	@for file in @CWRAPPERS@; do \
-	  ${DOINSTALL} u8_install_shared $${file} ${CMODULES} ${KNO_VERSION}; \
-	 done;
+install-cwrappers: @INSTALL_CWRAPPERS@
 
 # Setup targets
 

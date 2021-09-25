@@ -85,8 +85,7 @@ static u8_mutex mysql_connect_lock;
 
 KNO_EXPORT int kno_init_mariadb(void) KNO_LIBINIT_FN;
 static struct KNO_SQLDB_HANDLER mysql_handler;
-static lispval callmysqlproc(kno_stack stack,kno_function fn,
-			     int n,kno_argvec args);
+static lispval callmysqlproc(kno_stack stack,lispval fn,int n,kno_argvec args);
 
 typedef struct KNO_MYSQL {
   KNO_SQLDB_FIELDS;
@@ -1121,9 +1120,9 @@ static void recycle_mysqlproc(struct KNO_SQLPROC *c)
 static lispval applymysqlproc(kno_function f,int n,kno_argvec args,int reconn);
 
 static lispval callmysqlproc
-(kno_stack stack,kno_function fn,int n,kno_argvec args)
+(kno_stack stack,lispval fn,int n,kno_argvec args)
 {
-  return applymysqlproc(fn,n,args,7);
+  return applymysqlproc((kno_function)fn,n,args,7);
 }
 
 static lispval applymysqlproc(kno_function fn,int n,kno_argvec args,int reconn)

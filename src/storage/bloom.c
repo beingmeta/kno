@@ -370,7 +370,7 @@ static lispval restore_bloom(lispval tag,lispval x,kno_typeinfo e)
     return kno_wrap_pointer((void *)filter,sizeof(struct KNO_BLOOM),
 			    recycle_bloom,kno_bloom_filter_typetag,
 			    NULL);}
-  else return kno_err(kno_DTypeError,"bad bloom filter data",NULL,x);
+  else return kno_err(kno_ExternalFormatError,"bad bloom filter data",NULL,x);
 }
 
 void kno_init_bloom_c()

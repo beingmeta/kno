@@ -473,6 +473,17 @@ u8_string kno_lisp2buf(lispval x,size_t n,u8_byte *buf)
   return out.u8_outbuf;
 }
 
+/* Unparsers */
+
+static int unparse_qonst(u8_output out,lispval q)
+{
+  int serialno = KNO_GET_IMMEDIATE(q,kno_qonst_type);
+  if (KNO_RARELY(serialno>_kno_qonst_count))
+    u8_printf(out,"#<BADQONST %p>",q);
+  else u8_printf(out,"#<QONST %d #!%p>",serialno,q);
+  return 1;
+}
+
 static int unparse_compound(struct U8_OUTPUT *out,lispval x)
 {
   struct KNO_COMPOUND *xc =
@@ -615,6 +626,8 @@ KNO_EXPORT void kno_init_unparse_c()
   kno_unparsers[kno_vector_type]=unparse_vector;
   kno_unparsers[kno_pair_type]=unparse_pair;
   kno_unparsers[kno_choice_type]=unparse_choice;
+
+  kno_unparsers[kno_qonst_type]=unparse_qonst;
 
   if (kno_unparsers[kno_mystery_type]==NULL)
     kno_unparsers[kno_mystery_type]=unparse_mystery;

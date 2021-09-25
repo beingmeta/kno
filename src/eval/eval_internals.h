@@ -33,7 +33,6 @@ lispval eval_choice(lispval expr,kno_lexenv env,kno_stack stack);
 int eval_args(int argc,lispval *into,lispval exprs,
 	      kno_lexenv env,kno_stack stack,
 	      int prune);
-lispval eval_lambda(kno_lambda into,kno_lambda lambda,kno_lexenv env);
 
 lispval lisp_eval(lispval head,lispval expr,
 			kno_lexenv env,kno_stack stack,
@@ -188,7 +187,7 @@ INLINE_DEF lispval doeval(lispval x,kno_lexenv env,
       kno_lambda l = (kno_lambda) x;
       if (l->lambda_env)
 	return kno_incref(x);
-      else return eval_lambda(NULL,l,env);}
+      else return kno_make_closure(x,(lispval)(kno_dynamic_lexenv(env)));}
     default:
       return kno_incref(x);}}
   case kno_immediate_ptr_type: {
@@ -239,9 +238,6 @@ INLINE_DEF int testeval(lispval expr,kno_lexenv env,int fail_val,
   if (KNO_CONSP(val)) {
     kno_decref(val);
     return 1;}
-  else if (KNO_ABORTED(val)) {
-    *whoops = val;
-    return -1;}
   else if (KNO_FALSEP(val))
     return 0;
   else if (KNO_EMPTYP(val))
@@ -249,6 +245,9 @@ INLINE_DEF int testeval(lispval expr,kno_lexenv env,int fail_val,
   else if (KNO_VOIDP(val)) {
     *whoops = KNO_ERROR;
     return KNO_ERR(-1,kno_VoidBoolean,"testeval",NULL,expr);}
+  else if (KNO_ABORTED(val)) {
+    *whoops = val;
+    return -1;}
   else return 1;
 }
 #define TESTEVAL_FAIL_FALSE 0

@@ -619,7 +619,7 @@ KNO_EXPORT u8_condition kno_retcode_to_exception(lispval err)
   case KNO_TYPE_ERROR: return kno_TypeError;
   case KNO_RANGE_ERROR: return kno_RangeError;
   case KNO_OOM: return kno_OutOfMemory;
-  case KNO_DTYPE_ERROR: return kno_DTypeError;
+  case KNO_XFORMAT_ERROR: return kno_ExternalFormatError;
   default: return kno_UnknownError;
   }
 }

@@ -1586,7 +1586,7 @@ static void recycle_subproc(struct KNO_RAW_CONS *c)
 /* Handle sigchld */
 
 
-static void handle_sigchld(int sig)
+static void handle_sigchld(int sig,siginfo_t *info,void *stuff)
 {
   int status;
   pid_t pid = waitpid(-1, &status, WNOHANG);
@@ -1598,6 +1598,8 @@ static void handle_sigchld(int sig)
       kno_decref(proc);}
     kno_decref(pidval);}
 }
+
+struct sigaction sigaction_chld;
 
 /* The init function */
 
@@ -1639,7 +1641,10 @@ KNO_EXPORT void kno_init_procprims_c()
 
   kno_finish_cmodule(procprims_module);
 
-  sigset(SIGCHLD,handle_sigchld);
+  /* sigset(SIGCHLD,handle_sigchld); */
+  sigaddset(&(sigaction_chld.sa_mask),SIGCHLD);
+  sigaction(SIGCHLD,&(sigaction_chld),NULL);
+
 }
 
 static void link_local_cprims()

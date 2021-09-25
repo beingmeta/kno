@@ -31,7 +31,7 @@
 
 ;; OPTLEVEL interpretations
 ;; 0: no optimization
-;; 1: fcnrefs + opcodes
+;; 1: qonstants + opcodes
 ;; 2: substs + lexrefs
 ;; 3: rewrites
 ;; 4: bind opcodes
@@ -51,25 +51,30 @@
 (varconfig! optmod:loglevel optmod-loglevel)
 (varconfig! optimize:logmods optmod-loglevel)
 
-(define-init fcnrefs-default {})
-(define-init pfcnrefs-default {})
 (define-init opcodes-default {})
 (define-init bindops-default {})
 (define-init lexrefs-default {})
 (define-init substs-default {})
 (define-init rewrite-default {})
-(define-init aliasprims-default {})
+(define-init qonst-prims-default {})
+(define-init subst-prims-default {})
+(define-init qonst-functions-default {})
+(define-init subst-functions-default {})
+(define-init use-qonsts-default {})
 ;; Whether we're generating objects to be saved for fast loading
 (define-init fasl-default {})
 
-(varconfig! optimize:fcnrefs fcnrefs-default config:boolean)
 (varconfig! optimize:opcodes opcodes-default config:boolean)
 (varconfig! optimize:bindops bindops-default config:boolean)
 (varconfig! optimize:substs  substs-default config:boolean)
 (varconfig! optimize:lexrefs lexrefs-default config:boolean)
 (varconfig! optimize:rewrite rewrite-default)
-(varconfig! optimize:aliasprims aliasprims-default config:boolean)
 (varconfig! optimize:fasl fasl-default config:boolean)
+(varconfig! optimize:qonstprims qonst-prims-default config:boolean)
+(varconfig! optimize:substprims subst-prims-default config:boolean)
+(varconfig! optimize:qonstfns qonst-functions-default config:boolean)
+(varconfig! optimize:substfns qonst-functions-default config:boolean)
+(varconfig! optimize:qonsts use-qonsts-default config:boolean)
 
 (define-init batch-default #f)
 (varconfig! optimize:batch batch-default)
@@ -97,13 +102,14 @@
       `(optmode-macro ',optname ,opthresh ',optvar))))
 
 (define use-opcodes? (optmode opcodes 2 opcodes-default))
-(define use-pfcnrefs? (optmode pfcnrefs 2 pfcnrefs-default))
-(define use-fcnrefs? (optmode fcnrefs 3 fcnrefs-default))
 (define use-bindops? (optmode bindops 4 bindops-default))
 (define use-substs? (optmode substs 2 substs-default))
 (define use-lexrefs? (optmode lexrefs 2 lexrefs-default))
+(define qonst-prims? (optmode qonstprims 1 qonst-prims-default))
+(define subst-prims? (optmode substprims 2 subst-prims-default))
+(define qonst-functions? (optmode qonstfns 2 qonst-functions-default))
+(define subst-functions? (optmode substfns 4 subst-functions-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
-(define aliasprims? (optmode 'aliasprims 2 aliasprims-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
 (define fasl? (optmode fasl #f fasl-default))
 
@@ -158,10 +164,10 @@
 
 (define dont-touch-decls '{%unoptimized %volatile %nosubst})
 
-(define unoptimized-builtins {})
-(define volatile-builtins '{%loglevel})
+(define unoptimized-symbols {})
+(define volatile-symbols '{%loglevel})
 
-(define-init %volatile '{volatile-builtins unoptimized-builtins})
+(define-init %volatile '{volatile-builtins unoptimized-symbols})
 
 ;;; What we export
 
@@ -235,43 +241,6 @@
     (if (eq? scan-template #t)
 	(append (reverse backwards) (optimize-exprs scan-exprs env bound opts))
 	(append (reverse backwards) scan-exprs))))
-
-;;; Converting non-lexical function references
-
-(define (fcnref value sym env opts (from))
-  (default! from (and (symbol? sym) (wherefrom sym env)))
-  (cond ((not (or (applicable? value) (special-form? value))) sym)
-	((not (cons? value)) sym)
-	((or (overlaps? sym unoptimized-builtins)
-	     (and from (test from '%unoptimized sym))
-	     (testopt opts '%unoptimized sym))
-	 sym)
-	((fasl? opts)
-	 (optimize-variable sym ))
-	((and sym from  (module? from) (hashtable? from)
-	      (or (special-form? value) (primitive? value))
-	      (not (fasl? opts)) (aliasprims? opts))
-	 value)
-	((and sym from (module? from)
-	      (or (special-form? value) (primitive? value))
-	      (use-fcnrefs? opts))
-	 (qonst/register sym from value))
-	((not (symbol? sym)) value)
-	((or (%test env '%constants sym)
-	     (and from (%test from '%constants sym)))
-	 value)
-	((or (not from) (not (test from sym value))) sym)
-	((or (not (use-fcnrefs? opts))
-	     (test env '%volatile sym)
-	     (test from '%volatile sym))
-	 (cons* (try (tryif (use-opcodes? opts) #OP_SYMREF)
-		     (tryif (use-fcnrefs? opts)
-		       (force-qonst %modref))
-		     %modref)
-		sym (or from env)))
-	((and (test from '%qonsts) (fail? (get from '%qonsts))) sym)
-	((module? from) (qonst/register sym from value))
-	(else sym)))
 
 ;;; QONSTs
 
@@ -380,11 +349,11 @@
 	 (get opcode-map value)
 	 (tryif (and (procedure? value) (procedure-name value)) 
 	   (get opcode-map (procedure-name value))))
-       (cond ((not (fasl? opts))
-	      (fcnref value head env opts))
-	     ((lexref? head) head)
+       (cond ((%lexref? head) head)
 	     ((symbol? head)
-	      (optimize-variable head env bound opts))
+	      (optimize-symbol head env bound (cons #[ishead #t] opts)))
+	     ((pair? head) (optimize head env bound opts))
+	     ((schemap? head) (optimize head env bound opts))
 	     (else head))))
 
 (define name2op
@@ -543,7 +512,7 @@
 	 (for-choices (each expr) 
 	   (optimize each env bound opts)))
 	((fail? expr) expr)
-	((symbol? expr) (optimize-variable expr env bound opts))
+	((symbol? expr) (optimize-symbol expr env bound opts))
 	((and (schemap? expr) (needs-eval? expr))
 	 (optimize-schemap expr env bound opts))
 	((not (pair? expr)) expr)
@@ -656,94 +625,95 @@
 	      (forseq (arg args) (optimize arg env bound opts))))
    expr opts))
 
-(defambda (optimize-variable expr env bound opts)
-  (let ((lexref (get-lexref expr bound 0))
-	(use-opcodes (use-opcodes? opts)))
-    (debug%watch "optimize-variable" expr lexref env bound)
-    (if lexref
-	(if (use-lexrefs? opts) lexref expr)
-	(let* ((srcenv (begin (when (eq? expr 'lambda-body) env)
-			      (wherefrom expr env)))
-	       (module (and srcenv (module? srcenv) srcenv))
-	       (value (and srcenv (get srcenv expr))))
-	  (info%watch "OPTIMIZE/SYMBOL/module" 
-	    expr module srcenv env bound optwarn value)
-	  ;; Add reference information
-	  (when (and module (module? env))
-	    (add! env '%symrefs expr)
-	    (when (and module (table? module))
-	      (add! env '%modrefs
-		(pick (get module '%moduleid) symbol?))))
-	  (cond ((not srcenv)
-		 ;; This means the symbol can't be found
-		 (unless (or (test env '%nowarn expr)
-			     (testopt opts 'nowarn expr)
-			     (testopt opts 'nowarn #t))
-		   (codewarning (cons* 'UNBOUND expr bound))
-		   (when env
-		     (add! env '%warnings (cons* 'UNBOUND expr bound)))
-		   (when (or optwarn (not env))
-		     (logwarn |Unbound|
-		       "The symbol " expr " appears to be unbound "
-		       "given bindings " (apply append bound))))
-		 expr)
-		;; This is where the symbol isn't from a module, but
-		;; we're not doing lexrefs, so we just keep the
-		;; expression as a symbol
-		((not module) expr)
-		;; Several ways to disable variable optimization
-		;; Should be finer grained
-		((or (overlaps? expr unoptimized-builtins)
-		     (%test srcenv '%unoptimized expr)
-		     (testopt opts '%unoptimized expr))
-		 expr)
-		((fasl? opts)
-		 (let* ((volatile (or (overlaps? expr volatile-builtins)
-				      (%test srcenv '%volatile expr)
-				      (testopt opts '%volatile expr)))
-			(refop (if (and (not volatile) (singleton? value)
-					(or (primitive? value) (special-form? value)
-					    (applicable? value)))
-				   #OP_FCNREF
-				   #OP_SYMREF)))
-		   (if volatile
-		       (cons refop (cons expr (%wc get-modref module)))
-		       (cons* #OP_JIT #default (cons refop (cons expr (%wc get-modref module)))))))
-		;; If it's a primitive or special form, replace it
-		;; with its value
-		((and module (singleton? value)
-		      (or (primitive? value) (applicable? value)
-			  (special-form? value))
-		      (use-fcnrefs? opts))
-		 (fcnref value expr env opts))
-		((and (singleton? value)
-		      (or (primitive? value) (special-form? value)))
-		 value)
-		((%test srcenv '%constants expr)
-		 ;; If it's a constant, replace it as well, but be
-		 ;; careful to quote it if it contains anything which
-		 ;; might be evaluated (symbols or pairs)
-		 (if (and (singleton? value)
-			  (not (exists {pair? symbol? schemap?} value)))
-		     value
-		     (if use-opcodes
-			 (cons quote-opcode (qc value))
-			 (list 'quote (qc value)))))
-		;; TODO: add 'modrefs' which resolves module.var to a
-		;; fcnref and uses that for the symbol
-		(else (cons* (try (tryif use-opcodes #OP_SYMREF)
-				  (tryif (use-fcnrefs? opts)
-				    (force-qonst %modref))
-				  %modref)
-			     expr module)))))))
-
 (define (get-modref module)
-  (cond ((symbol? module) module)
+  (cond ((not module) module)
+	((symbol? module) module)
 	((string? module) module)
 	(else (try (tryif (and (table? module) (test module '%moduleid))
 		     (pick-one (pick (get module '%moduleid) symbol?))
 		     (pick-one (pick (get module '%moduleid) string?))
 		     (irritant module |NoModuleID|))))))
+
+(define (optimize-symbol symbol env bound opts)
+  (let ((lexref (get-lexref symbol bound 0))
+	(use-opcodes (use-opcodes? opts)))
+    (debug%watch "optimize-symbol" symbol lexref env bound)
+    (if lexref
+	(if (use-lexrefs? opts) lexref symbol)
+	(let* ((srcenv (wherefrom symbol env))
+	       (module (and srcenv (module? srcenv) srcenv))
+	       (value (and srcenv (get srcenv symbol)))
+	       (fasl (fasl? opts))
+	       (modref (if fasl (get-modref module) module)))
+	  (info%watch "OPTIMIZE/SYMBOL/module" 
+	    symbol module srcenv env bound optwarn value)
+	  ;; Add reference information
+	  (when (and module (module? env))
+	    (add! env '%symrefs symbol)
+	    (when (and module (table? module))
+	      (add! env '%modrefs
+		(pick (get module '%moduleid) symbol?))))
+	  (cond ((not srcenv)
+		 ;; This means the symbol can't be found
+		 (unless (or (test env '%nowarn symbol)
+			     (testopt opts '%nowarn symbol)
+			     (testopt opts '%nowarn #t))
+		   (codewarning (cons* 'UNBOUND symbol bound))
+		   (when env
+		     (add! env '%warnings (cons* 'UNBOUND symbol bound)))
+		   (when (or optwarn (not env))
+		     (logwarn |Unbound|
+		       "The symbol " symbol " appears to be unbound "
+		       "given bindings " (apply append bound))))
+		 symbol)
+		;; This is where the symbol isn't from a module, but
+		;; we're not doing lexrefs, so we just keep the
+		;; expression as a symbol
+		((not module) symbol)
+		;; Several ways to disable variable optimization
+		;; Should be finer grained
+		((or (overlaps? symbol unoptimized-symbols)
+		     (%test srcenv '%skipopt symbol)
+		     (%test srcenv '%dontoptimize symbol)
+		     (testopt opts '%skipopt symbol)
+		     (testopt opts '%dontoptimize symbol)
+		     (testopt opts 'lexrefs #f))
+		 symbol)
+		(else (let* ((volatile (or (overlaps? symbol volatile-symbols)
+					   (%test srcenv '%volatile symbol)
+					   (testopt opts '%volatile symbol)))
+			     (primitive (and (or (primitive? value) (special-form? value))
+					     (hashtable? module)))
+			     (constant (or (and primitive (hashtable? module))
+					   (%test srcenv '%constants symbol)
+					   (testopt opts '%constants symbol)))
+			     (ishead (getopt opts 'ishead #f))
+			     (subst (and (not volatile)
+					 (not (testopt opts '%subst #f))
+					 (or (and primitive (subst-prims? opts))
+					     (%test srcenv '%subst symbol)
+					     (%test srcenv '%subst 'all)
+					     (testopt opts '%subst symbol)
+					     (testopt opts '%subst 'all))))
+			     (qonst (and (not (testopt opts '%qonst #f))
+					 (or constant
+					     (and primitive (qonst-prims? opts))
+					     (%test srcenv '%qonst symbol)
+					     (%test srcenv '%qonst 'all)
+					     (testopt opts '%qonst symbol)
+					     (testopt opts '%qonst 'all)
+					     (and ishead (qonst-functions? opts))))))
+			(debug%watch "OPTIMIZE-SYMBOL" 
+			  symbol ishead constant subst qonst constant volatile primitive)
+			(cond ((and fasl (or subst qonst))
+			       (cons* #OP_JIT #default 
+				      (if subst #OP_SYMREF #OP_QONSTREF)
+				      symbol
+				      modref))
+			      (fasl (cons* #OP_SYMREF symbol modref))
+			      (subst value)
+			      (qonst (qonst/register symbol module value))
+			      (else (cons* #OP_SYMREF symbol module))))))))))
 
 (define (do-rewrite rewriter expr env bound opts)
   (onerror
@@ -790,7 +760,7 @@
 	(add! env '%modrefs
 	  (pick (get from '%moduleid) symbol?))))
     (cond ((eq? head 'quote) (cons #OP_QUOTE (cadr expr)))
-	  ((or (overlaps? head unoptimized-builtins)
+	  ((or (overlaps? head unoptimized-symbols)
 	       (and from (test from '%unoptimized head))
 	       (and env (test env '%unoptimized head)))
 	   expr)
@@ -840,7 +810,7 @@
 	   (make-fncall
 	    (cond ((%lexref? headvalue) headvalue)
 		  ((or (fail? from) (not from) (test from '%nosubst head)) head)
-		  (else (optimize-variable head env bound opts)))
+		  (else (optimize-symbol head env bound (cons #[ishead #t] opts))))
 	    (cdr expr)
 	    env bound opts
 	    expr))
@@ -896,7 +866,10 @@
 		 (cons opcodeN
 		       (forseq (expr args)
 			 (optimize expr env bound opts))))
-	       (make-fncall fnexpr (cdr expr) env bound opts expr))))
+	       (make-fncall (if (symbol? fnexpr)
+				(optimize-symbol fnexpr env bound (cons #[ishead #t] opts))
+				fnexpr)
+			    (cdr expr) env bound opts expr))))
     (annotate optimized expr opts)))
 
 (defambda (optimize-call expr env bound opts)
@@ -904,7 +877,7 @@
 	 (for-choices expr (optimize-call expr env bound opts)))
 	((not (pair? expr)) expr)
 	((symbol? (car expr))
-	 `(,(optimize (car expr) env bound opts)
+	 `(,(optimize-symbol (car expr) env bound (cons #[ishead #t] opts))
 	   ,@(if (pair? (cdr expr))
 		 (optimize-args (cdr expr) env bound opts)
 		 (cdr expr))))
@@ -1056,7 +1029,6 @@
 	(try (get module '%optimize_options) #f)))
   (thread/set! 'threadwarnings warnings)
   (let ((bindings (and module (module-binds module)))
-	(usefcnrefs (use-fcnrefs? opts))
 	(modinfo (get module '%modinfo))
 	(optimized {})
 	(count 0))
@@ -1071,10 +1043,7 @@
 	      "Optimizing procedure " var " in " module)
 	    (set! count (1+ count))
 	    (set+! optimized var)
-	    (optimize-procedure! value opts))
-	  ;; (when (and usefcnrefs (exists? value) (applicable? value))
-	  ;;   (update-qonst! var module value))
-	  )))
+	    (optimize-procedure! value opts)))))
     (cond ((hashtable? module)
 	   (loginfo |OpaqueModule| 
 	     "Not optimizing opaque module " (get module '%moduleid)))
@@ -1330,13 +1299,13 @@
       `(,xpred-opcode ,(cadr type-arg) ,(optimize (get-arg expr 1) env bound opts))
       (if type-arg
 	  `(,(if (fasl? opts)
-		 '(#OP_JIT #default #OP_FCNREF compound? . scheme)
-		 (fcnref compound? (car expr) env opts))
+		 '(#OP_JIT #default #OP_QONSTREF compound? . scheme)
+		 (qonst/register 'compound? 'scheme))
 	    ,(optimize (get-arg expr 1) env bound opts)
 	    ,(optimize type-arg env bound opts))
 	  `(,(if (fasl? opts)
-		 '(#OP_JIT #default #OP_FCNREF compound? . scheme)
-		 (fcnref compound? (car expr) env opts))
+		 '(#OP_JIT #default #OP_QONSTREF compound? . scheme)
+		 (qonst/register 'compound? 'scheme))
 	    ,(optimize (get-arg expr 1) env bound opts)))))
 
 (store! procedure-optimizers compound? optimize-compound-predicate)

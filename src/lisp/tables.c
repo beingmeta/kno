@@ -2591,7 +2591,7 @@ static lispval restore_hashtable(lispval tag,lispval alist,
           vals=u8_realloc_n(vals,max*2,lispval);
           max=max*2;}
         keys[n]=KNO_CAR(elt); vals[n]=KNO_CDR(elt); n++;}}}
-  else return kno_err(kno_DTypeError,"restore_hashtable",NULL,alist);
+  else return kno_err(kno_ExternalFormatError,"restore_hashtable",NULL,alist);
   new=(struct KNO_HASHTABLE *)kno_make_hashtable(NULL,n*2);
   kno_hashtable_iter(new,kno_table_add,n,keys,vals);
   u8_free(keys); u8_free(vals);

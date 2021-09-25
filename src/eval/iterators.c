@@ -21,12 +21,16 @@
 #include "kno/numbers.h"
 #include "eval_internals.h"
 
-/* Helper functions */
-
-static lispval iter_var;
-
 /* Simple iterations */
 
+DEFC_EVALFN("while",while_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(while *test* *exprs...*)` repeatedly evaluates "
+	    "*test* until it is #f or {} evaluating "
+	    "the expressions in *body* after each evaluation of "
+	    "*test*. If a sub-expression of any of *exprs* returns #break, "
+	    "this also exits. This normally returns VOID the result of the "
+	    "call to *test* which terminated the loop or VOID if the body "
+	    "got a #break.")
 static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
@@ -49,6 +53,14 @@ static lispval while_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     else return result;}
 }
 
+DEFC_EVALFN("until",until_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(until *test* *exprs...*)` repeatedly evaluates "
+	    "*test* until it returns anything other than #f, evaluating "
+	    "the expressions in *body* after each evaluation of "
+	    "*test*. If a sub-expression of any of *exprs* returns #break, "
+	    "this also exits. This normally returns VOID the result of the "
+	    "call to *test* which terminated the loop or VOID if the body "
+	    "got a #break.")
 static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval test_expr = kno_get_arg(expr,1);
@@ -66,7 +78,8 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 	if (ABORTED(val)) { result = val; exited = 1; break;}
 	kno_decref(val);}
       if (exited) break;}
-    if (KNO_BROKEP(result)) return KNO_VOID;
+    if (KNO_BROKEP(result))
+      return KNO_VOID;
     else return result;}
 }
 
@@ -74,6 +87,12 @@ static lispval until_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 
 /* DOTIMES */
 
+DEFC_EVALFN("dotimes",dotimes_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(dotimes (var limit) *exprs...*)` repeatedly evaluates "
+	    "*exprs* for *limit* iterations, binding *var* to the number "
+	    "of iterations to date (starting with zero). "
+	    "If a sub-expression of any of *exprs* returns #break, "
+	    "this also exits. This always returns VOID.")
 static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
 			      kno_stack eval_stack)
 {
@@ -113,6 +132,13 @@ static lispval dotimes_evalfn(lispval expr,kno_lexenv env,
 
 /* DOSEQ */
 
+DEFC_EVALFN("doseq",doseq_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(doseq (var sequence [*countvar*=|#|] [*wholevar*]) *exprs...*)` "
+	    "iterates over every element of *sequence*, evaluating *exprs* "
+	    "each time with *var* bound to the element, *countvar* bound to the "
+	    "element index, and (when specified) *wholevar* bound to the whole "
+	    "sequence. If a sub-expression of any of *exprs* returns #break, "
+	    "this also exits. This always returns VOID. ")
 static lispval doseq_evalfn(lispval expr,kno_lexenv env,
 			    kno_stack eval_stack)
 {
@@ -167,6 +193,15 @@ static lispval doseq_evalfn(lispval expr,kno_lexenv env,
 
 /* FORSEQ */
 
+DEFC_EVALFN("forseq",forseq_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(forseq (var sequence [*countvar*=|#|] [*wholevar*]) *exprs...*)` "
+	    "generates a new sequence by iterating over every element of *sequence*, "
+	    "evaluating *exprs* for each element time with *var* bound to the element, "
+	    "*countvar* bound to the element index, and (when specified) *wholevar* "
+	    "bound to the whole sequence. If a sub-expression of any of *exprs* "
+	    "returns #break, this whole loop exits and returns a sequence up to "
+	    "the breaking element. When possible, this returns a sequence of the same "
+	    "type as its input *sequence*.")
 static lispval forseq_evalfn(lispval expr,kno_lexenv env,
 			     kno_stack eval_stack)
 {
@@ -228,6 +263,14 @@ static lispval forseq_evalfn(lispval expr,kno_lexenv env,
 
 /* TRYSEQ */
 
+DEFC_EVALFN("tryseq",tryseq_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(tryseq (var sequence [*countvar*=|#|] [*wholevar*]) *exprs...*)` "
+	    "iterates over every element of *sequence*, until *exprs* either return "
+	    "non-empty ({}) or some subexpression returns #break. Each iteration "
+	    "evaluates *epxrs* with *var* bound to the element, *countvar* bound to the "
+	    "element index, and (when specified) *wholevar* bound to the whole "
+	    "sequence. This always returns the non-empty result or fails (returns {}) "
+	    "otherwise.")
 static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
 			     kno_stack eval_stack)
 {
@@ -287,6 +330,13 @@ static lispval tryseq_evalfn(lispval expr,kno_lexenv env,
 
 /* DOLIST */
 
+DEFC_EVALFN("dolist",dolist_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(dolist (var list [*countvar*=|#|] [wholevar]) *exprs...*)` "
+	    "iterates over every element of *list*, evaluating *exprs* "
+	    "each time with *var* bound to the element, *countvar* bound to "
+	    "it's index, and *wholevar* (if provided) bound to the entire "
+	    "list. In addition, if any of the sub expressions of *exprs* "
+	    "returns #break, this exits immediately. This always returns VOID. ")
 static lispval dolist_evalfn(lispval expr,kno_lexenv env,
 			     kno_stack eval_stack)
 {
@@ -335,8 +385,65 @@ static lispval dolist_evalfn(lispval expr,kno_lexenv env,
   return result;
 }
 
+/* Iterator objects */
+
+DEFC_EVALFN("doiter",doiter_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(doiter (var iterator [*countvar*=|#|] [*wholevar*]) *exprs...*)` "
+	    "repeatedly gets elements from *iterator*, evaluating *exprs* "
+	    "each time with *var* bound to the element, *countvar* bound to the "
+	    "number of elements processed, and (when specified) *wholevar* "
+	    "bound to the whole iterator object. If a sub-expression of any of *exprs* "
+	    "returns #break, this also exits. This always returns VOID. ")
+static lispval doiter_evalfn(lispval expr,kno_lexenv env,
+			     kno_stack eval_stack)
+{
+  unsigned long i = 0; int islist = 0;
+  lispval var, count_var = VOID, val_var;
+  lispval body = kno_get_body(expr,2);
+  if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
+    return kno_err(kno_SyntaxError,"doseq_evalfn",NULL,expr);
+  lispval iter = parse_control_spec(expr,&var,&count_var,&val_var,
+				   env,eval_stack);
+  if (KNO_ABORTED(iter))
+    return iter;
+  else if (EMPTYP(iter))
+    return VOID;
+  else if (!(KNO_ITERATORP(iter))) {
+    kno_type_error("iterator","doiter_evalfn",iter);
+    kno_decref(iter);
+    return KNO_ERROR;}
+  lispval result = KNO_VOID;
+  KNO_INIT_ITER_LOOP(doiter,var,iter,3,eval_stack,env);
+  init_iter_env(&doiter_bindings,iter,var,count_var,val_var);
+  int exited = 0;
+  while (exited==0) {
+    lispval elt = kno_dcall(doiter_stack,iter,0,NULL);
+    doiter_vals[0]=elt;
+    doiter_vals[1]=KNO_INT(i);
+    lispval val = eval_body(body,doiter_env,doiter_stack,
+			    "doiter",SYMBOL_NAME(var),0);
+    if (KNO_ABORTED(val)) {
+      if (KNO_BROKEP(val)) result = KNO_VOID;
+      else result = val;
+      exited=1;}
+    else kno_decref(val);
+    reset_env(doiter);
+    kno_decref(doiter_vals[0]);
+    doiter_vals[0]=VOID;
+    doiter_vals[1]=VOID;
+    if (exited) break;
+    i++;}
+  kno_pop_stack(doiter_stack);
+  return result;
+}
+
 /* BEGIN, PROG1, and COMMENT */
 
+DEFC_EVALFN("begin",begin_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(begin *exprs...*)` executes all of *exprs* in order. "
+	    "If any of *exprs* (or their subexpressions) returns #break, "
+	    "this exits immediately and returns VOID. Otherwise the "
+	    "result of the last of *exprs* is returned.")
 static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,
 			    kno_stack _stack)
 {
@@ -344,6 +451,11 @@ static lispval begin_evalfn(lispval begin_expr,kno_lexenv env,
 		   (KNO_STACK_BITP(_stack,KNO_STACK_TAIL_POS)));
 }
 
+DEFC_EVALFN("onbreak",onbreak_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(onbreak *breakexpr* *exprs...*)` executes all of *exprs* in order. "
+	    "If any of *exprs* (or their subexpressions) returns #break, "
+	    "this evaluates *breakexpr* and returns its result. Otherwise, "
+	    "it returns the result of the last of *exprs*")
 static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,
 			      kno_stack _stack)
 {
@@ -354,6 +466,10 @@ static lispval onbreak_evalfn(lispval begin_expr,kno_lexenv env,
   return result;
 }
 
+DEFC_EVALFN("prog1",prog1_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(prog1 *return-expr* *exprs...*)` executes *return-expr* "
+	    "and saves its value and then executes all of *exprs* in order. "
+	    "This returns the saved result of *return-expr*. ")
 static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
 			    kno_stack _stack)
 {
@@ -370,12 +486,15 @@ static lispval prog1_evalfn(lispval prog1_expr,kno_lexenv env,
     KNO_DOLIST(subexpr,prog1_body) {
       lispval tmp = kno_eval(subexpr,env,_stack);
       if (KNO_ABORTED(tmp)) {
-        kno_decref(result);
-        return tmp;}
+	kno_decref(result);
+	return tmp;}
+      if (KNO_BREAKP(tmp)) break;
       kno_decref(tmp);}
     return result;}
 }
 
+DEFC_EVALFN("comment",comment_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(comment *exprs...*)` always returns VOID without evaluating anyting.")
 static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,kno_stack stack)
 {
   return VOID;
@@ -385,34 +504,23 @@ static lispval comment_evalfn(lispval comment_expr,kno_lexenv env,kno_stack stac
 
 KNO_EXPORT void kno_init_iterators_c()
 {
-  iter_var = kno_intern("%iter");
-
   u8_register_source_file(_FILEINFO);
 
-  kno_def_evalfn(kno_scheme_module,"UNTIL",until_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"WHILE",while_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"DOTIMES",dotimes_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"DOLIST",dolist_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"DOSEQ",doseq_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"FORSEQ",forseq_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"TRYSEQ",tryseq_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(kno_scheme_module,until_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,while_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,dotimes_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,dolist_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,doseq_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,forseq_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,tryseq_evalfn);
 
-  kno_def_evalfn(kno_scheme_module,"BEGIN",begin_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"PROG1",prog1_evalfn,
-		 "*undocumented*");
-  kno_def_evalfn(kno_scheme_module,"COMMENT",comment_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(kno_scheme_module,doiter_evalfn);
+
+  KNO_LINK_EVALFN(kno_scheme_module,begin_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,prog1_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,comment_evalfn);
   kno_defalias(kno_scheme_module,"*******","COMMENT");
-  kno_def_evalfn(kno_scheme_module,"ONBREAK",onbreak_evalfn,
-		 "*undocumented*");
+  KNO_LINK_EVALFN(kno_scheme_module,onbreak_evalfn);
 
   link_local_cprims();
 

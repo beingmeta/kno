@@ -5,7 +5,7 @@
 (in-module 'xhtml/include)
 
 (use-module '{io/getcontent xhtml/pagedate})
-(use-module '{webtools xhtml})
+(use-module '{webtools texttools xhtml})
 (define have-sundown #f)
 (when (get-module 'sundown)
   (use-module 'sundown)
@@ -13,18 +13,30 @@
 
 (module-export! '{xhtml/include firebuglite})
 
+(define suffix-pat #("." (isalnum+) (eos)))
+
+(define-init suffix-handlers (make-hashtable))
+(store! suffix-handlers {".nml" ".knoml" ".knoxml"} knoml/parse)
+(config-def! 'xhtml:include:suffixfns
+  (lambda (var (val))
+    (if (unbound? val) suffix-handlers
+	(if (pair? val)
+	    (store! suffix-handlers (car val) (cdr val))
+	    (irritant val |BadSuffix.Handler|)))))
+
 (define (wrap/pre string)
   (glom "\n<pre>\n" string "\n</pre>\n"))
 
-(define (xhtml/include file (base #f) (enc #t))
+(define (xhtml/include file (base #f) (opts #f))
+  (local enc (getopt opts 'character-encoding (getopt opts 'encoding #t)))
+  (local transformer (getopt opts 'transformer))
   (let* ((path (if base (get-component file base) file))
-	 (content (if (has-suffix path {".nml" ".knoml" ".knoxml"})
-		      (getcontent path enc knoml/parse)
-		      (if (has-suffix path {".md" ".markdown"})
-			  (if have-sundown
-			      (getcontent path enc md->html)
-			      (getcontent path enc wrap/pre))
-			  (getcontent path enc))))
+	 (transformer (or transformer
+			  (try (get suffix-handlers (gather suffix-pat path))
+			       #f)))
+	 (content (if transformer
+		      (getcontent path enc transformer)
+		      (getcontent path enc)))
 	 (mod (file-modtime path)))
     (pagedate! mod)
     (if (string? content) (xhtml content) (xmleval content))))

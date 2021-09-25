@@ -7,7 +7,7 @@ static void init_opcode_names()
   set_opcode_name(KNO_QUOTE_OPCODE,"OP_QUOTE");
   set_opcode_name(KNO_ASSIGN_OPCODE,"OP_ASSIGN");
   set_opcode_name(KNO_SYMREF_OPCODE,"OP_SYMREF");
-  set_opcode_name(KNO_FCNREF_OPCODE,"OP_FCNREF");
+  set_opcode_name(KNO_QONSTREF_OPCODE,"OP_QONSTREF");
   set_opcode_name(KNO_JIT_OPCODE,"OP_JIT");
   set_opcode_name(KNO_BIND_OPCODE,"OP_BIND");
   set_opcode_name(KNO_VOID_OPCODE,"OP_VOID");

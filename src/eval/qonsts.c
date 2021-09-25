@@ -12,7 +12,6 @@
    They are especially used to represent references to functions
    in optimized code.
 
-   
 */
 
 #ifndef _FILEINFO
@@ -129,9 +128,6 @@ KNO_EXPORT lispval kno_set_qonst(lispval id,lispval value)
         return id;}}}
 }
 
-static int unparse_qonst(u8_output out,lispval x) {
-  u8_printf(out,"#<QONST 0x%x>", KNO_IMMEDIATE_DATA(x)); return 1;}
-
 /* QONST/REF */
 
 static lispval getmoduleid(lispval module)
@@ -153,7 +149,6 @@ static lispval getmoduleid(lispval module)
     return stringid;}
   else return KNO_FALSE;
 }
-
 
 KNO_EXPORT lispval kno_qonst_ref(lispval sym,lispval from,lispval val)
 {
@@ -339,18 +334,65 @@ static lispval qonst_register_prim(lispval sym,lispval env_arg,lispval val)
   return result;
 }
 
+/* Unparsing qonsts referring to lambdas */
+
+static int better_unparse_qonst(u8_output out,lispval q)
+{
+  int serialno = KNO_GET_IMMEDIATE(q,kno_qonst_type);
+  lispval alias = kno_hashtable_get(&qonst_table,q,KNO_VOID);
+  if (RARELY(KNO_VOIDP(alias))) {
+    if (KNO_RARELY(serialno>_kno_qonst_count))
+      u8_printf(out,"#<BADQONST %p>",q);
+    else u8_printf(out,"#<QONST %d #!%p>",serialno,q);
+    return 1;}
+  if (KNO_PAIRP(alias))
+    u8_printf(out,"#%%(QONST %d %q %q)",serialno,KNO_CAR(alias),KNO_CDR(alias));
+  else u8_printf(out,"#%%(QONST %d %q)",serialno,alias);
+  kno_decref(alias);
+  return 1;
+}
+
+static lispval cons_qonst(int n,lispval *args,kno_typeinfo info)
+{
+  lispval arg = (n>0) ? (args[0]) : (KNO_VOID);
+  if (KNO_FIXNUMP(arg)) {
+    long long i = FIX2INT(arg);
+    if (i<0) return kno_init_compound(NULL,KNOSYM_QONST,0,n,args);
+    return KNO_GET_IMMEDIATE(i,kno_qonst_type);}
+  if (n==1) {
+    lispval qonst = kno_hashtable_get(&qonst_table,arg,KNO_VOID);
+    if (KNO_QONSTP(qonst)) return qonst;
+    kno_decref(qonst);}
+  else if (n > 1) {
+    struct KNO_PAIR _probe; KNO_INIT_STATIC_CONS(&_probe,kno_pair_type);
+    _probe.car = arg; _probe.cdr = args[1];
+    lispval probeval = (lispval) &_probe;
+    lispval found = kno_hashtable_get(&qonst_table,probeval,KNO_VOID);
+    if (KNO_QONSTP(found)) return found;
+    kno_decref(found);}
+  else NO_ELSE;
+  return kno_init_compound(NULL,KNOSYM_QONST,KNO_COMPOUND_INCREF,n,args);
+}
+
 /* Initialization */
 
 void init_qonsts_c()
 {
   qonsts_symbol=kno_intern("%qonsts");
+
   kno_type_names[kno_qonst_type]=_("qonst");
   kno_type_docs[kno_qonst_type]=_("function identifier ID");
-  kno_unparsers[kno_qonst_type]=unparse_qonst;
+  kno_unparsers[kno_qonst_type]=better_unparse_qonst;
   u8_init_mutex(&_kno_qonst_lock);
+
   u8_register_source_file(_FILEINFO);
   KNO_INIT_STATIC_CONS(&qonst_table,kno_hashtable_type);
+
   kno_make_hashtable(&qonst_table,256);
+
+  struct KNO_TYPEINFO *info = kno_register_tag_type(kno_intern("qonst"),-1);
+  info->type_consfn = cons_qonst;
+
   kno_register_config
     ("QONST:LEAK",
      "Leak values stored behind function IDs, to avoid use after free due "

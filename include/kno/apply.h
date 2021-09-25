@@ -144,6 +144,8 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_TRACE_CUSTOM    0x08
 #define KNO_FCN_TRACE_BREAK     0x10
 
+#define KNO_OTHER_ITERATOR      0x01
+
 #define KNO_CALL_NDCALL  (KNO_CALL_XITER|KNO_CALL_XPRUNE)
 
 #define KNO_FCN_LOGGEDP(f)  ( ((f)->fcn_trace) & (KNO_CALL_LOGGING) )
@@ -157,6 +159,8 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_XCALLP(f)  (  ((f)->fcn_call) & (KNO_CALL_XCALL) )
 #define KNO_FCN_CXCALLP(f) (  ((f)->fcn_call) & (KNO_CALL_CXCALL) )
 #define KNO_FCN_PRUNEP(f)  (!(((f)->fcn_call) & (KNO_CALL_XPRUNE) ))
+
+#define KNO_FCN_ITERATORP(f)  (((f)->fcn_call) & (KNO_OTHER_ITERATOR) )
 
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
 
@@ -329,6 +333,10 @@ KNO_FASTOP int KNO_FUNCTION_INFOP(lispval x)
    (KNO_TYPEP((kno_qonst_val(x)),kno_cprim_type)) :	   \
    (KNO_TYPEP((x),kno_cprim_type)))
 
+#define KNO_ITERATORP(x)						\
+  ( (KNO_FUNCTIONP(x)) &&						\
+    (((KNO_FUNCTION_INFO(x))->fcn_other)&(KNO_OTHER_ITERATOR)) )
+
 /* Forward reference. Note that kno_lambda_type is defined in the
    pointer type enum in ptr.h. */
 
@@ -477,6 +485,8 @@ typedef kno_pair kno_closure;
 #define KNO_CLOSUREP(x)     (KNO_TYPEP((x),kno_closure_type))
 #define KNO_CLOSURE_FCN(x)  (((kno_pair)x)->car)
 #define KNO_CLOSURE_DATA(x) (((kno_pair)x)->cdr)
+
+KNO_EXPORT lispval kno_make_closure(lispval fcn,lispval data);
 
 /* Unparsing */
 

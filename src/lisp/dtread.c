@@ -32,7 +32,8 @@ KNO_EXPORT lispval kno_unpack_exception_vector(lispval content);
 static u8_mutex dtype_unpacker_lock;
 
 u8_condition kno_UnexpectedEOD=_("Unexpected end of data");
-u8_condition kno_DTypeError=_("Malformed DTYPE representation");
+u8_condition kno_ExternalFormatError=
+  _("External data format error (including XType/DType)");
 
 int kno_dtype_fixcase;
 
@@ -472,7 +473,7 @@ KNO_EXPORT lispval kno_read_dtype(struct KNO_INBUF *in)
     default:
       if ((code >= 0x40) && (code < 0x80))
         return read_packaged_dtype(code,in);
-      else return KNO_DTYPE_ERROR;}}
+      else return KNO_XFORMAT_ERROR;}}
   else return kno_return_errcode(KNO_EOD);
 }
 

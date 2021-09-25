@@ -280,7 +280,7 @@ static lispval timestamp_restore(lispval tag,lispval x,kno_typeinfo e)
     KNO_INIT_CONS(tm,kno_timestamp_type);
     u8_init_xtime(&(tm->u8xtimeval),secs,iprec,nsecs,tzoff,0);
     return LISP_CONS(tm);}
-  else return kno_err(kno_DTypeError,"bad timestamp compound",NULL,x);
+  else return kno_err(kno_ExternalFormatError,"bad timestamp compound",NULL,x);
 }
 
 /* Restoring 'lispvals' which are basically strings to parse */

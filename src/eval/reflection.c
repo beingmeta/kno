@@ -431,6 +431,21 @@ static lispval non_deterministicp(lispval x)
   else return kno_type_error(_("procedure"),"non_deterministicp",x);
 }
 
+
+DEFC_PRIM("iterator?",iteratorp,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns true if the procedure *x* is *synchronized*: this means "
+	  "that *x* will never be running in more than one thread at the "
+	  "same time.",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval iteratorp(lispval x)
+{
+  struct KNO_FUNCTION *f = KNO_FUNCTION_INFO(x);
+  if ( (f) && (KNO_FCN_ITERATORP(f)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 DEFC_PRIM("synchronized?",synchronizedp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns true if the procedure *x* is *synchronized*: this means "
@@ -1768,9 +1783,10 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("procedure-min-arity",procedure_min_arity,1,reflection);
   KNO_LINK_CPRIM("procedure-tracing",procedure_tracing,1,reflection);
   KNO_LINK_CPRIM("procedure/trace!",procedure_set_trace,2,reflection);
-  KNO_LINK_CPRIM("synchronized?",synchronizedp,1,reflection);
   KNO_LINK_CPRIM("non-deterministic?",non_deterministicp,1,reflection);
+  KNO_LINK_CPRIM("iterator?",iteratorp,1,reflection);
   KNO_LINK_CPRIM("procedure-arity",procedure_arity,1,reflection);
+  KNO_LINK_CPRIM("synchronized?",synchronizedp,1,reflection);
   KNO_LINK_CPRIM("set-tailable!",set_tailablep,2,reflection);
   KNO_LINK_CPRIM("tailable?",procedure_tailablep,1,reflection);
   KNO_LINK_CPRIM("set-documentation!",set_documentation,2,reflection);

@@ -620,7 +620,9 @@ _make_lambda(u8_string name,
   if (n_vars < 0) goto err_exit;
   s->lambda_n_locals = n_vars-s->fcn_arginfo_len;
 
-  if (kno_enclose_lambdas) { /* Make all procs be closures */
+  int enclose = (env!=NULL) && (!(sync)) && (kno_enclose_lambdas);
+
+  if (enclose) { /* Make all procs be closures */
     s->lambda_env = NULL;}
   else if (env) {
     s->lambda_env = kno_copy_env(env);}
@@ -641,14 +643,14 @@ _make_lambda(u8_string name,
 
   u8_close_output(docout);
 
-  if ( (kno_enclose_lambdas) && (env) ) {
+  if (enclose) {
     struct KNO_PAIR *closure = u8_alloc(struct KNO_PAIR);
     KNO_INIT_CONS(closure,kno_closure_type);
     closure->car = LISP_CONS(s);
     closure->cdr = (lispval) kno_copy_env(env);
     return LISP_CONS(closure);}
   else return LISP_CONS(s);
-  
+
  err_exit:
   kno_decref_stackvec(args);
   kno_free_stackvec(args);
@@ -1044,33 +1046,46 @@ static lispval nlambda_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   return proc;
 }
 
-static lispval lambda_helper(lispval expr,
+/* This supports a bunch of syntatic variants of lambda with various
+   flag values (nd,synchronous,iterator) as well as (named) which indicates
+   whether the first element of the signature (the second element of the expr)
+   should be used as the display name of the lambda */
+static lispval lambda_helper(lispval lambda_spec,
 			     kno_lexenv env,kno_stack stack,
-			     int named,int nd,int sync)
+			     int named,int nd,int sync,
+			     int iterator)
 {
-  lispval template = kno_get_arg(expr,1);
+  lispval template = kno_get_arg(lambda_spec,1);
   if ( (named) && (!(KNO_PAIRP(template))) )
-    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(expr))),
+    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(lambda_spec))),
 		   NULL,template);
   else if (!( (template==KNO_EMPTY_LIST) || (KNO_PAIRP(template)) ) )
-    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(expr))),
+    return kno_err(kno_SyntaxError,(KNO_SYMBOL_NAME(KNO_CAR(lambda_spec))),
 		   NULL,template);
   else NO_ELSE;
   lispval name = (named) ? (KNO_CAR(template)) : (KNO_VOID);
   lispval arglist = (named) ? (KNO_CDR(template)) : template;
-  lispval body = kno_get_body(expr,2);
+  lispval body = kno_get_body(lambda_spec,2);
   lispval proc = VOID;
   u8_string namestring = NULL;
   if (named) {
     if (SYMBOLP(name)) namestring = SYM_NAME(name);
     else if (STRINGP(name)) namestring = CSTRING(name);
     else return kno_type_error
-	   ("procedure name (string or symbol)",KNO_SYMBOL_NAME(KNO_CAR(expr)),
+	   ("procedure name (string or symbol)",KNO_SYMBOL_NAME(KNO_CAR(lambda_spec)),
 	    name);}
   proc=make_lambda(namestring,arglist,body,env,stack,nd,sync);
   if (KNO_ABORTED(proc))
     return proc;
-  set_lambda_source(proc,expr);
+  if (iterator) {
+    kno_lambda info = KNO_LAMBDA_INFO(proc);
+    if (!(info)) return kno_err("BadLambda","lambda_helper",NULL,lambda_spec);
+    if (info->fcn_min_arity>0) {
+      lispval err = kno_err("BadIterator","lambda_helper",NULL,lambda_spec);
+      kno_decref(proc);
+      return err;}
+    else info->fcn_other |= KNO_OTHER_ITERATOR;}
+  set_lambda_source(proc,lambda_spec);
   return proc;
 }
 
@@ -1079,7 +1094,7 @@ DEFC_EVALFN("defn",defn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "named lambda procedure.")
 static lispval defn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return lambda_helper(expr,env,_stack,1,0,0);
+  return lambda_helper(expr,env,_stack,1,0,0,0);
 }
 
 DEFC_EVALFN("choicefn",choicefn_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1089,7 +1104,7 @@ DEFC_EVALFN("choicefn",choicefn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "as a direct value.")
 static lispval choicefn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return lambda_helper(expr,env,_stack,0,1,0);
+  return lambda_helper(expr,env,_stack,0,1,0,0);
 }
 
 DEFC_EVALFN("nchoicefn",nchoicefn_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1099,7 +1114,7 @@ DEFC_EVALFN("nchoicefn",nchoicefn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "as a direct value.")
 static lispval nchoicefn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return lambda_helper(expr,env,_stack,1,1,0);
+  return lambda_helper(expr,env,_stack,1,1,0,0);
 }
 
 DEFC_EVALFN("syncfn",syncfn_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1107,7 +1122,7 @@ DEFC_EVALFN("syncfn",syncfn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "lambda which can only called by one thread at a time.")
 static lispval syncfn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return lambda_helper(expr,env,_stack,0,0,1);
+  return lambda_helper(expr,env,_stack,0,0,1,0);
 }
 
 DEFC_EVALFN("nsyncfn",nsyncfn_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1116,7 +1131,21 @@ DEFC_EVALFN("nsyncfn",nsyncfn_evalfn,KNO_EVALFN_DEFAULTS,
 	    "time.")
 static lispval nsyncfn_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  return lambda_helper(expr,env,_stack,1,0,1);
+  return lambda_helper(expr,env,_stack,1,0,1,0);
+}
+
+DEFC_EVALFN("iterator",iterator_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(iterator *args* *body...*)` returns an iterator lambda.")
+static lispval iterator_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  return lambda_helper(expr,env,_stack,0,0,0,1);
+}
+
+DEFC_EVALFN("niterator",niterator_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(niterator *args* *body...*)` returns an iterator lambda.")
+static lispval niterator_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  return lambda_helper(expr,env,_stack,1,0,0,1);
 }
 
 DEFC_EVALFN("thunkfn",thunkfn_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1441,97 +1470,6 @@ static int walk_closure(kno_walker walker,lispval obj,void *walkdata,
   else return 3;
 }
 
-/* Unparsing qonsts referring to lambdas */
-
-static int better_unparse_qonst(u8_output out,lispval x)
-{
-  lispval lp = kno_qonst_val(x);
-  if (TYPEP(lp,kno_lambda_type)) {
-    struct KNO_LAMBDA *lambda = kno_consptr(kno_lambda,lp,kno_lambda_type);
-    kno_ptrval addr = (kno_ptrval) lambda;
-    lispval arglist = lambda->lambda_arglist;
-    int ndcallp = (FCN_NDOPP(lambda));
-    u8_string codes=
-      (((lambda->lambda_synchronized)&&(ndcallp))?("∀∥"):
-       (lambda->lambda_synchronized)?("∥"):
-       (ndcallp)?("∀"):(""));
-    if (lambda->fcn_name)
-      u8_printf(out,"#<~%d<λ%s%s",
-		KNO_GET_IMMEDIATE(x,kno_qonst_type),
-		codes,lambda->fcn_name);
-    else u8_printf(out,"#<~%dλ%s0x%04x",
-		   KNO_GET_IMMEDIATE(x,kno_qonst_type),
-		   codes,((addr>>2)%0x10000));
-    if (PAIRP(arglist)) {
-      int first = 1; lispval scan = lambda->lambda_arglist;
-      lispval spec = VOID, arg = VOID;
-      u8_putc(out,'(');
-      while (PAIRP(scan)) {
-	if (first) first = 0; else u8_putc(out,' ');
-	spec = KNO_CAR(scan);
-	arg = (SYMBOLP(spec)) ? (spec) :
-	  (PAIRP(spec)) ? (KNO_CAR(spec)) :
-	  (VOID);
-	if (SYMBOLP(arg))
-	  u8_puts(out,SYM_NAME(arg));
-	else u8_puts(out,"?anon?");
-	if (PAIRP(spec)) u8_putc(out,'?');
-	scan = KNO_CDR(scan);}
-      if (NILP(scan))
-	u8_putc(out,')');
-      else if (SYMBOLP(scan))
-	u8_printf(out,"%s…)",SYM_NAME(scan));
-      else u8_printf(out,"…%q…)",scan);}
-    else if (NILP(arglist))
-      u8_puts(out,"()");
-    else if (SYMBOLP(arglist))
-      u8_printf(out,"(%s…)",SYM_NAME(arglist));
-    else u8_printf(out,"(…%q…)",arglist);
-    if (!(lambda->fcn_name))
-      u8_printf(out," #!%p",lambda);
-    if (lambda->fcn_filename)
-      u8_printf(out," '%s'>>",lambda->fcn_filename);
-    else u8_puts(out,">>");
-    return 1;}
-  else if (TYPEP(lp,kno_cprim_type)) {
-    struct KNO_FUNCTION *fcn = (kno_function)lp;
-    kno_ptrval addr = (kno_ptrval) fcn;
-    u8_string name = fcn->fcn_name;
-    u8_string filename = fcn->fcn_filename;
-    u8_byte arity[64]="", codes[64]="", numbuf[32]="";
-    if ((filename)&&(filename[0]=='\0')) filename = NULL;
-    if (name == NULL) name = fcn->fcn_name;
-    if (FCN_NDOPP(fcn)) strcat(codes,"∀");
-    if ((fcn->fcn_arity<0)&&(fcn->fcn_min_arity<0))
-      strcat(arity,"[…]");
-    else if (fcn->fcn_arity==fcn->fcn_min_arity) {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
-      strcat(arity,"]");}
-    else if (fcn->fcn_arity<0) {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
-      strcat(arity,"…]");}
-    else {
-      strcat(arity,"[");
-      strcat(arity,u8_itoa10(fcn->fcn_min_arity,numbuf));
-      strcat(arity,"-");
-      strcat(arity,u8_itoa10(fcn->fcn_arity,numbuf));
-      strcat(arity,"]");}
-    if (name)
-      u8_printf(out,"#<~%d<%s%s%s%s%s%s>>",
-		KNO_GET_IMMEDIATE(x,kno_qonst_type),
-		codes,name,arity,U8OPTSTR("'",filename,"'"));
-    else u8_printf(out,"#<~%d<Φ%s0x%04x%s #!%p%s%s%s>>",
-		   KNO_GET_IMMEDIATE(x,kno_qonst_type),
-		   codes,((addr>>2)%0x10000),arity,fcn,
-		   arity,U8OPTSTR("'",filename,"'"));
-    return 1;}
-  else u8_printf(out,"#<~%ld %q>",
-		 KNO_GET_IMMEDIATE(x,kno_qonst_type),lp);
-  return 1;
-}
-
 #define BUFOUT_FLAGS							\
   (KNO_IS_WRITING|KNO_BUFFER_NO_FLUSH|KNO_USE_DTYPEV2|KNO_WRITE_OPAQUE)
 
@@ -1596,8 +1534,6 @@ KNO_EXPORT void kno_init_lambdas_c()
   kno_recyclers[kno_closure_type]=recycle_closure;
   kno_walkers[kno_closure_type]=walk_closure;
 
-  kno_unparsers[kno_qonst_type]=better_unparse_qonst;
-
   kno_dtype_writers[kno_lambda_type] = write_lambda_dtype;
   kno_dtype_writers[kno_closure_type] = write_lambda_dtype;
   kno_copiers[kno_lambda_type] = copy_lambda;
@@ -1630,6 +1566,12 @@ KNO_EXPORT void kno_init_lambdas_c()
   KNO_LINK_ALIAS("defsyncfn",nsyncfn_evalfn,kno_scheme_module);
   KNO_LINK_ALIAS("nslambda",nsyncfn_evalfn,kno_scheme_module);
   KNO_LINK_ALIAS("defsync",nsyncfn_evalfn,kno_scheme_module);
+
+  LINK_EVALFN(kno_scheme_module,iterator_evalfn);
+  KNO_LINK_ALIAS("iterfn",iterator_evalfn,kno_scheme_module);
+
+  LINK_EVALFN(kno_scheme_module,niterator_evalfn);
+  KNO_LINK_ALIAS("niterfn",niterator_evalfn,kno_scheme_module);
 
   LINK_EVALFN(kno_scheme_module,thunkfn_evalfn);
   KNO_LINK_ALIAS("thunk",thunkfn_evalfn,kno_scheme_module);

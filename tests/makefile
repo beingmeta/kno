@@ -49,6 +49,27 @@ SPLITINDEX	= ../src/scripts/split-index.scm
 
 default: alltests
 
+help usage:
+	echo "Usage: make *target*, where *target* could be:"
+	echo "\talltests\t(default) runs all runtime, language, and database tests"
+	echo "\truntime\t runs all runtime tests, both optimized (compiled) and not"
+	echo "\tbuildinfo\t gets information about the build being tested"
+	echo "\tsmoke\t minimal test, tries to run smoke.scm"
+	echo "\tloadmods\t loads available modules"
+	echo "\toptmods\t loads and optimizes available modules"
+	echo
+	echo "Or specify particular components: (optionally with TESTOPTIMIZED=yes)"
+	echo "\tr4rs tail exceptions choices sequences numbers types regex lambda conditionals"
+	echo "\titerators binders errfns binio eval defines xtypes quasiquote promises"
+	echo "\tconfigs appenv sqlite opts modulefns compunds loading hashsets slotmaps hashtables"
+	echo "\tcachecall pick requests texttools webtools stringprims timeprims"
+	echo "\tsysprims startup subprocs threads threflect ffi i18n fileprims misc"
+	echo "\tgctests gcoverflow profiling xmltest compression"
+	echo "\tpools indexes frames storage"
+	echo ""
+	echo "\tAlso, use targets temp and tempopt (for temporary tests) to test using temp.scm"
+
+
 fresh: clean
 	make alltests
 
@@ -82,7 +103,7 @@ all_tests alltests: cleanlogs
 	make cmdtests
 	${header} "■■■■■■■■ Done with alltests";
 
-justcode run: cleanlogs
+justcode run runtime: cleanlogs
 	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then \
           malloc=`cat ../.malloc`; build=`cat ../.buildmode`; \
 	  echo "Running all non-db tests with malloc=$${malloc} and build=$${build}"; fi;
@@ -95,7 +116,6 @@ standard standard_tests wodb_tests wodbs wodb nodb nodbs: justcode
 
 smoke smoketest:
 	@${RUN} ${KNOX} smoke.scm ${RUNCONF} TESTOPTIMIZED=${TESTOPTIMIZED}
-	@${RUN} ${KNAPP} ":(+ 2 3)"
 
 buildinfo:
 	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then \
@@ -151,7 +171,7 @@ ziptest: libscm.zip
 libscm.zip: ../src/libscm/*.scm ../src/libscm/*/*.scm
 	cd ../src/libscm; zip -ry ../../tests/libscm.zip *
 
-core scheme: schemetests optschemetests threads slotmaps
+core scheme knolang lang: schemetests optschemetests threads slotmaps
 mods modules:
 	make loadmods && make optmods && make zipmods
 
@@ -356,8 +376,10 @@ tabletest:
 slotmaptests slotmaps:
 	@make TESTFILE=${TESTBASE}.slotmap tabletest
 
-tabletests hashtables:
+tabletests hashtabletests hashtables:
 	@make TESTFILE=${TESTBASE}.hashtable tabletest
+
+tables: slotmaps hashtables
 
 .PHONY: slotmaptests slotmaps tabletests tables
 

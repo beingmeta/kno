@@ -615,6 +615,17 @@ KNO_EXPORT lispval kno_call(struct KNO_STACK *_stack,
   else return kno_dcall(_stack,handler,n,args);
 }
 
+/* Making closures */
+
+KNO_EXPORT lispval kno_make_closure(lispval handler,lispval state)
+{
+  struct KNO_PAIR *closure = u8_alloc(struct KNO_PAIR);
+  KNO_INIT_CONS(closure,kno_closure_type);
+  closure->car = kno_incref(handler);
+  closure->cdr = kno_incref(state);
+  return LISPVAL(closure);
+}
+
 /* Initializations */
 
 static u8_condition DefnFailed=_("Definition Failed");

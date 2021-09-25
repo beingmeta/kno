@@ -133,7 +133,7 @@ KNO_EXPORT int kno_init_errbase(void);
 
 KNO_EXPORT u8_condition kno_UnexpectedEOD, kno_UnexpectedEOF;
 KNO_EXPORT u8_condition kno_ParseError, kno_ParseArgError, kno_TypeError;
-KNO_EXPORT u8_condition kno_DTypeError, kno_InconsistentDTypeSize;
+KNO_EXPORT u8_condition kno_ExternalFormatError, kno_InconsistentDTypeSize;
 KNO_EXPORT u8_condition kno_RangeError, kno_DisorderedRange;
 KNO_EXPORT u8_condition kno_BadEscapeSequence, kno_ConstantTooLong;
 KNO_EXPORT u8_condition kno_CantParseRecord, kno_CantUnparse, kno_InvalidConstant;
