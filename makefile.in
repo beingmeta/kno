@@ -99,6 +99,7 @@ APK_ARCH_DIR	:= ${APKREPO}/staging/${ARCH}
 LISP_HEADERS=\
  include/kno/knosource.h                        \
  include/kno/config.h                           \
+ include/kno/configs.h                          \
  include/kno/common.h                           \
  include/kno/errobjs.h                          \
  include/kno/errors.h                          	\
