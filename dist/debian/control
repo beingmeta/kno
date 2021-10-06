@@ -112,7 +112,7 @@ Description: This package contains the debugging symbols for kno-odbc
 
 Package: kno-mariadb
 Architecture: any
-Depends: kno-core (= ${binary:Version}), mariadb | mariadb3 | libmariadb
+Depends: kno-core (= ${binary:Version}), mariadb | mariadb3 | libmariadb | libmariadb3
 Description: Mariadb bindings for Kno
 
 Package: kno-mariadb-dbg
