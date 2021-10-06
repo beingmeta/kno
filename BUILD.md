@@ -72,12 +72,7 @@ script, but for convenience, we list some of them here.
 
   --disable-leveldb Build and install LevelDB module
   --disable-rocksdb Build and install Rocksdb module
-  --disable-imagick Build and install imagemagick module
-  --without-ziptools Build and install ziptools
-  --disable-mongodb Build and install MongoDB module
   --disable-odbc Build odbc modules
-  --disable-tidy Build and install tidy module
-  --disable-hyphenate Build and install the hyphenate module
 
   --with/out-crypto Compile the crypto module
   --with/out-global-ipeval Use global lock and variables for ipeval

@@ -624,6 +624,8 @@ LIBOBJS
 MARIADB_LIBS
 MARIADB_CFLAGS
 ODBC_CFLAGS
+ZDB_LIBS
+ZDB_CFLAGS
 ROCKSDB_LIBS
 ROCKSDB_CFLAGS
 LEVELDB_LIBS
@@ -991,6 +993,7 @@ with_bootsystem
 with_systemd
 with_leveldb
 with_rocksdb
+with_zdb
 with_odbc
 with_mariadb
 '
@@ -1722,6 +1725,7 @@ Optional Packages:
 --with-systemd Specify systemd install directory
 --with-leveldb Specify building with the LevelDB bindings
 --with-rocksdb Specify building with the RocksDB bindings
+--with-zdb Specify building with the ZDB bindings
 --with-odbc Specify building with the ODBC bindings
 --with-mariadb Specify building with the MariaDB/MySQL bindings
 
@@ -4390,7 +4394,6 @@ leaktester_config=
 test_size=512
 small_test_size=64
 
-use_duma_lib="no"
 custom_malloc=""
 using_malloc=""
 default_malloc=${KNO_DEFAULT_MALLOC:-libc}
@@ -13825,11 +13828,7 @@ WITH_LEVELDB_WRAPPER=
 WITH_ROCKSDB_WRAPPER=
 WITH_ODBC_WRAPPER=
 WITH_MARIADB_WRAPPER=
-
-LEVELDB_CFLAGS=
-LEVELDB_LIBS=-lleveldb
-
-
+WITH_ZDB_WRAPPER=
 
 
 # Check whether --with-leveldb was given.
@@ -13848,6 +13847,14 @@ else
 fi
 
 
+# Check whether --with-zdb was given.
+if test "${with_zdb+set}" = set; then :
+  withval=$with_zdb;
+else
+  with_zdb=auto
+fi
+
+
 # Check whether --with-odbc was given.
 if test "${with_odbc+set}" = set; then :
   withval=$with_odbc;
@@ -13862,6 +13869,11 @@ if test "${with_mariadb+set}" = set; then :
 else
   with_mariadb=auto
 fi
+
+
+LEVELDB_CFLAGS=
+LEVELDB_LIBS=-lleveldb
+
 
 
 if test "${with_leveldb}" == "no"; then
@@ -14001,6 +14013,78 @@ if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
    INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
 else auto_disabled="rocksdb ${auto_disabled}";
+fi;
+
+ZDB_CFLAGS=
+ZDB_LIBS=-lzdb
+
+
+
+if test "${with_zdb}" == "no"; then
+  manually_disabled="zdb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists zdb; then
+  ZDB_CFLAGS=$(pkg-config --cflags zdb)
+  ZDB_LIBS=$(pkg-config --libs zdb)
+  WITH_ZDB_WRAPPER=yes
+else
+   ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
+if test "x$ac_cv_header_sql_h" = xyes; then :
+  HAVE_ZDB_HEADER=yes
+fi
+
+
+   if test ! -z "${HAVE_ZDB_HEADER}"; then
+     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLDriverConnect in -lzdb" >&5
+$as_echo_n "checking for SQLDriverConnect in -lzdb... " >&6; }
+if ${ac_cv_lib_zdb_SQLDriverConnect+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lzdb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char SQLDriverConnect ();
+int
+main ()
+{
+return SQLDriverConnect ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_zdb_SQLDriverConnect=yes
+else
+  ac_cv_lib_zdb_SQLDriverConnect=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_zdb_SQLDriverConnect" >&5
+$as_echo "$ac_cv_lib_zdb_SQLDriverConnect" >&6; }
+if test "x$ac_cv_lib_zdb_SQLDriverConnect" = xyes; then :
+  WITH_ZDB_WRAPPER=yes
+fi
+
+   fi;
+fi;
+
+if test -z "${WITH_ZDB_WRAPPER}" && test "${with_zdb}" = "force"; then
+   force_enabled="zdb ${force_enabled}"
+   WITH_ZDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ZDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/zdb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-zdb ${INSTALL_CWRAPPERS}";
+else auto_disabled="zdb ${auto_disabled}";
 fi;
 
 ODBC_CFLAGS=

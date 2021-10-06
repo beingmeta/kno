@@ -1577,6 +1577,7 @@ install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archi
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
+install-zdb: ${CMODULES}/zdb.@shared_suffix@ ${CMODULES}/zdb.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
 
@@ -2004,6 +2005,9 @@ scr/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
 
 lib/kno/leveldb.@shared_suffix@ : MODLIBS=@LEVELDB_LIBS@
 scr/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
+
+lib/kno/zdb.@shared_suffix@ : MODLIBS=@ZDB_LIBS@
+scr/cwrappers/zdb.o : MOD_CFLAGS=@ZDB_CFLAGS@
 
 lib/kno/odbc.@shared_suffix@ : MODLIBS=@ODBC_LIBS@
 scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@

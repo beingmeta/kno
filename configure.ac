@@ -210,7 +210,6 @@ leaktester_config=
 test_size=512
 small_test_size=64
 
-use_duma_lib="no"
 custom_malloc=""
 using_malloc=""
 default_malloc=${KNO_DEFAULT_MALLOC:-libc}
@@ -1874,16 +1873,18 @@ WITH_LEVELDB_WRAPPER=
 WITH_ROCKSDB_WRAPPER=
 WITH_ODBC_WRAPPER=
 WITH_MARIADB_WRAPPER=
+WITH_ZDB_WRAPPER=
+
+AC_ARG_WITH(leveldb,--with-leveldb Specify building with the LevelDB bindings,,with_leveldb=auto)
+AC_ARG_WITH(rocksdb,--with-rocksdb Specify building with the RocksDB bindings,,with_rocksdb=auto)
+AC_ARG_WITH(zdb,--with-zdb Specify building with the ZDB bindings,,with_zdb=auto)
+AC_ARG_WITH(odbc,--with-odbc Specify building with the ODBC bindings,,with_odbc=auto)
+AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindings,,with_mariadb=auto)
 
 LEVELDB_CFLAGS=
 LEVELDB_LIBS=-lleveldb
 AC_SUBST(LEVELDB_CFLAGS)
 AC_SUBST(LEVELDB_LIBS)
-
-AC_ARG_WITH(leveldb,--with-leveldb Specify building with the LevelDB bindings,,with_leveldb=auto)
-AC_ARG_WITH(rocksdb,--with-rocksdb Specify building with the RocksDB bindings,,with_rocksdb=auto)
-AC_ARG_WITH(odbc,--with-odbc Specify building with the ODBC bindings,,with_odbc=auto)
-AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindings,,with_mariadb=auto)
 
 if test "${with_leveldb}" == "no"; then
   manually_disabled="leveldb ${manually_disabled}";
@@ -1934,6 +1935,34 @@ if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
    INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
 else auto_disabled="rocksdb ${auto_disabled}";
+fi;   
+
+ZDB_CFLAGS=
+ZDB_LIBS=-lzdb
+AC_SUBST(ZDB_CFLAGS)
+AC_SUBST(ZDB_LIBS)
+
+if test "${with_zdb}" == "no"; then
+  manually_disabled="zdb ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists zdb; then
+  ZDB_CFLAGS=$(pkg-config --cflags zdb)
+  ZDB_LIBS=$(pkg-config --libs zdb)
+  WITH_ZDB_WRAPPER=yes
+else
+   AC_CHECK_HEADER(sql.h,HAVE_ZDB_HEADER=yes)
+   if test ! -z "${HAVE_ZDB_HEADER}"; then
+     AC_CHECK_LIB(zdb,SQLDriverConnect,WITH_ZDB_WRAPPER=yes)
+   fi;
+fi;
+
+if test -z "${WITH_ZDB_WRAPPER}" && test "${with_zdb}" = "force"; then
+   force_enabled="zdb ${force_enabled}"
+   WITH_ZDB_WRAPPER=forced
+fi;
+if test ! -z "${WITH_ZDB_WRAPPER}"; then
+   CWRAPPERS="lib/kno/zdb.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-zdb ${INSTALL_CWRAPPERS}";
+else auto_disabled="zdb ${auto_disabled}";
 fi;   
 
 ODBC_CFLAGS=
