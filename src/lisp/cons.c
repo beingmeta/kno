@@ -61,8 +61,8 @@ lispval kno_timestamp_xtag, kno_qchoice_xtag, kno_regex_xtag,
 lispval kno_zlib_xtag, kno_zstd_xtag, kno_snappy_xtag;
 
 const char *kno_constant_names[512]={
-  "#void","#f","#t","{}","()","#default","#tailcall",
-  "#eof","#eod","#eox", "#bad_dtype","#bad_parse","#oom",
+  "#void","#f","#t","{}","()","#default","#tailcall","#eod",
+  "#eof","#eox", "#bad_dtype","#bad_parse","#oom",
   "#type_error","#range_error", "#error","#badptr","#throw",
   "#break","#unbound","#neverseen","#lockholder","#preoid", /* 22 */
   "#qvoid","#required","#blank",NULL,NULL,NULL,NULL,NULL, /* 30 */

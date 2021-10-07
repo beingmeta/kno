@@ -325,6 +325,14 @@ typedef struct KNO_QCODE {
 
 /* Loading files and config data */
 
+typedef lispval (*kno_readfn)(void *source);
+
+KNO_EXPORT lispval kno_load_loop
+(u8_string sourcebase,
+ kno_readfn readexpr,void *source,
+ kno_lexenv env,kno_stack load_stack);
+
+KNO_EXPORT lispval kno_load_fasl(u8_string sourceid,kno_lexenv env);
 KNO_EXPORT lispval kno_load_stream
   (u8_input loadstream,kno_lexenv env,u8_string sourcebase);
 KNO_EXPORT lispval kno_load_source

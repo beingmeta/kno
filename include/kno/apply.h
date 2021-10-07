@@ -160,7 +160,7 @@ typedef struct KNO_ARGINFO {
 #define KNO_FCN_CXCALLP(f) (  ((f)->fcn_call) & (KNO_CALL_CXCALL) )
 #define KNO_FCN_PRUNEP(f)  (!(((f)->fcn_call) & (KNO_CALL_XPRUNE) ))
 
-#define KNO_FCN_ITERATORP(f)  (((f)->fcn_call) & (KNO_OTHER_ITERATOR) )
+#define KNO_FCN_ITERATORP(f)  (((f)->fcn_other) & (KNO_OTHER_ITERATOR) )
 
 #define KNO_FCN_NDCALLP(f) ( ((f)->fcn_call) & (KNO_CALL_NDCALL) )
 

@@ -41,10 +41,10 @@ kno_type_consfn kno_default_consfn = NULL;
 /* Common macros, functions and declarations */
 
 #define PARSE_ERRORP(x) ((x == KNO_EOX) || (x == KNO_PARSE_ERROR) || (x == KNO_OOM))
-#define PARSE_ABORTP(x)                                                 \
-  (KNO_RARELY(((KNO_TYPEP(x,kno_constant_type)) &&                \
-                     (KNO_GET_IMMEDIATE(x,kno_constant_type)>6) &&      \
-                     (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
+#define PARSE_ABORTP(x)                                         \
+  (KNO_RARELY(((KNO_TYPEP(x,kno_constant_type)) &&              \
+	       (KNO_GET_IMMEDIATE(x,kno_constant_type)>7) &&	\
+	       (KNO_GET_IMMEDIATE(x,kno_constant_type)<16))))
 
 
 #define odigitp(c) ((c>='0')&&(c<='8'))

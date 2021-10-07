@@ -789,6 +789,33 @@ static int validate_opcode(lispval opcode)
   else return 0;
 }
 
+static lispval knopcode_tag;
+
+static lispval opcode_dump(lispval opcode,kno_typeinfo info)
+{
+  int opcode_offset = (KNO_GET_IMMEDIATE(opcode,kno_opcode_type));
+  if ( (opcode_offset<0) || (opcode_offset>kno_opcodes_length) )
+    return KNO_INT(opcode_offset);
+  else if (kno_opcode_names[opcode_offset])
+    return knostring(kno_opcode_names[opcode_offset]);
+  else return KNO_INT(opcode_offset);
+}
+
+static lispval opcode_restore(lispval MU tag,lispval code,kno_typeinfo MU info)
+{
+  if (KNO_STRINGP(code)) {
+    lispval opcode = kno_get_opcode(KNO_CSTRING(code));
+    if (KNO_OPCODEP(opcode))
+      return opcode;
+    else return kno_init_compound(NULL,tag,0,1,code);}
+  else if (KNO_FIXNUMP(code)) {
+    long long num = KNO_FIX2INT(code);
+    if ((num>=0) && (num < kno_opcodes_length) && (kno_opcode_names[num]))
+      return KNO_OPCODE(num);
+    else return kno_init_compound(NULL,tag,0,1,code);}
+  else return kno_init_compound(NULL,tag,0,1,code);
+}
+
 /* Making some functions */
 
 KNO_EXPORT lispval kno_make_evalfn(u8_string name,int flags,
@@ -1304,6 +1331,15 @@ static void init_types_and_tables()
   source_symbol = kno_intern("%source");
   qonsts_symbol = kno_intern("%qonsts");
   sourceref_tag = kno_intern("%sourceref");
+  knopcode_tag =  kno_intern("%knopcode");
+
+  kno_typeinfo knopcode_info = kno_use_typeinfo(knopcode_tag);
+  knopcode_info->type_restorefn = opcode_restore;
+
+  kno_typeinfo opcode_info = kno_use_typeinfo(KNO_OPCODE_TYPE);
+  opcode_info->type_usetag = knopcode_tag;
+  opcode_info->type_dumpfn = opcode_dump;
+  opcode_info->type_restorefn = opcode_restore;
 
   kno_init_module_tables();
   init_opcode_names();

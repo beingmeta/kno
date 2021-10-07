@@ -373,18 +373,26 @@ DEFC_PRIMN("apply",apply_lexpr,
 	   "which may be either a pair, a vector, or the empty list.")
 static lispval apply_lexpr(int n,kno_argvec args)
 {
-  DO_CHOICES(fn,args[0])
-    if (!(KNO_APPLICABLEP(args[0]))) {
+  lispval fn_arg = args[0];
+  DO_CHOICES(fn,fn_arg) {
+    if (!(KNO_APPLICABLEP(fn))) {
       KNO_STOP_DO_CHOICES;
-      return kno_type_error("function","apply_lexpr",args[0]);}
+      return kno_type_error("function","apply_lexpr",fn);}}
+  if (n==1) return kno_apply(fn_arg,0,NULL);
   {
     lispval results = EMPTY;
     /* TODO: Pre-assemble the argcount and catch non-sequences in the
        last position. */
-    DO_CHOICES(fn,args[0]) {
+    DO_CHOICES(fn,fn_arg) {
       DO_CHOICES(final_arg,args[n-1]) {
 	lispval result = VOID;
-	int final_length = kno_seq_length(final_arg);
+	int final_length = (final_arg==KNO_EMPTY_LIST) ? (0) :
+	  (KNO_VECTORP(final_arg)) ? (KNO_VECTOR_LENGTH(final_arg)) :
+	  (KNO_PAIRP(final_arg)) ? (kno_list_length(final_arg)) :
+	  (kno_seq_length(final_arg));
+	if (final_length<0) {
+	  kno_decref(results);
+	  return kno_err(kno_NotASequence,"apply","final arg",final_arg);}
 	int n_args = (n-2)+final_length;
 	lispval *values = u8_alloc_n(n_args,lispval);
 	int i = 1, j = 0, lim = n-1;

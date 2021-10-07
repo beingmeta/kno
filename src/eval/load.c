@@ -40,50 +40,14 @@ static lispval loading_symbol, loadstamps_symbol;
 
 #define LOAD_CONTEXT_SIZE 40
 
-static lispval load_stream_loop(u8_string sourcebase,u8_input in,
-				kno_lexenv env,kno_stack stack);
-
-KNO_EXPORT lispval kno_load_stream
-(u8_input loadstream,kno_lexenv env,u8_string sourcebase)
-{
-  u8_string old_context = NULL;
-  lispval result = KNO_VOID;
-  u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
-  double start = u8_elapsed_time();
-  kno_stack _stack = kno_stackptr;
-  int tracing = trace_load || trace_load_eval;
-  u8_byte cxt_buf[strlen(sourcebase)+50];
-  u8_string cxt_string = u8_bprintf(cxt_buf,"while loading '%s'",sourcebase);
-  if (tracing) {
-    old_context = u8_log_context;
-    u8_set_log_context(cxt_string);}
-  KNO_CHECK_ERRNO(loadstream,"before loading");
-  KNO_PUSH_EVAL(load_stack,cxt_string,VOID,env);
-  U8_WITH_CONTOUR(cxt_string,0) {
-    result = load_stream_loop(sourcebase,loadstream,env,load_stack);
-    KNO_CHECK_ERRNO(sourcebase,"after loading");}
-  U8_ON_EXCEPTION {
-    u8_exception ex = u8_pop_exception();
-    if (ex) result = kno_wrap_exception(ex);
-    U8_CLEAR_CONTOUR();}
-  U8_END_EXCEPTION;
-  if (tracing) {
-    u8_set_log_context(old_context);
-    u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
-	   sourcebase,u8_elapsed_time()-start);}
-  kno_restore_sourcebase(outer_sourcebase);
-  kno_pop_stack(load_stack);
-  return result;
-}
-
-static lispval load_stream_loop(u8_string sourcebase,u8_input in,
-				kno_lexenv env,kno_stack load_stack)
+static lispval load_loop(u8_string sourcebase,
+			 kno_readfn readexpr,void *source,
+			 kno_lexenv env,kno_stack load_stack)
 {
   /* This does a read/eval loop. */
   lispval result = VOID;
   lispval expr = VOID, last_expr = VOID;
   double start_time;
-  kno_skip_whitespace(in);
   while (!((KNO_ABORTP(expr)) || (KNO_EOFP(expr)))) {
     kno_decref(result);
     if ((trace_load_eval) ||
@@ -119,8 +83,7 @@ static lispval load_stream_loop(u8_string sourcebase,u8_input in,
     kno_decref(last_expr);
     kno_decref_stackvec(&(load_stack->stack_refs));
     last_expr = expr;
-    kno_skip_whitespace(in);
-    expr = kno_parse_expr(in);}
+    expr = readexpr(source);}
   if (expr == KNO_EOF) {
     kno_decref(last_expr);
     last_expr = VOID;}
@@ -157,6 +120,55 @@ static lispval load_stream_loop(u8_string sourcebase,u8_input in,
   return result;
 }
 
+KNO_EXPORT lispval kno_load_loop
+(u8_string sourcebase,
+ kno_readfn readexpr,void *source,
+ kno_lexenv env,kno_stack _stack)
+{
+  u8_string old_context = NULL;
+  lispval result = KNO_VOID;
+  u8_string outer_sourcebase = kno_bind_sourcebase(sourcebase);
+  double start = u8_elapsed_time();
+  int tracing = trace_load || trace_load_eval;
+  u8_byte cxt_buf[strlen(sourcebase)+50];
+  u8_string cxt_string = u8_bprintf(cxt_buf,"while loading '%s'",sourcebase);
+  if (_stack==NULL) _stack=kno_stackptr;
+  if (tracing) {
+    old_context = u8_log_context;
+    u8_set_log_context(cxt_string);}
+  KNO_CHECK_ERRNO("before loading",sourcebase);
+  KNO_PUSH_EVAL(load_stack,cxt_string,VOID,env);
+  U8_WITH_CONTOUR(cxt_string,0) {
+    result = load_loop(sourcebase,readexpr,source,env,load_stack);
+    KNO_CHECK_ERRNO(sourcebase,"after loading");}
+  U8_ON_EXCEPTION {
+    u8_exception ex = u8_pop_exception();
+    if (ex) result = kno_wrap_exception(ex);
+    U8_CLEAR_CONTOUR();}
+  U8_END_EXCEPTION;
+  if (tracing) {
+    u8_set_log_context(old_context);
+    u8_log(LOG_WARN,FileDone,"Loaded %s in %f seconds",
+	   sourcebase,u8_elapsed_time()-start);}
+  kno_restore_sourcebase(outer_sourcebase);
+  kno_pop_stack(load_stack);
+  return result;
+}
+
+static lispval read_expr(void *source)
+{
+  u8_input in = (u8_input) source;
+  int c = kno_skip_whitespace(in);
+  if (c<0) return KNO_EOF;
+  else return kno_parse_expr(in);
+}
+
+KNO_EXPORT lispval kno_load_stream
+(u8_input loadstream,kno_lexenv env,u8_string sourcebase)
+{
+  return kno_load_loop(sourcebase,read_expr,(void *)loadstream,env,kno_stackptr);
+}
+
 KNO_EXPORT lispval kno_load_source_with_date
 (u8_string sourceid,kno_lexenv env,u8_string enc_name,time_t *modtime)
 {
@@ -190,6 +202,73 @@ static u8_string get_component(u8_string spec)
   u8_string base = kno_sourcebase();
   if (base) return u8_realpath(spec,base);
   else return u8_strdup(spec);
+}
+
+/* FASL files */
+
+static lispval fasl_xrefs_tag;
+
+typedef struct KNO_FASL_INPUT {
+  struct KNO_STREAM fasl_stream;
+  struct XTYPE_REFS fasl_xrefs;} *kno_fasl_input;
+
+static lispval fasl_read(void *input_arg)
+{
+  struct KNO_FASL_INPUT *input = (kno_fasl_input) input_arg;
+  lispval xtype = kno_read_xtype
+    (kno_readbuf(&(input->fasl_stream)),&(input->fasl_xrefs));
+  if (xtype==KNO_EOD)
+    return KNO_EOF;
+  else if ( (KNO_COMPOUNDP(xtype)) &&
+	    ( (KNO_COMPOUND_TAG(xtype)) == fasl_xrefs_tag) ) {
+    /* Embedded xrefs */
+    ssize_t len = KNO_COMPOUND_LENGTH(xtype);
+    lispval *newelts = u8_alloc_n(len,lispval);
+    lispval *read = KNO_COMPOUND_ELTS(xtype), *write = newelts;
+    lispval *limit = read+len;
+    while (read<limit) {
+      lispval e =*read++; *write++=kno_incref(e);}
+    kno_recycle_xrefs(&(input->fasl_xrefs));
+    kno_init_xrefs(&(input->fasl_xrefs),0,
+		   /* zero,n,len,max */
+		   len,len,len,len,
+		   newelts,NULL);
+    return xtype;}
+  else return xtype;
+}
+
+KNO_EXPORT lispval kno_load_fasl(u8_string sourceid,kno_lexenv env)
+{
+  struct KNO_FASL_INPUT input;
+  memset(&input,0,sizeof(struct KNO_FASL_INPUT));
+  kno_stream stream = kno_init_file_stream
+    (&(input.fasl_stream),sourceid,-1,KNO_STREAM_READ_ONLY,2000);
+  xtype_refs xrefs = &(input.fasl_xrefs);
+  kno_init_xrefs(xrefs,0,0,0,0,0,NULL,NULL);
+  lispval result =
+    kno_load_loop(sourceid,fasl_read,(void *)&input,env,kno_stackptr);
+  kno_close_stream(stream,0);
+  kno_recycle_xrefs(xrefs);
+  return result;
+}
+
+
+DEFC_EVALFN("LOAD-FASL",load_fasl_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(load-fasl *path*)` loads the Scheme fasl file "
+	    "at *path* into the current environment.")
+static lispval load_fasl_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  lispval source_expr = kno_get_arg(expr,1);
+  if (KNO_VOIDP(source_expr))
+    return kno_err(kno_SyntaxError,"load-fasl",NULL,expr);
+  lispval source = kno_eval(source_expr,env,_stack);
+  if (KNO_ABORTED(source)) return source;
+  else if (!(STRINGP(source)))
+    return kno_err(kno_TypeError,"Not a string","source",source);
+  else NO_ELSE;
+  lispval result = kno_load_fasl(KNO_CSTRING(source),env);
+  kno_decref(source);
+  return result;
 }
 
 /* Scheme primitives */
@@ -729,7 +808,7 @@ KNO_EXPORT void kno_init_load_c()
   loadstamps_symbol = kno_intern("%loadstamps");
   traceloadeval_symbol = kno_intern("%traceloadeval");
   postload_symbol = kno_intern("%postload");
-
+  fasl_xrefs_tag = kno_intern("%fasl_xrefs");
 
   link_local_cprims();
 
@@ -737,10 +816,12 @@ KNO_EXPORT void kno_init_load_c()
   KNO_LINK_EVALFN(kno_scheme_module,load_component_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,load_latest_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,load_updates_evalfn);
+  KNO_LINK_EVALFN(kno_scheme_module,load_fasl_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,with_sourcebase_evalfn);
 
   KNO_LINK_EVALFN(kno_scheme_module,source_hashmacro_evalfn);
   KNO_LINK_EVALFN(kno_scheme_module,path_hashmacro_evalfn);
+
 
   kno_register_config("LOAD:TRACE","Trace file load starts and ends",
 		      kno_boolconfig_get,kno_boolconfig_set,&trace_load);

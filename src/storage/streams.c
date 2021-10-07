@@ -506,7 +506,7 @@ KNO_EXPORT kno_stream kno_init_file_stream
     stream_flags |= KNO_STREAM_NEEDS_LOCK;
     break;
   case KNO_FILE_TRUNC:
-    open_flags |= O_CREAT|O_RDWR;
+    open_flags |= O_TRUNC|O_RDWR;
     stream_flags |= KNO_STREAM_NEEDS_LOCK;
     break;
   case KNO_FILE_NOVAL: /* Never reached */

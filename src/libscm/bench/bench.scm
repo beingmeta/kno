@@ -4,11 +4,15 @@
 
 (in-module 'bench)
 
-(use-module '{optimize varconfig logger reflection})
+(use-module '{optimize varconfig logger ezrecords reflection kno/mttools})
 
 (define default-repeat 20)
 (varconfig! bench:repeat default-repeat)
 (varconfig! repeat default-repeat)
+
+(define default-trials 5)
+(varconfig! bench:trials default-repeat)
+(varconfig! trials default-repeat)
 
 (define bench-before #f)
 (varconfig! bench:setup bench-before)
@@ -19,7 +23,7 @@
 (define bench-log #t)
 (varconfig! bench:log bench-log)
 
-(module-export! '{bench})
+(module-export! '{bench bench-stats})
 
 (define (benchn repeat benchmark-name fn . args)
   (when (applicable? benchmark-name)
@@ -88,5 +92,110 @@
     (when usage (store! usage 'total total))
     (if usage usage total)))
 
+(defambda (bench-rusage fields)
+  (if (singleton? fields)
+      (if (not fields)
+	  (elapsed-time)
+	  (frame-create #f
+	    'elapsed (elapsed-time)
+	    fields (try (rusage fields) (get (rusage) fields))))
+      (let ((usage (rusage))
+	    (result (frame-create #f 'elapsed (elapsed-time))))
+	(do-choices (field fields) (add! result field (get usage field)))
+	result)))
 
+(defrecord (callstats)
+  thread
+  trial
+  arg
+  iteration
+  delta)
 
+(define (default-deltafn v2 v1)
+  (cond ((and (number? v1) (number? v2)) (- v2 v1))
+	((and (table? v1) (table? v2))
+	 (let ((delta (frame-create #f))
+	       (keys (getkeys {v1 v2})))
+	   (do-choices (key keys)
+	     (let ((m1 (get v1 key)) (m2 (get v2 key)))
+	       (store! delta
+		   key (if (and (exists? m1) (exists? m2) (number? m1) (number? m2))
+			   (- m2 m1)
+			   (cons (qc m1) (qc m2))))))
+	   delta))
+	(else (cons v1 v2))))
+
+(defambda (callstats thread trial arg repeat deltafn track before)
+  (tryif before
+    (cons-callstats thread trial (qc arg) repeat 
+		    (deltafn (bench-rusage track) before))))
+
+(defambda (bench-stats-threadfn thread fn workload (opts #f) (track) (deltafn))
+  (default! track (getopt opts 'track #f))
+  (default! deltafn (getopt opts 'deltafn #t))
+  (when (and deltafn (not (applicable? deltafn)))
+    (set! deltafn default-deltafn))
+  (when (not deltafn) (set! deltafn cons))
+  (let ((repeats (getopt opts 'repeat default-repeat))
+	(trials (getopt opts 'trails default-trials))
+	(results {})
+	(v #f))
+    (let ((repeat-start #f)
+	  (value #f))
+      (dotimes (trial trials)
+	(do-choices (args workload)
+	  (dotimes (repeat repeats)
+	    (set! repeat-start (bench-rusage track))
+	    (set! v #f)
+	    (set! v (apply fn args))
+	    (set+! results
+	      (callstats thread trial args repeat deltafn track repeat-start))))))
+    results))
+
+(defambda (bench-stats fn workload (opts #f) (track) (deltafn) (nthreads))
+  (default! track (getopt opts 'track #f))
+  (default! deltafn (getopt opts 'deltafn #t))
+  (default! nthreads (mt/threadcount (getopt opts 'nthreads #f)))
+  (when (and deltafn (not (applicable? deltafn)))
+    (set! deltafn default-deltafn))
+  (when (not deltafn) (set! deltafn cons))
+  (if (or (not nthreads) (= nthreads 1))
+      (bench-stats-threadfn #f fn workload opts track deltafn)
+      (let ((threads {}))
+	(dotimes (i nthreads)
+	  (set+! threads
+	    (thread/call bench-stats-threadfn
+		i fn (qc workload) opts (qc track) deltafn)))
+	(thread/result (thread/join threads)))))
+
+(defambda (aggregate-deltas records)
+  (let ((aggregate (frame-create #f 'count (|| records))))
+    (do-choices (measurement (getkeys records))
+      (store! aggregate measurement
+	(reduce-choice + records 0 measurement)))
+    aggregate))
+
+(defambda (get-aggregate records fcn)
+  (if (vector? fcn)
+      (get-compound-aggregate records fcn)
+      (for-choices (val (fcn records))
+	(modify-frame
+	    (aggregate-deltas
+	     (callstats-delta (pick records fcn val)))
+	  (procedure-name fcn) val))))
+
+(defambda (get-compound-aggregate records fnvec)
+  (let ((table (make-hashtable)))
+    (do-choices (record records)
+      (add! table (map (lambda (fn) (fn record)) fnvec)
+	record))
+    (for-choices (val (getkeys table))
+      (let ((aggregate
+	     (aggregate-deltas
+	      (callstats-delta (get table val)))))
+	(dotimes (i (length fnvec))
+	  (store! aggregate (procedure-name (elt fnvec i))
+	    (elt val i)))
+	aggregate))))
+
+(module-export! 'get-aggregate)

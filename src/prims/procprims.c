@@ -23,6 +23,7 @@
 #include "kno/cprims.h"
 
 #include <libu8/u8pathfns.h>
+#include <libu8/u8signals.h>
 #include <libu8/u8filefns.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
@@ -32,6 +33,8 @@
 #include <libu8/u8rusage.h>
 
 #include <stdlib.h>
+
+#include <signal.h>
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -46,10 +49,6 @@
 #endif
 
 #include <ctype.h>
-
-#if HAVE_SIGNAL_H
-#include <signal.h>
-#endif
 
 #if (HAVE_SYS_RESOURCE_H)
 #include <sys/resource.h>
@@ -1585,7 +1584,6 @@ static void recycle_subproc(struct KNO_RAW_CONS *c)
 
 /* Handle sigchld */
 
-
 static void handle_sigchld(int sig,siginfo_t *info,void *stuff)
 {
   int status;
@@ -1599,7 +1597,7 @@ static void handle_sigchld(int sig,siginfo_t *info,void *stuff)
     kno_decref(pidval);}
 }
 
-struct sigaction sigaction_chld;
+struct sigaction sigaction_chld = { NULL };
 
 /* The init function */
 
@@ -1641,7 +1639,9 @@ KNO_EXPORT void kno_init_procprims_c()
 
   kno_finish_cmodule(procprims_module);
 
-  /* sigset(SIGCHLD,handle_sigchld); */
+  sigaction_chld.sa_sigaction = handle_sigchld;
+  sigemptyset(&(sigaction_chld.sa_mask));
+  sigaction_chld.sa_flags = SIGCHLD;
   sigaddset(&(sigaction_chld.sa_mask),SIGCHLD);
   sigaction(SIGCHLD,&(sigaction_chld),NULL);
 

@@ -1314,20 +1314,18 @@ debupdate:
 
 staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	git archive -o staging/knobase.tar HEAD
-	cd tests; git archive -o ../staging/tests.tar HEAD;
 	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
 	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
 	cd src/webmods; git archive -o ../../staging/webmods.tar HEAD;
 	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
 	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
 	cd staging/kno; tar xf ../knobase.tar;
-	cd staging/kno/tests; tar xf ../../tests.tar;
 	cd staging/kno/src/stdmods; tar xf ../../../stdmods.tar;
 	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
 	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
 	cd staging/kno/src/brico; tar xf ../../../brico.tar;
 	cp REVISION FULL_REVISION staging/kno;
-	cd staging; rm -f knobase.tar tests.tar stdlib.tar brico.tar
+	cd staging; rm -f knobase.tar stdlib.tar brico.tar
 
 dist/kno.tar: staging/kno
 	cd staging; tar -cf ../dist/kno.tar kno;

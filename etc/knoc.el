@@ -39,7 +39,7 @@
 (defvar *kno-keywords*
   '("\\<do-choices-mt\\>" "\\<do-vector-mt\\>" "\\<for-choices-mt\\>"
     "\\<do-choices\\>" "\\<for-choices\\>" "\\<filter-choices\\>"
-    "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<forseq>\\"
+    "\\<doseq\\>" "\\<dolist\\>" "\\<dotimes\\>" "\\<doiter\\>" "\\<forseq>\\"
     "\\<lambda\\>" "\\<ambda\\>" "\\<slambda\\>" "\\<macro>\\"
     "\\<try\\>" "\\<tryif\\>" "\\<with-log-context\\>"
     "\\<while\\>" "\\<until\\>" "\\<onerror>\\" "\\<set+!>\\"
@@ -135,6 +135,8 @@
 (put 'defslambda 'scheme-indent-function 1)
 (put 'slambda 'scheme-indent-function 1)
 (put 'nlambda 'scheme-indent-function 1)
+(put 'iterator 'scheme-indent-function 1)
+(put 'niterator 'scheme-indent-function 1)
 (put 'def 'scheme-indent-function 1)
 (put 'defn 'scheme-indent-function 1)
 (put 'defamb 'scheme-indent-function 1)
@@ -166,6 +168,7 @@
 (put 'do-pool 'scheme-indent-function 1)
 (put 'dotimes 'scheme-indent-function 1)
 (put 'doseq 'scheme-indent-function 1)
+(put 'doiter 'scheme-indent-function 1)
 (put 'dopool 'scheme-indent-function 1)
 (put 'do-choices 'scheme-indent-function 1)
 (put 'do-subsets 'scheme-indent-function 1)

@@ -2,7 +2,7 @@
 
 (load-component "common.scm")
 
-(use-module '{kno/mttools fifo})
+(use-module '{kno/mttools fifo fifo/iterator fifo/generators})
 
 (define-tester (nrange (start 0) (n 8))
   (let ((nums {}))
@@ -322,6 +322,36 @@
 
 (errtest (let ((x 3)) (sset! zyyy 9)))
 
+;;;; Testing fifo-based iterators and generators
+
+(define (test-fifo-modules)
+  (evaltest
+   3_628_800
+   (let ((prod 1) (counter (fifo->iterator (fifo/make #(1 2 3 4 5 6 7 8 9 10)))))
+     (doiter (e counter) (unless (zero? e) (set! prod (* prod e))))
+     prod))
+
+  (evaltest
+   120
+   (let ((prod 1) (counter (generator (dotimes (i 5) (yield (1+ i))))))
+     (doiter (e counter) (unless (zero? e) (set! prod (* prod e))))
+     prod))
+
+  (evaltest
+   120
+   (let ((prod 1) (counter (generator "countup" (dotimes (i 5) (yield (1+ i))))))
+     (doiter (e counter) (unless (zero? e) (set! prod (* prod e))))
+     prod))
+
+  (evaltest
+   788657867364790503552363213932185062295135977687173263294742533244359449963403342920304284011984623904177212138919638830257642790242637105061926624952829931113462857270763317237396988943922445621451664240254033291864131227428294853277524242407573903240321257405579568660226031904170324062351700858796178922222789623703897374720000000000000000000000000000000000000000000000000
+   (let ((prod 1) (counter (generator 
+			    "countupN" [queuesize 2]
+			    (dotimes (i 200) (yield (1+ i)))))) 
+     (doiter (e counter) (unless (zero? e) (set! prod (* prod e))))
+     prod))
+  )
+
 ;;; Actual tests
 
 (define condvar (make-condvar))
@@ -441,6 +471,8 @@
   (test-thread/call thread/wait [timeout 3])
 
   (test-fifo-condvars)
+  
+  (test-fifo-modules)
 
   (test-do-choices-mt)
 

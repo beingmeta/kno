@@ -196,8 +196,12 @@ static int ffi_type_error(u8_context expecting,lispval arg)
   return KNO_ERR(-1,kno_FFI_TypeError,expecting,NULL,arg);
 }
 
+typedef void (*ffi_arg_freefn)(void *);
+
 static int handle_ffi_arg(lispval arg,lispval spec,
-                          void **valptr,void **argptr)
+			  ffi_arg_freefn *freefn,
+                          void **valptr,
+			  void **argptr)
 {
   lispval basetype = (SYMBOLP(spec)) ? (spec) :
     (TABLEP(spec)) ? (kno_getopt(spec,basetype_symbol,VOID)) :
@@ -214,7 +218,7 @@ static int handle_ffi_arg(lispval arg,lispval spec,
   if ( (defaultp) && ( (VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) ) {
     if (!(VOIDP(arg))) {
       lispval dflt = kno_getopt(spec,KNOSYM_DEFAULT,KNO_VOID);
-      lispval inner = handle_ffi_arg(dflt,spec,valptr,argptr);
+      lispval inner = handle_ffi_arg(dflt,spec,freefn,valptr,argptr);
       kno_decref(dflt);
       return inner;}}
   if (basetype == lisp_symbol)
@@ -379,6 +383,16 @@ static int handle_ffi_arg(lispval arg,lispval spec,
   return 1;
 }
 
+static void free_ffi_args(int n,ffi_arg_freefn *freefns,void **vals)
+{
+  int i = 0; while (i<n) {
+    if ( (freefns[i]) && (vals[i]) ) {
+      freefns[i](vals[i]);
+      vals[i]=NULL;
+      freefns[i]=NULL;}
+    i++;}
+}
+
 KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
 {
   if (KNO_CONS_TYPEOF(fn) == kno_ffi_type) {
@@ -393,16 +407,20 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       kno_testopt(return_spec,mallocd_symbol,KNO_VOID);
     if (VOIDP(return_type))
       return kno_err("BadFFIReturnSpec","kno_ffi_call",fn->fcn_name,return_spec);
-    void *vals[10], *argptrs[10];
+    void *vals[17] = { NULL }, *argptrs[17] = { NULL };
+    ffi_arg_freefn freefns[17] = { NULL };
     int arity = proc->fcn_arity;
     int i = 0;
     i = 0; while (i<arity) {
-      int rv = handle_ffi_arg(args[i],argspecs[i],&(vals[i]),&(argptrs[i]));
-      if (rv<0) return KNO_ERROR;
+      int rv = handle_ffi_arg(args[i],argspecs[i],&(freefns[i]),&(vals[i]),&(argptrs[i]));
+      if (rv<0) {
+	free_ffi_args(i,freefns,vals);
+	return KNO_ERROR;}
       else i++;}
     if ( (return_type == lisp_symbol) || (return_type == lispref_symbol) ) {
       lispval result = KNO_NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
+      free_ffi_args(arity,freefns,vals);
       if (result == KNO_NULL)
         return kno_err(kno_NullPtr,"kno_ffi_call",NULL,VOID);
       else if (return_type == lispref_symbol)
@@ -417,6 +435,7 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
       else return_type = ffi_result_symbol;
       void *value = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&value,argptrs);
+      free_ffi_args(arity,freefns,vals);
       kno_raw_recyclefn recycler = (mallocdp) ? (_u8_free) : (NULL);
       ssize_t len = kno_getfixopt(return_spec,"length",-1);
       lispval wv = kno_wrap_pointer(value,len,recycler,return_type,NULL);
@@ -425,6 +444,7 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
     else if (return_type == string_symbol) {
       u8_string stringval = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       if (stringval)
         if (mallocdp)
           return kno_init_string(NULL,-1,stringval);
@@ -433,6 +453,7 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
     else if (return_type == strcpy_symbol) {
       u8_string stringval = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       if (stringval) {
         lispval v = kno_make_string(NULL,-1,stringval);
         if (mallocdp) u8_free(stringval);
@@ -441,61 +462,75 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
     else if (return_type == int_symbol) {
       int intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == uint_symbol) {
       unsigned int intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == short_symbol) {
       short intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == ushort_symbol) {
       unsigned short intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == char_symbol) {
       char intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == uchar_symbol) {
       unsigned char intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == byte_symbol) {
       unsigned char intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
 #if (SIZEOF_SIZE_T == 4)
     else if (return_type == size_t_symbol) {
       long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
 #else
     else if (return_type == size_t_symbol) {
       long long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
 #endif
 	else if (return_type == long_symbol) {
       long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == ulong_symbol) {
       unsigned long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return KNO_INT(intval);}
     else if (return_type == double_symbol) {
       double dval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&dval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return kno_make_flonum(dval);}
     else if (return_type == float_symbol) {
       float fval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&fval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       return kno_make_flonum(fval);}
     else if (return_type == time_t_symbol) {
       time_t tval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&tval,argptrs);
+      free_ffi_args(arity,freefns,vals);
       if (tval < 0)
         return KNO_FALSE;
       else return kno_time2timestamp(tval);}

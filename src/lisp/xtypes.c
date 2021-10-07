@@ -275,6 +275,7 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
       ssize_t code_len = kno_write_varint(out,code);
       if (code_len < 0) return code_len;
       else return 1+code_len;}
+    else NO_ELSE;
     int rv = -1;
     switch (x) {
     case KNO_FALSE:
@@ -311,6 +312,13 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
       else if (x==kno_snappy_xtag)
 	rv=kno_write_byte(out,xt_snappy);
       else {
+	/* For immediates we check if they're in the table as possible xrefs.
+	   This is handy for immediate types like opcodes which can be serialized. */
+	if ( (refs) && (! ( (flags) & (XTYPE_NO_XTREFS) ) ) ) {
+	  ssize_t xtref = kno_xtype_ref(x,refs,-1);
+	  if (xtref >= 0) {
+	    kno_write_byte(out,xt_absref);
+	    return 1+kno_write_varint(out,xtref);}}
 	kno_lisp_type typecode = KNO_IMMEDIATE_TYPE(x);
 	if (kno_xtype_writers[typecode])
 	  return kno_xtype_writers[typecode](out,x,refs);

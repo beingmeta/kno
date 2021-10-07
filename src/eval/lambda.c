@@ -681,20 +681,6 @@ KNO_EXPORT lispval kno_make_lambda(u8_string name,
 
 /* Restoring lambda objects */
 
-static lispval *vector2elts(lispval vec,ssize_t n)
-{
-  if (KNO_VECTORP(vec)) {
-    ssize_t len = KNO_VECTOR_LENGTH(vec);
-    ssize_t alloc_len = (len>n) ? (len) : (n);
-    lispval *elts = KNO_VECTOR_ELTS(vec);
-    lispval *copy = u8_alloc_n(alloc_len,lispval);
-    ssize_t i=0; while (i<len) {
-      lispval elt = elts[i]; kno_incref(elt); copy[i++]=elt;}
-    while (i<alloc_len) copy[i++]=KNO_VOID;
-    return copy;}
-  else return NULL;
-}
-
 lispval restore_lambda(lispval name,lispval attribs,lispval env,
 		       lispval xschema,lispval xinits,lispval xtypes,
 		       lispval args,lispval body,lispval doc,lispval source,
@@ -744,7 +730,6 @@ lispval restore_lambda(lispval name,lispval attribs,lispval env,
     s->fcn_doc = u8_strdup(KNO_CSTRING(doc));
     s->fcn_free |= KNO_FCN_FREE_DOC;}
 
-  lispval *schema = u8_alloc_n(n,lispval);
   kno_set_lambda_schema
     (s,n,VECTOR_ELTS(xschema),
      (VECTORP(xinits)) ? (VECTOR_ELTS(xinits)) : (NULL),

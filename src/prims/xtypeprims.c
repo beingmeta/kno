@@ -188,24 +188,27 @@ static lispval read_xtype_prim(lispval source,lispval opts)
 	return KNO_ERROR;}
       in=kno_init_byte_stream(&_in,sourcepath,KNO_FILE_READ,len,filedata);
       close_stream=1;}}
-  else if (TYPEP(source,kno_stream_type))
+  else if (TYPEP(source,kno_stream_type)) {
     in = (kno_stream) source;
+    if (count<0) count = 1;}
   else {
     kno_decref(refs_arg);
     return kno_err("NotAFileOrStream","read-xtypes",NULL,source);}
 
   long long i = 0;
   kno_inbuf inbuf = kno_readbuf(in);
-  lispval object = kno_read_xtype(inbuf,refs), results = KNO_EMPTY;
-  while ( (!(KNO_EODP(object))) && ( (count<0) || (i<count) ) ) {
-    if (KNO_ABORTP(object)) {
+  lispval results = KNO_EMPTY;
+  while ( (count<0) || (i<count) ) {
+    lispval object = kno_read_xtype(inbuf,refs);
+    if (KNO_EODP(object)) break;
+    else if (KNO_ABORTP(object)) {
       kno_decref(results);
       kno_decref(refs_arg);
       if (close_stream) kno_close_stream(in,KNO_STREAM_FREEDATA);
       return object;}
-    CHOICE_ADD(results,object);
-    object = kno_read_xtype(inbuf,refs);
-    i++;}
+    else {
+      CHOICE_ADD(results,object);
+      i++;}}
   kno_decref(refs_arg);
   if (close_stream) kno_close_stream(in,KNO_STREAM_FREEDATA);
   return results;

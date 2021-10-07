@@ -344,11 +344,12 @@ static lispval make_xtype_refs(lispval vec,lispval opts)
   size_t len    = ( flags & XTYPE_REFS_READ_ONLY) ? (n_refs) :
     ((n_refs/256)+2)*256;
   lispval *inits = KNO_VECTOR_ELTS(vec), *elts = u8_alloc_n(len,lispval);
-  size_t i = 0; while (i<len) {
+  size_t i = 0; while (i<n_refs) {
     lispval elt = inits[i];
     kno_incref(elt);
     elts[i]=elt;
     i++;}
+  while (i<len) { elts[i++]=KNO_FALSE; }
   kno_init_xrefs(refs,flags,-1,n_refs,len,-1,elts,NULL);
   return kno_wrap_xrefs(refs);
 }

@@ -397,7 +397,7 @@ DEFC_EVALFN("doiter",doiter_evalfn,KNO_EVALFN_DEFAULTS,
 static lispval doiter_evalfn(lispval expr,kno_lexenv env,
 			     kno_stack eval_stack)
 {
-  unsigned long i = 0; int islist = 0;
+  unsigned long i = 0;
   lispval var, count_var = VOID, val_var;
   lispval body = kno_get_body(expr,2);
   if (! (USUALLY( (KNO_PAIRP(body)) || (body == KNO_NIL) )) )
@@ -418,6 +418,10 @@ static lispval doiter_evalfn(lispval expr,kno_lexenv env,
   int exited = 0;
   while (exited==0) {
     lispval elt = kno_dcall(doiter_stack,iter,0,NULL);
+    if (elt==KNO_EOD) {
+      result = KNO_VOID;
+      exited=1;
+      break;}
     doiter_vals[0]=elt;
     doiter_vals[1]=KNO_INT(i);
     lispval val = eval_body(body,doiter_env,doiter_stack,

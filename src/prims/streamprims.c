@@ -32,6 +32,8 @@
 #define KNO_DTWRITE_SIZE 10000
 #endif
 
+DEF_KNOSYM(modify);
+
 DEFC_PRIM("write-bytes",write_bytes,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
 	  "(WRITE-BYTES *obj* *stream* [*pos*]) "
@@ -347,60 +349,89 @@ static lispval write_8bytes(lispval object,lispval stream,lispval pos)
   else return KNO_INT(n_bytes);
 }
 
-DEFC_PRIM("zread-int",zread_int,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"stream",kno_stream_type,KNO_VOID})
-static lispval zread_int(lispval stream)
+/* Opening byte files */
+
+static kno_off_t handle_setpos(u8_context caller,u8_string filename,
+			       kno_stream s,lispval pos_arg)
 {
-  struct KNO_STREAM *ds=
-    kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
-  unsigned int ival = kno_read_varint(kno_readbuf(ds));
-  return KNO_INT(ival);
+  U8_CLEAR_ERRNO();
+  if (KNO_TRUEP(pos_arg))
+    return kno_endpos(s);
+  else if ( (KNO_FALSEP(pos_arg)) || (KNO_VOIDP(pos_arg)) ||
+	    (KNO_DEFAULTP(pos_arg)) )
+    return 0;
+  else if (KNO_INTEGERP(pos_arg)) {
+    kno_off_t off = kno_getint(pos_arg);
+    if (off<0) {
+      kno_seterr("BadOffset",caller,filename,pos_arg);
+      return -1;}
+    else return kno_setpos(s,off);}
+  else {
+    kno_seterr("BadOffset",caller,filename,pos_arg);
+    return -1;}
 }
 
-DEFC_PRIM("zwrite-int",zwrite_int,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
-	  {"object",kno_any_type,KNO_VOID},
-	  {"stream",kno_stream_type,KNO_VOID})
-static lispval zwrite_int(lispval object,lispval stream)
-{
-  struct KNO_STREAM *ds=
-    kno_consptr(struct KNO_STREAM *,stream,kno_stream_type);
-  int ival = kno_getint(object);
-  int bytes = kno_write_varint(kno_writebuf(ds),ival);
-  if (bytes<0) return KNO_ERROR;
-  else return KNO_INT(bytes);
-}
-
-DEFC_PRIM("open-byte-output",open_byte_output_file,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+DEFC_PRIM("open-byte-output",open_byte_output,
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Opens a binary output stream for *fname*. It is "
+	  "truncated unless *opts* specifies a `modify` option",
 	  {"fname",kno_string_type,KNO_VOID},
-	  {"opts",kno_any_type,KNO_VOID})
-static lispval open_byte_output_file(lispval fname,lispval opts)
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"pos",kno_any_type,KNO_VOID})
+static lispval open_byte_output(lispval fname,lispval opts,lispval pos)
 {
   u8_string filename = CSTRING(fname);
-  struct KNO_STREAM *dts=
-    (u8_file_existsp(filename)) ?
-    (kno_open_file(filename,KNO_FILE_MODIFY)) :
-    (kno_open_file(filename,KNO_FILE_CREATE));
+  int mode;
+  if (!(u8_file_existsp(filename)))
+    mode = KNO_FILE_CREATE;
+  else if (kno_testopt(opts,KNOSYM(modify),KNO_VOID))
+    mode = KNO_FILE_MODIFY;
+  else mode = KNO_FILE_TRUNC;
+  struct KNO_STREAM *dts=kno_open_file(filename,mode);
   if (dts) {
-    U8_CLEAR_ERRNO();
+    kno_off_t rv = handle_setpos("open-byte-output",filename,dts,pos);
+    if (rv<0) return KNO_ERROR;
     return LISP_CONS(dts);}
   else {
     u8_free(dts);
-    u8_graberrno("open_byte_output_file",u8_strdup(filename));
+    u8_graberrno("open_byte_output",u8_strdup(filename));
+    return KNO_ERROR;}
+}
+
+DEFC_PRIM("modify-byte-file",modify_byte_file,
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Opens a binary output stream modifying *file*, "
+	  "which is created with zero length if it doesn't exist. If "
+	  "pos is specified, the file is positioned there, with a pos of "
+	  "#t indicating the end of the file.",
+	  {"fname",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"pos",kno_any_type,KNO_VOID})
+static lispval modify_byte_file(lispval fname,lispval opts,lispval pos)
+{
+  u8_string filename = CSTRING(fname);
+  int flags = (u8_file_existsp(filename)) ? (KNO_FILE_MODIFY) :
+    (KNO_FILE_CREATE);
+  struct KNO_STREAM *dts=kno_open_file(filename,flags);
+  if (dts) {
+    kno_off_t rv = handle_setpos("modify-byte-file",filename,dts,pos);
+    if (rv<0) return KNO_ERROR;
+    return LISP_CONS(dts);}
+  else {
+    u8_free(dts);
+    u8_graberrno("modify_byte_file",u8_strdup(filename));
     return KNO_ERROR;}
 }
 
 DEFC_PRIM("open-byte-input",open_byte_input_file,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Opens a binary input stream for *fname* given *opts*. If"
+	  "pos is specified, the file is positioned there, with a pos of "
+	  "#t indicating the end of the file.",
 	  {"fname",kno_string_type,KNO_VOID},
-	  {"opts",kno_any_type,KNO_VOID})
-static lispval open_byte_input_file(lispval fname,lispval opts)
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"pos",kno_any_type,KNO_VOID})
+static lispval open_byte_input_file(lispval fname,lispval opts,lispval pos)
 {
   u8_string filename = CSTRING(fname);
   if (!(u8_file_existsp(filename))) {
@@ -409,17 +440,19 @@ static lispval open_byte_input_file(lispval fname,lispval opts)
   else {
     struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
     if (stream) {
-      U8_CLEAR_ERRNO();
+      kno_off_t rv = handle_setpos("open-byte-input",filename,stream,pos);
+      if (rv<0) return KNO_ERROR;
       return (lispval) stream;}
     else return KNO_ERROR_VALUE;}
 }
 
 DEFC_PRIM("open-packet",open_packet_prim,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Returns a binary input stream reading data from *packet*",
 	  {"fname",kno_packet_type,KNO_VOID},
-	  {"opts",kno_any_type,KNO_VOID})
-static lispval open_packet_prim(lispval packet,lispval opts)
+	  {"opts",kno_any_type,KNO_VOID},
+	  {"pos",kno_any_type,KNO_VOID})
+static lispval open_packet_prim(lispval packet,lispval opts,lispval pos)
 {
   int flags = KNO_STREAM_IS_CONSED | KNO_STREAM_READ_ONLY |
     KNO_STREAM_CAN_SEEK;
@@ -430,14 +463,16 @@ static lispval open_packet_prim(lispval packet,lispval opts)
     (u8_alloc(struct KNO_STREAM),streamid,flags,
      KNO_PACKET_LENGTH(packet),
      KNO_PACKET_DATA(packet));
-  if (stream)
-    return (lispval) stream;
+  if (stream) {
+    kno_off_t rv = handle_setpos("open-packet",NULL,stream,pos);
+    if (rv<0) return KNO_ERROR;
+    return (lispval) stream;}
   else return KNO_ERROR;
 }
 
 DEFC_PRIM("extend-byte-output",extend_byte_output,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns a binary output stream writing to the end of *fname*",
 	  {"fname",kno_string_type,KNO_VOID})
 static lispval extend_byte_output(lispval fname)
 {
@@ -456,7 +491,7 @@ static lispval extend_byte_output(lispval fname)
 
 DEFC_PRIM("byte-stream?",streamp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *arg* is a binary input or output stream",
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval streamp(lispval arg)
 {
@@ -467,7 +502,7 @@ static lispval streamp(lispval arg)
 
 DEFC_PRIM("byte-input?",byte_inputp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *arg* is a binary input stream",
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval byte_inputp(lispval arg)
 {
@@ -481,7 +516,7 @@ static lispval byte_inputp(lispval arg)
 
 DEFC_PRIM("byte-output?",byte_outputp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *arg* is a binary output stream",
 	  {"arg",kno_any_type,KNO_VOID})
 static lispval byte_outputp(lispval arg)
 {
@@ -603,12 +638,11 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("byte-input?",byte_inputp,1,kno_binio_module);
   KNO_LINK_CPRIM("byte-stream?",streamp,1,kno_binio_module);
   KNO_LINK_CPRIM("extend-byte-output",extend_byte_output,1,kno_binio_module);
-  KNO_LINK_CPRIM("open-byte-input",open_byte_input_file,2,kno_binio_module);
-  KNO_LINK_CPRIM("open-byte-output",open_byte_output_file,2,kno_binio_module);
-  KNO_LINK_CPRIM("zwrite-int",zwrite_int,2,kno_binio_module);
-  KNO_LINK_CPRIM("zread-int",zread_int,1,kno_binio_module);
+  KNO_LINK_CPRIM("open-byte-input",open_byte_input_file,3,kno_binio_module);
+  KNO_LINK_CPRIM("open-byte-output",open_byte_output,3,kno_binio_module);
+  KNO_LINK_CPRIM("modify-byte-file",modify_byte_file,3,kno_binio_module);
 
-  KNO_LINK_CPRIM("open-packet",open_packet_prim,2,kno_binio_module);
+  KNO_LINK_CPRIM("open-packet",open_packet_prim,3,kno_binio_module);
 
   KNO_LINK_CPRIM("write-8bytes",write_8bytes,3,kno_binio_module);
   KNO_LINK_CPRIM("write-4bytes",write_4bytes,3,kno_binio_module);
@@ -628,7 +662,8 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("dtype-output?",byte_outputp,kno_binio_module);
   KNO_LINK_ALIAS("extend-dtype-file",extend_byte_output,kno_binio_module);
   KNO_LINK_ALIAS("open-dtype-input",open_byte_input_file,kno_binio_module);
-  KNO_LINK_ALIAS("open-dtype-output",open_byte_output_file,kno_binio_module);
+  KNO_LINK_ALIAS("open-dtype-output",open_byte_output,kno_binio_module);
   KNO_LINK_ALIAS("open-dtype-file",open_byte_input_file,kno_binio_module);
+  KNO_LINK_ALIAS("modify-dtype-fi9le",modify_byte_file,kno_binio_module);
 
 }

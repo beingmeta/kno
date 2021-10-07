@@ -8,7 +8,7 @@
 
 (module-export! '{countrefs countrefs/vec countrefs/pool})
 
-(defambda (ref-counter object opts freqs (alloids #f))
+(defambda (ref-counter object opts freqs (alloids #f) (reftypes #f))
   (cond ((ambiguous? object)
 	 (do-choices (elt object)
 	   (cond ((symbol? elt) (table-increment! freqs elt))
@@ -22,6 +22,8 @@
 	((oid? object)
 	 (if alloids (table-increment! freqs object))
 	 (table-increment! freqs (oid-base object)))
+	((and reftypes (immediate? object) (typep object reftypes))
+	 (table-increment! freqs object))
 	((pair? object)
 	 (if (proper-list? object)
 	     (dolist (elt object)
@@ -42,8 +44,7 @@
 			(when alloids (table-increment! freqs elt)))
 		       ((not (cons? elt)))
 		       ((or (table? elt) (vector? elt) (compound? elt))
-			(ref-counter elt opts freqs alloids)))
-		 (set! scan (cdr scan))))))
+			(ref-counter elt opts freqs alloids)))))))
 	((or (vector? object) (and (sequence? object) (compound? object)))
 	 (doseq (elt object)
 	   (cond ((symbol? elt) (table-increment! freqs elt))
@@ -73,7 +74,8 @@
 ;;;; Simple countrefs
 
 (defambda (countrefs objects (opts #f) (freqs (make-hashtable)))
-  (ref-counter objects opts freqs (getopt opts 'alloids #f)))
+  (ref-counter objects opts freqs (getopt opts 'alloids #f))
+  freqs)
 
 ;;; Vector countrefs
 

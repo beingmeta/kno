@@ -2,7 +2,7 @@ Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn, librocksdb-dev, libleveldb-dev, libmariadb-dev, unixodbc-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd | debhelper, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn, librocksdb-dev, libleveldb-dev, libmariadb-dev, unixodbc-dev
 Standards-Version: 3.9.4
 Homepage: http://www.kno.dev/
 

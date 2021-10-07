@@ -44,3 +44,23 @@
 		  (if (symbol? elt) (break)
 		      (if (flonum? elt) elt
 			  (fail))))))
+
+;;;; Iterator objects
+
+(define-tester (make-countdown n)
+  (iterator () (if (> n 0) (begin (set! n (-1+ n)) n) #eod )))
+
+(evaltest
+ 120
+ (let ((prod 1) (counter (make-countdown 5)))
+   (doiter (e counter)
+     (unless (zero? e) (set! prod (* prod (1+ e)))))
+   prod))
+
+(evaltest
+ 265252859812191058636308480000000
+ (let ((prod 1) (counter (make-countdown 30)))
+   (doiter (e counter)
+     (unless (zero? e) (set! prod (* prod (1+ e)))))
+   prod))
+
