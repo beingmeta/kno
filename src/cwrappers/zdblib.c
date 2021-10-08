@@ -610,6 +610,72 @@ static lispval mysqlexechandler
 }
 #endif
 
+static lispval get_one_result(ResultSet_T rs,int n)
+{
+  lispval result = kno_make_slotmap(n,0,NULL);
+  int i = 0; while (i<n) {
+    u8_string name = ResultSet_getColumnName(rs,i);
+    lispval slotid = kno_intern(name);
+    lispval value = KNO_VOID;
+    TRY {
+      long long longval = ResultSet_getLLong(rs,i);
+      value = KNO_INT2LISP(longval);}
+    CATCH(SQLException) {
+      TRY {
+	double dblval = ResultSet_getDouble(rs,i);
+	value = kno_make_double(dblval);}
+      CATCH(SQLException) {
+	const char *strval = ResultSet_getString(rs,i);
+	value = kno_mkstring(strval);}
+      END_TRY;}
+    END_TRY;
+    kno_store(result,slotid,value);
+    i++;}
+  return result;
+}
+
+static lispval choice_results(ResultSet_T result)
+{
+  lispval choice = KNO_EMPTY;
+  int n = ResultSet_getColumnCount(result);
+  while (ResultSet_next(result)) {
+    lispval each = get_one_result(result,n);
+    if (KNO_ABORTED(each)) {
+      kno_decref(choice);
+      return each;}
+    else {KNO_ADD_TO_CHOICE(choice,each);}}
+  return kno_simplify_choice(choice);
+}
+
+static lispval zdbexec(struct KNO_ZDB *zdb,lispval string,lispval colinfo)
+{
+  Connection_T conn = ConnectionPool_getConnection(zdb->zdb_pool);
+  ResultSet_T r = Connection_executeQuery(conn,"%s",CSTRING(string));
+  lispval results = choice_results(r);
+  ConnectionPool_returnConnection(zdb->zdb_pool,conn);
+  return results;
+}
+
+static lispval zdbexechandler(struct KNO_SQLDB *sqldb,lispval string,
+			      lispval colinfo)
+{
+  if (sqldb->sqldb_handler== &zdb_handler) {
+    struct KNO_ZDB *zdb = (struct KNO_ZDB *)sqldb;
+#if 0
+    if (!(zdb->zdb_pool)) {
+      if (sqldb->sqldb_spec!=sqldb->sqldb_info)
+	u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s (%s)",
+	       sqldb->sqldb_spec,sqldb->sqldb_info);
+      else u8_log(LOG_WARN,"SQLITE/REOPEN","Reopening %s",
+		  sqldb->sqldb_spec);
+      open_knosqlite(sdb);
+      if (!(sdb->sqlitedb))
+	return KNO_ERROR_VALUE;}
+#endif
+    return zdbexec(zdb,string,colinfo);}
+  else return kno_type_error("SQLITE SQLDB","sqliteexechandler",(lispval)sqldb);
+}
+
 /* MYSQL procs */
 
 static int default_lazy_init = 0;
