@@ -14082,8 +14082,8 @@ if test -z "${WITH_ZDB_WRAPPER}" && test "${with_zdb}" = "force"; then
    WITH_ZDB_WRAPPER=forced
 fi;
 if test ! -z "${WITH_ZDB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/zdb.${shared_suffix} ${CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-zdb ${INSTALL_CWRAPPERS}";
+   CWRAPPERS="lib/kno/zdblib.${shared_suffix} ${CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-zdblib ${INSTALL_CWRAPPERS}";
 else auto_disabled="zdb ${auto_disabled}";
 fi;
 

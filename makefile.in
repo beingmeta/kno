@@ -657,7 +657,7 @@ exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) -o $@ -c $<
+	@$(CC) $(CFLAGS) $(MOD_CFLAGS) -o $@ -c $<
 	@$(MSG) CC_MODULE  $@ $<
 lib/kno/%.so: src/cmodules/%.o # ${CMODULE_DEPENDS}
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
@@ -1577,7 +1577,7 @@ install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archi
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
 install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
-install-zdb: ${CMODULES}/zdb.@shared_suffix@ ${CMODULES}/zdb.@vshared_suffix@
+install-zdblib: ${CMODULES}/zdblib.@shared_suffix@ ${CMODULES}/zdblib.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
 
@@ -2001,16 +2001,16 @@ $(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe
 ### CWRAPPERS build rules
 
 lib/kno/rocksdb.@shared_suffix@ : MODLIBS=@ROCKSDB_LIBS@
-scr/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
+src/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
 
 lib/kno/leveldb.@shared_suffix@ : MODLIBS=@LEVELDB_LIBS@
-scr/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
+src/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
 
-lib/kno/zdb.@shared_suffix@ : MODLIBS=@ZDB_LIBS@
-scr/cwrappers/zdb.o : MOD_CFLAGS=@ZDB_CFLAGS@
+lib/kno/zdblib.@shared_suffix@ : MODLIBS=@ZDB_LIBS@
+src/cwrappers/zdblib.o : MOD_CFLAGS=@ZDB_CFLAGS@
 
 lib/kno/odbc.@shared_suffix@ : MODLIBS=@ODBC_LIBS@
-scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
+src/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
 
 lib/kno/mariadb.@shared_suffix@ : MODLIBS=@MARIADB_LIBS@
 src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@

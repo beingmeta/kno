@@ -159,12 +159,16 @@ static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
   u8_destroy_mutex(&(dbp->sqlproclock));
 }
 
-static void recycle_sqldb(struct KNO_RAW_CONS *c)
+KNO_EXPORT void kno_recycle_sqldb(struct KNO_SQLDB *dbp)
 {
-  struct KNO_SQLDB *dbp = (struct KNO_SQLDB *)c;
   dbp->sqldb_handler->recycle_db(dbp);
   recycle_sqldb_core(dbp);
-  if (!(KNO_STATIC_CONSP(c))) u8_free(c);
+  if (!(KNO_STATIC_CONSP(dbp))) u8_free(dbp);
+}
+
+static void recycle_sqldb(struct KNO_RAW_CONS *c)
+{
+  kno_recycle_sqldb((struct KNO_SQLDB *)c);
 }
 
 static int unparse_sqlproc(u8_output out,lispval x)
