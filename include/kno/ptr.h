@@ -232,7 +232,7 @@ typedef enum KNO_LISP_TYPE {
 
   kno_service_type = KNO_CONS_TYPECODE(41),
 
-  kno_sqldb_type = KNO_CONS_TYPECODE(42),
+  kno_sqlconn_type = KNO_CONS_TYPECODE(42),
   kno_sqlproc_type = KNO_CONS_TYPECODE(43),
 
   kno_consed_index_type = KNO_CONS_TYPECODE(44),
@@ -931,7 +931,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_STREAM_TYPE KNO_CTYPE(kno_stream_type)
 #define KNO_SERVICE_TYPE KNO_CTYPE(kno_service_type)
 #define KNO_BLOOM_FILTER KNO_CTYPE(kno_bloom_filter_type)
-#define KNO_SQLDB_TYPE KNO_CTYPE(kno_sqldb_type)
+#define KNO_SQLCONN_TYPE KNO_CTYPE(kno_sqlconn_type)
 #define KNO_SQLPROC_TYPE KNO_CTYPE(kno_sqlproc_type)
 #define KNO_PATHSTORE_TYPE KNO_CTYPE(kno_pathstore_type)
 #define KNO_CONSED_INDEX KNO_CTYPE(kno_consed_index_type)

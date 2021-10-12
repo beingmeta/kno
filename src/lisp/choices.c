@@ -1320,6 +1320,85 @@ int kno_containsp(lispval xarg,lispval yarg)
     return retval;}
 }
 
+/* Results to vectors */
+
+KNO_EXPORT lispval kno_results2vector(lispval results,int decref)
+{
+  if (KNO_EMPTYP(results))
+    return kno_make_vector(0,NULL);
+  else if (KNO_CHOICEP(results)) {
+    struct KNO_CHOICE *choice = (kno_choice) results;
+    int discard = (decref) && (KNO_CONS_REFCOUNT(results)==1);
+    ssize_t n = KNO_CHOICE_SIZE(results), i = 0;
+    lispval vec = kno_make_vector(n,NULL);
+    lispval *vec_elts = KNO_VECTOR_ELTS(vec);
+    if ( (KNO_XCHOICE_ATOMICP(choice)) || (discard) ) {
+      const lispval *choice_elts = KNO_XCHOICE_ELTS(choice);
+      memcpy(vec_elts,choice_elts,sizeof(lispval)*n);}
+    else {
+      const lispval *choice_scan = KNO_XCHOICE_ELTS(choice);
+      const lispval *choice_limit = choice_scan+n;
+      while (choice_scan<choice_limit) {
+	lispval each = *choice_scan++;
+	kno_incref(each);
+	*vec_elts++=each;}}
+    if (discard)
+      kno_free_choice(choice);
+    else if (decref)
+      kno_decref(results);
+    else NO_ELSE;
+    return vec;}
+  else if (KNO_PRECHOICEP(results)) {
+    int discard = (decref) && (KNO_CONS_REFCOUNT(results)==1);
+    struct KNO_PRECHOICE *ch = (kno_prechoice) results;
+    size_t n = ch->prechoice_size;
+    lispval vec = kno_make_vector(n,NULL);
+    lispval *vec_write = KNO_VECTOR_ELTS(vec);
+    const lispval *choice_scan = ch->prechoice_data;
+    const lispval *choice_limit = ch->prechoice_write;
+    if (ch->prechoice_nested) {
+      while (choice_scan<choice_limit) {
+	lispval each = *choice_scan++;
+	if (KNO_CHOICEP(each)) {
+	  struct KNO_CHOICE *echoice = (kno_choice) each;
+	  const lispval *echoice_scan = KNO_XCHOICE_ELTS(echoice);
+	  ssize_t en = KNO_XCHOICE_SIZE(echoice);
+	  if ( (discard) || (KNO_XCHOICE_ATOMICP(echoice)) ) {
+	    memcpy(vec_write,echoice_scan,en*sizeof(lispval));
+	    *vec_write+=en;}
+	  else {
+	    const lispval *echoice_limit = echoice_scan+en;
+	    while (echoice_scan<echoice_limit) {
+	      lispval elt = *echoice_scan++;
+	      kno_incref(elt);
+	      *vec_write++=elt;}
+	    if (discard) kno_free_choice(echoice);}}
+	else if ( (discard) || (!(KNO_CONSP(each))) ) {
+	  *vec_write++=each;}
+	else {
+	  kno_incref(each);
+	  *vec_write++=each;}}}
+    else if ( (ch->prechoice_atomic) || (discard) )
+      memcpy(vec_write,choice_scan,n*sizeof(lispval));
+    else {
+      while (choice_scan<choice_limit) {
+	lispval each = *choice_scan++;
+	kno_incref(each);
+	*vec_write++=each;}}
+    if (discard) {
+      if (ch->prechoice_mallocd) u8_big_free(ch->prechoice_data);
+      ch->prechoice_mallocd=0;
+      ch->prechoice_data=ch->prechoice_write=ch->prechoice_limit=NULL;
+      u8_destroy_mutex(&(ch->prechoice_lock));}
+    else if (decref) {
+      kno_decref(results);}
+    else NO_ELSE;
+    return vec;}
+  else {
+    if (!(decref)) kno_incref(results);
+    return kno_make_vector(1,&results);}
+}
+
 /* Natsorting CHOICES */
 
 KNO_EXPORT

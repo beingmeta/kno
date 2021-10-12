@@ -227,7 +227,7 @@
   "* GROW (grows the FIFO if needed) and "
   "* BLOCK (wait for at least some available space). "
   "If #f is returned, all the items were pushed."
-  (when (fifo-readonly? fifo) (irritant fifo |ReadOnlyFIFO|))
+  (when (fifo-readonly? fifo) (irritant fifo |ReadOnlyFIFO| "Pushing " items))
   (cond ((not items) items)
 	((not (vector? items)) (irritant items |NotAVector| fifo/push/n!))
 	((= (length items) 1) (fifo/push/some! fifo items opts))

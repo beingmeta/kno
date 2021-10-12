@@ -758,6 +758,40 @@ KNO_EXPORT lispval kno_index_keys(kno_index ix)
   else return kno_err(kno_NoMethod,"kno_index_keys",NULL,kno_index2lisp(ix));
 }
 
+KNO_EXPORT lispval *kno_index_keyvec(kno_index ix,int *sizep)
+{
+  if (ix->index_handler->fetchkeys) {
+    int n_fetched = 0; init_cache_level(ix);
+    lispval *fetched = ix->index_handler->fetchkeys(ix,&n_fetched);
+    if (n_fetched < 0) {
+      *sizep = -1;
+      return NULL;}
+    int n_replaced = ix->index_stores.table_n_keys;
+    int n_added = ix->index_adds.table_n_keys;
+    if ( (n_replaced == 0) && (n_added == 0) ) {
+      *sizep=n_fetched;
+      return fetched;}
+    else {
+      int n_total = n_fetched+n_added+n_replaced;
+      lispval *elts = u8_alloc_n(n_total,lispval), *write = elts;
+      const lispval *read = fetched, *rlimit = fetched+n_fetched;
+      while (read<rlimit) *write++=*read++;
+      lispval *added = kno_hashtable_keyvec(&(ix->index_adds),&n_added);
+      read = added; rlimit = added+n_added;
+      while (read<rlimit) *write++=*read++;
+      u8_free(added);
+      lispval *replaced = kno_hashtable_keyvec(&(ix->index_stores),&n_added);
+      read = replaced; rlimit = replaced+n_replaced;
+      while (read<rlimit) *write++=*read++;
+      u8_free(replaced);
+      *sizep=write-elts;
+      return elts;}}
+  else {
+    kno_seterr(kno_NoMethod,"kno_index_keys",NULL,kno_index2lisp(ix));
+    *sizep = -1;
+    return NULL;}
+}
+
 static int add_to_keysize(lispval key,lispval value,void *vptr)
 {
   struct KNO_HASHTABLE *sizes = (struct KNO_HASHTABLE *)vptr;
@@ -1110,6 +1144,40 @@ static lispval table_indexkeys(lispval ixarg)
   kno_index ix = kno_indexptr(ixarg);
   if (ix) return kno_index_keys(ix);
   else return kno_type_error(_("index"),"table_index_keys",ixarg);
+}
+
+static lispval *table_indexkeyvec(lispval ixarg,int *n_keys)
+{
+  kno_index ix = kno_indexptr(ixarg);
+  if (ix) return kno_index_keyvec(ix,n_keys);
+  else {
+    kno_seterr(kno_TypeError,"table_indexkeyvec","index",ixarg);
+    *n_keys=-1;
+    return NULL;}
+}
+
+static int table_indexsize(lispval ixarg)
+{
+  kno_index ix = kno_indexptr(ixarg);
+  if (ix==NULL) return kno_type_error(_("index"),"table_index_keys",ixarg);
+  lispval size = kno_index_ctl(ix,kno_keycount_op,0,NULL);
+  if (KNO_FIXNUMP(size)) return KNO_FIX2INT(size);
+  kno_decref(size); size = kno_index_ctl(ix,kno_load_op,0,NULL);
+  if (KNO_FIXNUMP(size)) return KNO_FIX2INT(size);
+  kno_decref(size);
+  kno_index_handler h = ix->index_handler;
+  if (h->fetchkeys) {
+    int n_keys = -1;
+    lispval *keys = h->fetchkeys(ix,&n_keys);
+    if (n_keys<0) return -1;
+    if (keys) kno_decref_elts(keys,n_keys);
+    u8_big_free(keys);
+    return n_keys;}
+  else {
+    lispval keys = kno_index_keys(ix);
+    int size = KNO_CHOICE_SIZE(keys);
+    kno_decref(keys);
+    return size;}
 }
 
 static int remove_keyvals(struct KNO_KEYVAL *keyvals,int n,lispval remove)
@@ -2430,7 +2498,8 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_tablefns[kno_indexref_type]->store = table_indexstore;
   kno_tablefns[kno_indexref_type]->test = NULL;
   kno_tablefns[kno_indexref_type]->keys = table_indexkeys;
-  kno_tablefns[kno_indexref_type]->getsize = NULL;
+  kno_tablefns[kno_indexref_type]->keyvec = table_indexkeyvec;
+  kno_tablefns[kno_indexref_type]->getsize = table_indexsize;
 
   kno_tablefns[kno_consed_index_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_consed_index_type]->get = table_indexget;
@@ -2439,7 +2508,8 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_tablefns[kno_consed_index_type]->store = table_indexstore;
   kno_tablefns[kno_consed_index_type]->test = NULL;
   kno_tablefns[kno_consed_index_type]->keys = table_indexkeys;
-  kno_tablefns[kno_consed_index_type]->getsize = NULL;
+  kno_tablefns[kno_consed_index_type]->keyvec = table_indexkeyvec;
+  kno_tablefns[kno_consed_index_type]->getsize = table_indexsize;
 
   kno_recyclers[kno_consed_index_type]=recycle_consed_index;
   kno_unparsers[kno_consed_index_type]=unparse_consed_index;

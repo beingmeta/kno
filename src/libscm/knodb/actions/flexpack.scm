@@ -111,9 +111,9 @@
 	    (while (and (proc/live? proc)
 			(or (not maxsecs) (< (elapsed-time started) maxsecs)))
 	      (when (and msgsecs (> (elapsed-time lastmsg) msgsecs))
-		(set! msgsecs (elapsed-time))
 		(logwarn |Waiting| "Waited " (secs->string (elapsed-time started)) 
-			 " for " (proc-pid proc) " to process " (write partition)))
+			 " for " (proc-pid proc) " to process " (write partition))
+		(set! lastmsg (elapsed-time)))
 	      (sleep 1))
 	    (cond ((test (proc/status proc) 'exited 0)
 		   ;;(move-file partition (glom partition ".bak"))
@@ -130,7 +130,7 @@
 
 (define (get-index-keycount file)
   (let ((index (open-index file #[register #f cachelevel 1])))
-    (indexctl index 'metadata 'keys)))
+    (indexctl index 'metadata 'keycount)))
 
 (define (main (in #f) (head #f)
 	      (tail (config 'tailfile #f)))

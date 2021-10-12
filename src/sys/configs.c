@@ -761,7 +761,7 @@ static int read_config(U8_INPUT *in,int dflt)
       buf = u8_gets(in);
     else {
       int doparse = 0;
-      if ( (c == '(') || (c == ']') ) doparse=1;
+      if ( (c == '(') || (c == '[') ) doparse=1;
       else {
 	int nextc = u8_probec(in);
 	if ( (c == '/') && (nextc == '/') )
@@ -1341,7 +1341,7 @@ static u8_string get_config_path(u8_string spec)
   else {
     u8_string sourcebase = kno_sourcebase();
     if (sourcebase) {
-      u8_string full = u8_mkpath(sourcebase,spec);
+      u8_string full = u8_mkpath(spec,sourcebase);
       if (kno_probe_source(full,NULL,NULL,NULL))
 	return full;
       else u8_free(full);}

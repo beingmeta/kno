@@ -776,7 +776,7 @@ static void *_kno_thread_main(void *data)
       kno_log_errstack(ex,LOG_WARN,1);
       if (kno_thread_backtrace) {
 	U8_STATIC_OUTPUT(tmp,8000);
-	kno_sum_exception(tmpout,ex);
+	kno_sum_exceptions(tmpout,ex);
 	u8_log(LOG_WARN,ThreadBacktrace,"%s",tmp.u8_outbuf);
 	if (kno_dump_exception) {
 	  lispval exo = kno_get_exception(ex);

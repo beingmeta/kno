@@ -563,11 +563,11 @@ KNO_EXPORT lispval kno_slotmap_values(struct KNO_SLOTMAP *sm)
   return kno_simplify_choice(results);
 }
 
-KNO_EXPORT lispval *kno_slotmap_keyvec_n(struct KNO_SLOTMAP *sm,int *lenp)
+KNO_EXPORT lispval *kno_slotmap_keyvec(struct KNO_SLOTMAP *sm,int *lenp)
 {
   int unlock = 0;
   if (!((KNO_CONS_TYPEOF(sm))==kno_slotmap_type)) {
-    kno_seterr(kno_TypeError,"kno_slotmap_keyvec_n",NULL,(lispval)sm);
+    kno_seterr(kno_TypeError,"kno_slotmap_keyvec",NULL,(lispval)sm);
     *lenp = -1; return NULL;}
   if (KNO_XTABLE_USELOCKP(sm)) {
     u8_read_lock(&sm->table_rwlock);
@@ -1462,11 +1462,11 @@ KNO_EXPORT lispval kno_schemap_assocs(struct KNO_SCHEMAP *sm)
   }
 }
 
-KNO_EXPORT lispval *kno_schemap_keyvec_n(struct KNO_SCHEMAP *sm,int *len)
+KNO_EXPORT lispval *kno_schemap_keyvec(struct KNO_SCHEMAP *sm,int *len)
 {
   /* int unlock = 0; ?? */
   if (!((KNO_CONS_TYPEOF(sm))==kno_schemap_type)) {
-    kno_seterr(kno_TypeError,"kno_schemap_keyvec_n","schemap",(lispval)sm);
+    kno_seterr(kno_TypeError,"kno_schemap_keyvec","schemap",(lispval)sm);
     *len = -1; return NULL;}
   int size=KNO_XSCHEMAP_SIZE(sm);
   if (size==0) {*len = 0; return NULL;}
@@ -3091,10 +3091,10 @@ KNO_EXPORT lispval kno_hashtable_keys(struct KNO_HASHTABLE *ptr)
   return kno_simplify_choice(result);
 }
 
-KNO_EXPORT lispval *kno_hashtable_keyvec_n(struct KNO_HASHTABLE *ptr,int *len)
+KNO_EXPORT lispval *kno_hashtable_keyvec(struct KNO_HASHTABLE *ptr,int *len)
 {
   if (!((KNO_CONS_TYPEOF(ptr))==kno_hashtable_type)) {
-    kno_seterr(kno_TypeError,"kno_hashtable_keyvec_n","hashtable",(lispval)ptr);
+    kno_seterr(kno_TypeError,"kno_hashtable_keyvec","hashtable",(lispval)ptr);
     *len = -1; return NULL;}
   int unlock=0;
   if (KNO_XTABLE_USELOCKP(ptr)) {u8_read_lock(&ptr->table_rwlock); unlock=1;}
@@ -4604,7 +4604,7 @@ static struct KNO_TABLEFNS annotated_tablefns =
    NULL, /* finished */
    NULL, /*getsize */
    annotated_getkeys, /* getkeys */
-   NULL, /* keyvec_n */
+   NULL, /* keyvec */
    NULL, /* keyvals */
    NULL /* tablep */};
 
@@ -4904,13 +4904,13 @@ KNO_EXPORT int kno_set_finished(lispval arg,int flag)
   else return kno_err(NotATable,"kno_set_finished",NULL,arg);
 }
 
-KNO_EXPORT lispval *kno_getkeyvec_n(lispval arg,int *len)
+KNO_EXPORT lispval *kno_getkeyvec(lispval arg,int *len)
 {
   kno_lisp_type argtype=KNO_TYPEOF(arg);
   CHECKPTR(arg,"kno_getkeys/table");
   if (kno_tablefns[argtype])
-    if (kno_tablefns[argtype]->keyvec_n)
-      return (kno_tablefns[argtype]->keyvec_n)(arg,len);
+    if (kno_tablefns[argtype]->keyvec)
+      return (kno_tablefns[argtype]->keyvec)(arg,len);
     else if (kno_tablefns[argtype]->keys) {
       lispval keys = (kno_tablefns[argtype]->keys)(arg);
       if (KNO_EMPTYP(keys)) {
@@ -5251,7 +5251,7 @@ void kno_init_tables_c()
   kno_tablefns[kno_hashtable_type]->test=(kno_table_test_fn)hashtable_test;
   kno_tablefns[kno_hashtable_type]->getsize=(kno_table_getsize_fn)hashtable_getsize;
   kno_tablefns[kno_hashtable_type]->keys=(kno_table_keys_fn)kno_hashtable_keys;
-  kno_tablefns[kno_hashtable_type]->keyvec_n=(kno_table_keyvec_fn)kno_hashtable_keyvec_n;
+  kno_tablefns[kno_hashtable_type]->keyvec=(kno_table_keyvec_fn)kno_hashtable_keyvec;
   kno_tablefns[kno_hashtable_type]->modified=(kno_table_modified_fn)hashtable_modified;
   kno_tablefns[kno_hashtable_type]->readonly=(kno_table_readonly_fn)hashtable_readonly;
 
@@ -5264,7 +5264,7 @@ void kno_init_tables_c()
   kno_tablefns[kno_slotmap_type]->test=(kno_table_test_fn)kno_slotmap_test;
   kno_tablefns[kno_slotmap_type]->getsize=(kno_table_getsize_fn)slotmap_getsize;
   kno_tablefns[kno_slotmap_type]->keys=(kno_table_keys_fn)kno_slotmap_keys;
-  kno_tablefns[kno_slotmap_type]->keyvec_n=(kno_table_keyvec_fn)kno_slotmap_keyvec_n;
+  kno_tablefns[kno_slotmap_type]->keyvec=(kno_table_keyvec_fn)kno_slotmap_keyvec;
   kno_tablefns[kno_slotmap_type]->modified=(kno_table_modified_fn)slotmap_modified;
   kno_tablefns[kno_slotmap_type]->readonly=(kno_table_readonly_fn)slotmap_readonly;
 
@@ -5277,7 +5277,7 @@ void kno_init_tables_c()
   kno_tablefns[kno_schemap_type]->test=(kno_table_test_fn)kno_schemap_test;
   kno_tablefns[kno_schemap_type]->getsize=(kno_table_getsize_fn)schemap_getsize;
   kno_tablefns[kno_schemap_type]->keys=(kno_table_keys_fn)kno_schemap_keys;
-  kno_tablefns[kno_schemap_type]->keyvec_n=(kno_table_keyvec_fn)kno_schemap_keyvec_n;
+  kno_tablefns[kno_schemap_type]->keyvec=(kno_table_keyvec_fn)kno_schemap_keyvec;
   kno_tablefns[kno_schemap_type]->modified=(kno_table_modified_fn)schemap_modified;
   kno_tablefns[kno_schemap_type]->readonly=(kno_table_readonly_fn)schemap_readonly;
 
@@ -5293,7 +5293,7 @@ void kno_init_tables_c()
   kno_tablefns[kno_hashset_type]->test=NULL;
   kno_tablefns[kno_hashset_type]->getsize=(kno_table_getsize_fn)hashset_getsize;
   kno_tablefns[kno_hashset_type]->keys=(kno_table_keys_fn)hashset_elts;
-  kno_tablefns[kno_hashset_type]->keyvec_n=(kno_table_keyvec_fn)kno_hashset_vec;
+  kno_tablefns[kno_hashset_type]->keyvec=(kno_table_keyvec_fn)kno_hashset_vec;
   kno_tablefns[kno_hashset_type]->modified=(kno_table_modified_fn)hashset_modified;
 
   /* PAIR table functions */

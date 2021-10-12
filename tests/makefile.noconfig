@@ -61,9 +61,9 @@ help usage:
 	echo "Or specify particular components: (optionally with TESTOPTIMIZED=yes)"
 	echo "\tr4rs tail exceptions choices sequences numbers types regex lambda conditionals"
 	echo "\titerators binders errfns binio eval defines xtypes quasiquote promises"
-	echo "\tconfigs appenv opts modulefns compunds loading hashsets slotmaps hashtables"
+	echo "\tconfigs appenv sqlite opts modulefns compunds loading hashsets slotmaps hashtables"
 	echo "\tcachecall pick requests texttools webtools stringprims timeprims"
-	echo "\tsysprims startup sqlite subprocs threads threflect ffi i18n fileprims misc"
+	echo "\tsysprims startup subprocs threads threflect ffi i18n fileprims misc"
 	echo "\tgctests gcoverflow profiling xmltest compression"
 	echo "\tpools indexes frames storage"
 	echo ""
@@ -93,39 +93,26 @@ cleanlogs testclean cleantests cleantest:
 
 # Test targets
 
-all_tests alltests all: cleanlogs
-	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then 	\
-          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
-	  branch=$$(git branch --show-current|| echo none);	\
-	  echo "Running alltests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
-	make libtests tables dbs cmodules cwrappers
+all_tests alltests: cleanlogs
+	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then \
+          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; \
+	  echo "Running alltests with malloc=$${malloc} and build=$${build}"; fi;
+	make libtests tables dbs
 	make framedbs
 	make optimize_modules
 	make cmdtests
 	${header} "■■■■■■■■ Done with alltests";
 
 justcode run runtime: cleanlogs
-	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then 	\
-          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
-	  branch=$$(git branch --show-current || echo none); \
-	  echo "Running runtime (non-db) tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
+	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then \
+          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; \
+	  echo "Running all non-db tests with malloc=$${malloc} and build=$${build}"; fi;
 	make libtests tables
-	make cmodules cwrappers
 	make optimize_modules
 	make zipmods
 	make cmdtests
-	${header} "■■■■■■■■ Done with runtime tests";
+	${header} "■■■■■■■■ Done with alltests";
 standard standard_tests wodb_tests wodbs wodb nodb nodbs: justcode
-
-justlang knolang lang: cleanlogs
-	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then 	\
-          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
-	  branch=$$(git branch --show-current || echo none);	\
-	  echo "Running KNO language tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
-	make libtests tables
-	make optimize_modules
-	make cmdtests
-	${header} "■■■■■■■■ Done with knolang tests";
 
 smoke smoketest:
 	@${RUN} ${KNOX} smoke.scm ${RUNCONF} TESTOPTIMIZED=${TESTOPTIMIZED}
@@ -278,6 +265,13 @@ appenv:
 	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=stringfmts;33;88" ${RUNCONF}
 	@ BIZZARO=yes ${RUN} ${KNOX} CONFIG:TRACE=yes LOAD:TRACE=yes "APPMODS=:(stringfmts 88)" ${RUNCONF}
 	@${header} "■■■■ Completed appenv tests ${RUNCONF}"
+sqlite:
+	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite 
+	@rm -f temp.sqlite
+	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
+	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
+	@rm -f temp.sqlite
+	@${header} "■■■■ Completed sqldb/sqlite tests ${RUNCONF}"
 opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
@@ -427,6 +421,11 @@ kpoolsnappytest:
 kpoolzstdtest:
 	@make TESTBASE=kpoolzstd RUNCONF="${KPOOL} ${ZSTD} ${RUNCONF}" pooltest
 
+leveldbpools leveldbpooltests:
+	@make TESTBASE=leveldb RUNCONF="POOLTYPE=leveldb:pool ${RUNCONF}" pooltest
+rocksdbpools rocksdbpooltests:
+	@make TESTBASE=rocksdb RUNCONF="POOLTYPE=rocksdb:pool ${RUNCONF}" pooltest
+
 kpools kpooltests: kpooltest kpool32test kpool64test kpoolztest \
         kpoolsnappytest kpoolzstdtest
 
@@ -465,6 +464,10 @@ typeindexes typeindex:
 	@make TESTBASE=temptypekeys.index RUNCONF="INDEXTYPE=typeindex INDEXMOD=knodb/typeindex" indextest
 blockindexes blockindex:
 	@make TESTBASE=tempblockindex.index RUNCONF="INDEXTYPE=blockindex INDEXMOD=knodb/blockindex" indextest
+leveldbindexes leveldbindex:
+	@make TESTBASE=templeveldb.index RUNCONF="INDEXTYPE=leveldb:index" indextest
+rocksdbindexes rocksdbindex:
+	@make TESTBASE=temprocksdb.index RUNCONF="INDEXTYPE=rocksdb:index" indextest
 
 kindex32:
 	@make TESTBASE=tmpkno32.index RUNCONF="INDEXTYPE=kindex OFFTYPE=B32" indextest
@@ -534,6 +537,11 @@ framedb64:
 framedb32:
 	@make TESTBASE=tmpknodb32 RUNCONF="${KPOOL} ${KINDEX} ${OFFB32}" framedb
 
+leveldbframes leveldbframedb:
+	@make TESTBASE=leveldb RUNCONF="POOLTYPE=leveldb:pool INDEXTYPE=leveldb:index FORCEFRAMES=yes" framedb
+rocksdbframes rocksdbframedb:
+	@make TESTBASE=rocksdb RUNCONF="POOLTYPE=rocksdb:pool INDEXTYPE=rocksdb:index FORCEFRAMES=yes" framedb
+
 framedbs: framedb_base \
 	framedb32 framedb40 framedb64 \
 	framedb_aggregate framedb_keyslot \
@@ -548,7 +556,12 @@ randomtests:
 	make RUNCONF="RANDOMSEED=TIME ${RUNCONF}" alltests
 	@${header} "■■■■■■■■ Finished alltests with a really random seed"
 
-.PHONY: randomtests xml xmltests crypto cryptotest test-crypto
+.PHONY: randomtests xml xmltests crypto cryptotests
+
+leveldb leveldbtests: leveldbpools leveldbindexes
+	@make leveldbframes
+rocksdb rocksdbtests: rocksdbpools rocksdbindexes
+	@make rocksdbframes
 
 # Scripting tests
 
@@ -815,56 +828,9 @@ optscheme_leaktest:
 
 # CMODULE tests
 
-test-cmodules cmodules: test-crypto  test-archivetools test-sqlite
-test-cwrappers cwrappers: test-mariadb test-odbc test-rocksdb test-leveldb 
-
-# Standard module tests
-
-test-crypto crypto cryptotest:
+crypto cryptotest:
 	@${RUN} ${KNOX} crypto.scm ${RUNCONF}
 	@${header} "■■■■ Completed crypto tests ${RUNCONF}"
-
-# Key value db module tests
-
-test-leveldb leveldbtests leveldb: test-leveldbpools test-leveldbindexes
-	@make leveldbframes
-test-rocksdb rocksdbtests rocksdb: test-rocksdbpools test-rocksdbindexes
-	@make rocksdbframes
-
-test-leveldbframes leveldbframes leveldbframedb:
-	@make TESTBASE=leveldb RUNCONF="POOLTYPE=leveldb:pool INDEXTYPE=leveldb:index FORCEFRAMES=yes" framedb
-test-rocksdbframes rocksdbframes rocksdbframedb:
-	@make TESTBASE=rocksdb RUNCONF="POOLTYPE=rocksdb:pool INDEXTYPE=rocksdb:index FORCEFRAMES=yes" framedb
-
-test-leveldbpools leveldbpooltests:
-	@make TESTBASE=leveldb RUNCONF="POOLTYPE=leveldb:pool ${RUNCONF}" pooltest
-test-rocksdbpools rocksdbpooltests:
-	@make TESTBASE=rocksdb RUNCONF="POOLTYPE=rocksdb:pool ${RUNCONF}" pooltest
-
-test-leveldbindexes leveldbindexes leveldbindex:
-	@make TESTBASE=templeveldb.index RUNCONF="INDEXTYPE=leveldb:index" indextest
-test-rocksdbindexes rocksdbindexes rocksdbindex:
-	@make TESTBASE=temprocksdb.index RUNCONF="INDEXTYPE=rocksdb:index" indextest
-
-# SQLDB module tests
-
-test-sqlite sqlite:
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite 
-	@rm -f temp.sqlite
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
-	@rm -f temp.sqlite
-	@${header} "■■■■ Completed sqldb/sqlite tests ${RUNCONF}"
-
-test-mariadb mariadb:
-	@echo "No mariadb tests yet"
-
-test-odbc odbc:
-	@echo "No ODBC tests yet"
-
-test-archivetools archivetools:
-
-test-gperftools gperftools:
 
 #   ;;;  Local variables: ***
 #   ;;;  compile-command: "make -j" ***

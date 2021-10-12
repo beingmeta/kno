@@ -61,8 +61,7 @@ int lambda_setup(kno_stack stack,kno_stack origin,
   struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
   kno_lexenv proc_env = KNO_LAMBDA_ENV(lambda);
   int n_vars = proc->lambda_n_vars;
-  lispval op = (lispval) lambda; kno_incref(op);
-
+  lispval op = (lispval) lambda;
   if (RARELY(proc_env==NULL)) {
     kno_seterr("HomelessLambda","lambda_setup",NULL,lambda);
     return -1;}
@@ -88,13 +87,17 @@ int lambda_setup(kno_stack stack,kno_stack origin,
       stack->stack_argc=0;}
     reset_env(eval_env);}
 
-  kno_stackvec refs = &(stack->stack_refs);
-  kno_decref_stackvec(refs);
-
  setup:
   KNO_STACK_SET_BIT(stack,KNO_STACK_DECREF_ARGS,1);
   KNO_STACK_SET_BIT(stack,KNO_STACK_TAIL_POS,tail);
-  kno_stackvec_push(refs,op);
+
+  kno_stackvec refs = &(stack->stack_refs);
+  if ( (refs->count==1) && (refs->elts[0]==op) ) {}
+  else {
+    kno_decref_stackvec(refs);
+    kno_stackvec_push(refs,op);
+    kno_incref(op);}
+  
   kno_profile profile = proc->fcn_profile;
   struct rusage init_usage; struct timespec start_time;
   if (profile) {
@@ -652,12 +655,13 @@ _make_lambda(u8_string name,
   else return LISP_CONS(s);
 
  err_exit:
-  kno_decref_stackvec(args);
-  kno_free_stackvec(args);
-  kno_decref_stackvec(inits);
-  kno_free_stackvec(inits);
-  kno_decref_stackvec(types);
-  kno_free_stackvec(types);
+  /* Don't bother inlining */
+  _kno_decref_stackvec(args);
+  _kno_free_stackvec(args);
+  _kno_decref_stackvec(inits);
+  _kno_free_stackvec(inits);
+  _kno_decref_stackvec(types);
+  _kno_free_stackvec(types);
   if (s->fcn_name) u8_free(s->fcn_name);
   u8_free(s);
   return result;

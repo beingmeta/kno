@@ -728,9 +728,10 @@ PKG_CFLAGS
 BOOTSETUP
 DATAFILES
 INSTALL_CWRAPPERS
+TEST_CWRAPPERS
 CWRAPPERS
-TEST_CMODULES
 INSTALL_CMODULES
+TEST_CMODULES
 CMODULES
 EXTMODS
 WWWUSER
@@ -4309,10 +4310,11 @@ module_path=""
 source_dir=""
 EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
-INSTALL_CMODULES=""
-INSTALL_CWRAPPERS=""
 TEST_CMODULES=""
+INSTALL_CMODULES=""
 CWRAPPERS=""
+TEST_CWRAPPERS=""
+INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -4489,6 +4491,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -8534,6 +8537,7 @@ if test "x$ac_cv_lib_profiler_ProfilerStart" = xyes; then :
 fi
 
     CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
+    TEST_CMODULES="test-gperftools ${CMODULES}"
     INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for malloc in -ltcmalloc_minimal" >&5
@@ -9715,7 +9719,7 @@ fi
 if test $with_crypto = "yes"; then
   CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
   INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
-  TEST_CMODULES="crypto ${TEST_CMODULES}"
+  TEST_CMODULES="test-crypto ${TEST_CMODULES}"
 fi
 
 # Check whether --enable-htmldump was given.
@@ -13647,7 +13651,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/kno/archivetools.${shared_suffix} ${CMODULES}"
   INSTALL_CMODULES="install-archivetools ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} archivetools"
+  TEST_CMODULES="${TEST_CMODULES} test-archivetools"
 else
   auto_disabled="archivetools ${auto_disabled}"
 fi
@@ -13753,7 +13757,7 @@ fi
   if test "$sqlite3_ok" = "yes"; then
     CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
     INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} sqlite"
+    TEST_CMODULES="${TEST_CMODULES} test-sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -13926,6 +13930,7 @@ if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
 fi;
 if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-leveldb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
 else auto_disabled="leveldb ${auto_disabled}";
 fi;
@@ -13999,6 +14004,7 @@ if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
 fi;
 if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-rocksdb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
 else auto_disabled="rocksdb ${auto_disabled}";
 fi;
@@ -14071,6 +14077,7 @@ if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
 fi;
 if test ! -z "${WITH_ODBC_WRAPPER}"; then
    CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-odbc ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
 else auto_disabled="odbc ${auto_disabled}";
 fi;
@@ -14098,6 +14105,7 @@ if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
 fi;
 if test ! -z "${WITH_MARIADB_WRAPPER}"; then
    CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-mariadb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
 else auto_disabled="leveldb ${auto_disabled}";
 fi;
@@ -14124,7 +14132,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14830,6 +14838,7 @@ do
     "etc/makefile.include") CONFIG_FILES="$CONFIG_FILES etc/makefile.include" ;;
     "src/extmods/makefile") CONFIG_FILES="$CONFIG_FILES src/extmods/makefile" ;;
     "DIY/makefile") CONFIG_FILES="$CONFIG_FILES DIY/makefile" ;;
+    "tests/makefile") CONFIG_FILES="$CONFIG_FILES tests/makefile" ;;
     "tests/libtests/makefile") CONFIG_FILES="$CONFIG_FILES tests/libtests/makefile" ;;
     "etc/gdbinit") CONFIG_FILES="$CONFIG_FILES etc/gdbinit" ;;
     "etc/lldbinit") CONFIG_FILES="$CONFIG_FILES etc/lldbinit" ;;

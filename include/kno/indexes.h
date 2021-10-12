@@ -171,6 +171,7 @@ KNO_EXPORT kno_index _kno_indexptr(lispval x);
 KNO_EXPORT lispval _kno_index_get(kno_index ix,lispval key);
 KNO_EXPORT lispval kno_index_fetch(kno_index ix,lispval key);
 KNO_EXPORT lispval kno_index_keys(kno_index ix);
+KNO_EXPORT lispval *kno_index_keyvec(kno_index ix,int *n);
 KNO_EXPORT lispval kno_index_sizes(kno_index ix);
 KNO_EXPORT lispval kno_index_keysizes(kno_index ix,lispval keys);
 KNO_EXPORT int _kno_index_add(kno_index ix,lispval key,lispval value);

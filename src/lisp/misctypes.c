@@ -594,7 +594,7 @@ static struct KNO_TABLEFNS rawptr_tablefns =
    NULL, /* finished */
    NULL, /*getsize */
    rawptr_getkeys, /* getkeys */
-   NULL, /* keyvec_n */
+   NULL, /* keyvec */
    NULL, /* keyvals */
    rawptr_tablep};
 

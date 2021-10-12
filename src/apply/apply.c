@@ -82,6 +82,7 @@ KNO_FASTOP lispval function_call(u8_string name,lispval handler,
 				 struct KNO_STACK *stack)
 {
   int call_width = f->fcn_call_width;
+  if (call_width<0) call_width = n;
   const lispval *args, _args[call_width];
   KNO_STACK_SET_OP(stack,(lispval)f,0);
   if (f->fcn_filename) stack->stack_file = f->fcn_filename;
@@ -124,6 +125,7 @@ static lispval traced_function_call(u8_string name,lispval handler,
 				    struct KNO_STACK *stack)
 {
   int call_width = f->fcn_call_width, trace_bits = f->fcn_trace;
+  if (call_width<0) call_width = n;
   const lispval *args, _args[call_width];
   KNO_STACK_SET_OP(stack,handler,0);
   if (f->fcn_filename) stack->stack_file = f->fcn_filename;
@@ -678,6 +680,7 @@ void kno_init_ffi_c(void);
 void kno_init_exec_c(void);
 void kno_init_dispatch_c(void);
 void kno_init_services_c(void);
+void init_sqldb_c(void);
 
 /* PROFILED functions config */
 
@@ -1004,5 +1007,6 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_exec_c();
   kno_init_dispatch_c();
   kno_init_services_c();
+  init_sqldb_c();
 }
 

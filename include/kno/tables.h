@@ -49,7 +49,7 @@ struct KNO_TABLEFNS {
   int (*finished)(lispval obj,int op);
   int (*getsize)(lispval obj);
   lispval (*keys)(lispval obj);
-  lispval *(*keyvec_n)(lispval obj,int *);
+  lispval *(*keyvec)(lispval obj,int *);
   struct KNO_KEYVAL (*keyvals)(lispval obj,int *);
   int (*tablep)(lispval obj);
 };
@@ -75,7 +75,7 @@ KNO_EXPORT int kno_set_finished(lispval arg,int val);
 
 KNO_EXPORT int kno_getsize(lispval arg);
 KNO_EXPORT lispval kno_getkeys(lispval arg);
-KNO_EXPORT lispval *kno_getkeyvec_n(lispval arg,int *len);
+KNO_EXPORT lispval *kno_getkeyvec(lispval arg,int *len);
 KNO_EXPORT lispval kno_getvalues(lispval arg);
 KNO_EXPORT lispval kno_getassocs(lispval arg);
 

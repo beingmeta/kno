@@ -408,7 +408,7 @@ struct typeinfo_initializer init_typeinfo[]=
    
    { kno_service_type,_("service"),_("service")},
    
-   { kno_sqldb_type,_("sqldb"),_("sqldb")},
+   { kno_sqlconn_type,_("sqlconn"),_("sqlconn")},
    { kno_sqlproc_type,_("sqlproc"),_("sqlproc")},
    
     { kno_consed_pool_type,_("raw pool"),

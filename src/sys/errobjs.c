@@ -587,6 +587,12 @@ KNO_EXPORT void kno_output_backtrace(u8_output out,lispval stack,int limit)
 KNO_EXPORT
 void kno_sum_exception(U8_OUTPUT *out,u8_exception ex)
 {
+  sum_exception(out,ex);
+}
+
+KNO_EXPORT
+void kno_sum_exceptions(U8_OUTPUT *out,u8_exception ex)
+{
   u8_exception scan = ex, prev = NULL;
   while (scan) {
     u8_puts(out,";; !! ");

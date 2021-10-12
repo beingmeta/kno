@@ -39,7 +39,7 @@ DEFC_PRIM("getkeyvec",getkeyvec_prim,
 static lispval getkeyvec_prim(lispval table)
 {
   int len = 0;
-  lispval *keyvec = kno_getkeyvec_n(table,&len);
+  lispval *keyvec = kno_getkeyvec(table,&len);
   if (len<0) return KNO_ERROR;
   else if (len == 0)
     return kno_make_vector(0,NULL);

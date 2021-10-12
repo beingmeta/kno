@@ -127,8 +127,8 @@
 
 (defambda (callstats thread trial arg repeat deltafn track before)
   (tryif before
-    (cons-callstats thread trial (qc arg) repeat 
-		    (deltafn (bench-rusage track) before))))
+    (modify-frame (deltafn (bench-rusage track) before)
+      'thread thread 'trail trial 'repeat repeat 'arg arg)))
 
 (defambda (bench-stats-threadfn thread fn workload (opts #f) (track) (deltafn))
   (default! track (getopt opts 'track #f))

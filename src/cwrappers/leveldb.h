@@ -1,5 +1,8 @@
 typedef struct KNO_LEVELDB {
-  u8_string path; lispval opts;
+  KNO_CONS_HEADER;
+  u8_string path, realpath;
+  lispval opts;
+  struct KNO_LEVELDB *leveldb_list;
   unsigned int readonly, saved_xrefs;
   enum leveldb_status {
     leveldb_raw = 0,
@@ -18,10 +21,6 @@ typedef struct KNO_LEVELDB {
   struct leveldb_cache_t *cacheptr;
   struct leveldb_env_t *envptr;}  *kno_leveldb;
 
-typedef struct KNO_LEVELDB_CONS {
-  KNO_CONS_HEADER;
-  struct KNO_LEVELDB leveldb;} *kno_leveldb_cons;
-
 KNO_EXPORT kno_lisp_type kno_leveldb_type;
 
 KNO_EXPORT int kno_init_leveldb(void) KNO_LIBINIT_FN;
@@ -30,12 +29,12 @@ typedef struct KNO_LEVELDB_POOL {
   KNO_POOL_FIELDS;
   unsigned int pool_load; time_t pool_mtime;
   unsigned int locked:1;
-  struct KNO_LEVELDB leveldb;} KNO_LEVELDB_POOL;
+  struct KNO_LEVELDB *leveldb;} KNO_LEVELDB_POOL;
 typedef struct KNO_LEVELDB_POOL *kno_leveldb_pool;
 
 typedef struct KNO_LEVELDB_INDEX {
   KNO_INDEX_FIELDS;
   unsigned int locked:1;
-  struct KNO_LEVELDB leveldb;} KNO_LEVELDB_INDEX;
+  struct KNO_LEVELDB *leveldb;} KNO_LEVELDB_INDEX;
 typedef struct KNO_LEVELDB_INDEX *kno_leveldb_index;
 

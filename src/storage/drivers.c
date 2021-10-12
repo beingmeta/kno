@@ -312,8 +312,16 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
         kno_pool opened = (found) ? (found) :
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
-        if (opened==NULL)
-          return KNO_ERR(NULL,kno_CantOpenPool,"kno_open_pool",spec,opts);
+        if (opened==NULL) {
+	  if (u8_current_exception) {
+	    u8_exception ex = u8_current_exception;
+	    U8_STATIC_OUTPUT(details,200);
+	    u8_puts(detailsout,spec); u8_puts(detailsout,": ");
+	    kno_sum_exception(detailsout,ex);
+	    kno_seterr(kno_CantOpenPool,"kno_open_pool",details.u8_outbuf,opts);
+	    u8_close_output(detailsout);
+	    return NULL;}
+          else return KNO_ERR(NULL,kno_CantOpenPool,"kno_open_pool",spec,opts);}
         else if (kno_testopt(opts,wadjuncts_symbol,VOID)) {
           lispval adjuncts=kno_getopt(opts,wadjuncts_symbol,EMPTY);
           int rv=kno_set_adjuncts(opened,adjuncts);
@@ -585,8 +593,16 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
           (kno_find_index_by_source(use_spec));
         kno_index opened = (found) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
-        if (opened==NULL)
-          return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);
+        if (opened==NULL) {
+	  if (u8_current_exception) {
+	    u8_exception ex = u8_current_exception;
+	    U8_STATIC_OUTPUT(details,200);
+	    u8_puts(detailsout,spec); u8_puts(detailsout,": ");
+	    kno_sum_exception(detailsout,ex);
+	    kno_seterr(kno_CantOpenIndex,"kno_open_index",details.u8_outbuf,opts);
+	    u8_close_output(detailsout);
+	    return NULL;}
+          else return KNO_ERR(NULL,kno_CantOpenIndex,"kno_open_index",spec,opts);}
         if (use_spec!=spec) u8_free(use_spec);
         lispval old_opts=opened->index_opts;
 	if (old_opts != opts) {

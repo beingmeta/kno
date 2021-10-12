@@ -33,6 +33,7 @@ KNO_EXPORT void kno_undeclared_error
 (u8_context caller,u8_string details,lispval irritant);
 
 KNO_EXPORT void kno_sum_exception(U8_OUTPUT *out,u8_exception e);
+KNO_EXPORT void kno_sum_exceptions(U8_OUTPUT *out,u8_exception e);
 KNO_EXPORT u8_string kno_errstring(u8_exception e);
 KNO_EXPORT lispval kno_exception_xdata(u8_exception e);
 

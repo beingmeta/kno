@@ -2,50 +2,50 @@
 # Copyright © 2004-2020 beingmeta, inc
 # This file is a part of beingmeta's Kno implementation
 
-CC	          = @CC@
-XCFLAGS           =
-OPTFLAGS          = "@OPTFLAGS@"
-XOPTFLAGS         = "@XOPTFLAGS@"
-ARCHFLAGS         = @archflags@
+CC		  = @CC@
+XCFLAGS		  =
+OPTFLAGS	  = "@OPTFLAGS@"
+XOPTFLAGS	  = "@XOPTFLAGS@"
+ARCHFLAGS	  = @archflags@
 WARNFLAGS	  = -Wno-unused-label -Wno-multichar
-EXECFLAGS         = @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
+EXECFLAGS	  = @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
 		    @PROFILING@ @GCOV_CFLAGS@ \
 		    -I./include $(XCFLAGS) $(ARCHFLAGS)
-DYNAMIC_CFLAG     = @dynamic_cflag@
-CFLAGS            = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} \
+DYNAMIC_CFLAG	  = @dynamic_cflag@
+CFLAGS		  = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} \
 		    @MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
 		    @PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
 		    -I./include $(XCFLAGS)  $(ARCHFLAGS)
-RPATH             = @rpath@
-RPATHFLAGS        = @RPATHFLAGS@
-LDFLAGS           = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
+RPATH		  = @rpath@
+RPATHFLAGS	  = @RPATHFLAGS@
+LDFLAGS		  = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
 		    $(XLDFLAGS)
-KNOVERSION       := $(shell cat ./etc/base_version)
-DYLIB_FLAGS       = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
-EXEFLAGS          = @EXEFLAGS@
-EXELIBS           = @EXELIBS@
-STATIC_CFLAGS     = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ -DKNO_STATIC \
+KNOVERSION	 := $(shell cat ./etc/base_version)
+DYLIB_FLAGS	  = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
+EXEFLAGS	  = @EXEFLAGS@
+EXELIBS		  = @EXELIBS@
+STATIC_CFLAGS	  = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ -DKNO_STATIC \
 		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
-DEBUG_CFLAGS      = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
-STATIC_LDFLAGS    = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
+DEBUG_CFLAGS	  = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
+STATIC_LDFLAGS	  = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 		    @STATICLDFLAGS@ -L./lib
-TEST_LDFLAGS      = ${STATIC_LDFLAGS} @TESTLDFLAGS@
-TEST_EXEFLAGS     = @EXEFLAGS@
+TEST_LDFLAGS	  = ${STATIC_LDFLAGS} @TESTLDFLAGS@
+TEST_EXEFLAGS	  = @EXEFLAGS@
 LIBSOURCE	  = @LIBSOURCE@
 SHAREDEXE	  = @SHAREDEXE@
 STATICEXE	  = @STATICEXE@
-XLIBS             =
-LIBS              = $(XLIBS) @LIBS@
-PATH              = @BINPATH@
-DEBBUILD          = -b
-INDENTOPTS        = -br -ce -psl -Tknodtype -Tu8_string \
+XLIBS		  =
+LIBS		  = $(XLIBS) @LIBS@
+PATH		  = @BINPATH@
+DEBBUILD	  = -b
+INDENTOPTS	  = -br -ce -psl -Tknodtype -Tu8_string \
 		    -Tkno_stream -Tkno_inbuf -Tkno_outbuf \
 		    -Tkno_rawbuf -Tkno_function -Tkno_pair \
 		    -Tkno_choice
-GCOVR_FLAGS       = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/libtests/"
-PYLIBS            = -lknowebtools -lknotexttools -lkno ${LIBS}
+GCOVR_FLAGS	  = -e "./src/cmodules/" -e "./src/exe/" -e "./tests/libtests/"
+PYLIBS		  = -lknowebtools -lknotexttools -lkno ${LIBS}
 
-DESTDIR	  	  =
+DESTDIR		  =
 PACKAGE		  = kno
 prefix		  = @prefix@
 exec_prefix	  = @exec_prefix@
@@ -60,85 +60,85 @@ MANDIR		  = $(DESTDIR)@mandir@
 DOCDIR		  = $(DESTDIR)@docdir@
 CMODULES	  = ${LIBINSTALLDIR}/kno@suffix@
 APXS		  = @APXS@ -S LIBEXECDIR=$(DESTDIR)@apache_modules_dir@
-PPROF_PATH        = @GOOGLE_PPROF@
+PPROF_PATH	  = @GOOGLE_PPROF@
 CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
 GZIP		  = @GZIP@
 MSG		  = @MSG@
 DOINSTALL	  = @DOINSTALL@
 SYSINSTALL	  = @DOINSTALL@ @INSTALL@
-SUDO	          = @SUDO@
+SUDO		  = @SUDO@
 INSTALL		  = @INSTALL@
 GZINSTALL	  = ${DOINSTALL} ${GZIP} -cf
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
-REL_BRANCH      := $(shell ./etc/getbuildopt REL_BRANCH current)
-REL_STATUS      := $(shell ./etc/getbuildopt REL_STATUS stable)
-REL_PRIORITY    := $(shell ./etc/getbuildopt REL_PRIORITY medium)
+REL_BRANCH	:= $(shell ./etc/getbuildopt REL_BRANCH current)
+REL_STATUS	:= $(shell ./etc/getbuildopt REL_STATUS stable)
+REL_PRIORITY	:= $(shell ./etc/getbuildopt REL_PRIORITY medium)
 MKSO		  = $(CC) -shared @GCOV_CFLAGS@ $(LDFLAGS)
 MACLIBTOOL	  = $(CC) -dynamiclib -single_module -undefined dynamic_lookup \
 			$(LDFLAGS)
 
-LIBSCM	 	  = @LIBSCM@
+LIBSCM		  = @LIBSCM@
 BUILD		  = `pwd`
 RPMFLAGS	  = @RPMFLAGS@
 RPMDIR		  = @RPMDIR@
 GPG		  = @GPG@
 GPGID		  = ${OVERRIDE_GPGID:-@GPGID@}
 RPMGPG		  = %__gpg gpg --force-v3-sigs --digest-algo=sha1 -u \"%{_gpg_name}\" --no-armor --no-secmem-warning -sbo %{__signature_filename} %{__plaintext_filename}
-APT_INCOMING      = dev.beingmeta.com:/srv/repo/@REPONAME@/apt/incoming/@CODENAME@/
+APT_INCOMING	  = dev.beingmeta.com:/srv/repo/@REPONAME@/apt/incoming/@CODENAME@/
 
-BUILDMODE       := $(shell if test -f ./buildmode; then cat ./buildmode; else echo none; fi)
-LINKEDWITH      := $(shell cat .malloc 2> /dev/null || echo standard libraries)
-APKREPO	        := $(shell ./etc/getbuildopt APKREPO /srv/repo/kno/apk)
+BUILDMODE	:= $(shell if test -f ./buildmode; then cat ./buildmode; else echo none; fi)
+LINKEDWITH	:= $(shell cat .malloc 2> /dev/null || echo standard libraries)
+APKREPO		:= $(shell ./etc/getbuildopt APKREPO /srv/repo/kno/apk)
 APTVERSION	:= $(shell @U8BIN@u8_gitversion etc/base_version)
 GITBRANCH	:= $(shell @U8BIN@u8_gitbranch)
-ARCH            := $(shell ./etc/getbuildopt BUILD_ARCH || uname -m || echo x86_64)
+ARCH		:= $(shell ./etc/getbuildopt BUILD_ARCH || uname -m || echo x86_64)
 APK_ARCH_DIR	:= ${APKREPO}/staging/${ARCH}
 
 LISP_HEADERS=\
- include/kno/knosource.h                        \
- include/kno/config.h                           \
- include/kno/configs.h                          \
- include/kno/common.h                           \
- include/kno/errobjs.h                          \
- include/kno/errors.h                          	\
+ include/kno/knosource.h			\
+ include/kno/config.h				\
+ include/kno/configs.h				\
+ include/kno/common.h				\
+ include/kno/errobjs.h				\
+ include/kno/errors.h				\
  include/kno/defines.h				\
- include/kno/support.h                          \
- include/kno/numbers.h                          \
- include/kno/bigints.h                          \
- include/kno/malloc.h                           \
- include/kno/lisp.h    			     	\
- include/kno/pprint.h    			\
+ include/kno/support.h				\
+ include/kno/numbers.h				\
+ include/kno/bigints.h				\
+ include/kno/malloc.h				\
+ include/kno/lisp.h				\
+ include/kno/pprint.h				\
  include/kno/ptr.h				\
- include/kno/cons.h        			\
- include/kno/typeinfo.h        			\
+ include/kno/cons.h				\
+ include/kno/typeinfo.h				\
  include/kno/compounds.h			\
- include/kno/choices.h			        \
- include/kno/tables.h  			     	\
- include/kno/sequences.h  			\
- include/kno/knoregex.h  			\
- include/kno/bufio.h			     	\
- include/kno/xtypes.h 				\
+ include/kno/choices.h				\
+ include/kno/tables.h				\
+ include/kno/sequences.h			\
+ include/kno/knoregex.h				\
+ include/kno/bufio.h				\
+ include/kno/xtypes.h				\
  include/kno/dtypeio.h				\
  include/kno/getsource.h
 APPLY_HEADERS=\
  include/kno/apply.h   \
- include/kno/cprims.h   \
+ include/kno/cprims.h	\
  include/kno/stacks.h  \
  include/kno/lexenv.h  \
  include/kno/ffi.h
 STORAGE_HEADERS=\
- include/kno/components/storage_layer.h	\
+ include/kno/components/storage_layer.h \
  include/kno/streams.h			\
  include/kno/storage.h			\
  include/kno/pools.h			\
  include/kno/indexes.h			\
- include/kno/bloom.h  			\
+ include/kno/bloom.h			\
  include/kno/dtproc.h			\
  include/kno/dtcall.h			\
  include/kno/frames.h			\
- include/kno/sqldb.h 			\
+ include/kno/sqldb.h			\
  include/kno/methods.h
 
 DRIVERS_H=include/kno/drivers.h
@@ -148,82 +148,82 @@ SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
-SRC_HEADERS=src/lisp/biginternals.h 		\
-	src/eval/eval_internals.h 		\
-	src/apply/apply_internals.h 		\
-	src/exe/webcommon.h 			\
-	src/drivers/headers/zcompress.h 	\
-	src/drivers/headers/filepool.h 		\
-	src/drivers/headers/fileindex.h 	\
-	src/drivers/headers/hashindex.h 	\
-	src/drivers/headers/bigpool.h 		\
-	src/drivers/headers/logindex.h	 	\
-	src/drivers/headers/kpool.h	 	\
+SRC_HEADERS=src/lisp/biginternals.h		\
+	src/eval/eval_internals.h		\
+	src/apply/apply_internals.h		\
+	src/exe/webcommon.h			\
+	src/drivers/headers/zcompress.h		\
+	src/drivers/headers/filepool.h		\
+	src/drivers/headers/fileindex.h		\
+	src/drivers/headers/hashindex.h		\
+	src/drivers/headers/bigpool.h		\
+	src/drivers/headers/logindex.h		\
+	src/drivers/headers/kpool.h		\
 	src/drivers/headers/kindex.h		\
 	src/drivers/headers/netindex.h		\
 	src/drivers/headers/netpool.h
 
 LISP_OBJS=\
-	src/lisp/oids.o	 					\
+	src/lisp/oids.o						\
 	src/lisp/symbols.o src/lisp/cons.o src/lisp/typeinfo.o	\
-	src/lisp/recycle.o src/lisp/copy.o 			\
+	src/lisp/recycle.o src/lisp/copy.o			\
 	src/lisp/compare.o src/lisp/walk.o			\
 	src/lisp/tables.o src/lisp/sequences.o			\
-	src/lisp/choices.o src/lisp/numbers.o 			\
+	src/lisp/choices.o src/lisp/numbers.o			\
 	src/lisp/compounds.o src/lisp/misctypes.o		\
 	src/lisp/parse.o src/lisp/unparse.o			\
-	src/lisp/bufio.o src/lisp/pprint.o  			\
+	src/lisp/bufio.o src/lisp/pprint.o			\
 	src/lisp/listing.o src/lisp/consblocks.o		\
-	src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/xtypes.o  \
+	src/lisp/dtread.o src/lisp/dtwrite.o src/lisp/xtypes.o	\
 	src/lisp/lisp.o
 
 SYS_OBJS=						\
 	src/sys/buildinfo.o src/sys/support.o		\
 	src/sys/configs.o src/sys/errobjs.o		\
 	src/sys/logging.o src/sys/getopt.o		\
-	src/sys/startup.o src/sys/fluid.o 		\
-	src/sys/signals.o src/sys/posix.o 		\
+	src/sys/startup.o src/sys/fluid.o		\
+	src/sys/signals.o src/sys/posix.o		\
 	src/sys/sourcebase.o src/sys/getsource.o	\
 	src/sys/history.o
 
 APPLY_OBJS=\
-	src/apply/apply.o src/apply/stacks.o 			\
+	src/apply/apply.o src/apply/stacks.o			\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
-	src/apply/dispatch.o src/apply/services.o
+	src/apply/dispatch.o src/apply/sqldb.o src/apply/services.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
 CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
 
 STORAGE_OBJS=\
-	src/storage/storage.o src/storage/streams.o 		\
-	src/storage/hashdtype.o src/storage/compress.o 	\
-	src/storage/pools.o src/storage/indexes.o 		\
+	src/storage/storage.o src/storage/streams.o		\
+	src/storage/hashdtype.o src/storage/compress.o	\
+	src/storage/pools.o src/storage/indexes.o		\
 	src/storage/aggregates.o				\
 	src/storage/bloom.o src/storage/alcor.o			\
-	src/storage/methods.o src/storage/oidstore.o 		\
+	src/storage/methods.o src/storage/oidstore.o		\
 	src/storage/cachecall.o src/storage/threadcache.o	\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/tempindex.o		\
-	src/storage/frames.o src/storage/slotindexes.o 		\
+	src/storage/frames.o src/storage/slotindexes.o		\
 	src/storage/drivers.o src/storage/dbserv.o		\
 	@ipevalo@ 
 
 DRIVER_OBJS=\
-	src/drivers/builtin_drivers.o src/drivers/knosocks.o 	\
+	src/drivers/builtin_drivers.o src/drivers/knosocks.o	\
 	src/drivers/kpool.o src/drivers/kindex.o		\
 	src/drivers/netpool.o src/drivers/netindex.o		\
-	src/drivers/filepool.o src/drivers/fileindex.o 		\
-	src/drivers/logindex.o src/drivers/zipsource.o 		\
+	src/drivers/filepool.o src/drivers/fileindex.o		\
+	src/drivers/logindex.o src/drivers/zipsource.o		\
 	src/drivers/hashindex.o src/drivers/bigpool.o		\
 	src/drivers/zip.o
 
 CORE_SCHEME_OBJS=		\
 	src/eval/eval.o		\
 	src/eval/vm.o		\
-	src/eval/qonsts.o 	\
+	src/eval/qonsts.o	\
 	src/eval/debug.o	\
 	src/eval/options.o	\
 	src/eval/testops.o	\
@@ -232,74 +232,74 @@ CORE_SCHEME_OBJS=		\
 	src/eval/lambda.o	\
 	src/eval/macros.o	\
 	src/eval/threads.o	\
-	src/eval/quasiquote.o 	\
-	src/eval/struct_eval.o 	\
+	src/eval/quasiquote.o	\
+	src/eval/struct_eval.o	\
 	src/eval/errfns.o	\
-	src/eval/conditionals.o	\
+	src/eval/conditionals.o \
 	src/eval/iterators.o	\
 	src/eval/repl.o
 
 SCHEME_OBJS=\
-	$(CORE_SCHEME_OBJS) 	\
-	src/eval/modules.o 	\
-	src/eval/load.o 	\
-	src/eval/reflection.o 	\
-	src/eval/typeops.o 	\
-	src/eval/choiceops.o 	\
-	src/eval/evalops.o 	\
-	src/eval/coreops.o 	\
-	src/eval/tableops.o 	\
-	src/eval/configops.o 	\
-	src/eval/srvcall.o 	\
-	src/eval/arith.o 	\
-	src/eval/regex.o 	\
-	src/eval/promises.o 	\
-	src/eval/requests.o 	\
-	src/eval/knosockd.o 	\
-	src/prims/dbprims.o 	\
-	src/prims/tableprims.o 	\
-	src/prims/seqprims.o 	\
+	$(CORE_SCHEME_OBJS)	\
+	src/eval/modules.o	\
+	src/eval/load.o		\
+	src/eval/reflection.o	\
+	src/eval/typeops.o	\
+	src/eval/choiceops.o	\
+	src/eval/evalops.o	\
+	src/eval/coreops.o	\
+	src/eval/tableops.o	\
+	src/eval/configops.o	\
+	src/eval/srvcall.o	\
+	src/eval/arith.o	\
+	src/eval/regex.o	\
+	src/eval/promises.o	\
+	src/eval/requests.o	\
+	src/eval/knosockd.o	\
+	src/prims/dbprims.o	\
+	src/prims/tableprims.o	\
+	src/prims/seqprims.o	\
 	src/prims/stringprims.o \
-	src/prims/portprims.o 	\
-	src/prims/logprims.o 	\
-	src/prims/streamprims.o	\
-	src/prims/dtypeprims.o 	\
-	src/prims/xtypeprims.o 	\
-	src/prims/timeprims.o 	\
-	src/prims/sysprims.o 	\
-	src/prims/procprims.o 	\
-	@ipevalopso@ 		\
-	src/prims/sqldbprims.o 	\
-	src/prims/fileprims.o 	\
+	src/prims/portprims.o	\
+	src/prims/logprims.o	\
+	src/prims/streamprims.o \
+	src/prims/dtypeprims.o	\
+	src/prims/xtypeprims.o	\
+	src/prims/timeprims.o	\
+	src/prims/sysprims.o	\
+	src/prims/procprims.o	\
+	@ipevalopso@		\
+	src/prims/sqldbprims.o	\
+	src/prims/fileprims.o	\
 	src/prims/driverprims.o \
 	src/eval/loadmods.o
 
 WEB_OBJS=			\
-	src/web/webtools.o 	\
+	src/web/webtools.o	\
 	src/web/xmloutput.o	\
-	src/web/htmlout.o 	\
-	src/web/xmlinput.o 	\
-	src/web/xmldata.o 	\
-	src/web/mime.o 		\
-	src/web/email.o 	\
-	src/web/uriprims.o 	\
-	src/web/xmleval.o 	\
-	src/web/cgiexec.o 	\
-	src/web/json.o 		\
-	@ldnso@ 		\
+	src/web/htmlout.o	\
+	src/web/xmlinput.o	\
+	src/web/xmldata.o	\
+	src/web/mime.o		\
+	src/web/email.o		\
+	src/web/uriprims.o	\
+	src/web/xmleval.o	\
+	src/web/cgiexec.o	\
+	src/web/json.o		\
+	@ldnso@			\
 	@curlo@
 
 TEXT_OBJS=			\
 	src/text/texttools.o	\
-	src/text/match.o 	\
-	src/text/porter.o 	\
+	src/text/match.o	\
+	src/text/porter.o	\
 	src/text/phonetic.o
 
 PYTHON_OBJS=				\
-	src/python/parseltongue.o 	\
+	src/python/parseltongue.o	\
 	src/python/parseltongue2.o
 
-CMODULE_OBJS=src/cmodules/sqlite.o  	\
+CMODULE_OBJS=src/cmodules/sqlite.o	\
 	     src/cmodules/crypto.o	\
 	     src/cmodules/archivetools.o	\
 	     src/cmodules/testcapi.o
@@ -323,12 +323,12 @@ CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
 	 $(DESTDIR)@local_module_dir@
 
-CLEANDIRS=include/kno src/drivers/headers 		\
-	src/lisp src/apply src/sys 			\
+CLEANDIRS=include/kno src/drivers/headers		\
+	src/lisp src/apply src/sys			\
 	src/storage src/drivers				\
 	src/eval src/prims				\
-	src/text src/textmods 				\
-	src/web src/webmods 				\
+	src/text src/textmods				\
+	src/web src/webmods				\
 	src/cmodules src/cwrappers src/stdmods		\
 	etc
 
@@ -339,66 +339,66 @@ KNO_HEADERS= \
 
 KNO_SOURCES=									\
 	src/lisp/cons.c src/lisp/typeinfo.c src/lisp/oids.c src/lisp/symbols.c	\
-	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c       		\
-        src/lisp/compare.c src/lisp/walk.c					\
+	src/lisp/copy.c src/lisp/recycle.c src/lisp/misctypes.c			\
+	src/lisp/compare.c src/lisp/walk.c					\
 	src/lisp/choices.c src/lisp/sequences.c					\
 	src/lisp/tables.c src/lisp/compounds.c src/lisp/consblocks.c		\
-        src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c  \
-	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c 			\
-	src/sys/buildinfo.c src/sys/sourcebase.c 				\
+	src/lisp/bufio.c src/lisp/dtread.c src/lisp/dtread.c src/lisp/xtypes.c	\
+	src/lisp/parse.c src/lisp/unparse.c src/lisp/lisp.c			\
+	src/sys/buildinfo.c src/sys/sourcebase.c				\
 	src/sys/support.c src/sys/configs.c src/sys/posix.c			\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
-	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c 		\
-	src/apply/ffi.c src/apply/exec.c src/apply/dispatch.c 			\
-	src/apply/apply_internals.h			  			\
+	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c			\
+	src/apply/ffi.c src/apply/sqldb.c src/apply/exec.c src/apply/dispatch.c \
+	src/apply/apply_internals.h						\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
-	src/storage/oidstore.c  src/storage/frames.c src/storage/slotindexes.c  \
+	src/storage/oidstore.c	src/storage/frames.c src/storage/slotindexes.c	\
 	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
-	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c  	\
+	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c	\
 	src/storage/bloom.c src/storage/ipeval.c				\
-	src/drivers/builtin_drivers.c  						\
+	src/drivers/builtin_drivers.c						\
 	src/drivers/filepool.c src/drivers/kpool.c src/drivers/zipsource.c	\
-	src/drivers/fileindex.c src/drivers/kindex.c  				\
+	src/drivers/fileindex.c src/drivers/kindex.c				\
 	src/storage/extindex.c src/storage/tempindex.c				\
 	src/storage/mempool.c src/storage/extpool.c				\
-	src/drivers/netpool.c src/drivers/netindex.c 				\
-	src/storage/procpool.c src/storage/procindex.c 				\
+	src/drivers/netpool.c src/drivers/netindex.c				\
+	src/storage/procpool.c src/storage/procindex.c				\
 	src/drivers/hashindex.c src/drivers/bigpool.c				\
 	src/drivers/logindex.c							\
 	src/eval/eval.c src/eval/vm.c src/eval/opcode_info.h			\
 	src/eval/options.c src/eval/appenv.c src/eval/qonsts.c			\
 	src/eval/testops.c src/eval/debug.c					\
-	src/eval/binders.c src/eval/lambda.c 					\
-	src/eval/macros.c src/eval/errfns.c     				\
-	src/eval/conditionals.c src/eval/iterators.c               		\
-        src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
-	src/eval/modules.c src/eval/load.c src/eval/reflection.c 		\
+	src/eval/binders.c src/eval/lambda.c					\
+	src/eval/macros.c src/eval/errfns.c					\
+	src/eval/conditionals.c src/eval/iterators.c				\
+	src/eval/threads.c src/eval/quasiquote.c src/eval/struct_eval.c		\
+	src/eval/modules.c src/eval/load.c src/eval/reflection.c		\
 	src/eval/typeops.c src/eval/repl.c					\
-	src/eval/evalops.c                  					\
-	src/eval/tableops.c                  					\
-	src/eval/coreops.c                  					\
-	src/eval/arith.c 			              			\
-	src/eval/regex.c 			              			\
-	src/eval/promises.c 			              			\
-	src/prims/dbprims.c 							\
+	src/eval/evalops.c							\
+	src/eval/tableops.c							\
+	src/eval/coreops.c							\
+	src/eval/arith.c							\
+	src/eval/regex.c							\
+	src/eval/promises.c							\
+	src/prims/dbprims.c							\
 	src/prims/logprims.c							\
 	src/prims/portprims.c							\
 	src/prims/streamprims.c src/prims/dtypeprims.c src/prims/xtypeprims.c	\
-	src/prims/tableprims.c src/eval/choiceops.c               		\
-	src/prims/seqprims.c src/prims/stringprims.c                 		\
-	src/prims/fileprims.c src/prims/driverprims.c                		\
-	src/eval/loadmods.c                                            		\
-	src/prims/timeprims.c src/prims/sysprims.c 				\
-	src/prims/sqldbprims.c                    				\
+	src/prims/tableprims.c src/eval/choiceops.c				\
+	src/prims/seqprims.c src/prims/stringprims.c				\
+	src/prims/fileprims.c src/prims/driverprims.c				\
+	src/eval/loadmods.c							\
+	src/prims/timeprims.c src/prims/sysprims.c				\
+	src/prims/sqldbprims.c							\
 	src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
-	src/web/webtools.c src/web/json.c src/web/ldns.c            		\
-	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c 		\
-	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c 			\
+	src/web/webtools.c src/web/json.c src/web/ldns.c			\
+	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c		\
+	src/web/xmleval.c src/web/cgiexec.c src/web/htmlout.c			\
 	src/web/uriprims.c src/web/mime.c src/web/email.c src/web/curl.c	\
-	src/text/texttools.c src/text/match.c                			\
-	src/text/porter.c src/text/phonetic.c                			\
+	src/text/texttools.c src/text/match.c					\
+	src/text/porter.c src/text/phonetic.c					\
 	src/exe/knoc.c src/exe/knox.c src/exe/knocgi.c
 
 CMODULE_SOURCES=			\
@@ -407,20 +407,20 @@ CMODULE_SOURCES=			\
 	src/cmodules/gperftools.c	\
 	src/cmodules/crypto.c
 
-STATIC_LIBS=lib/libkno@suffix@.a 	\
+STATIC_LIBS=lib/libkno@suffix@.a	\
 	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
 
-LINK_STATIC_LIBS=lib/libkno@suffix@.a 	\
+LINK_STATIC_LIBS=lib/libkno@suffix@.a	\
 	lib/libknowebtools@suffix@.a	\
 	lib/libknotexttools@suffix@.a
 
-INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a 	\
+INSTALL_STATIC=${LIBSOURCE}/libkno@suffix@.a	\
 	${LIBSOURCE}/libknowebtools@suffix@.	\
 	${LIBSOURCE}/libknotexttools@suffix@.a
 
-SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@  		\
-	lib/libknowebtools@suffix@.@shared_suffix@       	\
+SHARED_LIBS=lib/libkno@suffix@.@shared_suffix@			\
+	lib/libknowebtools@suffix@.@shared_suffix@		\
 	lib/libknotexttools@suffix@.@shared_suffix@		\
 	lib/libknowebtools@suffix@.@mshared_suffix@		\
 	lib/libknotexttools@suffix@.@mshared_suffix@
@@ -431,13 +431,13 @@ INSTALL_SHARED=${LIBSOURCE}/libkno@suffix@.@shared_suffix@		\
 	${LIBSOURCE}/libknowebtools@suffix@.@mshared_suffix@		\
 	${LIBSOURCE}/libknotexttools@suffix@.@mshared_suffix@
 
-STRIPPED_LIBS=lib/stripped/libkno@suffix@.a 			\
-	lib/stripped/libknowebtools@suffix@.a 			\
-	lib/stripped/libknotexttools@suffix@.a 			\
+STRIPPED_LIBS=lib/stripped/libkno@suffix@.a			\
+	lib/stripped/libknowebtools@suffix@.a			\
+	lib/stripped/libknotexttools@suffix@.a			\
 	lib/stripped/libkno@suffix@.@shared_suffix@		\
 	lib/stripped/libknowebtools@suffix@.@shared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@shared_suffix@	\
-	lib/stripped/libkno@suffix@.@mshared_suffix@  		\
+	lib/stripped/libkno@suffix@.@mshared_suffix@		\
 	lib/stripped/libknowebtools@suffix@.@mshared_suffix@	\
 	lib/stripped/libknotexttools@suffix@.@mshared_suffix@
 
@@ -450,7 +450,7 @@ SCHEME_MODULES=src/stdmods/*.scm \
 	src/webmods/domutils/*.scm src/stdmods/knodules/*.scm \
 	src/textmods/textindex/*.scm src/webmods/json/*.scm src/stdmods/crypto/*.scm \
 	src/stdmods/bench/*.scm src/textmods/booktools/*.scm \
-	src/brico/*.scm	src/brico/build/index/*.scm \
+	src/brico/*.scm src/brico/build/index/*.scm \
 	src/brico/build/*.scm
 
 # These might be neccessary on MacOS
@@ -482,12 +482,12 @@ debugging:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="@debugcflags@ -O0 $(XCFLAGS) 	\
-		  -Wall ${WARNFLAGS} -Wno-unknown-pragmas 	\
+	@+make -s XCFLAGS="@debugcflags@ -O0 $(XCFLAGS)		\
+		  -Wall ${WARNFLAGS} -Wno-unknown-pragmas	\
 		  -DKNO_DEBUGGING_BUILD=1"			\
-	          XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
-	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
-		  XLIBS="@debuglibs@ $(XLIBS)" 			\
+		  XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
+		  XOPTFLAGS="-O0" OPTFLAGS="-O0"		\
+		  XLIBS="@debuglibs@ $(XLIBS)"			\
 	  testbin exe cmodules cwrappers etc @TAGS_TARGET@
 
 profiling:
@@ -496,10 +496,10 @@ profiling:
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
 	@+make -s XCFLAGS="@profilecflags@ -O0 -Wall -Wno-unknown-pragmas $(XCFLAGS) -DKNO_PROFILING_BUILD=1 @profiledefines@"	\
-	          XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
-	          XOPTFLAGS="-O0" OPTFLAGS="-O0" 		\
-		  XLIBS="@debuglibs@ $(XLIBS)" 			\
-	  	testbin libs exe cmodules cwrappers etc @TAGS_TARGET@
+		  XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
+		  XOPTFLAGS="-O0" OPTFLAGS="-O0"		\
+		  XLIBS="@debuglibs@ $(XLIBS)"			\
+		testbin libs exe cmodules cwrappers etc @TAGS_TARGET@
 
 optimizing:
 	@echo Building OPTIMIZING configuration
@@ -558,7 +558,7 @@ knocore:    lib/libknocore@suffix@.a
 knostorage: lib/libknostorage@suffix@.a
 knodrivers: lib/libknodrivers@suffix@.a
 knoscheme:  lib/libknoscheme@suffix@.a
-knoweb:     lib/libknowebtools@suffix@.a
+knoweb:	    lib/libknowebtools@suffix@.a
 knotext:    lib/libknotexttools@suffix@.a
 knodb:
 	make knocore
@@ -568,11 +568,11 @@ knodb:
 # Versioning
 
 REVISION: etc/base_version
-	if test -d .git; then 				\
+	if test -d .git; then				\
 	  @U8BIN@u8_gitversion etc/base_version > $@;	\
-	elif test -f $@; then 				\
+	elif test -f $@; then				\
 	  touch REVISION;				\
-	else cp etc/base_version $@; 			\
+	else cp etc/base_version $@;			\
 	fi;
 FULL_REVISION: etc/base_version
 	if test -d .git; then				\
@@ -585,7 +585,7 @@ FULL_REVISION: etc/base_version
 include/kno/revision.h: REVISION FULL_REVISION
 	@REVISION=$$(cat REVISION);					\
 	 FULL_REVISION=$$(cat FULL_REVISION);				\
-	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@; 		\
+	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@;		\
 	 echo "#define KNO_FULL_REVISION \"kno-$$FULL_REVISION\"" >> $@;
 
 # configure/autoconf stuff
@@ -615,7 +615,7 @@ exe/.gdbinit: exe/.gdbinit.in ./config.status
 	./config.status
 
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
-        dbg/.gdbinit exe/.gdbinit
+	dbg/.gdbinit exe/.gdbinit
 
 # Makes everything and then sudoes the install, keeping build files
 # non-root
@@ -639,21 +639,21 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
-		-o $@ $<                                           	\
-		@xdynamic_scheme_libs@                             	\
-		-lkno@suffix@ 					\
-	        -lu8stdio $(LIBS) $(EXELIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)				\
+		-o $@ $<						\
+		@xdynamic_scheme_libs@					\
+		-lkno@suffix@					\
+		-lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
 exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)                  	\
-		-o $@ $<                                           	\
-		@xdynamic_scheme_libs@                             	\
-	        -lknotexttools \
-	        -lknowebtools \
-		-lkno@suffix@ 					\
-	        -lu8stdio $(LIBS) $(EXELIBS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)				\
+		-o $@ $<						\
+		@xdynamic_scheme_libs@					\
+		-lknotexttools \
+		-lknowebtools \
+		-lkno@suffix@					\
+		-lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
 src/cmodules/%.o: src/cmodules/%.c ${CONFIG_HDRS}
@@ -679,7 +679,7 @@ lib/kno/%.so: src/cwrappers/%.o
 	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@$(MSG) MKSO  $@ $<
-lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
+lib/kno/%.dylib: src/cwrappers/%.o ${CMODULE_DEPENDS}
 	@$(MACLIBTOOL) -install_name \
 		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
@@ -688,8 +688,8 @@ lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
-	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS) 	\
-	      -lu8 -lu8stdio -lu8syslog 		\
+	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS)	\
+	      -lu8 -lu8stdio -lu8syslog			\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
@@ -701,11 +701,11 @@ src/%.zip: src/%
 	cd $<; zip ../$(@F) -r . -x "*~" -x "#*" -x "*.attic/*" -x ".git*"
 
 # docs/man/%: docs/ronn/%.ronn
-# 	ronn --roff < $< > $@
+#	ronn --roff < $< > $@
 # docs/man.html/%.html: docs/ronn/%.ronn
-# 	ronn --html < $< > $@
+#	ronn --html < $< > $@
 # docs/man.html.include/%.html: docs/ronn/%.ronn
-# 	ronn --fragment < $< > $@
+#	ronn --fragment < $< > $@
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typically run as daemons
@@ -717,14 +717,14 @@ static/%@suffix@: src/exe/%.c $(LINK_STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
 lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
 	@$(MSG) MKSTATIC $@
-lib/%@suffix@.so.@KNO_MAJOR@: lib/%@suffix@.so
+lib/lib%@suffix@.so.@KNO_MAJOR@: lib/lib%@suffix@.so
 	@ln -sf $(*F).so $@
 lib/lib%@suffix@.so:
 	$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
 		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS) $(LIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@echo MKSO $@ $<
-lib/lib%@suffix@.@KNO_MAJOR@.dylib: lib/%@suffix@.dylib
+lib/lib%@suffix@.@KNO_MAJOR@.dylib: lib/lib%@suffix@.dylib
 	@ln -sf $(*F).dylib $@
 lib/lib%@suffix@.dylib:
 	@$(MACLIBTOOL) -install_name \
@@ -759,10 +759,10 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
+	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F)@suffix@.@vshared_suffix@
+	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
 
 ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
@@ -770,7 +770,7 @@ ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) $< $@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
-	@$(MSG)  Linking $@ to $(*F).@vshared_suffix@
+	@$(MSG)	 Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
 	@make -s ${CMODULES}/$(*F).@mshared_suffix@
 	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
@@ -884,42 +884,43 @@ NOTAGS:
 	@echo "# (kno)" No TAGS file
 
 TAGS: makefile configure.ac include/kno/config.h.in			\
-		tests/libtests/*.c		  			\
-		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c 				\
+		tests/libtests/*.c					\
+		src/exe/*.c src/exe/*.h include/kno/*.h			\
+		src/lisp/*.c src/sys/*.c				\
 		src/apply/*.c src/apply/*.h				\
-		src/storage/*.c src/drivers/*.c 			\
+		src/storage/*.c src/drivers/*.c				\
 		src/eval/*.c src/eval/*.h				\
-		src/prims/*.c     					\
-		src/text/*.c src/web/*.c 				\
-		src/cmodules/*.c 					\
-		src/python/*.c 						\
-		src/libscm/*.scm src/libscm/*/*.scm 			\
-		src/libscm/*/*/*.scm 					\
-		src/scripts/*.scm src/shell/*.in 			\
+		src/prims/*.c						\
+		src/text/*.c src/web/*.c				\
+		src/cmodules/*.c					\
+		src/cwrappers/*.c					\
+		src/python/*.c						\
+		src/libscm/*.scm src/libscm/*/*.scm			\
+		src/libscm/*/*/*.scm					\
+		src/scripts/*.scm src/shell/*.in			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
-		etc/*.in src/extmods/*.in 				\
-		dbg/.gdbinit.in tests/*.scm 				\
+		etc/*.in src/extmods/*.in				\
+		dbg/.gdbinit.in tests/*.scm				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
-	@etags -o $@ 					\
+	@etags -o $@					\
 		makefile.in configure.ac		\
-		include/kno/config.h.in     		\
-		include/kno/knosource.h.in     		\
-	        tests/*/*.in tests/*.in dbg/*.in 	\
+		include/kno/config.h.in			\
+		include/kno/knosource.h.in		\
+		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile	\
+		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
-	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
 	@etags -o $@ -a src/storage/*.c
 	@etags -o $@ -a src/drivers/*.c src/drivers/headers/*.h
 	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o $@ -a src/web/*.c src/text/*.c;
 	@etags -o $@ -a tests/libtests/*.c tests/*.scm;
-	@etags -o $@ -a src/cmodules/*.c;
+	@etags -o $@ -a src/cmodules/*.c src/cwrappers/*.c;
 	@etags -o $@ -a src/python/*.c;
 	@etags -o $@ -a src/scripts/*.scm;
 	@etags -o $@ -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
@@ -930,34 +931,34 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 	@find src/brico/ -name "*.scm" -type f | xargs etags -a -o $@;
 
 CORETAGS: makefile configure.ac include/kno/config.h.in			\
-		tests/libtests/*.c		  			\
-		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c 				\
+		tests/libtests/*.c					\
+		src/exe/*.c src/exe/*.h include/kno/*.h			\
+		src/lisp/*.c src/sys/*.c				\
 		src/apply/*.c src/apply/*.h				\
-		src/storage/*.c src/drivers/*.c 			\
+		src/storage/*.c src/drivers/*.c				\
 		src/eval/*.c src/eval/*.h				\
-		src/prims/*.c     					\
-		src/text/*.c src/web/*.c 				\
-		src/cmodules/*.c 					\
-		src/python/*.c 						\
-		src/libscm/*.scm src/libscm/*/*.scm 			\
-		src/scripts/*.scm src/shell/*.in 			\
+		src/prims/*.c						\
+		src/text/*.c src/web/*.c				\
+		src/cmodules/*.c					\
+		src/python/*.c						\
+		src/libscm/*.scm src/libscm/*/*.scm			\
+		src/scripts/*.scm src/shell/*.in			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
-		etc/*.in src/extmods/*.in 				\
-		dbg/.gdbinit.in tests/*.scm 				\
+		etc/*.in src/extmods/*.in				\
+		dbg/.gdbinit.in tests/*.scm				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
 	@etags -o $@ makefile.in configure.ac		\
-		include/kno/config.h.in     		\
-		include/kno/knosource.h.in     		\
-	        tests/*/*.in tests/*.in dbg/*.in 	\
+		include/kno/config.h.in			\
+		include/kno/knosource.h.in		\
+		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile	\
+		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
-	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
 	@etags -o $@ -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
 	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o $@ -a src/web/*.c src/text/*.c;
@@ -968,32 +969,32 @@ CORETAGS: makefile configure.ac include/kno/config.h.in			\
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o $@;
 
 CTAGS: makefile configure.ac include/kno/config.h.in	\
-		tests/libtests/*.c		  			\
-		src/exe/*.c src/exe/*.h include/kno/*.h 		\
-		src/lisp/*.c src/sys/*.c 				\
+		tests/libtests/*.c					\
+		src/exe/*.c src/exe/*.h include/kno/*.h			\
+		src/lisp/*.c src/sys/*.c				\
 		src/apply/*.c src/apply/*.h				\
-		src/storage/*.c src/drivers/*.c 			\
+		src/storage/*.c src/drivers/*.c				\
 		src/eval/*.c src/eval/*.h				\
-		src/prims/*.c     					\
-		src/text/*.c src/web/*.c 				\
-		src/cmodules/*.c 					\
-		src/python/*.c 						\
+		src/prims/*.c						\
+		src/text/*.c src/web/*.c				\
+		src/cmodules/*.c					\
+		src/python/*.c						\
 		include/kno/components/*.h				\
 		src/extmods/*.in src/extmods/*/*.c src/extmods/*/*.h	\
 		dbg/.gdbinit.in						\
 		${SRC_HEADERS}
 	@echo Building KNO_SOURCE TAGS file
 	@echo "# (kno)" Building TAGS file
-	@etags -o $@ makefile.in configure.ac 		\
-		include/kno/config.h.in     		\
-		include/kno/knosource.h.in     		\
-	        tests/*/*.in tests/*.in dbg/*.in 	\
+	@etags -o $@ makefile.in configure.ac		\
+		include/kno/config.h.in			\
+		include/kno/knosource.h.in		\
+		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile	\
+		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
-	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c  src/apply/*.h 
+	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
 	@etags -o $@ -a src/storage/*.c src/drivers/*.c src/drivers/headers/*.h
 	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o $@ -a src/web/*.c src/text/*.c;
@@ -1096,9 +1097,9 @@ src/text/matcher.o src/text/texttools.o : XCFLAGS="${XOPTFLAGS}"
 
 # Library targets
 
-lib/libkno@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
+lib/libkno@suffix@.a: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)	\
 	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
-lib/libkno@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) 	\
+lib/libkno@suffix@.so: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS)	\
 	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
 lib/libkno@suffix@.dylib: $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS) \
 	$(STORAGE_OBJS) $(DRIVER_OBJS) $(SCHEME_OBJS)
@@ -1118,12 +1119,12 @@ lib/libknodrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
 
 lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libknoscheme@suffix@.so: $(SCHEME_OBJS) 		\
+lib/libknoscheme@suffix@.so: $(SCHEME_OBJS)		\
 	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so	\
 	lib/libknodrivers@suffix@.so
-lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS) 			\
+lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS)			\
 	lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
-        lib/libknodrivers@suffix@.dylib
+	lib/libknodrivers@suffix@.dylib
 
 lib/libknowebtools@suffix@.a: $(WEB_OBJS)
 lib/libknowebtools@suffix@.so: $(WEB_OBJS) lib/libkno@suffix@.so
@@ -1306,8 +1307,8 @@ debfresh freshdeb:
 	make -s debian
 
 debupdate:
-	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then 	\
-	  echo "Debian build of Kno is up to date"; 		\
+	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then	\
+	  echo "Debian build of Kno is up to date";		\
 	else make debfresh; fi;
 
 # Creating a source tree for packaging
@@ -1370,16 +1371,16 @@ dist/kno.spec.base: dist/kno.spec.base.in
 dist/debs.built: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	@if test ! -f staging/setup.debian.core; then \
 	  echo "Warning: no staging/setup.debian"; fi;
-	make staging/kno_@KNO_VERSION@ && 		\
-	(cd staging/kno_@KNO_VERSION@; 			\
-	 dpkg-buildpackage -sa -us -uc -b) && 		\
+	make staging/kno_@KNO_VERSION@ &&		\
+	(cd staging/kno_@KNO_VERSION@;			\
+	 dpkg-buildpackage -sa -us -uc -b) &&		\
 	 mv staging/*_@KNO_VERSION@-* dist &&	\
 	 touch dist/debs.built;
 # cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
 
 dist/debsource.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@; 			\
-	 dpkg-buildpackage -sa -us -uc -F) && 		\
+	(cd staging/kno_@KNO_VERSION@;			\
+	 dpkg-buildpackage -sa -us -uc -F) &&		\
 	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
 	 mv staging/*_@KNO_VERSION@*.* dist &&		\
 	touch dist/debs.built dist/debsource.built;
@@ -1391,7 +1392,7 @@ dist/debs.signed: dist/debs.built
 	 touch dist/debs.signed;
 dist/debsource.signed: dist/debsource.built
 	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
-	    echo "Skipping GPG signing of debian packages";  	\
+	    echo "Skipping GPG signing of debian packages";	\
 	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
 	 touch dist/debs.signed dist/debsource.signed;
 
@@ -1421,21 +1422,21 @@ staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
 
 dist/rpms.ready:
 	@make staging/kno-@KNO_VERSION@ staging/kno-@KNO_VERSION@.tar.gz
-	@buildrpm@ $(RPMFLAGS)  			\
+	@buildrpm@ $(RPMFLAGS)				\
 	   --define="_rpmdir $(RPMDIR)"			\
-	   --define="_srcrpmdir $(RPMDIR)" 		\
-	   --nodeps -ta 				\
-	    staging/kno-@KNO_VERSION@.tar.gz && 	\
+	   --define="_srcrpmdir $(RPMDIR)"		\
+	   --nodeps -ta					\
+	    staging/kno-@KNO_VERSION@.tar.gz &&		\
 	touch dist/rpms.ready
 dist/rpms.done: dist/rpms.ready
 	@if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then	\
-            sleep 2; touch dist/rpms.done;			\
-	else 							\
-	     echo "Enter passphrase for '$(GPGID)':"; 		\
-	     @rpm@ --addsign --define="_gpg_name $(GPGID)" 	\
+	    sleep 2; touch dist/rpms.done;			\
+	else							\
+	     echo "Enter passphrase for '$(GPGID)':";		\
+	     @rpm@ --addsign --define="_gpg_name $(GPGID)"	\
 		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm 		\
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm; 	\
+		$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm		\
+		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;	\
 	fi && touch dist/rpms.done;
 	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
 		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
@@ -1467,11 +1468,11 @@ install-status:
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installing" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
-install: install-status install-core 		\
-		install-static-libs     	\
+install: install-status install-core		\
+		install-static-libs		\
 		install-cmodules		\
 		install-cwrappers		\
-		@install_libscm@ install-stdlib	\
+		@install_libscm@ install-stdlib \
 		install-dev			\
 		@setup_target@
 	@if test -f .malloc && test -f .buildmode; then \
@@ -1505,8 +1506,8 @@ $(DESTDIR)@config_dir@/daemons \
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
-	make $(LIBINSTALLDIR)/libkno@suffix@.a        		\
-		$(LIBINSTALLDIR)/libknowebtools@suffix@.a      	\
+	make $(LIBINSTALLDIR)/libkno@suffix@.a			\
+		$(LIBINSTALLDIR)/libknowebtools@suffix@.a	\
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
     $(LIBINSTALLDIR)/libkno@suffix@.@vshared_suffix@			\
@@ -1521,7 +1522,7 @@ install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
 
 install-headers: $(INCINSTALLDIR)
 	@$(SYSINSTALL) -p @install_file_opts@		\
-		   $(LISP_HEADERS) $(APPLY_HEADERS) 	\
+		   $(LISP_HEADERS) $(APPLY_HEADERS)	\
 		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
 		   $(REVISION_H)			\
@@ -1540,10 +1541,10 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@$(DOINSTALL) ln -s knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
+	@$(DOINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@$(DOINSTALL) ln -s knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
+	@$(DOINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
@@ -1552,15 +1553,15 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
 install-data: \
-	$(DESTDIR)@config_dir@/boot/ex_daemon.service   \
-	$(DESTDIR)@config_dir@/boot/ex_servlet.service  \
+	$(DESTDIR)@config_dir@/boot/ex_daemon.service	\
+	$(DESTDIR)@config_dir@/boot/ex_servlet.service	\
 	$(DESTDIR)@config_dir@/boot/kno.target		\
-	$(DESTDIR)@config_dir@/boot/kno-daemons.service	\
+	$(DESTDIR)@config_dir@/boot/kno-daemons.service \
 	$(DESTDIR)@config_dir@/boot/kno-servlets.service	\
-	$(DESTDIR)@config_dir@/boot/kno-rc.d 		\
-	$(DESTDIR)@config_dir@/boot/ex_servlet-init.d 		\
-	$(DESTDIR)@config_dir@/boot/ex_daemon-init.d 		\
-	$(DESTDIR)@config_dir@/boot/kno.conf 		\
+	$(DESTDIR)@config_dir@/boot/kno-rc.d		\
+	$(DESTDIR)@config_dir@/boot/ex_servlet-init.d		\
+	$(DESTDIR)@config_dir@/boot/ex_daemon-init.d		\
+	$(DESTDIR)@config_dir@/boot/kno.conf		\
 	$(DESTDIR)@config_dir@/boot/logrotate
 
 $(BININSTALLDIR)/knocgi@suffix@:
@@ -1628,10 +1629,10 @@ src/brico/brico.scm:
 	git submodule update --remote --merge src/brico;
 
 install-support: $(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@ 	\
-		gdbinit makefile.include knoc.el 		\
+	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@	\
+		gdbinit makefile.include knoc.el		\
 		$(DESTDIR)@share_dir@
-	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@ 	\
+	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@	\
 		webinfo.knocgi $(DESTDIR)@share_dir@
 
 install-libscm: src/libscm.zip \
@@ -1661,23 +1662,23 @@ $(DESTDIR)/etc/init.d/kno: etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d
 		   etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
 	@$(MSG) Installing Kno run directory
-	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775	@knouserinstall@ @admininstall@ -d \
 		   $(DESTDIR)@kno_rundir@
 $(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno daemon run directory
-	@$(SYSINSTALL) -m 0775  @knouserinstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775	@knouserinstall@ @admininstall@ -d \
 		   $(DESTDIR)@daemon_rundir@
 $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno servlet run directory
-	@$(SYSINSTALL) -m 0775  @wwwinstall@ @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775	@wwwinstall@ @admininstall@ -d \
 		   $(DESTDIR)@servlet_rundir@
 $(DESTDIR)@kno_logdir@:
 	@$(MSG) Installing Kno log directory
-	@$(SYSINSTALL) -m 0775 @knouserinstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0775 @knouserinstall@	 @admininstall@ -d \
 		   $(DESTDIR)@kno_logdir@
 $(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
 	@$(MSG) Installing Kno bugjar directory
-	@$(SYSINSTALL) -m 0777 @knouserinstall@  @admininstall@ -d \
+	@$(SYSINSTALL) -m 0777 @knouserinstall@	 @admininstall@ -d \
 		   $(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALL) -m 0775 @knouserinstall@ @admininstall@ \
@@ -1720,9 +1721,9 @@ setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 $(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
 	@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
-	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then 	\
-	   ${MSG} systemctl daemon-reload; 			\
-	   ${SUDO} systemctl daemon-reload; 			\
+	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then	\
+	   ${MSG} systemctl daemon-reload;			\
+	   ${SUDO} systemctl daemon-reload;			\
 	fi
 
 setup-logrotate: etc/logrotate $(DESTDIR)/etc/logrotate.d/kno logdirs
@@ -1983,12 +1984,12 @@ gcovr_fresh:
 # Meta operations
 
 submodules update-submodules update-git update-modules:
-	if test -d .git; then 					\
-	  git pull; git submodule init; 			\
-	  git submodule update --remote --merge src/stdmods; 	\
-	  git submodule update --remote --merge src/textmods; 	\
-	  git submodule update --remote --merge src/webmods; 	\
-	  git submodule update --remote --merge src/brico; 	\
+	if test -d .git; then					\
+	  git pull; git submodule init;				\
+	  git submodule update --remote --merge src/stdmods;	\
+	  git submodule update --remote --merge src/textmods;	\
+	  git submodule update --remote --merge src/webmods;	\
+	  git submodule update --remote --merge src/brico;	\
 	fi;
 .PHONY: submodules update-modules update-git update-submodules
 

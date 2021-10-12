@@ -2210,7 +2210,7 @@ static struct KNO_TABLEFNS python_table_fns = {
   NULL, /* int (*finished)(lispval obj,int op) */
   python_table_getsize, /* int (*getsize)(lispval obj) */
   python_table_getkeys, /* lispval (*keys)(lispval obj) */
-  NULL, /* lispval *(*keyvec_n)(lispval obj,int *len) */
+  NULL, /* lispval *(*keyvec)(lispval obj,int *len) */
   NULL, /* struct KNO_KEYVAL (*keyvals)(lispval obj,int *) */
   python_tablep /* int (*tablep)(lispval obj) */
 };

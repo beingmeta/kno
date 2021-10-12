@@ -123,15 +123,19 @@ KNO_FASTOP void __kno_stackvec_merge(struct KNO_STACKVEC *into,
   into->count += KNO_STACKVEC_COUNT(from);
   KNO_STACKVEC_COUNT(from) = 0;
 }
+static void decref_stackvec_elts(int count,lispval *elts)
+{
+  int i = 0; while (i<count) {
+    lispval elt = elts[i++];
+    kno_decref(elt);}
+}
 KNO_FASTOP void __kno_decref_stackvec(struct KNO_STACKVEC *sv)
 {
-  lispval *elts = KNO_STACKVEC_ELTS(sv);
   int count     = KNO_STACKVEC_COUNT(sv);
-  if (count) {
-    int i = 0; while (i<count) {
-      lispval elt = elts[i++];
-      kno_decref(elt);}}
+  if (count==0) return;
   KNO_STACKVEC_COUNT(sv) = 0;
+  lispval *elts = KNO_STACKVEC_ELTS(sv);
+  decref_stackvec_elts(count,elts);
 }
 KNO_FASTOP void __kno_free_stackvec(struct KNO_STACKVEC *sv)
 {

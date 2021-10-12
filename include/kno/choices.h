@@ -489,6 +489,8 @@ KNO_EXPORT int kno_containsp(lispval,lispval);
 
 KNO_EXPORT lispval kno_intersect_choices(struct KNO_CHOICE **,int);
 
+KNO_EXPORT lispval kno_results2vector(lispval results,int decref);
+
 KNO_EXPORT lispval *kno_natsort_choice(kno_choice ch,lispval *,ssize_t);
 
 /* DO_CHOICES2 */

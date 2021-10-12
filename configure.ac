@@ -129,10 +129,11 @@ module_path=""
 source_dir=""
 EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
 CMODULES=""
-INSTALL_CMODULES=""
-INSTALL_CWRAPPERS=""
 TEST_CMODULES=""
+INSTALL_CMODULES=""
 CWRAPPERS=""
+TEST_CWRAPPERS=""
+INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -364,9 +365,10 @@ AC_SUBST(ZIPCMD)
 AC_SUBST(WWWUSER)
 AC_SUBST(EXTMODS)
 AC_SUBST(CMODULES)
-AC_SUBST(INSTALL_CMODULES)
 AC_SUBST(TEST_CMODULES)
+AC_SUBST(INSTALL_CMODULES)
 AC_SUBST(CWRAPPERS)
+AC_SUBST(TEST_CWRAPPERS)
 AC_SUBST(INSTALL_CWRAPPERS)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
@@ -914,6 +916,7 @@ else
     AC_CHECK_LIB(tcmalloc,malloc,EXELIBS="-ltcmalloc $EXELIBS")
     AC_CHECK_LIB(profiler,ProfilerStart,EXELIBS="-lprofiler $EXELIBS")
     CMODULES="lib/kno/gperftools.${shared_suffix} ${CMODULES}"
+    TEST_CMODULES="test-gperftools ${CMODULES}"
     INSTALL_CMODULES="install-gperftools ${INSTALL_CMODULES}"
   elif test "$gperftools" = "minimal"; then
     AC_CHECK_LIB(tcmalloc_minimal,malloc,EXELIBS="-ltcmalloc_minimal $EXELIBS")
@@ -1062,7 +1065,7 @@ AC_ARG_WITH(crypto,--with/out-crypto Compile the crypto module,,with_crypto=$wit
 if test $with_crypto = "yes"; then
   CMODULES="lib/kno/crypto.$shared_suffix ${CMODULES}"
   INSTALL_CMODULES="install-crypto ${INSTALL_CMODULES}"
-  TEST_CMODULES="crypto ${TEST_CMODULES}"
+  TEST_CMODULES="test-crypto ${TEST_CMODULES}"
 fi
 
 dnl This integrates the webtools module into executables by default; otherwise
@@ -1797,7 +1800,7 @@ if test "${ac_cv_header_archive_h}" == "yes" && \
    test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
   CMODULES="lib/kno/archivetools.${shared_suffix} ${CMODULES}"
   INSTALL_CMODULES="install-archivetools ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} archivetools"
+  TEST_CMODULES="${TEST_CMODULES} test-archivetools"
 else
   auto_disabled="archivetools ${auto_disabled}"
 fi
@@ -1817,7 +1820,7 @@ if test $have_sqlite3_h = "yes"; then
   if test "$sqlite3_ok" = "yes"; then
     CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
     INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} sqlite"
+    TEST_CMODULES="${TEST_CMODULES} test-sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -1903,6 +1906,7 @@ if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
 fi;
 if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-leveldb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
 else auto_disabled="leveldb ${auto_disabled}";
 fi;   
@@ -1932,6 +1936,7 @@ if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
 fi;
 if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
    CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-rocksdb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
 else auto_disabled="rocksdb ${auto_disabled}";
 fi;   
@@ -1960,6 +1965,7 @@ if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
 fi;
 if test ! -z "${WITH_ODBC_WRAPPER}"; then
    CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-odbc ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
 else auto_disabled="odbc ${auto_disabled}";
 fi;   
@@ -1987,6 +1993,7 @@ if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
 fi;
 if test ! -z "${WITH_MARIADB_WRAPPER}"; then
    CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-mariadb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
 else auto_disabled="leveldb ${auto_disabled}";
 fi;   
@@ -2013,7 +2020,7 @@ fi;
 
 AC_CONFIG_FILES([makefile etc/version etc/makefile.include
                  src/extmods/makefile DIY/makefile 
-	         tests/libtests/makefile
+		 tests/makefile tests/libtests/makefile
 	   	 etc/gdbinit
            	 etc/lldbinit
 	   	 exe/.gdbinit

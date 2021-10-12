@@ -36,7 +36,7 @@
 ;; 3: rewrites
 ;; 4: bind opcodes
 ;; 5: no sourcerefs
-(define-init optlevel 4)
+(define-init optlevel 3)
 (varconfig! optimize:level optlevel)
 (varconfig! optlevel optlevel)
 
@@ -59,22 +59,26 @@
 (define-init qonst-prims-default {})
 (define-init subst-prims-default {})
 (define-init qonst-functions-default {})
-(define-init subst-functions-default {})
 (define-init use-qonsts-default {})
+
 ;; Whether we're generating objects to be saved for fast loading
 (define-init fasl-default {})
+;; Whether to directly substitute pointers to non-primitive functions
+;;  when optimizing
+(define-init substfns-default #f)
 
 (varconfig! optimize:opcodes opcodes-default config:boolean)
 (varconfig! optimize:bindops bindops-default config:boolean)
 (varconfig! optimize:substs  substs-default config:boolean)
 (varconfig! optimize:lexrefs lexrefs-default config:boolean)
 (varconfig! optimize:rewrite rewrite-default)
-(varconfig! optimize:fasl fasl-default config:boolean)
 (varconfig! optimize:qonstprims qonst-prims-default config:boolean)
 (varconfig! optimize:substprims subst-prims-default config:boolean)
 (varconfig! optimize:qonstfns qonst-functions-default config:boolean)
-(varconfig! optimize:substfns qonst-functions-default config:boolean)
 (varconfig! optimize:qonsts use-qonsts-default config:boolean)
+
+(varconfig! optimize:fasl fasl-default config:boolean)
+(varconfig! optimize:substfns substfns-default config:boolean)
 
 (define-init batch-default #f)
 (varconfig! optimize:batch batch-default)
@@ -108,10 +112,10 @@
 (define qonst-prims? (optmode qonstprims 1 qonst-prims-default))
 (define subst-prims? (optmode substprims 2 subst-prims-default))
 (define qonst-functions? (optmode qonstfns 2 qonst-functions-default))
-(define subst-functions? (optmode substfns 4 subst-functions-default))
 (define rewrite? (optmode 'rewrite 3 rewrite-default))
 (define keep-source? (optmode keepsource 2 keep-source-default))
 (define fasl? (optmode fasl #f fasl-default))
+(define substfns? (optmode substfns 4 substfns-default))
 
 (define use-consblock #f)
 (varconfig! optimize:consblock use-consblock)
@@ -226,21 +230,6 @@
 	      (isbound? var (cdr bindlist))
 	      (or (eq? (car bindlist) var)
 		  (isbound? var (cdr bindlist)))))))
-
-(define (optimize-template expr template env bound opts)
-  (let ((scan-expr expr)
-	(scan-template template)
-	(backwards '()))
-    (while (and (pair? scan-expr) (pair? scan-template))
-      (if (car scan-template)
-	  (set! backwards (cons (optimize (car scan-expr) env bound opts)
-				backwards))
-	  (set! backwards (cons (car scan-expr) backwards)))
-      (set! scan-expr (cdr scan-expr))
-      (set! scan-expr (cdr scan-template)))
-    (if (eq? scan-template #t)
-	(append (reverse backwards) (optimize-exprs scan-exprs env bound opts))
-	(append (reverse backwards) scan-exprs))))
 
 ;;; QONSTs
 
@@ -558,7 +547,7 @@
       (begin (codewarning (cons '|ImproperList| exprs))
 	 (when optwarn
 	   (logwarn |ImproperList|
-	     "The arguments for the expression " context " are an improper list:\n "
+	     "The arguments for the expression " exprs " are an improper list:\n "
 	     ($pprint exprs))))
       (forseq (clause exprs)
 	(if (or (pair? clause) (symbol? clause) (schemap? clause))
@@ -635,6 +624,7 @@
 		     (irritant module |NoModuleID|))))))
 
 (define (optimize-symbol symbol env bound opts)
+  ;;(when (eq? symbol 'fib-iter) (dbg env))
   (let ((lexref (get-lexref symbol bound 0))
 	(use-opcodes (use-opcodes? opts)))
     (debug%watch "optimize-symbol" symbol lexref env bound)
@@ -691,6 +681,9 @@
 			     (subst (and (not volatile)
 					 (not (testopt opts '%subst #f))
 					 (or (and primitive (subst-prims? opts))
+					     (and (singleton? value)
+						  (applicable? value)
+						  (substfns? opts))
 					     (%test srcenv '%subst symbol)
 					     (%test srcenv '%subst 'all)
 					     (testopt opts '%subst symbol)
@@ -703,8 +696,10 @@
 					     (testopt opts '%qonst symbol)
 					     (testopt opts '%qonst 'all)
 					     (and ishead (qonst-functions? opts))))))
-			(debug%watch "OPTIMIZE-SYMBOL" 
-			  symbol ishead constant subst qonst constant volatile primitive)
+			(info%watch "OPTIMIZE-SYMBOL" 
+			  symbol ishead constant subst qonst
+			  constant volatile primitive fasl
+			  env bound)
 			(cond ((and fasl (or subst qonst))
 			       (cons* #OP_JIT #default 
 				      (if subst #OP_SYMREF #OP_QONSTREF)
@@ -751,7 +746,9 @@
 	 (from (and (symbol? head)
 		    (not (get-lexref head bound 0))
 		    (wherefrom head env)))
-	 (head-expr (optimize head env bound opts)))
+	 (head-expr (if (symbol? head)
+			(optimize-symbol head env bound (cons #[ishead #t] opts))
+			(optimize head env bound opts))))
     (detail%watch "optimize-expr" expr bound headvalue env head from)
     (debug%watch "optimize-expr" expr bound headvalue from)
     (when (and from (module? env))

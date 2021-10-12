@@ -839,6 +839,7 @@ static lispval call_op(lispval fn_arg,int n,lispval exprs,
     else if (KNO_ABORTED(fn)) return fn;
     else NO_ELSE;}
   else fn = get_evalop(fn_arg,env,stack);
+  if (EMPTYP(fn)) return KNO_EMPTY;
   kno_function f = KNO_FUNCTION_INFO(fn);
   if (f==NULL) {
     if (KNO_QONSTP(fn)) fn = kno_qonst_val(fn);}

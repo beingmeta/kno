@@ -97,7 +97,8 @@ KNO_EXPORT lispval kno_set_qonst(lispval id,lispval value)
     return kno_type_error("cons","kno_set_qonst",value);
   else if (!((KNO_FUNCTIONP(value))||
              (TYPEP(value,kno_closure_type))||
-	     (TYPEP(value,kno_evalfn_type))))
+	     (TYPEP(value,kno_evalfn_type)) ||
+	     (TYPEP(value,kno_macro_type))))
     return kno_type_error("function/fexpr","kno_set_qonst",value);
   else {
     u8_lock_mutex(&_kno_qonst_lock);

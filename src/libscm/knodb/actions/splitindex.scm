@@ -87,7 +87,9 @@
 		   'mincount (config 'mincount {}))))
       (config! 'appid (glom "splitindex(" (basename in) ")"))
       (unless (index/copy! in head opts)
-	(error "Pack index failed")))))
+	(error "Pack index failed"))
+      (close-index head)
+      (when tail (close-index tail)))))
 
 (define (splitindex (in #f) (head) 
 		    (tail (config 'tailfile #f)) 

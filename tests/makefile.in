@@ -128,6 +128,11 @@ justlang knolang lang: cleanlogs
 	${header} "■■■■■■■■ Done with knolang tests";
 
 smoke smoketest:
+	if [ -f ../.malloc ] && [ -f ../.buildmode ]; then 	\
+          malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
+	  branch=$$(git branch --show-current || echo none); \
+	  echo "Running smoke tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
+	@${RUN} ${KNOX} smoke.scm ${RUNCONF}
 	@${RUN} ${KNOX} smoke.scm ${RUNCONF} TESTOPTIMIZED=${TESTOPTIMIZED}
 
 buildinfo:
@@ -815,8 +820,8 @@ optscheme_leaktest:
 
 # CMODULE tests
 
-test-cmodules cmodules: test-crypto  test-archivetools test-sqlite
-test-cwrappers cwrappers: test-mariadb test-odbc test-rocksdb test-leveldb 
+test-cmodules cmodules: @TEST_CMODULES@
+test-cwrappers cwrappers: @TEST_CWRAPPERS@
 
 # Standard module tests
 
