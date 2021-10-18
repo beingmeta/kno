@@ -1455,7 +1455,7 @@ void kno_init_regex_c(void);
 void kno_init_promises_c(void);
 void kno_init_quasiquote_c(void);
 void kno_init_struct_eval_c(void);
-void kno_init_sqldbprims_c(void);
+void kno_init_sqlprims_c(void);
 void kno_init_history_c(void);
 void kno_init_eval_appenv_c(void);
 void kno_init_eval_moduleops_c(void);
@@ -1518,7 +1518,7 @@ static void init_eval_core()
   kno_init_logprims_c();
   kno_init_timeprims_c();
   kno_init_sysprims_c();
-  kno_init_sqldbprims_c();
+  kno_init_sqlprims_c();
   kno_init_knosockd_c();
 
   kno_init_fileprims_c();

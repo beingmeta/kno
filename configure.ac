@@ -1818,9 +1818,9 @@ if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
-    CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
-    INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
-    TEST_CMODULES="${TEST_CMODULES} test-sqlite"
+    CWRAPPERS="lib/kno/sqlite.$shared_suffix ${CWRAPPERS}";
+    INSTALL_CWRAPPERS="install-sqlite ${INSTALL_CWRAPPERS}";
+    TEST_CWRAPPERS="${TEST_CWRAPPERS} test-sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -1877,16 +1877,18 @@ WITH_LEVELDB_WRAPPER=
 WITH_ROCKSDB_WRAPPER=
 WITH_ODBC_WRAPPER=
 WITH_MARIADB_WRAPPER=
-
-LEVELDB_CFLAGS=
-LEVELDB_LIBS=-lleveldb
-AC_SUBST(LEVELDB_CFLAGS)
-AC_SUBST(LEVELDB_LIBS)
+WITH_LIBPQ_WRAPPER=
 
 AC_ARG_WITH(leveldb,--with-leveldb Specify building with the LevelDB bindings,,with_leveldb=auto)
 AC_ARG_WITH(rocksdb,--with-rocksdb Specify building with the RocksDB bindings,,with_rocksdb=auto)
 AC_ARG_WITH(odbc,--with-odbc Specify building with the ODBC bindings,,with_odbc=auto)
 AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindings,,with_mariadb=auto)
+AC_ARG_WITH(libpq,--with-libpq Specify building with the Postgres libpq bindings,,with_libpq=auto)
+
+LEVELDB_CFLAGS=
+LEVELDB_LIBS=-lleveldb
+AC_SUBST(LEVELDB_CFLAGS)
+AC_SUBST(LEVELDB_LIBS)
 
 if test "${with_leveldb}" == "no"; then
   manually_disabled="leveldb ${manually_disabled}";
@@ -1996,6 +1998,30 @@ if test ! -z "${WITH_MARIADB_WRAPPER}"; then
    TEST_CWRAPPERS="test-mariadb ${TEST_CWRAPPERS}";
    INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
 else auto_disabled="leveldb ${auto_disabled}";
+fi;   
+
+LIBPQ_CFLAGS=
+LIBPQ_LIBS=-lmariadb
+AC_SUBST(LIBPQ_CFLAGS)
+AC_SUBST(LIBPQ_LIBS)
+
+if test "${with_libpq}" == "no"; then
+  manually_disabled="libpq(postgres) ${manually_disabled}";
+elif which pkg-config 2> /dev/null && pkg-config --exists libpq; then
+  LIBPQ_CFLAGS=$(pkg-config --cflags libpq)
+  LIBPQ_LIBS=$(pkg-config --libs libpq)
+  WITH_LIBPQ_WRAPPER=yes
+fi;
+
+if test -z "${WITH_LIBPQ_WRAPPER}" && test "${with_libpq}" = "libpq"; then
+   force_enabled="libpq(postgres) ${force_enabled}"
+   WITH_LIBPQ_WRAPPER=forced
+fi;
+if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
+   CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
+   TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-pqprims ${INSTALL_CWRAPPERS}";
+else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;   
 
 ### These are components to preload

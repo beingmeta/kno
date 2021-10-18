@@ -39,3 +39,15 @@ typedef struct KNO_ROCKSDB_INDEX {
   struct KNO_ROCKSDB *rocksdb;} KNO_ROCKSDB_INDEX;
 typedef struct KNO_ROCKSDB_INDEX *kno_rocksdb_index;
 
+KNO_EXPORT struct KNO_ROCKSDB *kno_open_rocksdb(u8_string path,lispval opts);
+KNO_EXPORT int kno_close_rocksdb(kno_rocksdb db);
+KNO_EXPORT kno_rocksdb kno_reopen_rocksdb(kno_rocksdb db);
+
+KNO_EXPORT kno_index kno_open_rocksdb_index(u8_string path,kno_storage_flags flags,lispval opts);
+KNO_EXPORT kno_index kno_make_rocksdb_index(u8_string path,lispval opts);
+
+KNO_EXPORT kno_pool kno_open_rocksdb_pool(u8_string path,kno_storage_flags flags,lispval opts);
+KNO_EXPORT kno_pool kno_make_rocksdb_pool(u8_string path,lispval base,lispval cap,lispval opts);
+
+
+

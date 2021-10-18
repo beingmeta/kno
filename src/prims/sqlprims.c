@@ -7,7 +7,7 @@
 /* The external DB module provides simple access to external SQL
    databases.  There are two Scheme types used by this module:
    SQLDB objects (kno_sqlconn_type) are basically database connections
-   implemented by CONSes whose header is identical to "struct KNO_SQLDB";
+   implemented by CONSes whose header is identical to "struct KNO_SQLCONN";
    SQLDB procedures (kno_sqlproc_type) are applicable objects which
    correspond to prepared statements for a particular connection.  These
    procedures have (optional) column info consisting of a slotmap which
@@ -39,7 +39,7 @@
 #include "kno/storage.h"
 #include "kno/cprims.h"
 
-#include "kno/sqldb.h"
+#include "kno/sql.h"
 
 #include <libu8/u8printf.h>
 
@@ -52,10 +52,13 @@ static u8_condition NoMakeProc=
 
 static int exec_enabled = 0;
 
-static int check_exec_enabled(lispval opts)
+static int check_exec_enabled(struct KNO_SQLCONN *conn)
 {
+  if ( (conn->sqlconn_bits) & (SQLCONN_EXEC_OK) )
+    return 1;
+  lispval opts = conn->sqlconn_options;
   lispval v = kno_getopt(opts,exec_enabled_symbol,VOID);
-  if (VOIDP(v)) return 0;
+  if (VOIDP(v)) return exec_enabled;
   else if (FALSEP(v)) return 0;
   kno_decref(v);
   return 1;
@@ -78,10 +81,8 @@ DEFC_PRIM("sqldb/exec",sqldb_exec,
 	  {"colinfo",kno_any_type,KNO_VOID})
 static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 {
-  struct KNO_SQLDB *sqldb = KNO_GET_CONS(db,kno_sqlconn_type,struct KNO_SQLDB *);
-  if ((exec_enabled)||
-      ((kno_testopt(sqldb->sqlconn_options,exec_enabled_symbol,VOID))&&
-       (check_exec_enabled(sqldb->sqlconn_options))))
+  struct KNO_SQLCONN *sqldb = KNO_GET_CONS(db,kno_sqlconn_type,struct KNO_SQLCONN *);
+  if ((exec_enabled)||(check_exec_enabled(sqldb)))
     return sqldb->sqldb_handler->execute(sqldb,query,colinfo);
   else return kno_err(_("Direct SQL execution disabled"),"sqldb_exec",
                       CSTRING(query),db);
@@ -89,32 +90,47 @@ static lispval sqldb_exec(lispval db,lispval query,lispval colinfo)
 
 DEFC_PRIMN("sqldb/proc",sqldb_makeproc,
 	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
-	   "**undocumented**")
+	   "Creates a procedure object to execute a SQL query on a particular "
+	   "connection. This has two basic forms:\n"
+	   "* `(sqldb/proc *db* *qstring* *parameter specs...*)\n"
+	   "* `(sqldb/proc *db* *options* *qstring* *parameter specs...*)\n"
+	   "")
 static lispval sqldb_makeproc(int n,kno_argvec args)
 {
-  if (USUALLY
-      ((KNO_PRIM_TYPEP(args[0],kno_sqlconn_type)) && (STRINGP(args[1])))) {
-    struct KNO_SQLDB *sqldb=
-      KNO_GET_CONS(args[0],kno_sqlconn_type,struct KNO_SQLDB *);
-    lispval dbspec = args[0], query = args[1];
-    lispval colinfo = ((n>2) ? (args[2]) : (VOID));
+  if (USUALLY(KNO_PRIM_TYPEP(args[0],kno_sqlconn_type))) {
+    int n_params = 0;
+    lispval dbspec = args[0], arg1 = args[1], query, options, colinfo;
+    struct KNO_SQLCONN *sqldb=
+      KNO_GET_CONS(dbspec,kno_sqlconn_type,struct KNO_SQLCONN *);
     if (sqldb == NULL) return KNO_ERROR;
-    else if (!(STRINGP(query)))
-      return kno_type_error("string","sqldb_makeproc",query);
     else if ((sqldb->sqldb_handler->makeproc) == NULL)
       return kno_err(NoMakeProc,"sqldb_makeproc",NULL,dbspec);
-    else return sqldb->sqldb_handler->makeproc
-           (sqldb,CSTRING(query),STRLEN(query),colinfo,
-            ((n>3) ? (n-3) : (0)),
-	    ((n>3)? (args+3) : (NULL)));}
+    else NO_ELSE;
+    if (KNO_STRINGP(arg1)) {
+      query=arg1;
+      options=KNO_FALSE;
+      n_params=n-2;}
+    else if ( (KNO_TABLEP(arg1)) && (n>2) && (KNO_STRINGP(args[2])) ) {
+      options=arg1;
+      query=args[2];
+      n_params=n-3;}
+    else return kno_type_error("string","sqldb_makeproc",arg1);
+    if (kno_testopt(options,KNOSYM_COLINFO,KNO_VOID))
+      colinfo = kno_getopt(options,KNOSYM_COLINFO,KNO_FALSE);
+    else {
+      colinfo = options;
+      options = KNO_FALSE;}
+    return sqldb->sqldb_handler->makeproc
+      (sqldb,CSTRING(query),options,colinfo,
+       ((n_params>0) ? n_params : (0)),
+       ((n_params>0)? (args+(n-n_params)) : (NULL)));}
   else if (!(KNO_PRIM_TYPEP(args[0],kno_sqlconn_type)))
     return kno_type_error("sqldb","sqldb_makeproc",args[0]);
-  else if  (!(STRINGP(args[1])))
-    return kno_type_error("string","sqldb_makeproc",args[1]);
   /* Should never be reached  */
   else return VOID;
 }
 
+#if 0
 DEFC_PRIMN("sqldb/proc+",sqlproc_plus,
 	   KNO_VAR_ARGS|KNO_MIN_ARGS(2),
 	   "**undocumented**")
@@ -124,10 +140,12 @@ static lispval sqlproc_plus(int n,kno_argvec args)
   struct KNO_SQLPROC *sqlproc=
     KNO_GET_CONS(arg1,kno_sqlproc_type,struct KNO_SQLPROC *);
   lispval sqlconn = sqlproc->sqlproc_conn;
-  struct KNO_SQLDB *sqldb=
-    KNO_GET_CONS(sqlconn,kno_sqlconn_type,struct KNO_SQLDB *);
+  struct KNO_SQLCONN *sqldb=
+    KNO_GET_CONS(sqlconn,kno_sqlconn_type,struct KNO_SQLCONN *);
   u8_string base_qtext = sqlproc->sqlproc_qtext, new_qtext=
     u8_string_append(base_qtext," ",CSTRING(args[1]),NULL);
+  lispval opts_arg, options, colinfo;
+  lispval optionscolinfo = sqlproc->sqlproc_colinfo;
   lispval colinfo = sqlproc->sqlproc_colinfo;
   int n_base_params = sqlproc->sqlproc_n_params, n_params = (n-2)+n_base_params;
   lispval *params = ((n_params)?(u8_alloc_n(n_params,lispval)):(NULL));
@@ -144,6 +162,7 @@ static lispval sqlproc_plus(int n,kno_argvec args)
   u8_free(new_qtext);
   return result;
 }
+#endif
 
 /* Accessors */
 
@@ -211,16 +230,16 @@ static lispval sqlproc_params(lispval sqldb)
 
 /* Initializations */
 
-int sqldbprims_initialized = 0;
+int sqlprims_initialized = 0;
 
 static lispval sqldb_module;
 
-KNO_EXPORT void kno_init_sqldbprims_c()
+KNO_EXPORT void kno_init_sqlprims_c()
 {
-  if (sqldbprims_initialized) return;
-  sqldbprims_initialized = 1;
+  if (sqlprims_initialized) return;
+  sqlprims_initialized = 1;
   kno_init_scheme();
-  sqldb_module = kno_new_cmodule("sqldb",(0),kno_init_sqldbprims_c);
+  sqldb_module = kno_new_cmodule("sqldb",(0),kno_init_sqlprims_c);
 
   u8_register_source_file(_FILEINFO);
 
@@ -241,7 +260,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("sqldb/proc/db",sqlproc_db,1,sqldb_module);
   KNO_LINK_CPRIM("sqldb/proc/spec",sqlproc_spec,1,sqldb_module);
   KNO_LINK_CPRIM("sqldb/proc/query",sqlproc_query,1,sqldb_module);
-  KNO_LINK_CPRIMN("sqldb/proc+",sqlproc_plus,sqldb_module);
+  /* KNO_LINK_CPRIMN("sqldb/proc+",sqlproc_plus,sqldb_module); */
   KNO_LINK_CPRIMN("sqldb/proc",sqldb_makeproc,sqldb_module);
   KNO_LINK_CPRIM("sqldb/exec",sqldb_exec,3,sqldb_module);
 }

@@ -106,6 +106,23 @@ KNO_EXPORT lispval kno_make_oid(KNO_OID addr)
   return KNO_CONSTRUCT_OID(boi,offset);
 }
 
+KNO_EXPORT lispval kno_scalar2oid(unsigned long long scalar)
+{
+#if KNO_STRUCT_OIDS
+  KNO_OID oid; oid.hi = (scalar>>32); oid.lo = scalar & (0xFFFFFFFF);
+  return kno_make_oid(oid);
+#else
+  return kno_make_oid((KNO_OID)scalar);
+#endif
+}
+
+KNO_EXPORT unsigned long long kno_make_ull(unsigned long hi,unsigned long lo)
+{
+  unsigned long long loval = lo;
+  unsigned long long hival = (((unsigned long long)hi)<<32);
+  return hival | loval;
+}
+
 kno_oid_info_fn _kno_oid_info;
 
 /* This is just for use from the debugger, so we can allocate it

@@ -206,6 +206,8 @@ KNO_EXPORT int kno_historyp()
 KNO_EXPORT
 lispval kno_eval_histref(lispval elts,lispval history)
 {
+  if (!(KNO_PAIRP(elts)))
+    return kno_err("BadHistref","kno_eval_histref",NULL,elts);
   lispval root = KNO_CAR(elts);
   int void_root = (KNO_FALSEP(root));
   if (void_root) {

@@ -7,7 +7,7 @@
 /* The external DB module provides simple access to external SQL
    databases.  There are two Scheme types used by this module:
    SQLDB objects (kno_sqlconn_type) are basically database connections
-   implemented by CONSes whose header is identical to "struct KNO_SQLDB";
+   implemented by CONSes whose header is identical to "struct KNO_SQLCONN";
    SQLDB procedures (kno_sqlproc_type) are applicable objects which
    correspond to prepared statements for a particular connection.  These
    procedures have (optional) column info consisting of a slotmap which
@@ -36,11 +36,11 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/apply.h"
-#include "kno/sqldb.h"
+#include "kno/sql.h"
 
 #include <libu8/u8printf.h>
 
-static lispval exec_enabled_symbol;
+lispval KNOSYM_COLINFO = KNO_VOID;
 
 static u8_mutex sqldb_handlers_lock;
 static struct KNO_SQLDB_HANDLER *sqldb_handlers[128];
@@ -68,8 +68,8 @@ KNO_EXPORT int kno_register_sqldb_handler(struct KNO_SQLDB_HANDLER *h)
 
 KNO_EXPORT int kno_register_sqlproc(struct KNO_SQLPROC *proc)
 {
-  struct KNO_SQLDB *db=
-    KNO_GET_CONS(proc->sqlproc_conn,kno_sqlconn_type,struct KNO_SQLDB *);
+  struct KNO_SQLCONN *db=
+    KNO_GET_CONS(proc->sqlproc_conn,kno_sqlconn_type,struct KNO_SQLCONN *);
   u8_lock_mutex(&(db->sqlconn_procs_lock)); {
     int i = 0, n = db->sqlconn_n_procs;
     struct KNO_SQLPROC **dbprocs = db->sqlconn_procs;
@@ -80,7 +80,7 @@ KNO_EXPORT int kno_register_sqlproc(struct KNO_SQLPROC *proc)
       else i++;
     if (i>=db->sqlconn_procs_len) {
       struct KNO_SQLPROC **newprocs=
-        u8_realloc(dbprocs,sizeof(struct KNO_SQLDB *)*(db->sqlconn_procs_len+32));
+        u8_realloc(dbprocs,sizeof(struct KNO_SQLCONN *)*(db->sqlconn_procs_len+32));
       if (newprocs == NULL) {
         u8_unlock_mutex(&(db->sqlconn_procs_lock));
         u8_graberrno("kno_sqldb_register_proc",u8_strdup(db->sqlconn_spec));
@@ -91,13 +91,16 @@ KNO_EXPORT int kno_register_sqlproc(struct KNO_SQLPROC *proc)
     dbprocs[i]=proc;
     db->sqlconn_n_procs++;}
   u8_unlock_mutex(&(db->sqlconn_procs_lock));
+  /* Ensure that these have some kind of value */
+  if (proc->sqlproc_options==KNO_NULL) proc->sqlproc_options=KNO_FALSE;
+  if (proc->sqlproc_colinfo==KNO_NULL) proc->sqlproc_colinfo=KNO_FALSE;
   return 1;
 }
 
 KNO_EXPORT int kno_release_sqlproc(struct KNO_SQLPROC *proc)
 {
-  struct KNO_SQLDB *db=
-    KNO_GET_CONS(proc->sqlproc_conn,kno_sqlconn_type,struct KNO_SQLDB *);
+  struct KNO_SQLCONN *db=
+    KNO_GET_CONS(proc->sqlproc_conn,kno_sqlconn_type,struct KNO_SQLCONN *);
   if (!(db)) {
     u8_seterr(_("SQLDB proc without a database"),"kno_release_sqlproc",
               u8_strdup(proc->sqlproc_qtext));
@@ -126,20 +129,22 @@ KNO_EXPORT int kno_recycle_sqlproc(struct KNO_SQLPROC *dbproc)
       int j = 0, lim = dbproc->sqlproc_n_params;; while (j<lim) {
 	kno_decref(dbproc->sqlproc_paramtypes[j]); j++;}
       u8_free(dbproc->sqlproc_paramtypes);}
-kno_decref(dbproc->sqlproc_conn);
+  lispval conn = dbproc->sqlproc_conn;
   dbproc->sqlproc_conn = KNO_VOID;
+  kno_decref(conn);
+  return 1;
 }
 
 /* SQLDB handlers */
 
 static int unparse_sqldb(u8_output out,lispval x)
 {
-  struct KNO_SQLDB *dbp = (struct KNO_SQLDB *)x;
+  struct KNO_SQLCONN *dbp = (struct KNO_SQLCONN *)x;
   u8_printf(out,"#<SQLDB/%s %s>",dbp->sqldb_handler->name,dbp->sqlconn_info);
   return 1;
 }
 
-static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
+KNO_EXPORT void kno_cleanup_sqlprocs(struct KNO_SQLCONN *dbp)
 {
   if (dbp->sqlconn_n_procs) {
     int i = 0, n = dbp->sqlconn_n_procs;
@@ -159,6 +164,10 @@ static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
     u8_free(dbp->sqlconn_procs);
     dbp->sqlconn_procs = NULL;}
   dbp->sqlconn_n_procs = dbp->sqlconn_procs_len = 0;
+}
+
+KNO_EXPORT void kno_cleanup_sqlconn(struct KNO_SQLCONN *dbp)
+{
   kno_decref(dbp->sqlconn_colinfo);
   kno_decref(dbp->sqlconn_options);
   if ( dbp->sqlconn_spec != dbp->sqlconn_info)
@@ -169,9 +178,10 @@ static void recycle_sqldb_core(struct KNO_SQLDB *dbp)
 
 static void recycle_sqldb(struct KNO_RAW_CONS *c)
 {
-  struct KNO_SQLDB *dbp = (struct KNO_SQLDB *)c;
+  struct KNO_SQLCONN *dbp = (struct KNO_SQLCONN *)c;
+  kno_cleanup_sqlprocs(dbp);
   dbp->sqldb_handler->recycle_db(dbp);
-  recycle_sqldb_core(dbp);
+  kno_cleanup_sqlconn(dbp);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -195,6 +205,8 @@ static void recycle_sqlproc(struct KNO_RAW_CONS *c)
   else u8_log(LOG_WARN,_("recycle failed"),
               _("No recycle method for %s database procs"),
               dbproc->sqldb_handler->name);
+  kno_decref(dbproc->sqlproc_options);
+  kno_decref(dbproc->sqlproc_colinfo);
   if (!(KNO_STATIC_CONSP(c))) u8_free(c);
 }
 
@@ -208,14 +220,14 @@ static lispval callsqlproc(struct KNO_FUNCTION *xdbproc,int n,lispval *args)
 
 int sqldb_initialized = 0;
 
-void init_sqldb_c()
+void kno_init_sql_c()
 {
   if (sqldb_initialized) return;
   sqldb_initialized = 1;
 
-  u8_init_mutex(&sqldb_handlers_lock);
+  KNOSYM_COLINFO = kno_intern("colinfo");
 
-  exec_enabled_symbol = kno_intern("sqlexec");
+  u8_init_mutex(&sqldb_handlers_lock);
 
   kno_recyclers[kno_sqlconn_type]=recycle_sqldb;
   kno_unparsers[kno_sqlconn_type]=unparse_sqldb;
@@ -226,5 +238,4 @@ void init_sqldb_c()
   kno_isfunctionp[kno_sqlproc_type]=1;
 
   u8_register_source_file(_FILEINFO);
-
 }

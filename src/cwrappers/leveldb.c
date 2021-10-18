@@ -66,6 +66,7 @@ static int default_compression = 0;
 #define SYM(x) (kno_intern(x))
 
 DEF_KNOSYM(xrefs); DEF_KNOSYM(debug); DEF_KNOSYM(vector);
+DEF_KNOSYM(getdb);
 
 struct BYTEVEC {
   size_t n_bytes;
@@ -1320,7 +1321,28 @@ static ssize_t leveldb_adder(struct KNO_LEVELDB *db,lispval key,
   else return added;
 }
 
+DEFC_PRIM("leveldb/open-index",open_leveldb_index_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"path",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
+static lispval open_leveldb_index_prim(lispval path,lispval opts)
+{
+  kno_index ix = kno_open_leveldb_index(KNO_CSTRING(path),-1,opts);
+  return kno_index2lisp(ix);
+}
 
+
+DEFC_PRIM("leveldb/make-index",make_leveldb_index_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"path",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
+static lispval make_leveldb_index_prim(lispval path,lispval opts)
+{
+  kno_index ix = kno_make_leveldb_index(KNO_CSTRING(path),opts);
+  return kno_index2lisp(ix);
+}
 
 DEFC_PRIM("leveldb/index/add!",leveldb_index_add_prim,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
@@ -1737,6 +1759,8 @@ static int leveldb_index_commit(kno_index ix,kno_commit_phase phase,
     return 1;}
   case kno_commit_cleanup: {
     return 1;}
+  case kno_commit_flush: {
+    return 1;}
   default: {
     u8_logf(LOG_WARN,"NoPhasedCommit",
 	    "The index %s doesn't support phased commits",
@@ -1843,6 +1867,22 @@ static void recycle_leveldb_index(kno_index ix)
 }
 
 
+static lispval leveldb_index_ctl(kno_index ix,lispval op,int n,kno_argvec args)
+{
+  if (ix->index_handler != &leveldb_index_handler)
+    return kno_err("NotLeveldb","leveldb_index_ctl",ix->indexid,VOID);
+  struct KNO_LEVELDB_INDEX *rdbindex = (struct KNO_LEVELDB_INDEX *)ix;
+  if ((n>0)&&(args == NULL))
+    return kno_err("BadIndexOpCall","leveldb_index_ctl",ix->indexid,VOID);
+  else if (n<0)
+    return kno_err("BadIndexOpCall","leveldb_index_ctl",ix->indexid,VOID);
+  else if (op == KNOSYM(getdb)) {
+    lispval result = (lispval) (rdbindex->leveldb);
+    kno_incref(result);
+    return result;}
+  else return kno_default_indexctl(ix,op,n,args);
+}
+
 /* Initializing the index driver */
 
 static struct KNO_INDEX_HANDLER leveldb_index_handler=
@@ -1860,7 +1900,7 @@ static struct KNO_INDEX_HANDLER leveldb_index_handler=
    leveldb_index_create, /* create */
    NULL, /* walk */
    recycle_leveldb_index, /* recycle */
-   NULL /* indexctl */
+   leveldb_index_ctl /* indexctl */
   };
 
 /* Leveldb pool backends */
@@ -1927,6 +1967,9 @@ kno_pool kno_make_leveldb_pool(u8_string path,
 			       lispval cap,
 			       lispval opts)
 {
+  struct KNO_LEVELDB *leveldb = kno_open_leveldb(path,opts);
+  if (leveldb == NULL) return NULL;
+
   lispval load = kno_getopt(opts,SYM("LOAD"),KNO_FIXZERO);
 
   if ((!(KNO_OIDP(base)))||(!(KNO_UINTP(cap)))||(!(KNO_UINTP(load)))) {
@@ -1935,9 +1978,8 @@ kno_pool kno_make_leveldb_pool(u8_string path,
     return (kno_pool)NULL;}
 
   struct KNO_LEVELDB_POOL *pool = u8_alloc(struct KNO_LEVELDB_POOL);
-  struct KNO_LEVELDB *leveldb = pool->leveldb = kno_open_leveldb(path,opts);
-
-  leveldb_t *dbptr = pool->leveldb->dbptr;
+  
+  leveldb_t *dbptr = leveldb->dbptr;
   lispval label = kno_getopt(opts,SYM("LABEL"),KNO_VOID);
   lispval metadata = kno_getopt(opts,SYM("METADATA"),KNO_VOID);
   lispval given_base = get_prop(dbptr,"\377BASE",KNO_VOID);
@@ -1988,6 +2030,7 @@ kno_pool kno_make_leveldb_pool(u8_string path,
 		KNO_STORAGE_ISPOOL,
 		metadata,
 		opts);
+  pool->leveldb = leveldb;
 
   if (KNO_FIXNUMP(ctime_val))
     ctime = (time_t) KNO_FIX2INT(ctime_val);
@@ -2258,6 +2301,8 @@ static int leveldb_pool_commit(kno_pool p,kno_commit_phase phase,
     return 0;
   case kno_commit_cleanup:
     return 0;
+  case kno_commit_flush:
+    return 0;
   default:
     return 0;
   }
@@ -2336,6 +2381,20 @@ static void recycle_leveldb_pool(kno_pool p)
   kno_decref((lispval)(db->leveldb));
 }
 
+static lispval leveldb_pool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
+{
+  struct KNO_LEVELDB_POOL *rdbpool = (struct KNO_LEVELDB_POOL *)p;
+  if ((n>0)&&(args == NULL))
+    return kno_err("BadPoolOpCall","leveldb_pool_ctl",p->poolid,VOID);
+  else if (n<0)
+    return kno_err("BadPoolOpCall","leveldb_pool_ctl",p->poolid,VOID);
+  else if (op == KNOSYM(getdb)) {
+    lispval result = (lispval) rdbpool;
+    kno_incref(result);
+    return result;}
+  else return kno_default_poolctl(p,op,n,args);
+}
+
 /* The Leveldb pool handler */
 
 static struct KNO_POOL_HANDLER leveldb_pool_handler=
@@ -2353,7 +2412,7 @@ static struct KNO_POOL_HANDLER leveldb_pool_handler=
    leveldb_pool_create, /* create */
    NULL,  /* walk */
    recycle_leveldb_pool, /* recycle */
-   NULL  /* poolctl */
+   leveldb_pool_ctl  /* poolctl */
   };
 
 /* Scheme primitives */
@@ -2512,34 +2571,23 @@ KNO_EXPORT int kno_init_leveldb()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("leveldb/make-pool",make_leveldb_pool_prim,4,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/use-pool",use_leveldb_pool_prim,2,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/index/add!",leveldb_index_add_prim,4,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/index/get",leveldb_index_get_prim,3,leveldb_module);
-
-  KNO_LINK_CPRIM("leveldb/prefix/getn",leveldb_prefix_getn_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/prefix/get",leveldb_prefix_get_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/getn",leveldb_getn_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/drop!",leveldb_drop_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/put!",leveldb_put_prim,4,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/get",leveldb_get_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/reopen",leveldb_reopen_prim,1,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/close",leveldb_close_prim,1,leveldb_module);
   KNO_LINK_CPRIM("leveldb?",leveldbp_prim,1,leveldb_module);
   KNO_LINK_CPRIM("leveldb/open",leveldb_open_prim,2,leveldb_module);
-
+  KNO_LINK_CPRIM("leveldb/reopen",leveldb_reopen_prim,1,leveldb_module);
   KNO_LINK_CPRIM("leveldb/close",leveldb_close_prim,1,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/reopen",leveldb_reopen_prim,1,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/get",leveldb_get_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/put!",leveldb_put_prim,4,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/drop!",leveldb_drop_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/reopen",leveldb_reopen_prim,1,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/getn",leveldb_getn_prim,3,leveldb_module);
-
-
   KNO_LINK_CPRIM("leveldb/prefix/get",leveldb_prefix_get_prim,3,leveldb_module);
-
   KNO_LINK_CPRIM("leveldb/prefix/getn",leveldb_prefix_getn_prim,3,leveldb_module);
-  KNO_LINK_CPRIM("leveldb/index/get",leveldb_index_get_prim,3,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/getn",leveldb_getn_prim,3,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/drop!",leveldb_drop_prim,3,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/put!",leveldb_put_prim,4,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/get",leveldb_get_prim,3,leveldb_module);
+
+
+  KNO_LINK_CPRIM("leveldb/make-pool",make_leveldb_pool_prim,4,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/use-pool",use_leveldb_pool_prim,2,leveldb_module);
+
+  KNO_LINK_CPRIM("leveldb/open-index",open_leveldb_index_prim,2,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/make-index",make_leveldb_index_prim,2,leveldb_module);
   KNO_LINK_CPRIM("leveldb/index/add!",leveldb_index_add_prim,4,leveldb_module);
+  KNO_LINK_CPRIM("leveldb/index/get",leveldb_index_get_prim,3,leveldb_module);
 }

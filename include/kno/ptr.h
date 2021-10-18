@@ -479,6 +479,8 @@ KNO_EXPORT int _KNO_XTYPEP(lispval ptr,kno_lisp_type type);
 
 /* OIDs */
 
+KNO_EXPORT unsigned long long kno_make_ull(unsigned long hi,unsigned long lo);
+
 #if KNO_STRUCT_OIDS
 typedef struct KNO_OID {
   unsigned int kno_oid_hi, kno_oid_lo;} KNO_OID;
@@ -501,6 +503,7 @@ KNO_FASTOP KNO_OID KNO_OID_PLUS(KNO_OID x,unsigned int increment)
   ((oid1.kno_oid_lo>oid2.kno_oid_lo) ? \
    (oid1.kno_oid_lo-oid2.kno_oid_lo) : \
    (oid2.kno_oid_lo-oid1.kno_oid_lo))
+#define KNO_OID2ULL(oid) (kno_make_ull(KNO_OID_HI(oid),KNO_OID_LO(oid)))
 #elif KNO_INT_OIDS
 typedef unsigned int KNO_OID;
 #define KNO_OID_HI(x) ((unsigned int)((x)>>32))
@@ -513,6 +516,7 @@ typedef unsigned int KNO_OID;
   ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
 #define KNO_OID_DIFFERENCE(oid1,oid2) \
   ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define KNO_OID2ULL(oid) (kno_make_ull(KNO_OID_HI(oid),KNO_OID_LO(oid)))
 #elif KNO_LONG_OIDS
 typedef unsigned long KNO_OID;
 #define KNO_OID_HI(x) ((unsigned int)((x)>>32))
@@ -526,6 +530,7 @@ typedef unsigned long KNO_OID;
   ((oid1 == oid2) ? (0) : (oid1<oid2) ? (-1) : (1))
 #define KNO_OID_DIFFERENCE(oid1,oid2) \
   ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define KNO_OID2ULL(oid) (kno_make_ull(KNO_OID_HI(oid),KNO_OID_LO(oid)))
 #elif KNO_LONG_LONG_OIDS
 typedef unsigned long long KNO_OID;
 #define KNO_OID_HI(x) ((unsigned int)((x)>>32))
@@ -539,6 +544,7 @@ typedef unsigned long long KNO_OID;
   ((oid1 == oid2) ? (0) : (oid1>oid2) ? (1) : (-1))
 #define KNO_OID_DIFFERENCE(oid1,oid2) \
   ((oid1>oid2) ? (oid1-oid2) : (oid2-oid1))
+#define KNO_OID2ULL(oid) (kno_make_ull(KNO_OID_HI(oid),KNO_OID_LO(oid)))
 #endif
 
 #if KNO_STRUCT_OIDS
@@ -604,6 +610,7 @@ KNO_EXPORT int kno_n_base_oids, kno_oid_buckets_len;
   ((lispval) ((((kno_ptrbits)(baseid))<<2)|				\
 	      (((kno_ptrbits)(offset))<<((KNO_OID_BUCKET_WIDTH)+2))|3))
 KNO_EXPORT lispval kno_make_oid(KNO_OID addr);
+KNO_EXPORT lispval kno_scalar2oid(unsigned long long scalar);
 KNO_EXPORT int kno_get_oid_base_index(KNO_OID addr,int add);
 
 #define KNO_OID_BASE_ID(x)     (((x)>>2)&(KNO_OID_BUCKET_MASK))
@@ -1014,10 +1021,11 @@ KNO_EXPORT lispval KNOSYM_LT, KNOSYM_LTE;
 KNO_EXPORT lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 KNO_EXPORT lispval KNOSYM_MINUS, KNOSYM_MODSRC, KNOSYM_MODULE, KNOSYM_MODULEID;
 KNO_EXPORT lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
-KNO_EXPORT lispval KNOSYM_OPT, KNOSYM_OPTIONAL, KNOSYM_OPTS, KNOSYM_OUTPUT;
+KNO_EXPORT lispval KNOSYM_OID, KNOSYM_OPT, KNOSYM_OPTIONAL, KNOSYM_OPTS, KNOSYM_OUTPUT;
 KNO_EXPORT lispval KNOSYM_PACKET, KNOSYM_PCTID, KNOSYM_PLUS, KNOSYM_POOL;
 KNO_EXPORT lispval KNOSYM_PREFIX, KNOSYM_PROPS;
-KNO_EXPORT lispval KNOSYM_QMARK, KNOSYM_QONST, KNOSYM_QUOTE, KNOSYM_READONLY, KNOSYM_SEP;
+KNO_EXPORT lispval KNOSYM_QMARK, KNOSYM_QONST, KNOSYM_QUOTE, KNOSYM_READONLY;
+KNO_EXPORT lispval KNOSYM_SECRET, KNOSYM_SEP;
 KNO_EXPORT lispval KNOSYM_SET, KNOSYM_SIZE, KNOSYM_SORT, KNOSYM_SORTED;
 KNO_EXPORT lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING;
 KNO_EXPORT lispval KNOSYM_SUFFIX;

@@ -11,6 +11,7 @@
 #endif
 
 #define U8_INLINE_IO 1
+#define KNO_DEFINE_GETOPT 1
 
 #include "kno/knosource.h"
 #include "kno/lisp.h"
@@ -20,7 +21,7 @@
 #include "kno/texttools.h"
 #include "kno/cprims.h"
 
-#include "kno/sqldb.h"
+#include "kno/sql.h"
 
 #include <libu8/libu8.h>
 #include <libu8/u8printf.h>
@@ -29,6 +30,13 @@
 #include <sql.h>
 #include <sqltypes.h>
 #include <sqlext.h>
+
+static lispval odbc_module;
+
+static int odbc_initialized = 0;
+
+static struct KNO_SQLDB_HANDLER odbc_handler=
+  {"odbc",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 static unsigned char *_memdup(const unsigned char *data,int len)
 {
@@ -86,7 +94,8 @@ static u8_string odbc_errstring(SQLHANDLE handle,SQLSMALLINT type)
 static SQLHWND sqldialog = 0;
 static int interactive_dflt = 0;
 
-KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive)
+KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval options,
+				    lispval colinfo,int interactive)
 {
   struct KNO_ODBC *dbp = u8_alloc(struct KNO_ODBC);
   int ret = -1, howfar = 0;
@@ -115,6 +124,10 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
                               (interactive==1) ? (SQL_DRIVER_COMPLETE_REQUIRED) :
                               (SQL_DRIVER_PROMPT)));
       if (SQL_SUCCEEDED(ret)) {
+	if ( (KNO_VOIDP(colinfo)) || (KNO_FALSEP(colinfo)) )
+	  colinfo=getopt(options,KNOSYM_COLINFO,KNO_FALSE);
+	else kno_incref(colinfo);
+	dbp->sqlconn_options = kno_incref(options);
         dbp->sqlconn_colinfo = colinfo;
         kno_incref(colinfo);
         return LISP_CONS(dbp);}}}
@@ -132,7 +145,7 @@ KNO_EXPORT lispval kno_odbc_connect(lispval spec,lispval colinfo,int interactive
   return KNO_ERROR_VALUE;
 }
 
-static void recycle_odbconn(struct KNO_SQLDB *c)
+static void recycle_odbconn(struct KNO_SQLCONN *c)
 {
   struct KNO_ODBC *dbp = (struct KNO_ODBC *)c;
   SQLFreeHandle(SQL_HANDLE_DBC,dbp->conn);
@@ -141,13 +154,20 @@ static void recycle_odbconn(struct KNO_SQLDB *c)
 
 
 DEFC_PRIM("odbc/open",odbcopen,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
+	  "Opens an ODBC connection to the database at *spec* given "
+	  "options and *colinfo* (for mapping results to lisp)",
 	  {"spec",kno_string_type,KNO_VOID},
+	  {"options",kno_any_type,KNO_FALSE},
 	  {"colinfo",kno_any_type,KNO_VOID})
-static lispval odbcopen(lispval spec,lispval colinfo)
+static lispval odbcopen(lispval spec,lispval options,lispval colinfo)
 {
-  return kno_odbc_connect(spec,colinfo,-1);
+  if (KNO_VOIDP(colinfo)) {
+    colinfo = getopt(options,KNOSYM_COLINFO,KNO_FALSE);
+    lispval result = kno_odbc_connect(spec,options,colinfo,-1);
+    kno_decref(colinfo);
+    return result;}
+  else return kno_odbc_connect(spec,options,colinfo,-1);
 }
 
 /* ODBCProcs */
@@ -156,10 +176,10 @@ static lispval callodbcproc(struct KNO_STACK *stack,lispval fn,int n,kno_argvec 
 
 static lispval odbcmakeproc
 (struct KNO_ODBC *dbp,
- u8_string stmt,int stmt_len,lispval colinfo,
+ u8_string stmt,lispval options,lispval colinfo,
  int n,kno_argvec args)
 {
-  int ret = 0, have_stmt = 0;
+  int ret = 0, have_stmt = 0, stmt_len = strlen(stmt);
   SQLSMALLINT n_params, *sqltypes;
   struct KNO_ODBC_PROC *dbproc = u8_alloc(struct KNO_ODBC_PROC);
   KNO_INIT_FRESH_CONS(dbproc,kno_sqlproc_type);
@@ -183,6 +203,8 @@ static lispval odbcmakeproc
   dbproc->sqlproc_conn = (lispval)dbp;
   kno_incref(dbproc->sqlproc_conn);
   dbproc->sqldb_handler = &odbc_handler;
+  dbproc->sqlproc_options = kno_merge_opts(options,dbp->sqlconn_options);
+  dbproc->sqlproc_colinfo = kno_merge_opts(colinfo,dbp->sqlconn_colinfo);
 #ifdef KNO_CALL_XCALL
   dbproc->fcn_call = KNO_CALL_XCALL | KNO_CALL_NOTAIL;
 #else
@@ -197,13 +219,6 @@ static lispval odbcmakeproc
 
   u8_init_mutex(&(dbproc->odbc_proc_lock));
 
-  if (KNO_VOIDP(colinfo))
-    dbproc->sqlproc_colinfo = kno_incref(dbp->sqlconn_colinfo);
-  else if (KNO_VOIDP(dbp->sqlconn_colinfo))
-    dbproc->sqlproc_colinfo = kno_incref(colinfo);
-  else {
-    kno_incref(colinfo); kno_incref(dbp->sqlconn_colinfo);
-    dbproc->sqlproc_colinfo = kno_conspair(colinfo,dbp->sqlconn_colinfo);}
   {
     int i = 0; lispval *specs = u8_alloc_n(n_params,lispval);
     while (i<n_params)
@@ -219,12 +234,12 @@ static lispval odbcmakeproc
 }
 
 static lispval odbcmakeprochandler
-(struct KNO_SQLDB *sqldb,
- u8_string stmt,int stmt_len,lispval colinfo,
+(struct KNO_SQLCONN *sqldb,
+ u8_string stmt,lispval options,lispval colinfo,
  int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler== &odbc_handler)
-    return odbcmakeproc((kno_odbc)sqldb,stmt,stmt_len,colinfo,n,ptypes);
+    return odbcmakeproc((kno_odbc)sqldb,stmt,options,colinfo,n,ptypes);
   else return kno_type_error("ODBC SQLDB","odbcmakeprochandler",(lispval)sqldb);
 }
 
@@ -346,11 +361,13 @@ static lispval get_colvalue
 static lispval merge_symbol;
 
 static lispval get_stmt_results
-(SQLHSTMT stmt,const u8_string cxt,int free_stmt,lispval typeinfo)
+(SQLHSTMT stmt,const u8_string cxt,int free_stmt,
+ lispval options,lispval typeinfo)
 {
   struct U8_OUTPUT out;
   lispval results; int i = 0, ret; SQLSMALLINT n_cols;
-  lispval mergefn = kno_getopt(typeinfo,merge_symbol,KNO_VOID);
+  lispval mergefn = kno_getopt(options,merge_symbol,KNO_VOID);
+  if (KNO_VOIDP(mergefn)) mergefn=kno_getopt(typeinfo,merge_symbol,KNO_VOID);
   lispval *colnames, *colinfo; SQLSMALLINT *coltypes; SQLULEN *colsizes;
   if (!((KNO_VOIDP(mergefn)) || (KNO_TRUEP(mergefn)) ||
         (KNO_FALSEP(mergefn)) || (KNO_APPLICABLEP(mergefn))))
@@ -430,27 +447,38 @@ static lispval get_stmt_results
   return results;
 }
 
-static lispval odbcexec(struct KNO_ODBC *dbp,lispval string,lispval colinfo)
+static lispval odbcexec(struct KNO_ODBC *dbp,lispval string,
+			lispval options,lispval colinfo)
 {
   int ret;
   SQLHSTMT stmt;
   /* No need for locking here, because we have our own statement */
   ret = SQLAllocHandle(SQL_HANDLE_STMT,dbp->conn,&stmt);
+  options = kno_merge_opts(options,dbp->sqlconn_options);
+  colinfo = kno_merge_opts(colinfo,dbp->sqlconn_options);
   if (!(SQL_SUCCEEDED(ret))) {
     u8_seterr(ODBCError,"odbcexec",NULL);
     return KNO_ERROR_VALUE;}
   ret = SQLExecDirect(stmt,(char *)KNO_CSTRING(string),KNO_STRLEN(string));
   if (KNO_VOIDP(colinfo)) colinfo = dbp->sqlconn_colinfo;
   if (SQL_SUCCEEDED(ret))
-    return get_stmt_results(stmt,"odbcexec",1,colinfo);
+    return get_stmt_results(stmt,"odbcexec",1,options,colinfo);
   else return stmt_error(stmt,"odbcexec",1);
 }
 
 static lispval odbcexechandler
-(struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
+(struct KNO_SQLCONN *sqldb,lispval string,lispval options)
 {
-  if (sqldb->sqldb_handler== &odbc_handler)
-    return odbcexec((kno_odbc)sqldb,string,colinfo);
+  if (sqldb->sqldb_handler== &odbc_handler) {
+    int free_colinfo = 0;
+    lispval colinfo = getopt(options,KNOSYM_COLINFO,KNO_VOID);
+    if (KNO_VOIDP(colinfo)) {
+      colinfo=options;
+      options=KNO_FALSE;}
+    else free_colinfo=1;
+    lispval result = odbcexec((kno_odbc)sqldb,string,options,colinfo);
+    if (free_colinfo) kno_decref(colinfo);
+    return result;}
   else return kno_type_error("ODBC SQLDB","odbcexechandler",(lispval)sqldb);
 }
 
@@ -503,7 +531,7 @@ static lispval callodbcproc(struct KNO_STACK *s,lispval fn,int n,kno_argvec args
   ret = SQLExecute(dbp->stmt);
   if (SQL_SUCCEEDED(ret)) {
     lispval results = get_stmt_results
-      (dbp->stmt,"odbcexec",0,dbp->sqlproc_colinfo);
+      (dbp->stmt,"odbcexec",0,dbp->sqlproc_options,dbp->sqlproc_colinfo);
     SQLFreeStmt(dbp->stmt,SQL_CLOSE);
     SQLFreeStmt(dbp->stmt,SQL_RESET_PARAMS);
     u8_unlock_mutex(&(dbp->odbc_proc_lock));
@@ -514,13 +542,6 @@ static lispval callodbcproc(struct KNO_STACK *s,lispval fn,int n,kno_argvec args
 }
 
 /* Initialization */
-
-static int odbc_initialized = 0;
-
-static struct KNO_SQLDB_HANDLER odbc_handler=
-  {"odbc",NULL,NULL,NULL,NULL,NULL,NULL};
-
-static lispval odbc_module;
 
 KNO_EXPORT int kno_init_odbc()
 {
@@ -550,5 +571,5 @@ KNO_EXPORT int kno_init_odbc()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("odbc/open",odbcopen,2,odbc_module);
+  KNO_LINK_CPRIM("odbc/open",odbcopen,3,odbc_module);
 }

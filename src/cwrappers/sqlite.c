@@ -18,7 +18,7 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
-#include "kno/sqldb.h"
+#include "kno/sql.h"
 #include "kno/cprims.h"
 
 #include <libu8/libu8.h>
@@ -33,9 +33,13 @@
 #include <stdio.h>
 
 KNO_EXPORT int kno_init_sqlite(void) KNO_LIBINIT_FN;
-static struct KNO_SQLDB_HANDLER sqlite_handler;
-static lispval sqlitecallproc(struct KNO_STACK *stack,lispval fn,
-			      int n,kno_argvec args);
+
+static lispval sqlite_module;
+
+static long long int sqlite_init = 0;
+
+static struct KNO_SQLDB_HANDLER sqlite_handler=
+  {"sqlite",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 typedef struct KNO_SQLITE {
   KNO_SQLCONN_FIELDS;
@@ -53,6 +57,9 @@ typedef struct KNO_SQLITE_PROC {
 typedef struct KNO_SQLITE_PROC *kno_sqlite_proc;
 
 static u8_condition SQLiteError=_("SQLite Error");
+
+static lispval sqlitecallproc(struct KNO_STACK *stack,lispval fn,
+			      int n,kno_argvec args);
 
 static lispval merge_symbol, sorted_symbol;
 
@@ -81,7 +88,6 @@ static int getv2flags(lispval options,u8_string filename);
 
 static int open_knosqlite(struct KNO_SQLITE *knosqlptr);
 static void close_knosqlite(struct KNO_SQLITE *knoptr,int lock);
-static lispval merge_colinfo(KNO_SQLITE *dbp,lispval colinfo);
 
 static int open_knosqliteproc(struct KNO_SQLITE *knosqlptr,struct KNO_SQLITE_PROC *knop);
 static void close_knosqliteproc(struct KNO_SQLITE_PROC *dbp);
@@ -153,9 +159,9 @@ DEFC_PRIM("sqlite/open",sqlite_open_prim,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1),
 	  "**undocumented**",
 	  {"filename",kno_string_type,KNO_VOID},
-	  {"colinfo",kno_any_type,KNO_VOID},
-	  {"options",kno_any_type,KNO_VOID})
-static lispval sqlite_open_prim(lispval filename,lispval colinfo,lispval options)
+	  {"options",kno_any_type,KNO_FALSE},
+	  {"colinfo",kno_any_type,KNO_VOID})
+static lispval sqlite_open_prim(lispval filename,lispval options,lispval colinfo)
 {
   struct KNO_SQLITE *sqlcons; int retval;
   lispval vfs_spec = kno_getopt(options,vfs_symbol,KNO_VOID);
@@ -218,7 +224,7 @@ DEFC_PRIM("sqlite/reopen",sqlite_reopen_prim,
 	  {"db",kno_sqlconn_type,KNO_VOID})
 static lispval sqlite_reopen_prim(lispval db)
 {
-  struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqlconn_type);
+  struct KNO_SQLCONN *sqldb = kno_consptr(struct KNO_SQLCONN *,db,kno_sqlconn_type);
   if (sqldb->sqldb_handler!= &sqlite_handler)
     return kno_type_error("Not a SQLITE DB","sqlite_close_prim",db);
   else {
@@ -232,12 +238,8 @@ static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
   u8_log(LOG_WARN,"close_knosqlite","Closing SQLITE db %s",dbp->sqlconn_spec);
   if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
     sqlite3 *db = dbp->sqlitedb;
-    struct KNO_SQLPROC **scan = dbp->sqlconn_procs;
-    struct KNO_SQLPROC **limit = scan+dbp->sqlconn_n_procs;
-    while (scan<limit)
-      close_knosqliteproc((struct KNO_SQLITE_PROC *)(*scan++));
-    closedb(db);
-    dbp->sqlitedb = NULL;}
+    dbp->sqlitedb = NULL;
+    closedb(db);}
   if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
 }
 
@@ -248,14 +250,14 @@ DEFC_PRIM("sqlite/close",sqlite_close_prim,
 	  {"db",kno_sqlconn_type,KNO_VOID})
 static lispval sqlite_close_prim(lispval db)
 {
-  struct KNO_SQLDB *sqldb = kno_consptr(struct KNO_SQLDB *,db,kno_sqlconn_type);
+  struct KNO_SQLCONN *sqldb = kno_consptr(struct KNO_SQLCONN *,db,kno_sqlconn_type);
   if (sqldb->sqldb_handler!= &sqlite_handler)
     return kno_type_error("Not a SQLITE DB","sqlite_close_prim",db);
   close_knosqlite((struct KNO_SQLITE *)sqldb,1);
   return KNO_VOID;
 }
 
-static void recycle_knosqlite(struct KNO_SQLDB *c)
+static void recycle_knosqlite(struct KNO_SQLCONN *c)
 {
   struct KNO_SQLITE *dbp = (struct KNO_SQLITE *)c;
   u8_lock_mutex(&(dbp->sqlite_lock)); {
@@ -314,7 +316,7 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
   const char *errmsg="er, err";
   int retval;
   u8_lock_mutex(&(knos->sqlite_lock));
-  retval = newstmt(dbp,KNO_CSTRING(string),KNO_STRLEN(string),&stmt);
+  retval = newstmt(dbp,KNO_CSTRING(string),1+KNO_STRLEN(string),&stmt);
   if (KNO_VOIDP(colinfo)) colinfo = knos->sqlconn_colinfo;
   if (retval == SQLITE_OK) {
     lispval values = sqlite_values(dbp,stmt,colinfo);
@@ -323,18 +325,18 @@ static lispval sqliteexec(struct KNO_SQLITE *knos,lispval string,lispval colinfo
       kno_seterr(SQLiteError,"knosqlite_call",
 		 errmsg,kno_incref(string));}
     sqlite3_finalize(stmt);
-    u8_unlock_mutex(&(knos->sqlite_lock));
+    U8_CLEAR_ERRNO();
+   u8_unlock_mutex(&(knos->sqlite_lock));
     return values;}
   else {
     lispval dbptr = (lispval)knos;
-    kno_incref(dbptr);
     errmsg = sqlite3_errmsg(dbp);
     kno_seterr(SQLiteError,"knosqlite_call",errmsg,dbptr);
     u8_unlock_mutex(&(knos->sqlite_lock));
     return KNO_ERROR_VALUE;}
 }
 
-static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
+static lispval sqliteexechandler(struct KNO_SQLCONN *sqldb,lispval string,
 				 lispval colinfo)
 {
   if (sqldb->sqldb_handler== &sqlite_handler) {
@@ -358,13 +360,13 @@ static lispval sqliteexechandler(struct KNO_SQLDB *sqldb,lispval string,
 
 static lispval sqlitemakeproc
 (struct KNO_SQLITE *dbp,
- u8_string sql,int sql_len,lispval colinfo,
+ u8_string sql,lispval options,lispval colinfo,
  int n,kno_argvec ptypes)
 {
   sqlite3 *db = dbp->sqlitedb;
   sqlite3_stmt *stmt;
   struct KNO_SQLITE_PROC *sqlproc;
-  int n_params, retval;
+  int n_params, retval, sql_len = strlen(sql);
   if (!(db)) {
     u8_lock_mutex(&(dbp->sqlite_lock));
     if (!(dbp->sqlitedb)) {
@@ -388,6 +390,8 @@ static lispval sqlitemakeproc
   else sqlproc = u8_alloc(struct KNO_SQLITE_PROC);
   KNO_INIT_FRESH_CONS(sqlproc,kno_sqlproc_type);
   sqlproc->sqldb_handler = &sqlite_handler;
+  sqlproc->sqlproc_options = kno_merge_opts(options,dbp->sqlconn_options);
+  sqlproc->sqlproc_colinfo = kno_merge_opts(colinfo,dbp->sqlconn_colinfo);
   sqlproc->sqlitedb = dbp->sqlitedb;
   sqlproc->sqlproc_conn = (lispval)dbp;
   kno_incref(sqlproc->sqlproc_conn);
@@ -395,7 +399,7 @@ static lispval sqlitemakeproc
   u8_init_mutex(&(sqlproc->sqliteproc_lock));
   sqlproc->fcn_filename = sqlproc->sqlproc_spec = u8_strdup(dbp->sqlconn_spec);
   /* include NUL */
-  sqlproc->fcn_name = sqlproc->sqlproc_qtext=_memdup((u8_byte *)sql,sql_len+1);
+  sqlproc->fcn_name = sqlproc->sqlproc_qtext= u8_strdup(sql);
   sqlproc->sqlproc_n_params = n_params = sqlite3_bind_parameter_count(stmt);
   sqlproc->fcn_call = KNO_CALL_XCALL | KNO_CALL_NOTAIL;
   sqlproc->fcn_call_width = sqlproc->fcn_arity = -1;
@@ -410,33 +414,16 @@ static lispval sqlitemakeproc
       else paramtypes[j]=KNO_VOID;
       j++;}
     sqlproc->sqlproc_paramtypes = paramtypes;}
-  sqlproc->sqlproc_colinfo = merge_colinfo(dbp,colinfo);
   kno_register_sqlproc((struct KNO_SQLPROC *)sqlproc);
   return LISP_CONS(sqlproc);
 }
 
-static lispval merge_colinfo(KNO_SQLITE *conn,lispval colinfo)
-{
-  if (KNO_VOIDP(colinfo)) return kno_incref(conn->sqlconn_colinfo);
-  else if (KNO_VOIDP(conn->sqlconn_colinfo))
-    return kno_incref(colinfo);
-  else if (colinfo == conn->sqlconn_colinfo)
-    return kno_incref(colinfo);
-  else if ((KNO_PAIRP(colinfo))&&
-	   ((KNO_CDR(colinfo)) == (conn->sqlconn_colinfo)))
-    return kno_incref(colinfo);
-  else {
-    kno_incref(conn->sqlconn_colinfo);
-    kno_incref(colinfo);
-    return kno_conspair(colinfo,conn->sqlconn_colinfo);}
-}
-
 static lispval sqlitemakeprochandler
-(struct KNO_SQLDB *sqldb,u8_string sql,int sql_len,
- lispval colinfo,int n,kno_argvec ptypes)
+(struct KNO_SQLCONN *sqldb,u8_string sql,lispval options,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler == &sqlite_handler)
-    return sqlitemakeproc((kno_sqlite)sqldb,sql,sql_len,colinfo,n,ptypes);
+    return sqlitemakeproc((kno_sqlite)sqldb,sql,options,colinfo,n,ptypes);
   else return kno_type_error
 	 ("SQLITE SQLDB","sqlitemakeprochandler",(lispval)sqldb);
 }
@@ -796,13 +783,6 @@ static time_t sqlite_time_to_xtime(const char *s,struct U8_XTIME *xtp)
 }
 
 /* Initialization */
-
-static long long int sqlite_init = 0;
-
-static struct KNO_SQLDB_HANDLER sqlite_handler=
-  {"sqlite",NULL,NULL,NULL,NULL,NULL,NULL};
-
-static lispval sqlite_module;
 
 KNO_EXPORT int kno_init_sqlite()
 {

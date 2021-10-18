@@ -854,10 +854,9 @@ test-rocksdbindexes rocksdbindexes rocksdbindex:
 # SQLDB module tests
 
 test-sqlite sqlite:
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite 
-	@rm -f temp.sqlite
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
-	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=temp.sqlite IRANGE=6 JRANGE=4
+	@${RUN} ${KNOX} sqldb.scm NEWDB=yes DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite
+	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite IRANGE=6 JRANGE=4
+	@${RUN} ${KNOX} sqldb.scm DBMODULE=:sqlite DBOPEN=:sqlite/open DBSPEC=test.sqlite IRANGE=6 JRANGE=4
 	@rm -f temp.sqlite
 	@${header} "■■■■ Completed sqldb/sqlite tests ${RUNCONF}"
 
@@ -866,6 +865,9 @@ test-mariadb mariadb:
 
 test-odbc odbc:
 	@echo "No ODBC tests yet"
+
+test-pqprims pqprims postgres:
+	@echo "No POSTGRES tests yet"
 
 test-archivetools archivetools:
 

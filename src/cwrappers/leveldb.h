@@ -38,3 +38,12 @@ typedef struct KNO_LEVELDB_INDEX {
   struct KNO_LEVELDB *leveldb;} KNO_LEVELDB_INDEX;
 typedef struct KNO_LEVELDB_INDEX *kno_leveldb_index;
 
+KNO_EXPORT struct KNO_LEVELDB *kno_open_leveldb(u8_string path,lispval opts);
+KNO_EXPORT int kno_close_leveldb(kno_leveldb db);
+KNO_EXPORT kno_leveldb kno_reopen_leveldb(kno_leveldb db);
+
+KNO_EXPORT kno_index kno_open_leveldb_index(u8_string path,kno_storage_flags flags,lispval opts);
+KNO_EXPORT kno_index kno_make_leveldb_index(u8_string path,lispval opts);
+
+KNO_EXPORT kno_pool kno_open_leveldb_pool(u8_string path,kno_storage_flags flags,lispval opts);
+KNO_EXPORT kno_pool kno_make_leveldb_pool(u8_string path,lispval base,lispval cap,lispval opts);

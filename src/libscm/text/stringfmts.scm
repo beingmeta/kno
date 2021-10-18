@@ -22,7 +22,8 @@
    $bytes $bytestring
    $bytes/sec
    $rate
-   $fn})
+   $fn
+   $pid})
 
 (module-export!
  '{$lines $lines/indent
@@ -384,6 +385,15 @@
 	    (if (= j 0)
 		(printout name (dotimes (i (- maxwidth (length name))) (display " ")) v)
 		(printout indent-string v))))))))
+
+;;;; Display a PID (for no separator)
+
+(define ($pid pid)
+  (if (number? pid)
+      (number->string pid 10 #f)
+      (if (subproc? pid)
+	  (number->string (proc-pid pid) 10 #f)
+	  pid)))
 
 ;;;; Displaying procedures
 

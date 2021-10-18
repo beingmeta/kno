@@ -11,8 +11,10 @@
 
 (define dbspec (config 'dbspec (get-component "temp.sqlite")))
 
-(define (build-testdb db)
+(define (build-db db)
   ;;; If already created?
+  (logwarn |BuildDB| db)
+  (ignore-errors (sqldb/exec db "drop table arithops;"))
   (ignore-errors
    (sqldb/exec db "create table arithops ( stringval VARCHAR(128), add1 INT, add2 INT);"))
   (let ((addentry (sqldb/proc db "INSERT INTO arithops (stringval,add1,add2) values (?,?,?)"))
@@ -43,14 +45,11 @@
 	(applytest (glom (* i j)) get (getentry i j) 'stringval)))))
 
 
-(define (init-sqlitedb)
-  (let ((db (dbopen dbspec #[] #[sqlexec #t create #t])))
-    (build-testdb db)
-    db))
-
 (define (main)
   (let ((db (if (and (eq? (config 'dbmodule 'sqlite) 'sqlite)
 		     (not (file-exists? dbspec)))
-		(init-sqlitedb)
-		(dbopen dbspec #[] #[sqlexec #t create #t]))))
-    (test-db db)))
+		((get (get-module 'sqlite) 'sqlite/open) dbspec [sqlexec #t create #t])
+		(dbopen dbspec #[sqlexec #t]))))
+    (when (config 'newdb) (build-db db))
+    (test-db db)
+    ))

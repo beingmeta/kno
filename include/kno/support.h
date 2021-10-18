@@ -99,6 +99,13 @@ KNO_EXPORT lispval kno_getopt(lispval opts,lispval key,lispval dflt);
 KNO_EXPORT int kno_testopt(lispval opts,lispval key,lispval val);
 KNO_EXPORT long long kno_getfixopt(lispval opts,u8_string name,long long dflt);
 
+#if KNO_DEFINE_GETOPT
+#define getopt(o,k,d) \
+  ( (KNO_FALSEP(o)) ? (kno_incref(d)) : (kno_getopt(o,k,d)) )
+#endif
+
+KNO_EXPORT lispval kno_merge_opts(lispval head,lispval tail);
+
 #define kno_hasopt(opts,key) (kno_testopt((opts),(key),(KNO_VOID)))
 
 /* Resources sensors */

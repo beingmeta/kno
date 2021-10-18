@@ -138,7 +138,7 @@ STORAGE_HEADERS=\
  include/kno/dtproc.h			\
  include/kno/dtcall.h			\
  include/kno/frames.h			\
- include/kno/sqldb.h			\
+ include/kno/sql.h			\
  include/kno/methods.h
 
 DRIVERS_H=include/kno/drivers.h
@@ -190,7 +190,8 @@ APPLY_OBJS=\
 	src/apply/apply.o src/apply/stacks.o			\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
-	src/apply/dispatch.o src/apply/sqldb.o src/apply/services.o
+	src/apply/dispatch.o src/apply/sql.o 			\
+	src/apply/services.o
 
 REVISION_H   =include/kno/revision.h
 CONFIG_H     =include/kno/config.h
@@ -269,7 +270,7 @@ SCHEME_OBJS=\
 	src/prims/sysprims.o	\
 	src/prims/procprims.o	\
 	@ipevalopso@		\
-	src/prims/sqldbprims.o	\
+	src/prims/sqlprims.o	\
 	src/prims/fileprims.o	\
 	src/prims/driverprims.o \
 	src/eval/loadmods.o
@@ -299,8 +300,7 @@ PYTHON_OBJS=				\
 	src/python/parseltongue.o	\
 	src/python/parseltongue2.o
 
-CMODULE_OBJS=src/cmodules/sqlite.o	\
-	     src/cmodules/crypto.o	\
+CMODULE_OBJS=src/cmodules/crypto.o	\
 	     src/cmodules/archivetools.o	\
 	     src/cmodules/testcapi.o
 
@@ -350,7 +350,7 @@ KNO_SOURCES=									\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c			\
-	src/apply/ffi.c src/apply/sqldb.c src/apply/exec.c src/apply/dispatch.c \
+	src/apply/ffi.c src/apply/sql.c src/apply/exec.c src/apply/dispatch.c \
 	src/apply/apply_internals.h						\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
@@ -391,7 +391,7 @@ KNO_SOURCES=									\
 	src/prims/fileprims.c src/prims/driverprims.c				\
 	src/eval/loadmods.c							\
 	src/prims/timeprims.c src/prims/sysprims.c				\
-	src/prims/sqldbprims.c							\
+	src/prims/sqlprims.c							\
 	src/eval/requests.c src/eval/dteval.c src/eval/configops.c		\
 	src/web/webtools.c src/web/json.c src/web/ldns.c			\
 	src/web/xmloutput.c src/web/xmlinput.c src/web/xmldata.c		\
@@ -402,10 +402,17 @@ KNO_SOURCES=									\
 	src/exe/knoc.c src/exe/knox.c src/exe/knocgi.c
 
 CMODULE_SOURCES=			\
-	src/cmodules/sqlite.c		\
 	src/cmodules/archivetools.c	\
 	src/cmodules/gperftools.c	\
 	src/cmodules/crypto.c
+
+CWRAPPER_SOURCES=			\
+	src/cwrappers/sqlite.c		\
+	src/cwrappers/mariadb.c		\
+	src/cwrappers/odbc.c		\
+	src/cwrappers/pqprims.c		\
+	src/cwrappers/leveldb.c		\
+	src/cwrappers/rocksdb.c
 
 STATIC_LIBS=lib/libkno@suffix@.a	\
 	lib/libknowebtools@suffix@.a	\
@@ -718,19 +725,19 @@ lib/%@suffix@.a:
 	@$(MKSTATIC) $@ $^
 	@$(MSG) MKSTATIC $@
 lib/lib%@suffix@.so.@KNO_MAJOR@: lib/lib%@suffix@.so
-	@ln -sf $(*F).so $@
+	@ln -sf lib$(*F).so $@
 lib/lib%@suffix@.so:
 	$(MKSO) -Wl,-soname=$(@F).@KNO_MAJOR@ -Wl,--as-needed -L./lib -L./ \
 		-o $@ $^ -lu8 $(MODLIBS) $(XLIBS) $(LIBS)
 	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
 	@echo MKSO $@ $<
 lib/lib%@suffix@.@KNO_MAJOR@.dylib: lib/lib%@suffix@.dylib
-	@ln -sf $(*F).dylib $@
+	@ln -sf lib$(*F).dylib $@
 lib/lib%@suffix@.dylib:
 	@$(MACLIBTOOL) -install_name \
 		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
 		$(DYLIB_FLAGS) -o $@ $^
-	@ln -sf $(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
+	@ln -sf lib$(@F) $(@D)/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib
 	@$(MSG) MACLIBTOOL $@
 
 lib/stripped/%: lib/%
@@ -1167,8 +1174,8 @@ lib/kno/testcapi.so: src/cmodules/testcapi.o
 lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
 
 lib/kno/sqlite.so lib/kno/sqlite.dylib : MODLIBS=-lsqlite3
-lib/kno/sqlite.so: src/cmodules/sqlite.o
-lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
+lib/kno/sqlite.so: src/cwrappers/sqlite.o
+lib/kno/sqlite.dylib: src/cwrappers/sqlite.o ${CMODULE_DEPENDS}
 
 lib/kno/archivetools.o: src/cmodules/archivetools.c
 lib/kno/archivetools.so: src/cmodules/archivetools.o
@@ -1578,6 +1585,7 @@ install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshare
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
+install-pqprims: ${CMODULES}/pqprims.@shared_suffix@ ${CMODULES}/pqprims.@vshared_suffix@
 
 install-cwrappers: @INSTALL_CWRAPPERS@
 
@@ -2009,6 +2017,9 @@ scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
 
 lib/kno/mariadb.@shared_suffix@ : MODLIBS=@MARIADB_LIBS@
 src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@
+
+lib/kno/pqprims.@shared_suffix@ : MODLIBS=@LIBPQ_LIBS@
+src/cwrappers/pqprims.o : MOD_CFLAGS=@LIBPQ_CFLAGS@
 
 ### Depending on the .buildmode
 

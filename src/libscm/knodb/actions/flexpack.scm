@@ -106,19 +106,19 @@
 				(glom "TAILTYPE=" (config 'tailtype 'kindex))
 				partition headfile tailfile tailcount))
 		(lastmsg (elapsed-time)))
-	    (logwarn |Launched| 
+	    (lognotice |Launched| 
 	      "splitindex " (write partition) " stdout=" (proc-stdout proc))
 	    (while (and (proc/live? proc)
 			(or (not maxsecs) (< (elapsed-time started) maxsecs)))
 	      (when (and msgsecs (> (elapsed-time lastmsg) msgsecs))
 		(logwarn |Waiting| "Waited " (secs->string (elapsed-time started)) 
-			 " for " (proc-pid proc) " to process " (write partition))
+			 " for " ($pid proc) " to process " (write partition))
 		(set! lastmsg (elapsed-time)))
 	      (sleep 1))
 	    (cond ((test (proc/status proc) 'exited 0)
 		   ;;(move-file partition (glom partition ".bak"))
-		   (logwarn |Finished| partition " in " (secs->string (elapsed-time started))))
-		  (else (logwarn |Error|
+		   (lognotice |Finished| partition " in " (secs->string (elapsed-time started))))
+		  (else (logerr |Error|
 			  "Processing " partition ", see " (write (proc-stdout proc))
 			  "for details.")
 			(break)))))

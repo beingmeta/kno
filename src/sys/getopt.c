@@ -36,10 +36,12 @@ static u8_condition WeirdOption=_("Weird option specification");
 
 KNO_EXPORT lispval kno_getopt(lispval opts,lispval key,lispval dflt)
 {
-  if (VOIDP(opts))
+  if ( (FALSEP(opts)) || (NILP(opts)) || (EMPTYP(opts)) || (VOIDP(opts)) )
     return kno_incref(dflt);
-  else if (EMPTYP(opts))
-    return kno_incref(dflt);
+  else if (SLOTMAPP(opts))
+    return kno_slotmap_get((kno_slotmap)opts,key,dflt);
+  else if (SCHEMAPP(opts))
+    return kno_schemap_get((kno_schemap)opts,key,dflt);
   else if ((CHOICEP(opts)) || (PRECHOICEP(opts))) {
     DO_CHOICES(opt,opts) {
       lispval value = kno_getopt(opt,key,VOID);
@@ -53,7 +55,7 @@ KNO_EXPORT lispval kno_getopt(lispval opts,lispval key,lispval dflt)
     while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
         lispval car = KNO_CAR(opts), value = KNO_VOID;
-        if (SYMBOLP(car)) {
+	if (SYMBOLP(car)) {
           if (KNO_EQ(key,car))
             return KNO_TRUE;
           else {}}
@@ -183,6 +185,21 @@ KNO_EXPORT long long kno_getfixopt(lispval opts,u8_string name,long long dflt)
   else {
     kno_decref(val);
     return dflt;}
+}
+
+KNO_EXPORT lispval kno_merge_opts(lispval head,lispval tail)
+{
+  if ( (KNO_FALSEP(head)) || (KNO_VOIDP(head)) || (KNO_NILP(head)) )
+    return kno_incref(tail);
+  else if ( (KNO_FALSEP(tail)) || (KNO_VOIDP(tail)) || (KNO_NILP(tail)) )
+    return kno_incref(head);
+  else if ( (KNO_PAIRP(head)) && ( (KNO_CDR(head)) == tail) )
+    return kno_incref(head);
+  else if ( (KNO_PAIRP(tail)) && ( (KNO_CAR(tail)) == head ) )
+    return kno_incref(tail);
+  else {
+    lispval combined = kno_make_pair(head,tail);
+    return combined;}
 }
 
 void kno_init_getopt_c()

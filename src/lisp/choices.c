@@ -1329,7 +1329,7 @@ KNO_EXPORT lispval kno_results2vector(lispval results,int decref)
   else if (KNO_CHOICEP(results)) {
     struct KNO_CHOICE *choice = (kno_choice) results;
     int discard = (decref) && (KNO_CONS_REFCOUNT(results)==1);
-    ssize_t n = KNO_CHOICE_SIZE(results), i = 0;
+    ssize_t n = KNO_CHOICE_SIZE(results);
     lispval vec = kno_make_vector(n,NULL);
     lispval *vec_elts = KNO_VECTOR_ELTS(vec);
     if ( (KNO_XCHOICE_ATOMICP(choice)) || (discard) ) {

@@ -375,8 +375,9 @@ KNO_EXPORT struct KNO_CPRIM *kno_init_xcprim
     flags = ( (flags) & (~(0x8F)) ) | ( (arity<0) ? (0x80) : (arity&0x7f) );}
   else NO_ELSE;
   if (arity < info_len) {
-    u8_log(LOGERR,"BadCPrimInfo","For primitive %s, the link arity (%d) is "
-	   "less than the provided arginfo");
+    u8_log(LOGERR,"BadCPrimInfo","For primitive %s/%s in %s, the link arity (%d) is "
+	   "less than the provided arginfo",
+	   name,cname,filename,arity);
     info_len=arity;}
   return make_xcprim(name,cname,filename,doc,flags,info_len,info);
 }

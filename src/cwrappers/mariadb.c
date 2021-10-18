@@ -18,7 +18,7 @@
 #include "kno/numbers.h"
 #include "kno/sequences.h"
 #include "kno/texttools.h"
-#include "kno/sqldb.h"
+#include "kno/sql.h"
 #include "kno/cprims.h"
 
 #include <libu8/libu8.h>
@@ -29,6 +29,13 @@
 #include <mysql.h>
 #include <errmsg.h>
 #include <mysqld_error.h>
+
+static lispval mariadb_module;
+
+static long long int mariadb_initialized = 0;
+
+static struct KNO_SQLDB_HANDLER mysql_handler=
+  {"mysql",NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL};
 
 static lispval ssl_symbol, sslca_symbol, sslcert_symbol, sslkey_symbol, sslcadir_symbol;
 static lispval sslciphers_symbol, port_symbol, reconnect_symbol;
@@ -343,7 +350,7 @@ static int open_connection(struct KNO_MYSQL *dbp)
     return 1;}
 }
 
-static void recycle_mysqldb(struct KNO_SQLDB *c)
+static void recycle_mysqldb(struct KNO_SQLCONN *c)
 {
   struct KNO_MYSQL *dbp = (struct KNO_MYSQL *)c;
   int n_procs = dbp->sqlconn_n_procs;
@@ -446,7 +453,7 @@ static lispval mariadb_open
   /* Prep the structure */
   retval = open_connection(dbp);
   if (retval<0) {
-    recycle_mysqldb((struct KNO_SQLDB *)dbp);
+    recycle_mysqldb((struct KNO_SQLCONN *)dbp);
     return KNO_ERROR_VALUE;}
 
   dbp->sqlconn_info=
@@ -872,7 +879,7 @@ static lispval mysqlexec(struct KNO_MYSQL *dbp,lispval string,
 }
 
 static lispval mysqlexechandler
-(struct KNO_SQLDB *sqldb,lispval string,lispval colinfo)
+(struct KNO_SQLCONN *sqldb,lispval string,lispval colinfo)
 {
   if (sqldb->sqldb_handler== &mysql_handler)
     return mysqlexec((kno_mysql)sqldb,string,colinfo,1);
@@ -885,13 +892,16 @@ static int default_lazy_init = 0;
 
 static lispval mysqlmakeproc
 (struct KNO_MYSQL *dbp,
- u8_string stmt,int stmt_len,lispval colinfo,
+ u8_string stmt,lispval options,lispval colinfo,
  int n,kno_argvec ptypes)
 {
   MYSQL *db = dbp->mysqldb; int retval = 0;
   struct KNO_MYSQL_PROC *dbproc = u8_alloc(struct KNO_MYSQL_PROC);
   unsigned int lazy_init = 0;
-  lispval lazy_opt = kno_getopt(dbp->sqlconn_options,lazy_symbol,KNO_VOID);
+  lispval lazy_opt = kno_getopt(options,lazy_symbol,KNO_VOID);
+  if (KNO_VOIDP(lazy_opt))
+    lazy_opt = kno_getopt(dbp->sqlconn_options,lazy_symbol,KNO_VOID);
+  int stmt_len = strlen(stmt);
   if (KNO_VOIDP(lazy_opt))
     lazy_init = default_lazy_init;
   else if (KNO_TRUEP(lazy_opt))
@@ -905,10 +915,12 @@ static lispval mysqlmakeproc
 
   /* Set up fields for SQLPROC */
   dbproc->sqldb_handler = &mysql_handler;
+  dbproc->sqlproc_options = kno_merge_opts(options,dbp->sqlconn_options);
+  dbproc->sqlproc_colinfo = kno_merge_opts(colinfo,dbp->sqlconn_colinfo);
+
   dbproc->sqlproc_conn = (lispval)dbp; kno_incref(dbproc->sqlproc_conn);
   dbproc->sqlproc_spec = u8_strdup(dbp->sqlconn_spec);
   dbproc->sqlproc_qtext=_memdup(stmt,stmt_len+1); /* include space for NUL */
-  colinfo = dbproc->sqlproc_colinfo = merge_colinfo(dbp,colinfo);
   u8_init_mutex(&(dbproc->mysqlproc_lock));
 
   /* Set up MYSQL specific fields */
@@ -954,12 +966,12 @@ static lispval mysqlmakeproc
 
 /* This is the handler stored in the method table */
 static lispval mysqlmakeprochandler
-(struct KNO_SQLDB *sqldb,
- u8_string stmt,int stmt_len,
- lispval colinfo,int n,kno_argvec ptypes)
+(struct KNO_SQLCONN *sqldb,
+ u8_string stmt,lispval options,lispval colinfo,
+ int n,kno_argvec ptypes)
 {
   if (sqldb->sqldb_handler== &mysql_handler)
-    return mysqlmakeproc((kno_mysql)sqldb,stmt,stmt_len,colinfo,n,ptypes);
+    return mysqlmakeproc((kno_mysql)sqldb,stmt,options,colinfo,n,ptypes);
   else return kno_type_error("MYSQL SQLDB","mysqlmakeprochandler",
 			     (lispval)sqldb);
 }
@@ -1444,10 +1456,6 @@ static lispval applymysqlproc(kno_function fn,int n,kno_argvec args,int reconn)
 
 /* Initialization */
 
-static long long int mariadb_initialized = 0;
-
-static struct KNO_SQLDB_HANDLER mysql_handler=
-  {"mysql",NULL,NULL,NULL,NULL,NULL,NULL};
 int first_call = 1;
 
 static int init_thread_for_mysql()
@@ -1467,8 +1475,6 @@ static void cleanup_thread_for_mysql()
 }
 
 static void setup_mysql_compat(void);
-
-static lispval mariadb_module;
 
 KNO_EXPORT int kno_init_mariadb()
 {

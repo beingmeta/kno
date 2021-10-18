@@ -56,7 +56,7 @@ static int default_compression = 0;
 
 #define SYM(x) (kno_intern(x))
 
-DEF_KNOSYM(xrefs); DEF_KNOSYM(maxrefs); DEF_KNOSYM(debug); DEF_KNOSYM(vector);
+DEF_KNOSYM(xrefs); DEF_KNOSYM(debug); DEF_KNOSYM(vector); DEF_KNOSYM(getdb);
 
 struct BYTEVEC {
   size_t n_bytes;
@@ -320,7 +320,6 @@ static int setup_rocksdb_xrefs(struct KNO_ROCKSDB *db,lispval opts)
 {
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   struct XTYPE_REFS *xrefs = &(db->xrefs);
-  struct BYTEVEC _prefix = {0}, *prefix;
   int rv = 0, i = -1, found = 0;
   rocksdb_iterator_t *iterator = rocksdb_create_iterator(db->dbptr,readopts);
   ssize_t n_xrefs = 0, max_xrefs = 0, xrefs_len = 0;
@@ -363,7 +362,7 @@ static int setup_rocksdb_xrefs(struct KNO_ROCKSDB *db,lispval opts)
 	goto corrupted_xrefs;}
       if (i>=xrefs_len) {
 	ssize_t new_len = xrefs_len + 1;
-	refs = u8_realloc(refs,sizeof(lispval)*xrefs_len);}
+	refs = u8_realloc(refs,sizeof(lispval)*new_len);}
       refs[i++]=ref;}
     rocksdb_iter_next(iterator);}
   if (i > n_xrefs) n_xrefs=i;
@@ -507,8 +506,7 @@ KNO_EXPORT struct KNO_ROCKSDB *kno_open_rocksdb(u8_string path,lispval opts)
   return db;
 }
 
-KNO_EXPORT
-int kno_close_rocksdb(kno_rocksdb db)
+KNO_EXPORT int kno_close_rocksdb(kno_rocksdb db)
 {
   int closed = 0;
   if ( (db->dbstatus == rocksdb_opened) ||
@@ -525,8 +523,7 @@ int kno_close_rocksdb(kno_rocksdb db)
   return closed;
 }
 
-KNO_EXPORT
-kno_rocksdb kno_reopen_rocksdb(kno_rocksdb db)
+KNO_EXPORT kno_rocksdb kno_reopen_rocksdb(kno_rocksdb db)
 {
   if ( (db->dbstatus == rocksdb_opened) ||
        (db->dbstatus == rocksdb_opening) )
@@ -920,7 +917,6 @@ static int rocksdb_scanner(struct KNO_ROCKSDB *db,lispval opts,
 			   void *state)
 {
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
-  struct XTYPE_REFS *xrefs = &(db->xrefs);
   struct BYTEVEC _prefix = {0}, *prefix;
   int rv = 0, free_prefix=0;
   if (use_prefix)
@@ -951,6 +947,7 @@ static int rocksdb_scanner(struct KNO_ROCKSDB *db,lispval opts,
   return rv;
 }
 
+/* This will be handy for operations which only look at the keys */
 static int rocksdb_key_scanner(struct KNO_ROCKSDB *db,lispval opts,
 			       rocksdb_iterator_t *use_iterator,
 			       lispval key,struct BYTEVEC *use_prefix,
@@ -959,7 +956,6 @@ static int rocksdb_key_scanner(struct KNO_ROCKSDB *db,lispval opts,
 {
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   struct BYTEVEC _prefix = {0}, *prefix;
-  xtype_refs xrefs = &(db->xrefs);
   int rv = 0, free_prefix=0;
   if (use_prefix)
     prefix=use_prefix;
@@ -1213,7 +1209,7 @@ static ssize_t rocksdb_add_helper(struct KNO_ROCKSDB *db,
   struct BYTEVEC keybuf = {0}, valbuf = {0};
   rocksdb_readoptions_t *readopts = get_read_options(db,opts);
   char *errmsg=NULL;
-  long long n_vals=0, n_blocks=0, header_type=0;
+  long long n_vals=0, n_blocks=0;
   ssize_t rv = 0;
   KNO_INIT_BYTE_OUTPUT(&keyout,1000);
   rv=db_write_xtype(db,&keyout,key);
@@ -1304,7 +1300,28 @@ static ssize_t rocksdb_adder(struct KNO_ROCKSDB *db,lispval key,
   else return added;
 }
 
+DEFC_PRIM("rocksdb/open-index",open_rocksdb_index_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"path",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
+static lispval open_rocksdb_index_prim(lispval path,lispval opts)
+{
+  kno_index ix = kno_open_rocksdb_index(KNO_CSTRING(path),-1,opts);
+  return kno_index2lisp(ix);
+}
 
+
+DEFC_PRIM("rocksdb/make-index",make_rocksdb_index_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "**undocumented**",
+	  {"path",kno_string_type,KNO_VOID},
+	  {"opts",kno_any_type,KNO_VOID})
+static lispval make_rocksdb_index_prim(lispval path,lispval opts)
+{
+  kno_index ix = kno_make_rocksdb_index(KNO_CSTRING(path),opts);
+  return kno_index2lisp(ix);
+}
 
 DEFC_PRIM("rocksdb/index/add!",rocksdb_index_add_prim,
 	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(3),
@@ -1335,7 +1352,7 @@ static lispval rocksdb_index_add_prim(lispval rocksdb,lispval key,
 
 static struct KNO_INDEX_HANDLER rocksdb_index_handler;
 
-kno_index kno_open_rocksdb_index(u8_string path,kno_storage_flags flags,lispval opts)
+KNO_EXPORT kno_index kno_open_rocksdb_index(u8_string path,kno_storage_flags flags,lispval opts)
 {
   struct KNO_ROCKSDB *rocksdb = kno_open_rocksdb(path,opts);
   if (rocksdb==NULL) return NULL;
@@ -1721,6 +1738,8 @@ static int rocksdb_index_commit(kno_index ix,kno_commit_phase phase,
     return 1;}
   case kno_commit_cleanup: {
     return 1;}
+  case kno_commit_flush: {
+    return 1;}
   default: {
     u8_logf(LOG_WARN,"NoPhasedCommit",
 	    "The index %s doesn't support phased commits",
@@ -1809,7 +1828,8 @@ static kno_index rocksdb_index_open(u8_string spec,kno_storage_flags flags,
 
 static void rocksdb_index_close(kno_index ix)
 {
-  struct KNO_ROCKSDB_INDEX *ldbx = (struct KNO_ROCKSDB_INDEX *)ix;
+  struct KNO_ROCKSDB_INDEX *rx = (struct KNO_ROCKSDB_INDEX *)ix;
+  kno_close_rocksdb(rx->rocksdb);
 }
 
 static kno_index rocksdb_index_create(u8_string spec,void *typedata,
@@ -1822,6 +1842,22 @@ static void recycle_rocksdb_index(kno_index ix)
 {
   struct KNO_ROCKSDB_INDEX *db = (kno_rocksdb_index) ix;
   kno_decref((lispval)(db->rocksdb));
+}
+
+static lispval rocksdb_index_ctl(kno_index ix,lispval op,int n,kno_argvec args)
+{
+  if (ix->index_handler != &rocksdb_index_handler)
+    return kno_err("NotRocksDB","rocksdb_index_ctl",ix->indexid,VOID);
+  struct KNO_ROCKSDB_INDEX *rdbindex = (struct KNO_ROCKSDB_INDEX *)ix;
+  if ((n>0)&&(args == NULL))
+    return kno_err("BadIndexOpCall","rocksdb_index_ctl",ix->indexid,VOID);
+  else if (n<0)
+    return kno_err("BadIndexOpCall","rocksdb_index_ctl",ix->indexid,VOID);
+  else if (op == KNOSYM(getdb)) {
+    lispval result = (lispval) (rdbindex->rocksdb);
+    kno_incref(result);
+    return result;}
+  else return kno_default_indexctl(ix,op,n,args);
 }
 
 /* Initializing the index driver */
@@ -1841,7 +1877,7 @@ static struct KNO_INDEX_HANDLER rocksdb_index_handler=
    rocksdb_index_create, /* create */
    NULL, /* walk */
    recycle_rocksdb_index, /* recycle */
-   NULL /* indexctl */
+   rocksdb_index_ctl /* indexctl */
   };
 
 /* Rocksdb pool backends */
@@ -2180,6 +2216,7 @@ static int rocksdb_pool_unlock(kno_pool p,lispval oids)
 static void rocksdb_pool_close(kno_pool p)
 {
   struct KNO_ROCKSDB_POOL *pool = (struct KNO_ROCKSDB_POOL *)p;
+  kno_close_rocksdb(pool->rocksdb);
 }
 
 
@@ -2239,6 +2276,8 @@ static int rocksdb_pool_commit(kno_pool p,kno_commit_phase phase,
   case kno_commit_rollback:
     return 0;
   case kno_commit_cleanup:
+    return 0;
+  case kno_commit_flush:
     return 0;
   default:
     return 0;
@@ -2318,6 +2357,22 @@ static void recycle_rocksdb_pool(kno_pool p)
   kno_decref((lispval)(db->rocksdb));
 }
 
+/* RocksDB pool ctl */
+
+static lispval rocksdb_pool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
+{
+  struct KNO_ROCKSDB_POOL *rdbpool = (struct KNO_ROCKSDB_POOL *)p;
+  if ((n>0)&&(args == NULL))
+    return kno_err("BadPoolOpCall","rocksdb_pool_ctl",p->poolid,VOID);
+  else if (n<0)
+    return kno_err("BadPoolOpCall","rocksdb_pool_ctl",p->poolid,VOID);
+  else if (op == KNOSYM(getdb)) {
+    lispval result = (lispval) rdbpool;
+    kno_incref(result);
+    return result;}
+  else return kno_default_poolctl(p,op,n,args);
+}
+
 /* The Rocksdb pool handler */
 
 static struct KNO_POOL_HANDLER rocksdb_pool_handler=
@@ -2335,7 +2390,7 @@ static struct KNO_POOL_HANDLER rocksdb_pool_handler=
    rocksdb_pool_create, /* create */
    NULL,  /* walk */
    recycle_rocksdb_pool, /* recycle */
-   NULL  /* poolctl */
+   rocksdb_pool_ctl  /* poolctl */
   };
 
 /* Scheme primitives */
@@ -2494,30 +2549,22 @@ KNO_EXPORT int kno_init_rocksdb()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIM("rocksdb/make-pool",make_rocksdb_pool_prim,4,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/use-pool",use_rocksdb_pool_prim,2,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/index/add!",rocksdb_index_add_prim,4,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/index/get",rocksdb_index_get_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/prefix/getn",rocksdb_prefix_getn_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/prefix/get",rocksdb_prefix_get_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/getn",rocksdb_getn_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/drop!",rocksdb_drop_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/put!",rocksdb_put_prim,4,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/get",rocksdb_get_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/reopen",rocksdb_reopen_prim,1,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/close",rocksdb_close_prim,1,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb?",rocksdbp_prim,1,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb/open",rocksdb_open_prim,2,rocksdb_module);
-
+  KNO_LINK_CPRIM("rocksdb/reopen",rocksdb_reopen_prim,1,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb/close",rocksdb_close_prim,1,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/reopen",rocksdb_reopen_prim,1,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/get",rocksdb_get_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/put!",rocksdb_put_prim,4,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/drop!",rocksdb_drop_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/reopen",rocksdb_reopen_prim,1,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/getn",rocksdb_getn_prim,3,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb/prefix/get",rocksdb_prefix_get_prim,3,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb/prefix/getn",rocksdb_prefix_getn_prim,3,rocksdb_module);
-  KNO_LINK_CPRIM("rocksdb/index/get",rocksdb_index_get_prim,3,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/getn",rocksdb_getn_prim,3,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/drop!",rocksdb_drop_prim,3,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/put!",rocksdb_put_prim,4,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/get",rocksdb_get_prim,3,rocksdb_module);
+
+  KNO_LINK_CPRIM("rocksdb/make-pool",make_rocksdb_pool_prim,4,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/use-pool",use_rocksdb_pool_prim,2,rocksdb_module);
+
+  KNO_LINK_CPRIM("rocksdb/open-index",open_rocksdb_index_prim,2,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/make-index",make_rocksdb_index_prim,2,rocksdb_module);
   KNO_LINK_CPRIM("rocksdb/index/add!",rocksdb_index_add_prim,4,rocksdb_module);
+  KNO_LINK_CPRIM("rocksdb/index/get",rocksdb_index_get_prim,3,rocksdb_module);
 }
