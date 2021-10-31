@@ -1295,180 +1295,6 @@ install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
 	for file in docs/man.html/*.html; do \
 	   $(SYSINSTALL) $${file} $(DOCDIR)/html; done
 
-# Packaging targets
-
-rpms: dist/rpms.done
-debian deb debs: dist/debs.done
-debsource: dist/debsource.done
-
-cleandist cleanrpms cleandeb rpmclean debclean: 
-	rm -rf dist/rpms.done dist/rpms.ready
-	rm -f dist/debs.signed dist/debs.built dist/debs.done
-	rm -f dist/*.deb dist/*.tar dist/*.gz dist/*.dsc dist/*.changes dist/*.buildinfo
-	find dist -name "*.rpm" -writable | xargs -r rm
-	rm -rf staging/kno*
-
-debfresh freshdeb:
-	make -s debclean
-	rm -f include/kno/revision.h; make include/kno/revision.h
-	make -s debian
-
-debupdate:
-	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then	\
-	  echo "Debian build of Kno is up to date";		\
-	else make debfresh; fi;
-
-# Creating a source tree for packaging
-
-staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	git archive -o staging/knobase.tar HEAD
-	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
-	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
-	cd src/webmods; git archive -o ../../staging/webmods.tar HEAD;
-	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
-	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
-	cd staging/kno; tar xf ../knobase.tar;
-	cd staging/kno/src/stdmods; tar xf ../../../stdmods.tar;
-	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
-	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
-	cd staging/kno/src/brico; tar xf ../../../brico.tar;
-	cp REVISION FULL_REVISION staging/kno;
-	cd staging; rm -f knobase.tar stdlib.tar brico.tar
-
-dist/kno.tar: staging/kno
-	cd staging; tar -cf ../dist/kno.tar kno;
-	cd dist; ln -s kno.tar source.tar
-	rm -rf staging/kno;
-dist/source.tar: dist/kno.tar
-	cd dist; ln -s kno.tar source.tar
-
-.PRECIOUS: dist/kno.tar
-
-# Creating staging areas from GIT
-
-staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
-	cd staging; cp -r kno/dist/debian kno/debian;
-	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
-	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
-			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
-			< dist/debian/changelog \
-			> staging/kno/debian/changelog;
-	if [ -d staging/kno_@KNO_VERSION@ ]; then rm -rf staging/kno_@KNO_VERSION@; fi
-	cd staging; mv kno kno_@KNO_VERSION@;
-staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
-	cd staging; tar -czf kno_@KNO_VERSION@.tar.gz kno_@KNO_VERSION@
-
-staging/kno-@KNO_VERSION@: REVISION FULL_REVISION staging/kno dist/kno.spec.base
-	cd staging; cp -r kno/dist/debian kno/debian;
-	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
-	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
-			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
-			< dist/debian/changelog \
-			> staging/kno/debian/changelog;
-	if [ -d staging/kno-@KNO_VERSION@ ]; then rm -rf staging/kno-@KNO_VERSION@; fi
-	cd staging; mv kno kno-@KNO_VERSION@;
-staging/kno-@KNO_VERSION@.tar.gz: staging/kno-@KNO_VERSION@
-	cd staging; tar -czf kno-@KNO_VERSION@.tar.gz kno-@KNO_VERSION@
-
-dist/kno.spec.base: dist/kno.spec.base.in
-	config.status
-
-# Rules for Debian building
-
-dist/debs.built: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	@if test ! -f staging/setup.debian.core; then \
-	  echo "Warning: no staging/setup.debian"; fi;
-	make staging/kno_@KNO_VERSION@ &&		\
-	(cd staging/kno_@KNO_VERSION@;			\
-	 dpkg-buildpackage -sa -us -uc -b) &&		\
-	 mv staging/*_@KNO_VERSION@-* dist &&	\
-	 touch dist/debs.built;
-# cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-
-dist/debsource.built: staging/kno_@KNO_VERSION@
-	(cd staging/kno_@KNO_VERSION@;			\
-	 dpkg-buildpackage -sa -us -uc -F) &&		\
-	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/*_@KNO_VERSION@*.* dist &&		\
-	touch dist/debs.built dist/debsource.built;
-
-dist/debs.signed: dist/debs.built
-	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
-	    echo "Skipping GPG signing of debian packages";  \
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
-	 touch dist/debs.signed;
-dist/debsource.signed: dist/debsource.built
-	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
-	    echo "Skipping GPG signing of debian packages";	\
-	  else debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes; fi) && \
-	 touch dist/debs.signed dist/debsource.signed;
-
-dist/debs.done: @DEB_BUILD_TARGET@
-	touch dist/debs.done
-dist/debsource.done: dist/debsource.signed
-	touch dist/debsource.done dist/debs.done
-
-unsigned-debs usdebs:
-	make GPGID=none dist/debs.done
-
-dist/debs.installed: dist/debs.done
-	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
-	   $(SUDO) dpkg -i dist/*.deb ) && \
-	 touch $@
-install-debian install-debs debinstall installdebs: dist/debs.installed
-
-dist/debs.uploaded: dist/debs.done
-	@@U8BIN@u8_dupload dist/kno_@KNO_VERSION@*.changes ${APT_INCOMING} && touch debs.uploaded
-update-apt apt-upload: dist/debs.uploaded
-
-# RPM targets (probably broken)
-
-staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
-	tar -czf staging/kno_@KNO_VERSION@.tar.gz -C staging kno_@KNO_VERSION@
-	cd staging; ln -s kno.tar.gz kno_@KNO_VERSION@.tar.gz
-
-dist/rpms.ready:
-	@make staging/kno-@KNO_VERSION@ staging/kno-@KNO_VERSION@.tar.gz
-	@buildrpm@ $(RPMFLAGS)				\
-	   --define="_rpmdir $(RPMDIR)"			\
-	   --define="_srcrpmdir $(RPMDIR)"		\
-	   --nodeps -ta					\
-	    staging/kno-@KNO_VERSION@.tar.gz &&		\
-	touch dist/rpms.ready
-dist/rpms.done: dist/rpms.ready
-	@if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then	\
-	    sleep 2; touch dist/rpms.done;			\
-	else							\
-	     echo "Enter passphrase for '$(GPGID)':";		\
-	     @rpm@ --addsign --define="_gpg_name $(GPGID)"	\
-		--define="__gpg_sign_cmd $(RPMGPG)"		\
-		$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm		\
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;	\
-	fi && touch dist/rpms.done;
-	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
-
-rpmupdate update-rpms freshrpms: cleanrpms
-	rm -f dist/rpms.done dist/rpms.ready
-	make -s dist/rpms.done
-dist/rpms.zip: dist/rpms.done
-	@rm -f dist/rpms.zip
-	@zip dist/rpms.zip \
-		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
-		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
-
-redhat rpms rpm: dist/rpms.done
-
-unsigned-rpms usrpms:
-	make GPGID=none dist/rpms.done
-
-dist/rpms.installed: dist/rpms.done
-	@( $(SUDO) rpm -Uvh dist/@target_cpu@/kno*@KNO_VERSION@*.rpm ) && \
-	 ( $(SUDO) rpm -Uvh dist/kno-*@KNO_VERSION@*.src.rpm ) && \
-	 touch $@
-install-rpms rpminstall installrpms: dist/rpms.installed
-
-
 # Installation targets
 
 install-status:
@@ -1511,6 +1337,10 @@ $(DESTDIR)@config_dir@/daemons \
 		$(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+$(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@:
+	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
+	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_MAJOR@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libkno@suffix@.a			\
@@ -1585,7 +1415,9 @@ install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshare
 install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
 install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
-install-pqprims: ${CMODULES}/pqprims.@shared_suffix@ ${CMODULES}/pqprims.@vshared_suffix@
+install-postgres: ${CMODULES}/pqprims.@shared_suffix@ ${CMODULES}/pqprims.@vshared_suffix@ \
+	          $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
+	${INSTALL} src/cwrappers/postgres.scm $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
 
 install-cwrappers: @INSTALL_CWRAPPERS@
 
@@ -1653,10 +1485,12 @@ install-libscm.zip: src/libscm.zip $(DESTDIR)@share_dir@/libscm
 	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
 install-libscm.skip: src/libscm.zip
 	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
-	@echo "Skipping libscm install, using runtime ${LIBSCM}"
+	@echo "Skipping libscm install, using runtime specified ${LIBSCM}"
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
-	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
+	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_PATCHVERSION@.zip
+	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_VERSION@.zip
+	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_MAJOR@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 
@@ -1759,74 +1593,6 @@ setup-none:
 
 .PHONY: setup-none setup-osx setup-linux setup-unix setup-allboot setup-logrotate \
 	setup-sysv setup-upstart setup-systemd
-
-# Build setups
-
-staging/setup.debian.core: makefile
-	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
-		sqlite3 libzip-dev libzstd-dev libedit-dev \
-		libarchive-dev libsasl2-dev libsqlite3-dev \
-		dh-make devscripts dpkg-dev dh-systemd dh-elpa \
-		debsigs && \
-	touch $@
-
-staging/setup.debian.malloc: staging/build-setup.debian.core makefile
-	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
-	touch $@
-
-staging/setup.debian: staging/setup.debian.core makefile
-	touch $@
-
-staging/setup.redhat: makefile
-	sudo rpm -Uvh libedit-devel && \
-	touch $@
-
-staging/setup.alpine: makefile
-	sudo apk add alpine-sdk autoconf zlib zlib-dev \
-		     python2 python2-dev python3 python3-dev \
-		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
-		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
-		     zlib zlib-dev zstd zstd-dev && \
-	touch $@
-staging/setup.macports: makefile
-	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
-		unixODBC sqlite3 snappy mongo-c-driver leveldb rocksdb \
-		libarchive libzip zlib zmq-devel hyphen python37 && \
-	touch $@
-
-# Alpine packaging
-
-dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
-	./config.status
-
-staging/alpine:
-	@@INSTALL@ -d $@
-
-staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
-	cp dist/alpine/APKBUILD staging/alpine
-
-staging/alpine/kno_@KNO_VERSION@.tar: dist/kno.tar
-	# Get archives of this and submodule repositories
-	cp dist/kno.tar $@
-
-dist/alpine.setup: dist/alpine/APKBUILD include/kno/revision.h makefile
-	make staging/alpine/kno_@KNO_VERSION@.tar staging/alpine/APKBUILD && \
-	if test ! -d ${APK_ARCH_DIR}; then mkdir -p ${APK_ARCH_DIR}; fi && \
-	(cd staging/alpine; abuild -P ${APKREPO} clean cleancache cleanpkg && abuild checksum ) && \
-	touch $@
-
-ALPINE_PKGS=kno kno-dev kno-doc kno-static
-
-dist/alpine.done: dist/alpine.setup
-	cd staging/alpine; abuild -P ${APKREPO};
-
-dist/alpine.installed:
-	cd staging/alpine; apk add --repository=${APKREPO}/staging ${ALPINE_PKGS}
-
-alpine: dist/alpine.done
-install-alpine: dist/alpine.installed
-
-.PHONY: alpine
 
 # Test targets
 
@@ -2020,6 +1786,256 @@ src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@
 
 lib/kno/pqprims.@shared_suffix@ : MODLIBS=@LIBPQ_LIBS@
 src/cwrappers/pqprims.o : MOD_CFLAGS=@LIBPQ_CFLAGS@
+
+# Build setups
+
+staging/env.debian.core: makefile
+	sudo apt-get install -ym libcurl4-openssl-dev libssl-dev libldns-dev \
+		sqlite3 libzip-dev libzstd-dev libedit-dev \
+		libarchive-dev libsasl2-dev libsqlite3-dev \
+		dh-make devscripts dpkg-dev dh-systemd dh-elpa \
+		debsigs && \
+	touch $@
+
+staging/env.debian.malloc: staging/env.debian.core makefile
+	sudo apt install -ym libgoogle-perftools-dev libjemalloc-dev && \
+	touch $@
+
+staging/env.debian: staging/env.debian.core makefile
+	touch $@
+
+staging/env.redhat: makefile
+	sudo rpm -Uvh libedit-devel && \
+	touch $@
+
+staging/env.alpine: makefile
+	sudo apk add alpine-sdk autoconf zlib zlib-dev \
+		     python2 python2-dev python3 python3-dev \
+		     findutils findutils-doc libffi libffi-dev sqlite sqlite-dev \
+		     snappy snappy-dev gettext gettext-dev libintl libintl-dev \
+		     zlib zlib-dev zstd zstd-dev && \
+	touch $@
+staging/env.macports: makefile
+	sudo port install  curl curl-ca-bundle exif libexif qrencode libpng imagemagick ldns \
+		unixODBC sqlite3 snappy mongo-c-driver leveldb rocksdb \
+		libarchive libzip zlib zmq-devel hyphen python37 && \
+	touch $@
+
+# Packaging targets
+
+rpms: dist/rpms.done
+debian deb debs: dist/debs.done
+debsource: dist/debsource.done
+
+pkgclean: 
+	rm -f dist/*.built dist/*.signed dist/*.done dist/*.ready dist/*.installed
+	rm -rf staging/kno* staging/*.tar staging/*.gz dist/*.tar dist/*.gz
+	rm -f dist/*.deb dist/*.dsc dist/*.changes dist/*.buildinfo
+	find dist -name "*.rpm" -writable | xargs -r rm
+	rm -rf staging/alpine*
+cleandist cleanrpms cleandeb rpmclean debclean alpineclean: pkgclean
+
+.PHONY: pkgclean cleandist cleanrpms cleandeb rpmclean debclean alpineclean
+
+debfresh freshdeb:
+	make -s debclean
+	rm -f include/kno/revision.h; make include/kno/revision.h
+	make -s debian
+
+debupdate:
+	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then	\
+	  echo "Debian build of Kno is up to date";		\
+	else make debfresh; fi;
+
+# Creating a source tree for packaging
+
+staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	git archive -o staging/knobase.tar HEAD
+	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
+	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
+	cd src/webmods; git archive -o ../../staging/webmods.tar HEAD;
+	cd src/brico; git archive -o ../../staging/brico.tar HEAD;
+	if [ ! -d staging/kno ]; then mkdir staging/kno; fi;
+	cd staging/kno; tar xf ../knobase.tar;
+	cd staging/kno/src/stdmods; tar xf ../../../stdmods.tar;
+	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
+	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
+	cd staging/kno/src/brico; tar xf ../../../brico.tar;
+	@U8BIN@u8_gitversion etc/base_version > staging/kno/REVISION
+	@U8BIN@u8_gitversion etc/base_version full > staging/kno/FULL_REVISION
+	cd staging; rm -f knobase.tar stdlib.tar brico.tar
+
+dist/kno.tar: staging/kno
+	cd staging; tar -cf ../dist/kno.tar kno;
+	cd dist; ln -sf kno.tar source.tar
+	rm -rf staging/kno;
+dist/source.tar: dist/kno.tar
+	cd dist; ln -s kno.tar source.tar
+
+.PRECIOUS: dist/kno.tar
+
+# Creating staging areas from GIT
+
+staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
+	cd staging; cp -r kno/dist/debian kno/debian;
+	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
+	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
+			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
+			< dist/debian/changelog \
+			> staging/kno/debian/changelog;
+	cd staging/kno/debian; \
+	  for file in kno-core.dirs kno-postgres.install; do \
+	    u8_xsubst $${file} inplace KNO_VERSION @KNO_VERSION@ KNO_MAJOR @KNO_MAJOR@ KNO_PATCHVERSION @KNO_PATCHVERSION@; done;
+	if [ -d staging/kno_@KNO_VERSION@ ]; then rm -rf staging/kno_@KNO_VERSION@; fi
+	cd staging; mv kno kno_@KNO_VERSION@;
+staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
+	cd staging; tar -czf kno_@KNO_VERSION@.tar.gz kno_@KNO_VERSION@
+
+staging/kno-@KNO_VERSION@: REVISION FULL_REVISION staging/kno dist/kno.spec.base
+	cd staging; cp -r kno/dist/debian kno/debian;
+	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
+	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
+			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
+			< dist/debian/changelog \
+			> staging/kno/debian/changelog;
+	cd staging/kno/debian; \
+	  for file in kno-core.dirs kno-postgres.install; do \
+	    u8_xsubst $${file} inplace KNO_VERSION @KNO_VERSION@ KNO_MAJOR @KNO_MAJOR@  KNO_PATCHVERSION @KNO_PATCHVERSION@; done;
+	if [ -d staging/kno-@KNO_VERSION@ ]; then rm -rf staging/kno-@KNO_VERSION@; fi
+	cd staging; mv kno kno-@KNO_VERSION@;
+staging/kno-@KNO_VERSION@.tar.gz: staging/kno-@KNO_VERSION@
+	cd staging; tar -czf kno-@KNO_VERSION@.tar.gz kno-@KNO_VERSION@
+
+dist/kno.spec.base: dist/kno.spec.base.in
+	config.status
+
+# Rules for Debian building
+
+dist/debian.ready: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+	make staging/kno_@KNO_VERSION@ && touch $@
+
+dist/debian.built: dist/debian.ready
+	(cd staging/kno_@KNO_VERSION@;			\
+	 dpkg-buildpackage -sa -us -uc -F) &&		\
+	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
+	 mv staging/*_@KNO_VERSION@*.* dist &&		\
+	touch $@
+
+dist/debian.signed: dist/debian.built
+	debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes && touch $@
+
+dist/debian.done:
+	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
+	    echo "Skipping GPG signing of debian packages";		\
+	  else make dist/debs.signed; fi) && 				\
+	touch $@
+
+unsigned-debs usdebs:
+	make GPGID=none dist/debian.done
+
+dist/debian.installed: dist/debian.done
+	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
+	   $(SUDO) dpkg -i dist/*.deb ) && \
+	 touch $@
+install-debian install-debs debinstall installdebs: dist/debian.installed
+
+dist/debs.uploaded: dist/debs.done
+	@@U8BIN@u8_dupload dist/kno_@KNO_VERSION@*.changes ${APT_INCOMING} && touch debs.uploaded
+update-apt apt-upload: dist/debs.uploaded
+
+# RPM targets
+
+staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
+	tar -czf staging/kno_@KNO_VERSION@.tar.gz -C staging kno_@KNO_VERSION@
+	cd staging; ln -s kno.tar.gz kno_@KNO_VERSION@.tar.gz
+
+dist/rpms.ready:
+	@make staging/kno-@KNO_VERSION@ staging/kno-@KNO_VERSION@.tar.gz
+
+dist/rpms.built: dist/rpms.ready
+	@buildrpm@ $(RPMFLAGS)				\
+	   --define="_rpmdir $(RPMDIR)"			\
+	   --define="_srcrpmdir $(RPMDIR)"		\
+	   --nodeps -ta					\
+	    staging/kno-@KNO_VERSION@.tar.gz &&		\
+	touch dist/rpms.ready
+
+dist/rpms.signed: dist/rpms.built
+     echo "Enter passphrase for '$(GPGID)':";		\
+     @@rpm@ --addsign --define="_gpg_name $(GPGID)"	\
+	--define="__gpg_sign_cmd $(RPMGPG)"		\
+	$(RPMDIR)/kno-@KNO_VERSION@*.src.rpm		\
+	$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;	&& 	\
+      touch $@
+
+dist/rpms.done: dist/rpms.ready
+	@(if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then	\
+	    echo "Skipping RPM signing";				\
+	  else make dist/rpms.signed; fi) &&				\
+	 touch $@;
+	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
+
+rpmupdate update-rpms freshrpms: cleanrpms
+	rm -f dist/rpms.done dist/rpms.ready
+	make -s dist/rpms.done
+dist/rpms.zip: dist/rpms.done
+	@rm -f dist/rpms.zip
+	@zip dist/rpms.zip \
+		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
+		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
+
+redhat rpms rpm: dist/rpms.done
+
+unsigned-rpms usrpms:
+	make GPGID=none dist/rpms.done
+
+dist/rpms.installed: dist/rpms.done
+	@( $(SUDO) rpm -Uvh dist/@target_cpu@/kno*@KNO_VERSION@*.rpm ) && \
+	 ( $(SUDO) rpm -Uvh dist/kno-*@KNO_VERSION@*.src.rpm ) && \
+	 touch $@
+install-rpms rpminstall installrpms: dist/rpms.installed
+
+# Alpine packaging
+
+ALPINE_PKGS=kno kno-dev kno-doc kno-static
+
+dist/alpine/APKBUILD: dist/alpine/APKBUILD.in
+	./config.status
+
+staging/alpine:
+	@@INSTALL@ -d $@
+
+staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
+	cp dist/alpine/APKBUILD staging/alpine
+
+staging/alpine/kno_@KNO_VERSION@.tar: dist/kno.tar staging/alpine
+	cp dist/kno.tar $@
+
+dist/alpine.ready: dist/alpine/APKBUILD include/kno/revision.h makefile
+        # We use `make` here rather than a dependency because otherwise
+	# the dependent tar might be auto-deleted
+	make staging/alpine/kno_@KNO_VERSION@.tar staging/alpine/APKBUILD && \
+	if test ! -d ${APK_ARCH_DIR}; then mkdir -p ${APK_ARCH_DIR}; fi && \
+	(cd staging/alpine; abuild -P ${APKREPO} clean cleancache cleanpkg && abuild checksum ) && \
+	touch $@
+
+dist/alpine.done: dist/alpine.ready
+	(cd staging/alpine; abuild -P ${APKREPO}) && touch $@
+
+## Unlike debian and rpms, alpine writes into the repository itself, in APK_REPO
+## So we don't call the installer on the package files but from the package manager
+##  directly.
+dist/alpine.installed:
+	cd staging/alpine; \
+	  apk add --force-overwrite \
+	          --repository=${APKREPO}/staging \
+	      ${ALPINE_PKGS}
+
+alpine: dist/alpine.done
+install-alpine: dist/alpine.installed
+
+.PHONY: alpine
 
 ### Depending on the .buildmode
 

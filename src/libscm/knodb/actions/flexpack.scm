@@ -130,7 +130,7 @@
 
 (define (get-index-keycount file)
   (let ((index (open-index file #[register #f cachelevel 1])))
-    (indexctl index 'metadata 'keycount)))
+    (indexctl index 'metadata 'keycount)))`
 
 (define (main (in #f) (head #f)
 	      (tail (config 'tailfile #f)))

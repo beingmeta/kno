@@ -110,7 +110,7 @@ justcode run runtime: cleanlogs
 	  branch=$$(git branch --show-current || echo none); \
 	  echo "Running runtime (non-db) tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
 	make libtests tables
-	make cmodules cwrappers
+	make cmodules
 	make optimize_modules
 	make zipmods
 	make cmdtests
@@ -287,9 +287,9 @@ opts:
 	@${RUN} ${KNOX} opts.scm ${RUNCONF}
 	@${header} "■■■■ Completed opts tests ${RUNCONF}"
 modulefns:
-	@${RUN} ${KNOX} modules.scm ${RUNCONF}
-	@${RUN} ${KNOX} modules.scm LOAD:TRACE=yes ${RUNCONF}
-	@${header} "■■■■ Completed module tests ${RUNCONF}"
+	@${RUN} ${KNOX} modulefns.scm ${RUNCONF}
+	@${RUN} ${KNOX} modulefns.scm LOAD:TRACE=yes ${RUNCONF}
+	@${header} "■■■■ Completed module function tests ${RUNCONF}"
 compounds:
 	@${RUN} ${KNOX} compounds.scm ${RUNCONF}
 	@${header} "■■■■ Completed compound object tests ${RUNCONF}"

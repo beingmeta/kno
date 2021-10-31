@@ -386,7 +386,7 @@ static kno_lexenv become_module(kno_lexenv env,kno_stack _stack,
     kno_store(env->env_exports,KNOSYM_MODULEID,module_spec);
     kno_register_module(SYM_NAME(module_spec),(lispval)env,0);}
   else {
-    kno_seterr(kno_NotAModule,"use_module",
+    kno_seterr(kno_NotAModule,"become_module(in-module)",
 	       KNO_GETSTRING(module_spec),module_spec);
     env = NULL;}
   kno_decref(module);
@@ -534,6 +534,7 @@ static int uses_bindings(kno_lexenv env,lispval bindings)
   return 0;
 }
 
+#if 0
 static lispval use_module_helper(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval module_names = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
@@ -587,6 +588,72 @@ static lispval use_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   return use_module_helper(expr,env,_stack);
 }
+#endif
+
+#if 1
+static lispval use_module_helper(lispval module_specs,kno_lexenv modify_env)
+{
+  DO_CHOICES(module_spec,module_specs) {
+    if (KNO_VECTORP(module_spec)) {
+      int i = 0, len = KNO_VECTOR_LENGTH(module_spec);
+      while (i<len) {
+	lispval modname = KNO_VECTOR_REF(module_spec,i);
+	lispval result = use_module_helper(modname,modify_env);
+	if (KNO_ABORTED(result)) return result;
+	else i++;}
+      return KNO_VOID;}
+    else {
+      lispval module =
+	(KNO_HASHTABLEP(module_spec)) ? (kno_incref(module_spec)) :
+	(KNO_LEXENVP(module_spec)) ? (kno_incref(module_spec)) :
+	(kno_find_module(module_spec,1));
+      if ( (KNO_ABORTED(module)) || (VOIDP(module)) ) {
+	KNO_STOP_DO_CHOICES;
+	if (VOIDP(module))
+	  return kno_err(kno_NoSuchModule,"USE-MODULE",NULL,module_spec);
+	else return module;}
+      else if (HASHTABLEP(module)) {
+	if (!(uses_bindings(modify_env,module))) {
+	  kno_lexenv old_parent;
+	  /* Use a dynamic copy if the enviroment is static, so it
+	     gets freed. */
+	  old_parent = modify_env->env_parent;
+	  modify_env->env_parent = kno_make_export_env(module,old_parent);
+	  /* We decref this because 'env' is no longer pointing to it
+	     and kno_make_export_env incref'd it again. */
+	  if (old_parent) kno_decref((lispval)(old_parent));}}
+      else {
+	kno_lexenv expenv=
+	  kno_consptr(kno_lexenv,module,kno_lexenv_type);
+	lispval expval = (lispval)kno_get_exports(expenv);
+	if (!(uses_bindings(modify_env,expval))) {
+	  kno_lexenv old_parent = modify_env->env_parent;
+	  modify_env->env_parent = kno_make_export_env(expval,old_parent);
+	  /* We decref this because 'env' is no longer pointing to it
+	     and kno_make_export_env incref'd it again. */
+	  if (old_parent) kno_decref((lispval)(old_parent));}}
+      kno_decref(module);}
+  }
+  return KNO_VOID;
+}
+
+DEFC_EVALFN("use-module",use_module_evalfn,KNO_EVALFN_DEFAULTS,
+	    "`(use-module *modnames*)` imports bindings exported "
+	    "from *modnames* into the current environment.");
+static lispval use_module_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
+{
+  int static_envp = (env->env_copy != env);
+  lispval module_specs = kno_eval_arg(kno_get_arg(expr,1),env,_stack);
+  if (KNO_ABORTED(module_specs)) return module_specs;
+  kno_lexenv dynamic_env = (static_envp) ? (kno_copy_env(env)) : (env);
+  lispval result = use_module_helper(module_specs,dynamic_env);
+  if ( (static_envp) && (!(KNO_ABORTED(result)) ) ) {
+    kno_decref((lispval)dynamic_env);
+    env->env_copy = NULL;}
+  kno_decref(module_specs);
+  return result;
+}
+#endif
 
 static lispval export_alias_helper(lispval expr,kno_lexenv env,kno_stack _stack)
 {

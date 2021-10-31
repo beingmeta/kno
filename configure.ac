@@ -106,7 +106,6 @@ else
 fi;
 
 VERSION=$KNO_VERSION
-DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
@@ -349,7 +348,6 @@ AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_BRANCH)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(KNO_PATCHVERSION)
-AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(LIBSOURCE)
 AC_SUBST(SHAREDEXE)
 AC_SUBST(STATICEXE)
@@ -568,11 +566,6 @@ if test "$enable_stripping" != "no"; then
    SHAREDEXE=exe/stripped
    STATICEXE=static/stripped
 fi
-
-AC_ARG_ENABLE(debsign,--dis[en]able-debian package signing,,enable_debsign="yes")
-if test "$enable_debsign" == "no"; then
-   DEB_BUILD_TARGET=dist/debs.built;
-fi;
 
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")
 if test -d $with_optdir/include; then
@@ -1400,7 +1393,7 @@ fi;
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip,${share_dir}/stdlib/${KNO_VERSION}/,${share_dir}/stdlib/${KNO_MAJOR}/";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -1442,12 +1435,16 @@ AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(KNO_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
-  AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
+   AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
+   default_knobindir=$prefix/bin;
 else
   AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/knox")
-  AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
+  default_knobin=$exec_prefix;
 fi
+
+AC_ARG_WITH(knobindir,--with-knobindir location to find KNO executables,,with_knobindir=$default_knobindir)
+
+AC_DEFINE_UNQUOTED(KNO_BINDIR,"$with_knobindir")
 
 ### Dynamic library load paths
 
@@ -2001,7 +1998,7 @@ else auto_disabled="leveldb ${auto_disabled}";
 fi;   
 
 LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lmariadb
+LIBPQ_LIBS=-lpq
 AC_SUBST(LIBPQ_CFLAGS)
 AC_SUBST(LIBPQ_LIBS)
 
@@ -2020,7 +2017,7 @@ fi;
 if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
    CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
    TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-pqprims ${INSTALL_CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
 else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;   
 

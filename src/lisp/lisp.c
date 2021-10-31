@@ -37,6 +37,8 @@ int kno_major_version = KNO_MAJOR_VERSION;
 int kno_minor_version = KNO_MINOR_VERSION;
 int kno_release_version = KNO_RELEASE_VERSION;
 
+u8_string kno_sysroot = NULL;
+
 KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
 KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
@@ -62,6 +64,13 @@ u8_condition kno_ThreadInterrupted=_("Thread interrupted");
 
 KNO_EXPORT int kno_always_true(lispval x) { return 1; }
 KNO_EXPORT int kno_always_false(lispval x) { return 0; }
+
+KNO_EXPORT u8_string kno_syspath(u8_string input)
+{
+  if (kno_sysroot)
+    return u8_string_subst(input,"${KNO_ROOT}",kno_sysroot);
+  else return u8_strdup(input);
+}
 
 /* External functional versions of common macros */
 

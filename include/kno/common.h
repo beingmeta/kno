@@ -115,6 +115,10 @@ typedef int (*kno_lisp_predicate)(lispval x);
 #include <string.h>
 #include <limits.h>
 
+U8_EXPORT u8_string kno_sysroot;
+U8_EXPORT u8_string kno_syspath(u8_string input);
+
+
 #ifndef KNO_INLINE_FCN
 #if KNO_AVOID_INLINE
 #define KNO_INLINE_FCN static U8_MAYBE_UNUSED

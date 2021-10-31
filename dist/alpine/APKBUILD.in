@@ -1,21 +1,21 @@
 # Contributor: beingmeta repository manager <repoman@beingmeta.com>
 # Maintainer: beingmeta repository manager <repoman@beingmeta.com>
 pkgname=kno
-pkgver=@KNO_MAJOR@.@KNO_MINOR@.@KNO_RELEASE@
+pkgver=@KNO_MAJOR@.@KNO_MINOR@
 pkgrel=@KNO_PATCHLEVEL@
 pkgdesc="Library and applications for symbolic computing at scale"
 url="https://kno.so/"
 arch="all"
 license="GPLV3"
 depends="libu8 libressl ldns libcurl libarchive snappy libuuid"
-makedepends="ldns-dev libressl-dev libuuid libc-dev alpine-sdk snappy-dev curl-dev libarchive-dev zstd-dev"
+makedepends="ldns-dev libressl-dev libuuid libc-dev alpine-sdk snappy-dev curl-dev libarchive-dev zstd-dev libu8-dev"
 install=""
 #subpackages=""
 subpackages="$pkgname-dev $pkgname-doc $pkgname-static"
 depends_dev="$pkgname"
 depends_doc="$pkgname"
 depends_static="$pkgname $pkgname-dev"
-source="kno-@KNO_VERSION@.tar"
+source="kno_@KNO_VERSION@.tar"
 builddir="${srcdir}/kno"
 
 build() {

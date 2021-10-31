@@ -630,7 +630,7 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
   lispval add_paths=KNO_EMPTY_LIST;
   DO_CHOICES(val,vals) {
     if (STRINGP(val)) {
-      u8_string pathstring = CSTRING(val);
+      u8_string pathstring = kno_syspath(CSTRING(val));
       if (strchr(pathstring,'%')) {
 	/* This is especially interpreted by u8_find_file */
 	add_paths = kno_init_pair(NULL,kno_incref(val),add_paths);}
@@ -653,6 +653,7 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 		u8_free(combined);}
 	      else if (KNO_ABORTED(path_elt)) {
 		kno_decref(add_paths);
+		u8_free(pathstring);
 		return path_elt;}
 	      else NO_ELSE;
 	      kno_decref(path_elt);}
@@ -662,9 +663,11 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
 		add_paths = kno_init_pair(NULL,path_elt,add_paths);
 	      else if (KNO_ABORTED(path_elt)) {
 		kno_decref(add_paths);
+		u8_free(pathstring);
 		return path_elt;}}}
 	  if (sep) scan=sep+1;
-	  else scan=NULL;}}}
+	  else scan=NULL;}}
+      u8_free(pathstring);}
     else if (check_loadpaths) {
       kno_seterr("BadLoadPathValue","loadpath_config_set",NULL,val);
       kno_decref(add_paths);
@@ -742,14 +745,12 @@ static lispval dloadpath = NIL;
 
 static void init_dloadpath()
 {
-  u8_string tmp = u8_getenv("KNO_INIT_DLOADPATH"); lispval strval;
-  if (tmp == NULL)
-    strval = kno_mkstring(KNO_DEFAULT_DLOADPATH);
-  else strval = kno_wrapstring(tmp);
+  u8_string tmp = u8_getenv("KNO_INIT_DLOADPATH");
+  if (tmp==NULL) tmp=u8_strdup(KNO_DEFAULT_DLOADPATH);
+  lispval strval = kno_wrapstring(kno_syspath(tmp)); u8_free(tmp);
   dloadpath = kno_init_pair(NULL,strval,dloadpath);
-  if ((tmp)||(trace_dload)||(getenv("KNO_DLOAD:TRACE")))
-    u8_log(LOG_INFO,"DynamicLoadPath","Initialized to %q",
-	   dloadpath);
+  if ((trace_dload)||(getenv("KNO_DLOAD:TRACE")))
+    u8_log(LOG_INFO,"DynamicLoadPath","Initialized to %q",dloadpath);
 }
 
 static int load_dynamic_module(lispval spec,void *data)
@@ -828,12 +829,27 @@ static lispval dynamic_load_prim(lispval arg,lispval err)
 KNO_EXPORT
 lispval kno_find_module(lispval spec,int err)
 {
-  u8_string modname = (SYMBOLP(spec)) ? (SYM_NAME(spec)) :
-    (STRINGP(spec)) ? (CSTRING(spec)) : (NULL);
+  if (KNO_PAIRP(spec)) {
+    lispval scan = spec; while (PAIRP(scan)) {
+      lispval probe = KNO_CAR(scan);
+      lispval module = kno_find_module(probe,0);
+      if (!(KNO_VOIDP(module)))
+	return module;
+      else scan = KNO_CDR(scan);}
+    if (err)
+      return kno_err(MissingModule,"kno_find_module",NULL,spec);
+    else return KNO_FALSE;}
 
+  /* Check if the module is known and registered to be used */
   lispval module = kno_get_module(spec);
+
+  /* If the module isn't registered, we try to get the lock for loading it
+     using `get_module_load_lock` which returns VOID if it succeeds or
+     the desired module object which is being loaded and hasn't been registered
+     yet. */
   if (VOIDP(module)) module = get_module_load_lock(spec);
   if (!(VOIDP(module))) {
+    /* Wait for the module to be fully loaded before returning it */
     lispval loadstamp = kno_get(module,loadstamp_symbol,VOID);
     while (VOIDP(loadstamp)) {
       u8_lock_mutex(&module_wait_lock);
@@ -849,6 +865,8 @@ lispval kno_find_module(lispval spec,int err)
     if (! ((SYMBOLP(spec)) || (STRINGP(spec))) ) {
       clear_module_load_lock(spec);
       return kno_type_error(_("module name"),"kno_find_module",spec);}
+    u8_string modname = (SYMBOLP(spec)) ? (SYM_NAME(spec)) :
+      (STRINGP(spec)) ? (CSTRING(spec)) : (NULL);
     struct MODULE_LOADER *scan = module_loaders;
     while (scan) {
       int retval = scan->loader(spec,scan->data);
@@ -883,12 +901,11 @@ KNO_EXPORT int kno_load_module(u8_string modname)
 
 /* Checking a module path */
 
-static u8_string check_module_dir(u8_string dir)
+static u8_string check_module_dir(u8_string dir_arg)
 {
-  u8_string use_path = NULL;
-  if (dir == NULL)
-    return NULL;
-  else if (u8_has_suffix(dir,"/",0))
+  if (dir_arg == NULL) return NULL;
+  u8_string use_path = NULL, dir = kno_syspath(dir_arg);
+  if (u8_has_suffix(dir,"/",0))
     use_path=u8_strdup(dir);
   else if (u8_has_prefix(dir,"zip:",0))
     use_path=u8_strdup(dir);
@@ -899,10 +916,14 @@ static u8_string check_module_dir(u8_string dir)
        (u8_file_existsp(use_path+4)) :
        (u8_has_suffix(use_path,".zip",0) ) ?
        (u8_file_existsp(use_path)) :
-       (u8_directoryp(use_path)) )
-    return use_path;
+       (u8_directoryp(use_path)) ) {
+    u8_free(dir);
+    return use_path;}
   else {
+    u8_log(LOGCRIT,"CHeckModuleDir","dir_arg=%s, dir=%s, use_path=%s",
+	   dir_arg,dir,use_path);
     u8_free(use_path);
+    u8_free(dir);
     return NULL;}
 }
 
@@ -932,8 +953,8 @@ KNO_EXPORT void kno_init_loadmods_c()
 
   /* Setup load paths */
   {u8_string path = u8_getenv("KNO_INIT_LOADPATH");
-    lispval v = ((path) ? (kno_wrapstring(path)) :
-		 (kno_mkstring(KNO_DEFAULT_LOADPATH)));
+    if (path==NULL) path = u8_strdup(KNO_DEFAULT_LOADPATH);
+    lispval v = kno_wrapstring(path);
     loadpath_config_set(kno_intern("loadpath"),v,&loadpath);
     kno_decref(v);}
 

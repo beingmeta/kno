@@ -749,7 +749,6 @@ VERSION
 STATICEXE
 SHAREDEXE
 LIBSOURCE
-DEB_BUILD_TARGET
 KNO_PATCHVERSION
 KNO_PATCHLEVEL
 KNO_BRANCH
@@ -924,7 +923,6 @@ with_optlib
 with_sourcedir
 with_extra_sources
 enable_stripping
-enable_debsign
 with_optdir
 with_extlib
 with_rpath
@@ -974,6 +972,7 @@ with_libscm
 with_stdlibs
 with_module_path
 with_boot_config
+with_knobindir
 with_dload_path
 enable_shared
 enable_maintainer_mode
@@ -1634,7 +1633,6 @@ Optional Features:
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
 --enable-stripping strip libraries and executables before installing
---disenable-debian package signing
 --en/disable-cprofiling compile to support profiling and coverage tools
   --enable-gcov           enable coverage testing with gcov
 --en/disable-ipeval Enable IPEVAL
@@ -1713,6 +1711,7 @@ Optional Packages:
 --with-stdlibs location
 --with-module-path location
 --with-boot-config configstring
+--with-knobindir location to find KNO executables
 --with-dload-path location
 --with/out-i18n built and install message catalogs
 --with/out-mmap build without using mmap
@@ -4291,7 +4290,6 @@ else
 fi;
 
 VERSION=$KNO_VERSION
-DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
@@ -4495,7 +4493,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
 
 
 
@@ -6623,17 +6620,6 @@ if test "$enable_stripping" != "no"; then
    SHAREDEXE=exe/stripped
    STATICEXE=static/stripped
 fi
-
-# Check whether --enable-debsign was given.
-if test "${enable_debsign+set}" = set; then :
-  enableval=$enable_debsign;
-else
-  enable_debsign="yes"
-fi
-
-if test "$enable_debsign" == "no"; then
-   DEB_BUILD_TARGET=dist/debs.built;
-fi;
 
 
 # Check whether --with-optdir was given.
@@ -10701,7 +10687,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip,${share_dir}/stdlib/${KNO_VERSION}/,${share_dir}/stdlib/${KNO_MAJOR}/";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -10775,24 +10761,32 @@ _ACEOF
 
 
 if test $exec_prefix = "NONE"; then
-  cat >>confdefs.h <<_ACEOF
+   cat >>confdefs.h <<_ACEOF
 #define KNO_EXEC "$prefix/bin/knox"
 _ACEOF
 
-  cat >>confdefs.h <<_ACEOF
-#define KNO_DBSERVER "$prefix/bin/knod"
-_ACEOF
-
+   default_knobindir=$prefix/bin;
 else
   cat >>confdefs.h <<_ACEOF
 #define KNO_EXEC "$exec_prefix/bin/knox"
 _ACEOF
 
-  cat >>confdefs.h <<_ACEOF
-#define KNO_DBSERVER "$prefix/bin/knod"
+  default_knobin=$exec_prefix;
+fi
+
+
+# Check whether --with-knobindir was given.
+if test "${with_knobindir+set}" = set; then :
+  withval=$with_knobindir;
+else
+  with_knobindir=$default_knobindir
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_BINDIR "$with_knobindir"
 _ACEOF
 
-fi
 
 ### Dynamic library load paths
 
@@ -14124,7 +14118,7 @@ else auto_disabled="leveldb ${auto_disabled}";
 fi;
 
 LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lmariadb
+LIBPQ_LIBS=-lpq
 
 
 
@@ -14143,7 +14137,7 @@ fi;
 if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
    CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
    TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-pqprims ${INSTALL_CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
 else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;
 

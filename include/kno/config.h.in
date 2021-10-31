@@ -413,8 +413,8 @@
 /* This is where the kno exectuable will be installed */
 #undef KNO_EXEC
 
-/* This is where the knod executable will be installed */
-#undef KNO_DBSERVER
+/* This is where the kno exectuable will be installed */
+#undef KNO_BINDIR
 
 /* Whether we're being built with the GNU profiling tools */
 #undef KNO_WITH_PROFILING
