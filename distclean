@@ -30,7 +30,7 @@ for pat in *.gcda *.gcno *.gcov *.bb *.bbg *.da gmon.out *.heap; do
     find -name ${pat} -writable -exec rm '{}' \; ;
 done;
 
-rm -f config.log config.status buildmode;
+rm -f config.log config.status buildmode states/*;
 
 rm -rf etc/*.o etc/.libs;
 rm -f lib/*.a lib/*@suffix@.so* lib/*.dylib;

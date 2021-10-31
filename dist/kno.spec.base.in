@@ -9,8 +9,8 @@ URL:            http://www.beingmeta.com/
 Source0:        kno-@VERSION@.tar.gz
 BuildRoot:      %{_tmppath}/%{name}-%{version}-%{release}-root-%(%{__id_u} -n)
 
-BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel libarchive-devel rocksdb-devel leveldb-devel unixODBC-devel mariadb-connector-c-devel
-Requires:       libu8 >= 3.0 curl >= 7.15.1 libarchive >= 3.5 ldns csnappy libffi libzstd
+BuildRequires:  libu8-devel curl-devel libldns-devel libffi-devel jemalloc-devel csnappy-devel libzstd-devel python3-devel libarchive-devel rocksdb-devel leveldb-devel unixODBC-devel mariadb-connector-c-devel libpq-devel
+Requires:       libu8 >= 3.1 curl >= 7.15.1 libarchive >= 3.5 ldns csnappy libffi libzstd
 
 %description
 Kno is a distributed knowledge base and application environment.
@@ -70,6 +70,15 @@ Requires:       %{name} = %{version}-%{release} mariadb
 The %{name}-mariadb package provides SQLDB drivers
 from KNO for mariadb
 
+%package        postgres
+Summary:        KNO SQL drivers for postgres
+Group:          Development/Libraries
+Requires:       %{name} = %{version}-%{release} libpq-devel
+
+%description    postgres
+The %{name}-postgres package provides SQLDB drivers
+from KNO for postgres
+
 %package        odbc
 Summary:        KNO SQL drivers for odcbc
 Group:          Development/Libraries
@@ -123,7 +132,12 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) %{_datadir}/kno/gdbinit
 %attr(-,root,adm) %{_datadir}/kno/makefile.include
 %attr(-,root,adm) %{_datadir}/kno/libscm/kno-*.zip
-%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-*.zip
+%attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_MAJOR@
+%attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_VERSION@
+%attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_PATCHVERSION@
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_MAJOR@.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_VERSION@.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_PATCHVERSION@.zip
 %attr(-,root,adm) %{_datadir}/kno/modules/local
 %attr(-,root,adm) %{_datadir}/kno/modules/installed
 %attr(-,root,adm) %{_datadir}/locale/es/LC_MESSAGES/kno.mo
@@ -147,7 +161,7 @@ rm -rf $RPM_BUILD_ROOT
 %files python
 %{_libdir}/kno/parseltongue.so
 %{_libdir}/kno/parseltongue.so.@KNO_MAJOR@
-%{_libdir}/kno/parseltongue.so.@KNO_MAJOR@.@KNO_MINOR@
+%{_libdir}/kno/parseltongue.so.@KNO_VERSION@
 
 %files devel
 %defattr(-,root,root,-)
@@ -184,3 +198,8 @@ rm -rf $RPM_BUILD_ROOT
 %{_libdir}/kno/odbc.so.@KNO_MAJOR@
 %{_libdir}/kno/odbc.so.@KNO_MAJOR@.@KNO_MINOR@
 
+%files postgres
+%{_libdir}/kno/pqprims.so
+%{_libdir}/kno/pqprims.so.@KNO_MAJOR@
+%{_libdir}/kno/pqprims.so.@KNO_MAJOR@.@KNO_MINOR@
+%{_datadir}/kno/libscm/kno-@KNO_PATCHVERSION@/postgres.scm

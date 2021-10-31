@@ -431,6 +431,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
   (default! fillthresh (try (get loop-state 'fillthresh) (quotient (fifo-size fifo) 2)))
   (when (and fillfn (not (test loop-state '{stopping stopped})) 
 	     (<= (fifo/load fifo) fillthresh)
+	     (not (fifo-readonly? fifo))
 	     (fill/start! loop-state))
     (engine/fill! fifo fillfn loop-state))
   (tryif (and (not (test loop-state '{stopped done}))
@@ -1457,13 +1458,20 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 ;;;; Stopping engines
 
 (define (engine/stop! loop-state (reason #f) (graceful #t))
+  (local fifo (get loop-state 'fifo))
   (unless (test loop-state 'stopval)
     (store! loop-state 'stopval reason)
     (store! loop-state 
 	(if graceful 'stopping 'stopped)
       (timestamp)))
-  (if graceful
-      (fifo/readonly! (get loop-state 'fifo))
-      (fifo/close! (get loop-state 'fifo))))
-
-
+  (cond ((not (fifo-live? fifo)))
+	(graceful
+	 (unless (fifo-readonly? fifo)
+	   (logwarn |Engine/Shutdown|
+	     "Declaring fifo read-only:" fifo)
+	   (fifo/readonly! fifo)))
+	(else
+	 (logcrit |Engine/Shutdown|
+	   "Abruptly closing (removing queued items from) the fifo:"
+	   fifo)
+	 (fifo/close! fifo))))

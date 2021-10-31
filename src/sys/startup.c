@@ -18,6 +18,7 @@
 #include <libu8/u8filefns.h>
 #include <libu8/u8printf.h>
 #include <libu8/u8logging.h>
+#include <libu8/u8status.h>
 
 #include <signal.h>
 #include <sys/types.h>
@@ -39,7 +40,6 @@
 #if HAVE_SYS_TIME_H
 #include <sys/time.h>
 #endif
-
 
 #if HAVE_UNISTD_H
 #include <unistd.h>
@@ -526,6 +526,16 @@ static int config_setsessionid(lispval var,lispval val,void *data)
     u8_identify_session(CSTRING(val));
     return 1;}
   else return -1;
+}
+
+static int config_set_status(lispval var,lispval val,void *data)
+{
+  if (STRINGP(val)) {
+    u8run_set_status(CSTRING(val));
+    return 1;}
+  else {
+    kno_seterr("NotAString","config_set_status",NULL,val);
+    return -1;}
 }
 
 static lispval config_getutf8warn(lispval var,void *data)
@@ -1086,6 +1096,8 @@ void kno_init_startup_c()
 
   kno_register_config("APPID",_("application ID used in messages and SESSIONID"),
                       config_getappid,config_setappid,NULL);
+  kno_register_config("RUNSTATUS",_("saved run status when configured"),
+                      kno_sconfig_get,config_set_status,&u8run_status);
 
   kno_register_config("CMDARGS",
                       _("the command line arguments as a string, with arguments "
@@ -1219,11 +1231,16 @@ void kno_init_startup_c()
 #endif
 
   if (!(kno_rundir)) {
-    if ( (u8_directoryp(KNO_RUN_DIR)) &&
-	 (u8_file_writablep(KNO_RUN_DIR)) )
-      kno_rundir = u8_strdup(KNO_RUN_DIR);
+    u8_string use_rundir = kno_syspath(KNO_RUN_DIR);
+    if ( (u8_directoryp(use_rundir)) &&
+	 (u8_file_writablep(use_rundir)) )
+      kno_rundir = use_rundir;
     else {
-      u8_string use_rundir = u8_getenv("USE_RUNDIR");
+      u8_free(use_rundir);
+      use_rundir = u8_getenv("USE_RUNDIR");
+      if (use_rundir) {
+	u8_string tmp = kno_syspath(use_rundir);
+	u8_free(use_rundir); use_rundir=tmp;}
       if ( (use_rundir) &&
 	   (u8_directoryp(use_rundir)) &&
 	   (u8_file_writablep(use_rundir)) )
@@ -1260,11 +1277,17 @@ void kno_init_startup_c()
 		      kno_sconfig_get,kno_sconfig_set,&kno_rundir);
 
   if (!(kno_logdir)) {
-    if ( (u8_directoryp(KNO_LOG_DIR)) &&
-	 (u8_file_writablep(KNO_LOG_DIR)) )
-      kno_logdir = u8_strdup(KNO_LOG_DIR);
+    u8_string use_logdir = kno_syspath(KNO_LOG_DIR);
+    if ( (u8_directoryp(use_logdir)) &&
+	 (u8_file_writablep(use_logdir)) )
+      kno_logdir = use_logdir;
     else {
-      u8_string use_logdir = u8_getenv("USE_LOGDIR");
+      u8_free(use_logdir);
+      use_logdir = u8_getenv("USE_LOGDIR");
+      if (use_logdir) {
+	u8_string tmp = kno_syspath(use_logdir);
+	u8_free(use_logdir);
+	use_logdir=tmp;}
       if ( (use_logdir) &&
 	   (u8_directoryp(use_logdir)) &&
 	   (u8_file_writablep(use_logdir)) )
@@ -1284,11 +1307,11 @@ void kno_init_startup_c()
   kno_register_config("LOGDIR",_("Root Kno logging directories"),
 		      kno_sconfig_get,kno_sconfig_set,&kno_logdir);
 
-  if (!(kno_sharedir)) kno_sharedir = u8_strdup(KNO_SHARE_DIR);
+  if (!(kno_sharedir)) kno_sharedir = kno_syspath(KNO_SHARE_DIR);
   kno_register_config("SHAREDIR",_("Shared config/data directory for Kno"),
                       kno_sconfig_get,kno_sconfig_set,&kno_sharedir);
 
-  if (!(kno_datadir)) kno_datadir = u8_strdup(KNO_DATA_DIR);
+  if (!(kno_datadir)) kno_datadir = kno_syspath(KNO_DATA_DIR);
   kno_register_config("DATADIR",_("Data directory for Kno"),
 		      kno_sconfig_get,kno_sconfig_set,&kno_datadir);
   

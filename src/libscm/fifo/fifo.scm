@@ -102,7 +102,7 @@
   (items #f)     ;; a hashset of items waiting in the queue, if nodups is set
   (grow #f)
   (maxlen #f)    ;; The max length to which the fifo will grow
-  (readonly? #f)  ;; a function or (function . more-args) to call when the queue is empty
+  (readonly? #f) ;; whether the FIFO is readonly
   (live? #t)     ;; Whether the FIFO is active (callers should wait)
   (pause #f)     ;; Whether the FIFO is paused (value is #f, READ, WRITE, READWRITE, or CLOSING)
   (waiting {})   ;; The threads waiting on the FIFO.
@@ -502,6 +502,7 @@
 	  (set-fifo-start! fifo 0)
 	  (set-fifo-end! fifo 0)
 	  (set-fifo-live?! fifo #f)
+	  (set-fifo-readonly?! fifo 'closed)
 	  result))
     (begin
       (condvar/signal condvar #t)

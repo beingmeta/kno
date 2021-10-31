@@ -108,9 +108,19 @@
 (define (main (in #f) (out))
   (default! out in)
   (when (overlaps? out '{"inplace" "-"}) (set! out in))
-  (when (config 'optimized #t) (optimize*! 'knodb/actions/packindex))
-  (config! 'dbloglevel (-1+ %loglevel))
-  (packindex in out))
+  (cond ((not in) (usage))
+	((not (file-exists? in))
+	 (logwarn |MissingFile| "The file " (write in) " does not exist.")
+	 (usage))
+	((and (equal? in out) (config 'SKIPSUFFIX)
+	      (file-exists? (glom in (config 'SKIPSUFFIX))))
+	 (logwarn |Skipping|
+	   "Skipping packindex for " in " because we found " 
+	   (glom in (config 'SKIPSUFFIX))))
+	(else
+	 (when (config 'optimized #t) (optimize*! 'knodb/actions/packindex))
+	 (config! 'dbloglevel (-1+ %loglevel))
+	 (packindex in out))))
 
 (define configs-done #f)
 

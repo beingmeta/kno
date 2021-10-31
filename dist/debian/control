@@ -2,7 +2,7 @@ Source: kno
 Section: Libraries
 Priority: optional
 Maintainer: Kenneth Benefiel Haase <kh@beingmeta.com>
-Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd | debhelper, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn, librocksdb-dev, libleveldb-dev, libmariadb-dev, unixodbc-dev
+Build-Depends: debhelper (>= 8.0.0), autotools-dev, equivs, dh-systemd | debhelper, dh-elpa, debsigs, devscripts, libffi-dev, libsnappy-dev, libzstd-dev, sqlite3, libcurl4-openssl-dev, libarchive-dev, libzip-dev, libu8-dev (>= 3.1), python2-dev | python-dev, libpython2.7-dev, python3-dev, libpython3-dev, libedit-dev, libsasl2-dev, libldns-dev, libsqlite3-dev, ronn | ruby-ronn, librocksdb-dev, libleveldb-dev, libmariadb-dev, unixodbc-dev, libpq-dev
 Standards-Version: 3.9.4
 Homepage: http://www.kno.dev/
 
@@ -24,7 +24,7 @@ Description: Scalable knowledge base development and application platform
 Package: kno-core
 Architecture: any
 Suggests: kno-docs
-Depends: ${misc:Depends}, libu8 (>= 3), libzip5 | libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libedit2, adduser, libldns4 | libldns3 | libldns2 | libldns1
+Depends: ${misc:Depends}, libu8 (>= 3.1), libzip5 | libzip4 | libzip2, libarchive13, libsnappy1v5, libzstd1, libssl1.1 | libssl1.0 | libssl1.0.0, libcurl4 | libcurl3, libedit2, adduser, libldns4 | libldns3 | libldns2 | libldns1
 Description: This package provides the core libraries, executables, and 
   configuration files for Kno applications
 # Depends: libjemalloc3 | libjemalloc2 | libjemalloc1
@@ -112,7 +112,7 @@ Description: This package contains the debugging symbols for kno-odbc
 
 Package: kno-mariadb
 Architecture: any
-Depends: kno-core (= ${binary:Version}), mariadb | mariadb3 | libmariadb
+Depends: kno-core (= ${binary:Version}), libmariadb | libmariadb-dev | libmariadb3
 Description: Mariadb bindings for Kno
 
 Package: kno-mariadb-dbg
@@ -123,6 +123,20 @@ Depends:
     kno-mariadb (= ${binary:Version}),
     ${misc:Depends}
 Description: This package contains the debugging symbols for kno-mariadb
+
+Package: kno-postgres
+Architecture: any
+Depends: kno-core (= ${binary:Version}), libpq5
+Description: Postgres bindings for Kno
+
+Package: kno-postgres-dbg
+Architecture: any
+Section: debug
+Depends: 
+    kno-core-dbg (= ${binary:Version}),
+    kno-postgres (= ${binary:Version}),
+    ${misc:Depends}
+Description: This package contains the debugging symbols for kno-postgres
 
 Package: kno-parseltongue
 Architecture: any

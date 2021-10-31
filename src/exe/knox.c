@@ -28,6 +28,7 @@
 #include <libu8/u8fileio.h>
 #include <libu8/u8stdio.h>
 #include <libu8/u8printf.h>
+#include <libu8/u8status.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -496,6 +497,7 @@ int run(int argc,char **argv,lispval *args,size_t n_args)
     else if (KNO_ABORTED(main_proc))
       result = kno_incref(main_proc); /* Probably not necessary */
     else if (KNO_APPLICABLEP(main_proc)) {
+      if (u8run_jobid) u8run_set_status("knox");
       kno_decref(result);
       result = kno_apply(main_proc,n_args,args);}
     else {

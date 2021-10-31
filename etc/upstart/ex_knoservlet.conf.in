@@ -11,7 +11,7 @@ kill timeout 90 # wait 90s between SIGTERM and SIGKILL.
 
 setuid @webuser@
 setgid @admin_group@
-env LOGDIR=@logdir@/knoweb
+env LOGDIR=@kno_logdir@/web
 export CONFIG
 pre-start script
 	  touch @servlet_rundir@/${SOCKET}.nospawn

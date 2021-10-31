@@ -23,7 +23,7 @@ static lispval _kno_features_symbol, buildmode_symbol;
 
 static void config_string_helper(u8_string var,u8_string val)
 {
-  lispval string=kno_mkstring(val);
+  lispval string=kno_wrapstring(kno_syspath(val));
   kno_store(build_info,kno_intern(var),string);
   kno_decref(string);
 }
@@ -97,8 +97,8 @@ KNO_EXPORT void kno_init_build_info()
 #ifdef KNO_EXEC
   config_string(KNO_EXEC);
 #endif
-#ifdef KNO_DBSERVER
-  config_string(KNO_DBSERVER);
+#ifdef KNO_BINDIR
+  config_string(KNO_BINDIR);
 #endif
 
 #ifdef KNO_LARGEFILES_ENABLED
@@ -517,14 +517,14 @@ KNO_EXPORT void kno_init_build_info()
   config_string(KNO_DAEMON_LOG_DIR);
   config_string(KNO_WEBUSER);
   config_string(KNO_WEBGROUP);
-  config_string(KNO_DAEMON);
-  config_string(KNO_ADMIN_GROUP);
+  config_string(KNO_INSTALL_USER);
+  config_string(KNO_INSTALL_GROUP);
   config_string(KNO_CONFIG_FILE_PATH);
   config_string(KNO_DEFAULT_LOADPATH);
   config_string(KNO_DEFAULT_DLOADPATH);
   config_string(KNO_DLOAD_SUFFIX);
   config_string(KNO_EXEC);
-  config_string(KNO_DBSERVER);
+  config_string(KNO_BINDIR);
   config_string(KNO_EXEC_WRAPPER);
   config_string(KNO_LOCAL_MODULE_DIR);
   config_string(KNO_INSTALLED_MODULE_DIR);

@@ -16,6 +16,15 @@
 #undef KNO_MINOR_VERSION
 #undef KNO_RELEASE_VERSION
 
+/* Where we're originally installed */
+#undef KNO_INSTALL_ROOT
+
+/* Whether to handle sysroot */
+#undef KNO_SYSROOT
+
+/* Whether to handle sysroot */
+#undef KNO_RELOCATION_ENABLED
+
 /* Define if you don't have off_t */
 #undef off_t
 
@@ -413,8 +422,8 @@
 /* This is where the kno exectuable will be installed */
 #undef KNO_EXEC
 
-/* This is where the knod executable will be installed */
-#undef KNO_DBSERVER
+/* This is where the kno exectuable will be installed */
+#undef KNO_BINDIR
 
 /* Whether we're being built with the GNU profiling tools */
 #undef KNO_WITH_PROFILING
@@ -596,17 +605,13 @@
 /* The name of the default malloc library (used by executables) */
 #undef KNO_DEFAULT_MALLOC
 
-/* Default web (servlet) user */
+/* Default web (servlet) user/group */
 #undef KNO_WEBUSER
-
-/* Default web (servlet) group */
 #undef KNO_WEBGROUP
 
-/* Default daemon user */
-#undef KNO_DAEMON
-
-/* Default admin group */
-#undef KNO_ADMIN_GROUP
+/* Default install user/group */
+#undef KNO_INSTALL_USER
+#undef KNO_INSTALL_GROUP
 
 /* Default module dirs */
 #undef KNO_LOCAL_MODULE_DIR

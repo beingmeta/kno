@@ -16,6 +16,7 @@
 #include "kno/lisp.h"
 #include "kno/tables.h"
 #include <libu8/u8rusage.h>
+#include <libu8/u8pathfns.h>
 #include <libu8/u8logging.h>
 #include <libu8/u8printf.h>
 #include <stdarg.h>
@@ -24,6 +25,10 @@
 
 #if ((HAVE_LIBDUMA)&&(HAVE_DUMA_H))
 #include <duma.h>
+#endif
+
+#if HAVE_DLFCN_H
+#include <dlfcn.h>
 #endif
 
 static int lisp_types_initialized = 0;
@@ -36,6 +41,15 @@ u8_string kno_revision = KNO_REVISION;
 int kno_major_version = KNO_MAJOR_VERSION;
 int kno_minor_version = KNO_MINOR_VERSION;
 int kno_release_version = KNO_RELEASE_VERSION;
+
+u8_string kno_sysroot = NULL;
+u8_string kno_exec_dir = NULL;
+
+#ifdef KNO_SYSROOT
+u8_string config_sysroot = KNO_SYSROOT;
+#else
+u8_string config_sysroot = KNO_INSTALL_ROOT;
+#endif
 
 KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
@@ -62,6 +76,13 @@ u8_condition kno_ThreadInterrupted=_("Thread interrupted");
 
 KNO_EXPORT int kno_always_true(lispval x) { return 1; }
 KNO_EXPORT int kno_always_false(lispval x) { return 0; }
+
+KNO_EXPORT u8_string kno_syspath(u8_string input)
+{
+  if (kno_sysroot)
+    return u8_string_subst(input,config_sysroot,kno_sysroot);
+  else return u8_strdup(input);
+}
 
 /* External functional versions of common macros */
 
@@ -533,6 +554,35 @@ KNO_EXPORT void kno_log_status(u8_condition why)
            heapsize,heapu);}
 }
 
+#if KNO_RELOCATION_ENABLED
+static void relocate_sysroot()
+{
+  u8_string sysroot = u8_getenv("KNO_SYSROOT");
+#if (HAVE_DLADDR)
+  if (sysroot==NULL) {
+    Dl_info info;
+    int rv = dladdr(&kno_sysroot,&info);
+    if ( (rv) && (info.dli_fname) ) {
+      u8_string modname = u8_fromlibc((char *)info.dli_fname);
+      u8_string dirname = u8_dirname(modname);
+      u8_string parent = u8_dirname(dirname);
+      sysroot = parent;
+      u8_free(dirname);
+      u8_free(modname);}}
+#endif
+  if (sysroot==NULL) {}
+  else if (u8_has_suffix(sysroot,"/",0))
+    kno_sysroot=sysroot;
+  else {
+    kno_sysroot=u8_string_append(sysroot,"/",NULL);
+    u8_free(sysroot);}
+  if (strcmp(kno_sysroot,config_sysroot)==0) {
+    /* Don't bother translating paths */
+    u8_free(kno_sysroot);
+    kno_sysroot=NULL;}
+}
+#endif
+
 KNO_EXPORT int kno_init_lisp_types()
 {
   int u8_version;
@@ -543,6 +593,10 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_load_start = u8_elapsed_time();
   u8_version = u8_initialize();
   lisp_types_initialized = lisp_types_version*u8_version;
+
+#if KNO_RELOCATION_ENABLED
+  relocate_sysroot();
+#endif
 
 #if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
   u8_new_threadkey(&kno_curthread_key,NULL);

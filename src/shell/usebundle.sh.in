@@ -1,0 +1,2 @@
+export PATH=@SYSROOT@/bin:${PATH}
+export SYSROOT=@SYSROOT@

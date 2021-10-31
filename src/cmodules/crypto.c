@@ -250,8 +250,6 @@ KNO_EXPORT int kno_init_crypto()
   crypto_init = u8_millitime();
   crypto_module = kno_new_cmodule("crypto",0,kno_init_crypto);
 
-  u8_init_cryptofns();
-
   link_local_cprims();
 
   kno_finish_cmodule(crypto_module);

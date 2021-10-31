@@ -31,6 +31,7 @@
 #include <libu8/u8srvfns.h>
 #include <libu8/u8rusage.h>
 #include <libu8/u8stdio.h>
+#include <libu8/u8status.h>
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -2202,6 +2203,8 @@ static int run_servlet(u8_string socket_spec)
   init_webcommon_finalize();
 
   update_preloads();
+
+  if (u8run_jobid) u8run_set_status("kncogi");
 
   if (start_servers()<=0) {
     u8_log(LOG_CRIT,ServletAbort,"Startup failed");

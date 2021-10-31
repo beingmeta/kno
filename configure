@@ -738,7 +738,7 @@ CMODULES
 EXTMODS
 WWWUSER
 ZIPCMD
-DOINSTALL
+SUINSTALL
 SUDO
 INSTALLI18N
 I18N
@@ -749,7 +749,6 @@ VERSION
 STATICEXE
 SHAREDEXE
 LIBSOURCE
-DEB_BUILD_TARGET
 KNO_PATCHVERSION
 KNO_PATCHLEVEL
 KNO_BRANCH
@@ -788,7 +787,6 @@ debuglibs
 debugldflags
 debugcflags
 extra_gdb_sources
-setup_target
 versionsh
 archflags
 servlet_bugjar
@@ -802,13 +800,8 @@ kno_rundir
 bugjar
 logdir
 rundir
-daemonidinstall
-daemonid
-admininstall
-admin_group
-knouserinstall
-knouser
-wwwinstall
+install_group
+install_user
 webgroup
 webuser
 apache_modinfo
@@ -848,10 +841,12 @@ mshared_suffix
 vshared_suffix
 shared_suffix
 ifmacos
+setup_target
 install_exe_opts
 install_file_opts
 install_dir_opts
 DEFAULTMAKETARGET
+SYSROOT
 EGREP
 GREP
 CPP
@@ -905,6 +900,8 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_sysroot
+enable_relocation
 with_statedir
 with_execwrapper
 with_u8bin
@@ -924,7 +921,6 @@ with_optlib
 with_sourcedir
 with_extra_sources
 enable_stripping
-enable_debsign
 with_optdir
 with_extlib
 with_rpath
@@ -950,8 +946,8 @@ enable_prefetching
 with_codename
 with_reponame
 with_relstatus
-with_admin_group
-with_daemonid
+with_install_group
+with_install_user
 with_rundir
 with_logdir
 with_bugjar
@@ -974,6 +970,7 @@ with_libscm
 with_stdlibs
 with_module_path
 with_boot_config
+with_knobindir
 with_dload_path
 enable_shared
 enable_maintainer_mode
@@ -997,6 +994,7 @@ with_rocksdb
 with_odbc
 with_mariadb
 with_libpq
+with_setup
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1633,8 +1631,8 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--en/disable-relocation makes kno handle relocation of executables
 --enable-stripping strip libraries and executables before installing
---disenable-debian package signing
 --en/disable-cprofiling compile to support profiling and coverage tools
   --enable-gcov           enable coverage testing with gcov
 --en/disable-ipeval Enable IPEVAL
@@ -1656,6 +1654,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-sysroot where to place all KNO support files
 --with-statedir where to keep local state e.g. /var
 --with-execwrapper program to use when calling exec()
 --with-u8bin path for libu8 programs/scripts
@@ -1692,8 +1691,8 @@ Optional Packages:
 --with-codename for distribution
 --with-reponame for distribution
 --with-relstatus e.g. stable or testing
---with-admin-group Install files with admin group and group write permissions
---with-daemonid The identity (user) for Kno servers to run as
+--with-install-group group name for normal file/directory installation
+--with-install-user user name for normal file/directory installation
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
@@ -1713,6 +1712,7 @@ Optional Packages:
 --with-stdlibs location
 --with-module-path location
 --with-boot-config configstring
+--with-knobindir location to find KNO executables
 --with-dload-path location
 --with/out-i18n built and install message catalogs
 --with/out-mmap build without using mmap
@@ -1729,6 +1729,7 @@ Optional Packages:
 --with-odbc Specify building with the ODBC bindings
 --with-mariadb Specify building with the MariaDB/MySQL bindings
 --with-libpq Specify building with the Postgres libpq bindings
+--with-setup how to setup the system on installation
 
 Some influential environment variables:
   CC          C compiler command
@@ -4208,13 +4209,73 @@ $as_echo "$ac_cv_safe_to_define___extensions__" >&6; }
 
 
 
-# Override the default value for localstatedir
+mkpath(){
+  local dir=$1
+  local path=$2
+  if test "${dir%/}" = ${dir}; then
+    echo ${dir}/${path};
+  else
+    echo ${dir}${path};
+  fi;
+}
+
+# Basic path information
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_INSTALL_ROOT "$prefix/"
+_ACEOF
+
+
+SYSROOT=
+
+
+# Check whether --with-sysroot was given.
+if test "${with_sysroot+set}" = set; then :
+  withval=$with_sysroot; with_sysroot=$withval
+else
+  with_sysroot=no
+fi
+
+
+if test "${with_sysroot}" != "no"; then
+   SYSROOT=$(mkpath ${with_sysroot} "")
+fi
+default_statedir=/var
+if test ! -z "${SYSROOT}" ; then
+   cat >>confdefs.h <<_ACEOF
+#define KNO_SYSROOT "${SYSROOT}"
+_ACEOF
+
+   default_statedir="${SYSROOT}"
+
+fi
+
+# Check whether --enable-relocation was given.
+if test "${enable_relocation+set}" = set; then :
+  enableval=$enable_relocation;
+else
+  enable_relocation="no"
+fi
+
+
+if test "${enable_relocation}" != "no"; then
+   RELOCATABLE=true;
+else
+   RELOCATABLE=false;
+fi
+
+if test ${RELOCATABLE} = "yes"; then
+   $as_echo "#define KNO_RELOCATION_ENABLED 1" >>confdefs.h
+
+fi
+
+# Override the default value for statedir
 
 # Check whether --with-statedir was given.
 if test "${with_statedir+set}" = set; then :
-  withval=$with_statedir; localstatedir=$withval
+  withval=$with_statedir; statedir=$withval
 else
-  localstatedir="/var"
+  statedir="${default_statedir}"
 fi
 
 
@@ -4227,17 +4288,15 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-install_dir_opts="-d -m 0775"
-install_file_opts="-m 0664"
-install_exe_opts="-m 0775"
+install_dir_opts="-m ug+rwx,o+rx -d"
+install_file_opts="-m ug+rw,o+r"
+install_exe_opts="-m ug+rwx,o+rx"
+setup_target
 ifmacos="#"
 webuser=""
 webgroup=""
-wwwinstall=""
-admin_group=""
-admininstall=""
-knouser=""
-knouserinstall=""
+install_user=
+install_group=
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -4275,7 +4334,7 @@ BINPATH=${PATH}
 U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
 U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
-RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
+RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
@@ -4291,7 +4350,6 @@ else
 fi;
 
 VERSION=$KNO_VERSION
-DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
@@ -4322,7 +4380,7 @@ INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
-DOINSTALL=
+SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
@@ -4334,15 +4392,23 @@ TAGS_TARGET="alltags"
 LIBSCM=""
 install_libscm="install-libscm"
 STDLIB=""
+
+rundir=$(mkpath "${statedir}" "run")
+logdir=$(mkpath "${statedir}" "log")
+
+if test -z "${SYSROOT}"; then
+   kno_rundir=$(mkpath "$rundir" "kno")
+   kno_logdir=$(mkpath "$logdir" "kno")
+else
+   kno_rundir=$(mkpath "${SYSROOT}" "run")
+   kno_logdir=$(mkpath "${SYSROOT}" "log")
+fi;
+
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
-rundir=$localstatedir/run
-logdir=$localstatedir/log
-kno_rundir="$rundir/kno"
-kno_logdir="$logdir/kno"
 daemon_logdir="$kno_logdir/daemons"
 servlet_logdir="$kno_logdir/servlets"
 daemon_rundir="$kno_rundir/daemons"
@@ -4495,11 +4561,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
-
-
 
 
 
@@ -6624,17 +6685,6 @@ if test "$enable_stripping" != "no"; then
    STATICEXE=static/stripped
 fi
 
-# Check whether --enable-debsign was given.
-if test "${enable_debsign+set}" = set; then :
-  enableval=$enable_debsign;
-else
-  enable_debsign="yes"
-fi
-
-if test "$enable_debsign" == "no"; then
-   DEB_BUILD_TARGET=dist/debs.built;
-fi;
-
 
 # Check whether --with-optdir was given.
 if test "${with_optdir+set}" = set; then :
@@ -6674,9 +6724,10 @@ else
 fi
 
 
+# If we have an rpath, we add RPATHFLAGS (resolved during the make) to EXEFLAGS
 if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
    test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
+  EXEFLAGS=" \$(RPATHFLAGS) ${EXEFLAGS} "
 fi
 
 
@@ -9885,49 +9936,6 @@ test -n "$rpm" || rpm=""rpm""
 ### System users, groups, and paths for Kno
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
-$as_echo_n "checking for group default_admin_group... " >&6; }
-  found_group="none";
-  for group in kno _kno adm admin;
-  do if grep ^$group: /etc/group > /dev/null;
-  then
-	found_group=$group;
-	break;
-  fi; done;
-  default_admin_group=$found_group;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
-$as_echo "$found_group" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonid" >&5
-$as_echo_n "checking for user default_daemonid... " >&6; }
-  found_user="none";
-  for user in knod _knod knodaemon _knodaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_daemonid=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
-$as_echo_n "checking for user default_daemon... " >&6; }
-  found_user="none";
-  for user in xdaemon knod _knod knodaemon _knodaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_daemon=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webuser" >&5
 $as_echo_n "checking for user default_webuser... " >&6; }
   found_user="none";
@@ -9959,52 +9967,41 @@ $as_echo_n "checking for user default_webgroup... " >&6; }
 $as_echo "$found_user" >&6; }
 
 
-# Check whether --with-admin_group was given.
-if test "${with_admin_group+set}" = set; then :
-  withval=$with_admin_group;
+# Check whether --with-install_group was given.
+if test "${with_install_group+set}" = set; then :
+  withval=$with_install_group; install_group=$withval
 else
-  with_admin_group=${default_admin_group}
+  install_group=none
 fi
 
 
-if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-  admininstall="-g $with_admin_group"
-  admin_group=$with_admin_group
+if test "${install_group}" != "none"; then
+  install_dir_opts="-g $install_group -m ug+rwx,o+rx $install_dir_opts"
+  install_file_opts="-g $install_group $install_file_opts"
+  install_exe_opts="-g $install_group $install_exe_opts"
+fi
+
+
+# Check whether --with-install_user was given.
+if test "${with_install_user+set}" = set; then :
+  withval=$with_install_user; install_user=$withval
 else
-  install_dir_opts="$install_dir_opts"
-  install_file_opts="$install_file_opts"
-  install_exe_opts="$install_exe_opts"
-  admin_group=$default_admin_group
-  admininstall=""
+  install_user=none
+fi
+
+
+if test "${install_user}" != "none"; then
+  install_dir_opts="-u $install_user $install_dir_opts"
+  install_file_opts="-u $install_user $install_file_opts"
+  install_exe_opts="-u $install_user $install_exe_opts"
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_ADMIN_GROUP "$admin_group"
+#define KNO_INSTALL_USER "$install_user"
 _ACEOF
 
-
-
-# Check whether --with-daemonid was given.
-if test "${with_daemonid+set}" = set; then :
-  withval=$with_daemonid;
-else
-  with_daemonid=${default_daemonid}
-fi
-
-
-if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
-   knouser=$with_daemonid
-   knouserinstall="-o $knouser";
-else
-   knouserinstall=""
-   knouser=$default_daemonid
-fi
-
 cat >>confdefs.h <<_ACEOF
-#define KNO_DAEMON "$daemonid"
+#define KNO_INSTALL_GROUP "$install_group"
 _ACEOF
 
 
@@ -10059,7 +10056,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_SERVLET_RUN_DIR "$daemon_rundir"
+#define KNO_SERVLET_RUN_DIR "$servlet_rundir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -10510,12 +10507,18 @@ _ACEOF
 
 
 
+if test -z "${SYSROOT}"; then
+   default_share_dir="$prefix/share/kno";
+else
+   default_share_dir=$(mkpath "${SYSROOT}" "share");
+fi
+
 
 # Check whether --with-share_dir was given.
 if test "${with_share_dir+set}" = set; then :
   withval=$with_share_dir;
 else
-  with_share_dir=$prefix/share/kno
+  with_share_dir=${default_share_dir}
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -10524,12 +10527,18 @@ _ACEOF
 
 share_dir=$with_share_dir
 
+if test -z "${SYSROOT}"; then
+   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+else
+   default_data_dir=$(mkpath "${SYSROOT}" "data")
+fi
+
 
 # Check whether --with-data_dir was given.
 if test "${with_data_dir+set}" = set; then :
   withval=$with_data_dir;
 else
-  with_data_dir=$share_dir/data
+  with_data_dir=${default_data_dir}
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -10538,7 +10547,10 @@ _ACEOF
 
 data_dir=$with_data_dir
 
-if test $prefix == "/usr"; then
+if test ! -z "${SYSROOT}"; then
+   default_config_dir=$(mkpath "${SYSROOT}" "etc");
+   default_buildopts_dir=$(mkpath "${SYSROOT}" "etc/buildopts");
+elif test $prefix == "/usr"; then
    default_config_dir="/etc/kno${suffix}";
    default_buildopts_dir="/etc/beingmeta/opts";
 else
@@ -10701,7 +10713,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -10718,12 +10730,9 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-
 installed_module_path=$installed_module_dir/
-
 local_module_path=$local_module_dir/
-
-default_module_path=$local_module_path,$installed_module_path,$stdlib_module_path
+default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
 
 # Check whether --with-module_path was given.
@@ -10775,24 +10784,32 @@ _ACEOF
 
 
 if test $exec_prefix = "NONE"; then
-  cat >>confdefs.h <<_ACEOF
+   cat >>confdefs.h <<_ACEOF
 #define KNO_EXEC "$prefix/bin/knox"
 _ACEOF
 
-  cat >>confdefs.h <<_ACEOF
-#define KNO_DBSERVER "$prefix/bin/knod"
-_ACEOF
-
+   default_knobindir=$prefix/bin;
 else
   cat >>confdefs.h <<_ACEOF
 #define KNO_EXEC "$exec_prefix/bin/knox"
 _ACEOF
 
-  cat >>confdefs.h <<_ACEOF
-#define KNO_DBSERVER "$prefix/bin/knod"
+  default_knobin=$exec_prefix;
+fi
+
+
+# Check whether --with-knobindir was given.
+if test "${with_knobindir+set}" = set; then :
+  withval=$with_knobindir;
+else
+  with_knobindir=$default_knobindir
+fi
+
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_BINDIR "$with_knobindir"
 _ACEOF
 
-fi
 
 ### Dynamic library load paths
 
@@ -13332,16 +13349,16 @@ fi;
 if test "${with_sudo+set}" = set; then :
   withval=$with_sudo;
 else
-  with_sudo="$SUDO"
+  with_sudo="yes"
 fi
 
 
 if test "$with_sudo" == "yes"; then
-   DOINSTALL="${SUDO} ";
+   SUINSTALL='${SUDO} ';
 elif test "$with_sudo" == "no"; then
-   DOINSTALL="";
+   SUINSTALL="";
 else
-   DOINSTALL="$with_sudo ";
+   SUINSTALL="$with_sudo ";
 fi
 
 ### zlib/libz compression functions
@@ -14124,7 +14141,7 @@ else auto_disabled="leveldb ${auto_disabled}";
 fi;
 
 LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lmariadb
+LIBPQ_LIBS=-lpq
 
 
 
@@ -14143,9 +14160,20 @@ fi;
 if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
    CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
    TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-pqprims ${INSTALL_CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
 else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;
+
+### Setup options
+
+
+# Check whether --with-setup was given.
+if test "${with_setup+set}" = set; then :
+  withval=$with_setup; setup_target=setup-$withval
+else
+  setup_target=setup-unix
+fi
+
 
 ### These are components to preload
 
@@ -14169,7 +14197,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob src/shell/usebundle.sh tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14909,6 +14937,7 @@ do
     "src/shell/knogetconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knogetconfig" ;;
     "src/shell/knoconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knoconfig" ;;
     "src/shell/knojob") CONFIG_FILES="$CONFIG_FILES src/shell/knojob" ;;
+    "src/shell/usebundle.sh") CONFIG_FILES="$CONFIG_FILES src/shell/usebundle.sh" ;;
     "tests/testenv.sh") CONFIG_FILES="$CONFIG_FILES tests/testenv.sh" ;;
     "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;

@@ -30,8 +30,48 @@ AC_MSG_CHECKING([for group $1])
   $1=$found_group;
   AC_MSG_RESULT($found_group)])
 
-# Override the default value for localstatedir
-AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
+mkpath(){
+  local dir=$1
+  local path=$2
+  if test "${dir%/}" = ${dir}; then
+    echo ${dir}/${path};
+  else
+    echo ${dir}${path};
+  fi;
+}
+
+# Basic path information
+
+AC_DEFINE_UNQUOTED(KNO_INSTALL_ROOT,"$prefix/")
+
+SYSROOT=
+
+AC_ARG_WITH(sysroot,--with-sysroot where to place all KNO support files,with_sysroot=$withval,with_sysroot=no)
+
+if test "${with_sysroot}" != "no"; then
+   SYSROOT=$(mkpath ${with_sysroot} "")
+fi
+default_statedir=/var
+if test ! -z "${SYSROOT}" ; then
+   AC_DEFINE_UNQUOTED(KNO_SYSROOT,"${SYSROOT}")
+   default_statedir="${SYSROOT}"
+   AC_SUBST(SYSROOT)
+fi
+
+AC_ARG_ENABLE(relocation,--en/disable-relocation makes kno handle relocation of executables,,enable_relocation="no")
+
+if test "${enable_relocation}" != "no"; then
+   RELOCATABLE=true;
+else
+   RELOCATABLE=false;
+fi
+
+if test ${RELOCATABLE} = "yes"; then
+   AC_DEFINE(KNO_RELOCATION_ENABLED,1)
+fi
+
+# Override the default value for statedir
+AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,statedir=$withval,statedir="${default_statedir}")
 
 CC=${CC}
 DEFAULTMAKETARGET=update
@@ -42,17 +82,15 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-install_dir_opts="-d -m 0775"
-install_file_opts="-m 0664"
-install_exe_opts="-m 0775"
+install_dir_opts="-m ug+rwx,o+rx -d"
+install_file_opts="-m ug+rw,o+r"
+install_exe_opts="-m ug+rwx,o+rx"
+setup_target
 ifmacos="#"
 webuser=""
 webgroup=""
-wwwinstall=""
-admin_group=""
-admininstall=""
-knouser=""
-knouserinstall=""
+install_user=
+install_group=
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -90,7 +128,7 @@ BINPATH=${PATH}
 U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
 U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
-RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
+RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
@@ -106,7 +144,6 @@ else
 fi;
 
 VERSION=$KNO_VERSION
-DEB_BUILD_TARGET=dist/debs.signed
 LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
@@ -137,7 +174,7 @@ INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
-DOINSTALL=
+SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
@@ -149,15 +186,23 @@ TAGS_TARGET="alltags"
 LIBSCM=""
 install_libscm="install-libscm"
 STDLIB=""
+
+rundir=$(mkpath "${statedir}" "run")
+logdir=$(mkpath "${statedir}" "log")
+
+if test -z "${SYSROOT}"; then
+   kno_rundir=$(mkpath "$rundir" "kno")
+   kno_logdir=$(mkpath "$logdir" "kno")
+else
+   kno_rundir=$(mkpath "${SYSROOT}" "run")
+   kno_logdir=$(mkpath "${SYSROOT}" "log")
+fi;
+
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
-rundir=$localstatedir/run
-logdir=$localstatedir/log
-kno_rundir="$rundir/kno"
-kno_logdir="$logdir/kno"
 daemon_logdir="$kno_logdir/daemons"
 servlet_logdir="$kno_logdir/servlets"
 daemon_rundir="$kno_rundir/daemons"
@@ -248,6 +293,7 @@ AC_SUBST(DEFAULTMAKETARGET)
 AC_SUBST(install_dir_opts)
 AC_SUBST(install_file_opts)
 AC_SUBST(install_exe_opts)
+AC_SUBST(setup_target)
 AC_SUBST(ifmacos)
 AC_SUBST(shared_suffix)
 AC_SUBST(vshared_suffix)
@@ -287,13 +333,8 @@ AC_SUBST(apache_conf_dir)
 AC_SUBST(apache_modinfo)
 AC_SUBST(webuser)
 AC_SUBST(webgroup)
-AC_SUBST(wwwinstall)
-AC_SUBST(knouser)
-AC_SUBST(knouserinstall)
-AC_SUBST(admin_group)
-AC_SUBST(admininstall)
-AC_SUBST(daemonid)
-AC_SUBST(daemonidinstall)
+AC_SUBST(install_user)
+AC_SUBST(install_group)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(bugjar)
@@ -349,7 +390,6 @@ AC_SUBST(KNO_MINOR)
 AC_SUBST(KNO_BRANCH)
 AC_SUBST(KNO_PATCHLEVEL)
 AC_SUBST(KNO_PATCHVERSION)
-AC_SUBST(DEB_BUILD_TARGET)
 AC_SUBST(LIBSOURCE)
 AC_SUBST(SHAREDEXE)
 AC_SUBST(STATICEXE)
@@ -360,7 +400,7 @@ AC_SUBST(CLEAN)
 AC_SUBST(I18N)
 AC_SUBST(INSTALLI18N)
 AC_SUBST(SUDO)
-AC_SUBST(DOINSTALL)
+AC_SUBST(SUINSTALL)
 AC_SUBST(ZIPCMD)
 AC_SUBST(WWWUSER)
 AC_SUBST(EXTMODS)
@@ -569,11 +609,6 @@ if test "$enable_stripping" != "no"; then
    STATICEXE=static/stripped
 fi
 
-AC_ARG_ENABLE(debsign,--dis[en]able-debian package signing,,enable_debsign="yes")
-if test "$enable_debsign" == "no"; then
-   DEB_BUILD_TARGET=dist/debs.built;
-fi;
-
 AC_ARG_WITH(optdir,--with-optdir Use optional header/lib,,with_optdir="/opt/local")
 if test -d $with_optdir/include; then
   CPPFLAGS="$CPPFLAGS -I$with_optdir/include"
@@ -596,9 +631,10 @@ AC_ARG_WITH(extlib,
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
+# If we have an rpath, we add RPATHFLAGS (resolved during the make) to EXEFLAGS
 if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
    test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
+  EXEFLAGS=" \$(RPATHFLAGS) ${EXEFLAGS} "
 fi
 
 AC_ARG_WITH(pkgconfig_dir,--with-pkgconfig-dir pathname,,with_pkgconfig_dir=$prefix/share/pkgconfig)
@@ -1112,44 +1148,31 @@ AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 
 ### System users, groups, and paths for Kno
 
-AC_CHECK_GROUP(default_admin_group,kno _kno adm admin)
-AC_CHECK_USER(default_daemonid,knod _knod knodaemon _knodaemon daemon nobody)
-AC_CHECK_USER(default_daemon,xdaemon knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
 
-dnl Specifies an admin group; files written by installation scripts will be
+dnl Specifies an install group; files written by installation scripts will be
 dnl owned by this group and the group will have full rwX access.
-AC_ARG_WITH(admin_group,--with-admin-group Install files with admin group and group write permissions,,with_admin_group=${default_admin_group})
+AC_ARG_WITH(install_group,--with-install-group group name for normal file/directory installation,install_group=$withval,install_group=none)
 
-if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-  admininstall="-g $with_admin_group"
-  admin_group=$with_admin_group
-else
-  install_dir_opts="$install_dir_opts"
-  install_file_opts="$install_file_opts"
-  install_exe_opts="$install_exe_opts"
-  admin_group=$default_admin_group
-  admininstall=""
+if test "${install_group}" != "none"; then
+  install_dir_opts="-g $install_group -m ug+rwx,o+rx $install_dir_opts"
+  install_file_opts="-g $install_group $install_file_opts"
+  install_exe_opts="-g $install_group $install_exe_opts"
 fi
 
-AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
+dnl Specifies an install user; files written by installation scripts will be
+dnl owned by this user and the user will have full rwX access.
+AC_ARG_WITH(install_user,--with-install-user user name for normal file/directory installation,install_user=$withval,install_user=none)
 
-dnl Specifies a daemon identity user/group for managed Kno servers
-AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=${default_daemonid})
-
-if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
-   knouser=$with_daemonid
-   knouserinstall="-o $knouser";
-else
-   knouserinstall=""
-   knouser=$default_daemonid
+if test "${install_user}" != "none"; then
+  install_dir_opts="-u $install_user $install_dir_opts"
+  install_file_opts="-u $install_user $install_file_opts"
+  install_exe_opts="-u $install_user $install_exe_opts"
 fi
 
-AC_DEFINE_UNQUOTED(KNO_DAEMON,"$daemonid")
+AC_DEFINE_UNQUOTED(KNO_INSTALL_USER,"$install_user")
+AC_DEFINE_UNQUOTED(KNO_INSTALL_GROUP,"$install_group")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$kno_rundir")
@@ -1168,7 +1191,7 @@ AC_DEFINE_UNQUOTED(KNO_LOG_DIR,"$kno_logdir")
 AC_DEFINE_UNQUOTED(KNO_DAEMON_LOG_DIR,"$daemon_logdir")
 AC_DEFINE_UNQUOTED(KNO_SERVLET_LOG_DIR,"$servlet_logdir")
 AC_DEFINE_UNQUOTED(KNO_DAEMON_RUN_DIR,"$daemon_rundir")
-AC_DEFINE_UNQUOTED(KNO_SERVLET_RUN_DIR,"$daemon_rundir")
+AC_DEFINE_UNQUOTED(KNO_SERVLET_RUN_DIR,"$servlet_rundir")
 AC_DEFINE_UNQUOTED(KNO_BUGJAR_ROOT,"$bugjar")
 
 ### Paths
@@ -1320,15 +1343,30 @@ AC_CHECK_DECLS([RUSAGE_THREAD],[],[],[#include <sys/resource.h>])
 
 dnl Various directory/path configuration options
 
-AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/kno)
+if test -z "${SYSROOT}"; then
+   default_share_dir="$prefix/share/kno";
+else
+   default_share_dir=$(mkpath "${SYSROOT}" "share");
+fi
+
+AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=${default_share_dir})
 AC_DEFINE_UNQUOTED(KNO_SHARE_DIR,"$with_share_dir")
 share_dir=$with_share_dir
 
-AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$share_dir/data)
+if test -z "${SYSROOT}"; then
+   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+else
+   default_data_dir=$(mkpath "${SYSROOT}" "data")
+fi
+
+AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=${default_data_dir})
 AC_DEFINE_UNQUOTED(KNO_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
-if test $prefix == "/usr"; then
+if test ! -z "${SYSROOT}"; then
+   default_config_dir=$(mkpath "${SYSROOT}" "etc");
+   default_buildopts_dir=$(mkpath "${SYSROOT}" "etc/buildopts");
+elif test $prefix == "/usr"; then
    default_config_dir="/etc/kno${suffix}";
    default_buildopts_dir="/etc/beingmeta/opts";
 else
@@ -1400,7 +1438,7 @@ fi;
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do
@@ -1417,12 +1455,9 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-
 installed_module_path=$installed_module_dir/
-
 local_module_path=$local_module_dir/
-
-default_module_path=$local_module_path,$installed_module_path,$stdlib_module_path
+default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 module_path=$with_module_path
@@ -1442,12 +1477,16 @@ AC_ARG_WITH(boot_config,--with-boot-config configstring,,with_boot_config="")
 AC_DEFINE_UNQUOTED(KNO_BOOT_CONFIG,"$with_boot_config")
 
 if test $exec_prefix = "NONE"; then
-  AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
-  AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
+   AC_DEFINE_UNQUOTED(KNO_EXEC,"$prefix/bin/knox")
+   default_knobindir=$prefix/bin;
 else
   AC_DEFINE_UNQUOTED(KNO_EXEC,"$exec_prefix/bin/knox")
-  AC_DEFINE_UNQUOTED(KNO_DBSERVER,"$prefix/bin/knod")
+  default_knobin=$exec_prefix;
 fi
+
+AC_ARG_WITH(knobindir,--with-knobindir location to find KNO executables,,with_knobindir=$default_knobindir)
+
+AC_DEFINE_UNQUOTED(KNO_BINDIR,"$with_knobindir")
 
 ### Dynamic library load paths
 
@@ -1748,14 +1787,14 @@ else
   SUDO=$sudo_program
 fi;
 
-AC_ARG_WITH(sudo,--with/out-sudo use sudo with install,,with_sudo="$SUDO")
+AC_ARG_WITH(sudo,--with/out-sudo use sudo with install,,with_sudo="yes")
 
 if test "$with_sudo" == "yes"; then
-   DOINSTALL="${SUDO} ";
+   SUINSTALL='${SUDO} ';
 elif test "$with_sudo" == "no"; then
-   DOINSTALL="";
+   SUINSTALL="";
 else
-   DOINSTALL="$with_sudo ";
+   SUINSTALL="$with_sudo ";
 fi
 
 ### zlib/libz compression functions
@@ -2001,7 +2040,7 @@ else auto_disabled="leveldb ${auto_disabled}";
 fi;   
 
 LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lmariadb
+LIBPQ_LIBS=-lpq
 AC_SUBST(LIBPQ_CFLAGS)
 AC_SUBST(LIBPQ_LIBS)
 
@@ -2020,9 +2059,13 @@ fi;
 if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
    CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
    TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-pqprims ${INSTALL_CWRAPPERS}";
+   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
 else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;   
+
+### Setup options
+
+AC_ARG_WITH(setup,--with-setup how to setup the system on installation,setup_target=setup-$withval,setup_target=setup-unix)
 
 ### These are components to preload
 
@@ -2060,6 +2103,7 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog 
 		 src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec
 		 src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob
+		 src/shell/usebundle.sh
 		 tests/testenv.sh tests/xtest
 		 tests/runtest tests/memtest
 		 tests/leaktest tests/knoxtest

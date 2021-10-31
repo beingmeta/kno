@@ -11,10 +11,10 @@ console log
 
 pre-start script
    mkdir -p @servlet_rundir@
-   mkdir -p @logdir@/knoweb
-   chown @webuser@ @servlet_rundir@ @logdir@/knoweb
-   chgrp @admin_group@ @servlet_rundir@ @logdir@/knoweb
-   chmod g+rwx @servlet_rundir@  @logdir@/knoweb
+   mkdir -p @servlet_logdir@
+   chown @webuser@ @servlet_rundir@ @servlet_logdir@
+   chgrp @admin_group@ @servlet_rundir@ @servlet_logdir@
+   chmod g+rwx @servlet_rundir@  @servlet_logdir@
 end script
 
 post-start script

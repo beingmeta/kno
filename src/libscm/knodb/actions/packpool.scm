@@ -325,11 +325,19 @@
 
 (define (main (from #f) (to))
   (default! to from)
-  (when (config 'optimized #t) (optimize*! 'knodb/actions/packpool))
-  (config! 'dbloglevel (-1+ %loglevel))
-  (if (and from (file-exists? from))
-      (packpool from to)
-      (usage)))
+  (cond ((not from) (usage))
+	((not (file-exists? from))
+	 (logwarn |MissingFile| "The file " (write from) " does not exist.")
+	 (usage))
+	((and (equal? from to) (config 'SKIPSUFFIX)
+	      (file-exists? (glom from (config 'SKIPSUFFIX))))
+	 (logwarn |Skipping|
+	   "Skipping packpool for " from " because we found " 
+	   (glom from (config 'SKIPSUFFIX))))
+	(else
+	 (when (config 'optimized #t) (optimize*! 'knodb/actions/packpool))
+	 (config! 'dbloglevel (-1+ %loglevel))
+	 (packpool from to))))
 
 (define (usage)
   (lineout "Usage: pack-pool <from> [to]\n"

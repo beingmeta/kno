@@ -11,15 +11,15 @@ console log
 
 pre-start script
    mkdir -p @servlet_rundir@
-   mkdir -p @logdir@/knoweb
-   mkdir -p @daemon_rundir@
-   mkdir -p @logdir@/kno
-   chown @webuser@ @servlet_rundir@ @logdir@/knoweb
-   chown @knouser@ @daemon_rundir@ @logdir@/kno
-   chgrp @admin_group@ @servlet_rundir@ @logdir@/knoweb
-   chgrp @admin_group@ @daemon_rundir@ @logdir@/kno
-   chmod g+rwx @servlet_rundir@  @logdir@/knoweb
-   chmod g+rwx @daemon_rundir@ @logdir@/kno
+   mkdir -p @daemon_logdir@
+   mkdir -p @servlet_logdir@
+   mkdir -p @daemon_logdir@
+   chown @webuser@ @servlet_rundir@ @servlet_logdir@
+   chown @knouser@ @daemon_rundir@ @daemon_logdir@
+   chgrp @admin_group@ @servlet_rundir@
+   chgrp @admin_group@ @daemon_rundir@
+   chmod g+rwx @servlet_rundir@  @servlet_logdir@
+   chmod g+rwx @daemon_rundir@ @daemon_logdir@
 
    export KNO_LAUNCHER=kno.conf
    fdstart @config_dir@/daemons/;

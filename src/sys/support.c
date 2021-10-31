@@ -2,6 +2,7 @@
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
    Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
+
 */
 
 #ifndef _FILEINFO
@@ -66,13 +67,13 @@ static lispval config_get_module_loc(lispval var,void *which_arg)
 #endif
   switch (which) {
   case LOCAL_MODULES:
-    return kno_mkstring(KNO_LOCAL_MODULE_DIR);
+    return kno_wrapstring(kno_syspath(KNO_LOCAL_MODULE_DIR));
   case INSTALLED_MODULES:
-    return kno_mkstring(KNO_INSTALLED_MODULE_DIR);
+    return kno_wrapstring(kno_syspath(KNO_INSTALLED_MODULE_DIR));
   case STDLIB_MODULES:
-    return kno_mkstring(KNO_STDLIB_INSTALL_DIR);
+    return kno_wrapstring(kno_syspath(KNO_STDLIB_INSTALL_DIR));
   case UNPACKAGE_DIR:
-    return kno_mkstring(KNO_UNPACKAGE_DIR);
+    return kno_wrapstring(kno_syspath(KNO_UNPACKAGE_DIR));
   default:
     return kno_err("Bad call","config_get_module_loc",NULL,VOID);}
 }
@@ -142,7 +143,6 @@ void kno_init_errobjs_c(void);
 void kno_init_logging_c(void);
 void kno_init_startup_c(void);
 void kno_init_getopt_c(void);
-void kno_init_pathstore_c(void);
 void kno_init_fluid_c(void);
 void kno_init_posix_c(void);
 void kno_init_signals_c(void);

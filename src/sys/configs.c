@@ -475,11 +475,7 @@ static u8_string configdata_path = NULL;
 
 static lispval file_config_lookup(lispval symbol,void *pathdata)
 {
-  u8_string path=
-    ((pathdata == NULL) ?
-     ((configdata_path) ? (configdata_path) :
-      ((u8_string)KNO_CONFIG_FILE_PATH)) :
-     ((u8_string)pathdata));
+  u8_string path = ((pathdata) ? (pathdata) : (configdata_path));
   u8_string filename =
     u8_find_file(SYM_NAME(symbol),path,u8_file_readablep);
   if (filename) {
@@ -1504,6 +1500,9 @@ void kno_init_configs_c()
 
   u8_register_source_file(_FILEINFO);
 
+  if (configdata_path == NULL)
+    configdata_path = kno_syspath(KNO_CONFIG_FILE_PATH);
+
   configuration_table = (kno_hashtable) kno_make_hashtable(NULL,72);
   configuration_defaults = (kno_hashtable) kno_make_hashtable(NULL,72);
 
@@ -1520,7 +1519,7 @@ void kno_init_configs_c()
   string_macro = kno_intern("#string");
 
   if ( (knox_path) && (strcmp(knox_path,KNO_EXEC)==0) )
-    knox_path=u8_strdup(KNO_EXEC);
+    knox_path=kno_syspath(KNO_EXEC);
 
   kno_register_config
     ("KNOVERSION",_("Get the Kno version string"),
@@ -1548,6 +1547,8 @@ void kno_init_configs_c()
     ("LOGLEVEL",_("default loglevel (from libu8) for the session"),
      kno_intconfig_get,loglevelconfig_set,&u8_loglevel);
 
+  kno_register_config("SYSROOT","Sets the KNO_PATH ",
+		      kno_sconfig_get,NULL,&kno_sysroot);
 
 #if KNO_FILECONFIG_ENABLED
 #if KNO_FILECONFIG_DEFAULTS

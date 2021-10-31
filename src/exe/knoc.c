@@ -32,6 +32,7 @@
 #include <libu8/u8netfns.h>
 #include <libu8/u8streamio.h>
 #include <libu8/u8stdio.h>
+#include <libu8/u8status.h>
 
 #if ((KNO_WITH_EDITLINE) && (HAVE_HISTEDIT_H) && (HAVE_LIBEDIT))
 #include <histedit.h>
@@ -744,6 +745,13 @@ int main(int argc,char **argv)
   u8_initialize_u8stdio();
   u8_init_chardata_c();
 #endif
+  if ( (argc>0) && (argv[0][0]=='/') ) {
+    u8_string exe_name = u8_fromlibc(argv[0]);
+    kno_exec_dir=u8_dirname(exe_name);
+    u8_free(exe_name);}
+  else if (argc>0)
+    kno_exec_dir = u8_getcwd();
+  else NO_ELSE;
 
   u8_stdout_loglevel = U8_LOG_WARN;
 
@@ -1042,6 +1050,8 @@ int main(int argc,char **argv)
 
   lispval _err_symbol = kno_intern("_err");
   kno_bind_value(_err_symbol,KNO_FALSE,env);
+
+  if (u8run_jobid) u8run_set_status(eval_prompt);
 
   while (1) { /* ((c = skip_whitespace((u8_input)in))>=0) */
     int start_icache, finish_icache;
