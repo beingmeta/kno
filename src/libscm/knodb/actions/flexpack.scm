@@ -52,6 +52,10 @@
   (set! slotids (dbctl input 'slotids))
   (or (not slotids) (and (vector? slotids) (zero? (length slotids)))))
 
+(define (domove from to)
+  (logwarn |MoveFile| from " ==> " to)
+  (move-file from to))
+
 (define (do-flexpack flexindex (headfile #f) (tailfile #f) (tailcount 1))
   (let* ((flex-opts (read-xtype flexindex))
 	 (prefix (try (get flex-opts 'prefix) (basename flexindex ".flexindex")))
@@ -72,6 +76,7 @@
 	   (max-size (largest (elts sizes)))
 	   (headsize (* max-size (1+ (ilog (length partitions)))))
 	   (tailsize (and tailfile (* max-size 3)))
+	   (movedone (config 'movedone #f))
 	   (maxsecs (config 'maxsecs #f))
 	   (msgsecs (config 'msgsecs 120)))
       (let* ((headindex (index/ref headfile
@@ -116,6 +121,11 @@
 		(set! lastmsg (elapsed-time)))
 	      (sleep 1))
 	    (cond ((test (proc/status proc) 'exited 0)
+		   (cond ((not movedone))
+			 ((file-directory? movedone)
+			  (domove partition (mkpath movedone (basename partition))))
+			 ((and (string? movedone) (has-prefix movedone "."))
+			  (domove partition (glom partition movedone))))
 		   ;;(move-file partition (glom partition ".bak"))
 		   (lognotice |Finished| partition " in " (secs->string (elapsed-time started))))
 		  (else (logerr |Error|
