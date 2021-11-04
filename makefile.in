@@ -646,7 +646,7 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)				\
+	$(CC) $(CFLAGS)  $(EXEFLAGS) $(LDFLAGS)				\
 		-o $@ $<						\
 		@xdynamic_scheme_libs@					\
 		-lkno@suffix@					\
@@ -1488,9 +1488,9 @@ install-libscm.skip: src/libscm.zip
 	@echo "Skipping libscm install, using runtime specified ${LIBSCM}"
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
-	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_PATCHVERSION@.zip
-	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_VERSION@.zip
-	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/kno-@KNO_MAJOR@.zip
+	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
+	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
+	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 

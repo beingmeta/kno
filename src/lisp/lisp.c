@@ -68,7 +68,7 @@ KNO_EXPORT int kno_always_false(lispval x) { return 0; }
 KNO_EXPORT u8_string kno_syspath(u8_string input)
 {
   if (kno_sysroot)
-    return u8_string_subst(input,"${KNO_ROOT}",kno_sysroot);
+    return u8_string_subst(input,KNO_INSTALL_ROOT,kno_sysroot);
   else return u8_strdup(input);
 }
 

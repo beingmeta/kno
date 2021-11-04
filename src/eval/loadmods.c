@@ -633,7 +633,8 @@ static int loadpath_config_set(lispval var,lispval vals,void *d)
       u8_string pathstring = kno_syspath(CSTRING(val));
       if (strchr(pathstring,'%')) {
 	/* This is especially interpreted by u8_find_file */
-	add_paths = kno_init_pair(NULL,kno_incref(val),add_paths);}
+	lispval path_elt = kno_mkstring(pathstring);
+	add_paths = kno_init_pair(NULL,path_elt,add_paths);}
       else {
 	char sepchar = getsepchar(pathstring);
 	u8_string scan = pathstring;

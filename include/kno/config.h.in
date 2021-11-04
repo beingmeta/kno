@@ -16,6 +16,9 @@
 #undef KNO_MINOR_VERSION
 #undef KNO_RELEASE_VERSION
 
+/* Where we're originally installed */
+#undef KNO_INSTALL_ROOT
+
 /* Define if you don't have off_t */
 #undef off_t
 

@@ -4,6 +4,8 @@ AC_CONFIG_SRCDIR([include/kno/lisp.h])
 AC_PREFIX_PROGRAM(autoconf)
 AC_USE_SYSTEM_EXTENSIONS
 
+AC_DEFINE_UNQUOTED(KNO_INSTALL_ROOT,"$prefix/")
+
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
@@ -90,7 +92,8 @@ BINPATH=${PATH}
 U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
 U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
-RPATHFLAGS="-Wl,'-rpath \$(RPATH)'"
+# -Wl,-rpath,"\$$ORIGIN/${RPATH}"
+RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
@@ -591,7 +594,7 @@ AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
 if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
    test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
-  EXEFLAGS=" $EXEFLAGS \$(RPATHFLAGS) "
+  EXEFLAGS=" \$(RPATHFLAGS) ${EXEFLAGS} "
 fi
 
 AC_ARG_WITH(pkgconfig_dir,--with-pkgconfig-dir pathname,,with_pkgconfig_dir=$prefix/share/pkgconfig)
