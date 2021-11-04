@@ -6,6 +6,15 @@ AC_USE_SYSTEM_EXTENSIONS
 
 AC_DEFINE_UNQUOTED(KNO_INSTALL_ROOT,"$prefix/")
 
+AC_ARG_WITH(sysroot,--with-sysroot where to keep local state e.g. /var,with_sysroot=$withval,with_sysroot=no)
+
+if test "${with_sysroot}" = "yes"; then
+   AC_DEFINE(KNO_WITH_SYSROOT,1)
+elif test "${with_sysroot}" = "env"; then
+   AC_DEFINE(KNO_WITH_SYSROOT,2)
+fi;
+
+
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
@@ -92,7 +101,6 @@ BINPATH=${PATH}
 U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
 U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
-# -Wl,-rpath,"\$$ORIGIN/${RPATH}"
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
@@ -592,6 +600,7 @@ AC_ARG_WITH(extlib,
 
 AC_ARG_WITH(rpath,--with-rpath dir,rpath=$withval,rpath=$rpath_default)
 
+# If we have an rpath, we add RPATHFLAGS (resolved during the make) to EXEFLAGS
 if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
    test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
   EXEFLAGS=" \$(RPATHFLAGS) ${EXEFLAGS} "
@@ -1396,7 +1405,7 @@ fi;
 stdlib_search_dir=
 AC_ARG_WITH(stdlibs,--with-stdlibs location)
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip,${share_dir}/stdlib/${KNO_VERSION}/,${share_dir}/stdlib/${KNO_MAJOR}/";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do

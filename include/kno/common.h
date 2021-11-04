@@ -118,6 +118,7 @@ typedef int (*kno_lisp_predicate)(lispval x);
 U8_EXPORT u8_string kno_sysroot;
 U8_EXPORT u8_string kno_syspath(u8_string input);
 
+U8_EXPORT u8_string kno_exec_dir;
 
 #ifndef KNO_INLINE_FCN
 #if KNO_AVOID_INLINE

@@ -904,6 +904,7 @@ SHELL'
 ac_subst_files=''
 ac_user_opts='
 enable_option_checking
+with_sysroot
 with_statedir
 with_execwrapper
 with_u8bin
@@ -1654,6 +1655,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
+--with-sysroot where to keep local state e.g. /var
 --with-statedir where to keep local state e.g. /var
 --with-execwrapper program to use when calling exec()
 --with-u8bin path for libu8 programs/scripts
@@ -4209,6 +4211,24 @@ _ACEOF
 
 
 
+# Check whether --with-sysroot was given.
+if test "${with_sysroot+set}" = set; then :
+  withval=$with_sysroot; with_sysroot=$withval
+else
+  with_sysroot=no
+fi
+
+
+if test "${with_sysroot}" = "yes"; then
+   $as_echo "#define KNO_WITH_SYSROOT 1" >>confdefs.h
+
+elif test "${with_sysroot}" = "env"; then
+   $as_echo "#define KNO_WITH_SYSROOT 2" >>confdefs.h
+
+fi;
+
+
+
 
 
 
@@ -4279,7 +4299,6 @@ BINPATH=${PATH}
 U8BIN=$(dirname $(which u8_gitversion) || echo ${PREFIX})
 U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
-# -Wl,-rpath,"\$$ORIGIN/${RPATH}"
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
 KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
@@ -6666,6 +6685,7 @@ else
 fi
 
 
+# If we have an rpath, we add RPATHFLAGS (resolved during the make) to EXEFLAGS
 if test "$rpath" != "none" && test "$rpath" != "NONE" && test ! -z "$rpath" &&
    test "$rpath" != "/usr" && test "$rpath" != "/usr/local"; then
   EXEFLAGS=" \$(RPATHFLAGS) ${EXEFLAGS} "
@@ -10693,7 +10713,7 @@ if test "${with_stdlibs+set}" = set; then :
 fi
 
 if test -z "$with_stdlibs"; then
-   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip,${share_dir}/stdlib/${KNO_VERSION}/,${share_dir}/stdlib/${KNO_MAJOR}/";
+   stdlib_search_dir="zip:${share_dir}/stdlib/stdlib-${KNO_PATCHVERSION}.zip,zip:${share_dir}/stdlib/stdlib-${KNO_VERSION}.zip";
 else
    usepath=
    for dir in $(echo ${with_stdlibs} | tr ':' ' ' | tr ',' ' '); do

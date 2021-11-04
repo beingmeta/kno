@@ -1489,8 +1489,8 @@ install-libscm.skip: src/libscm.zip
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
 	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
-	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
-	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
+	@$(DOINSTALL) ln -sf stdlib-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
+	@$(DOINSTALL) ln -sf stdlib-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 

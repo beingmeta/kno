@@ -921,8 +921,7 @@ static u8_string check_module_dir(u8_string dir_arg)
     u8_free(dir);
     return use_path;}
   else {
-    u8_log(LOGCRIT,"CHeckModuleDir","dir_arg=%s, dir=%s, use_path=%s",
-	   dir_arg,dir,use_path);
+    u8_log(LOGCRIT,"BadModuleDir","Can't use module spec '%s'",dir_arg);
     u8_free(use_path);
     u8_free(dir);
     return NULL;}

@@ -745,6 +745,13 @@ int main(int argc,char **argv)
   u8_initialize_u8stdio();
   u8_init_chardata_c();
 #endif
+  if ( (argc>0) && (argv[0][0]=='/') ) {
+    u8_string exe_name = u8_fromlibc(argv[0]);
+    kno_exec_dir=u8_dirname(exe_name);
+    u8_free(exe_name);}
+  else if (argc>0)
+    kno_exec_dir = u8_getcwd();
+  else NO_ELSE;
 
   u8_stdout_loglevel = U8_LOG_WARN;
 

@@ -38,6 +38,7 @@ int kno_minor_version = KNO_MINOR_VERSION;
 int kno_release_version = KNO_RELEASE_VERSION;
 
 u8_string kno_sysroot = NULL;
+u8_string kno_exec_dir = NULL;
 
 KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
 KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
@@ -552,6 +553,16 @@ KNO_EXPORT int kno_init_lisp_types()
   kno_load_start = u8_elapsed_time();
   u8_version = u8_initialize();
   lisp_types_initialized = lisp_types_version*u8_version;
+
+#if KNO_WITH_SYSROOT
+  u8_string sysroot = u8_getenv("KNO_SYSROOT");
+  if (sysroot) {
+    if (u8_has_suffix(sysroot,"/",0))
+      kno_sysroot=sysroot;
+    else {
+      kno_sysroot=u8_string_append(sysroot,"/",NULL);
+      u8_free(sysroot);}}
+#endif
 
 #if ((KNO_THREADS_ENABLED)&&(KNO_USE_TLS))
   u8_new_threadkey(&kno_curthread_key,NULL);
