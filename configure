@@ -801,8 +801,8 @@ kno_rundir
 bugjar
 logdir
 rundir
-daemonidinstall
-daemonid
+daemonuserinstall
+daemonuser
 admininstall
 admin_group
 knouserinstall
@@ -905,6 +905,7 @@ ac_subst_files=''
 ac_user_opts='
 enable_option_checking
 with_sysroot
+enable_relocation
 with_statedir
 with_execwrapper
 with_u8bin
@@ -950,7 +951,7 @@ with_codename
 with_reponame
 with_relstatus
 with_admin_group
-with_daemonid
+with_daemonuser
 with_rundir
 with_logdir
 with_bugjar
@@ -1633,6 +1634,7 @@ Optional Features:
   --disable-option-checking  ignore unrecognized --enable/--with options
   --disable-FEATURE       do not include FEATURE (same as --enable-FEATURE=no)
   --enable-FEATURE[=ARG]  include FEATURE [ARG=yes]
+--en/disable-relocation makes kno handle relocation of executables
 --enable-stripping strip libraries and executables before installing
 --en/disable-cprofiling compile to support profiling and coverage tools
   --enable-gcov           enable coverage testing with gcov
@@ -1655,7 +1657,7 @@ Optional Features:
 Optional Packages:
   --with-PACKAGE[=ARG]    use PACKAGE [ARG=yes]
   --without-PACKAGE       do not use PACKAGE (same as --with-PACKAGE=no)
---with-sysroot where to keep local state e.g. /var
+--with-sysroot where to place all KNO support files
 --with-statedir where to keep local state e.g. /var
 --with-execwrapper program to use when calling exec()
 --with-u8bin path for libu8 programs/scripts
@@ -1693,7 +1695,7 @@ Optional Packages:
 --with-reponame for distribution
 --with-relstatus e.g. stable or testing
 --with-admin-group Install files with admin group and group write permissions
---with-daemonid The identity (user) for Kno servers to run as
+--with-daemonuser The identity (user) for Kno servers to run as
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
@@ -4205,10 +4207,28 @@ $as_echo "$ac_cv_safe_to_define___extensions__" >&6; }
 
 
 
+
+
+
+
+mkpath(){
+  local dir=$1
+  local path=$2
+  if test "${dir%/}" = ${dir}; then
+    echo ${dir}/${path};
+  else
+    echo ${dir}${path};
+  fi;
+}
+
+# Basic path information
+
 cat >>confdefs.h <<_ACEOF
 #define KNO_INSTALL_ROOT "$prefix/"
 _ACEOF
 
+
+SYSROOT=
 
 
 # Check whether --with-sysroot was given.
@@ -4219,18 +4239,36 @@ else
 fi
 
 
-if test "${with_sysroot}" = "yes"; then
-   $as_echo "#define KNO_WITH_SYSROOT 1" >>confdefs.h
+if test "${with_sysroot}" != "no"; then
+   SYSROOT=$(mkpath ${with_sysroot} "")
+fi
+default_localstatedir=/var
+if test ! -z "${SYSROOT}" ; then
+   cat >>confdefs.h <<_ACEOF
+#define KNO_SYSROOT "${SYSROOT}"
+_ACEOF
 
-elif test "${with_sysroot}" = "env"; then
-   $as_echo "#define KNO_WITH_SYSROOT 2" >>confdefs.h
+   default_localstatedir="${SYSROOT}"
+fi
 
-fi;
+# Check whether --enable-relocation was given.
+if test "${enable_relocation+set}" = set; then :
+  enableval=$enable_relocation;
+else
+  enable_relocation="no"
+fi
 
 
+if test "${enable_relocation}" != "no"; then
+   RELOCATABLE=true;
+else
+   RELOCATABLE=false;
+fi
 
+if test ${RELOCATABLE} = "yes"; then
+   $as_echo "#define KNO_RELOCATION_ENABLED 1" >>confdefs.h
 
-
+fi
 
 # Override the default value for localstatedir
 
@@ -4238,7 +4276,7 @@ fi;
 if test "${with_statedir+set}" = set; then :
   withval=$with_statedir; localstatedir=$withval
 else
-  localstatedir="/var"
+  localstatedir="${default_localstatedir}"
 fi
 
 
@@ -4251,9 +4289,9 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-install_dir_opts="-d -m 0775"
-install_file_opts="-m 0664"
-install_exe_opts="-m 0775"
+install_dir_opts="-m ug+rwx,o+rx -d"
+install_file_opts="-m ug+rw,o+r"
+install_exe_opts="-m ug+rwx,o+rx"
 ifmacos="#"
 webuser=""
 webgroup=""
@@ -4357,15 +4395,23 @@ TAGS_TARGET="alltags"
 LIBSCM=""
 install_libscm="install-libscm"
 STDLIB=""
+
+rundir=$(mkpath "${localstatedir}" "run")
+logdir=$(mkpath "${localstatedir}" "log")
+
+if test -z "${SYSROOT}"; then
+   kno_rundir=$(mkpath "$rundir" "kno")
+   kno_logdir=$(mkpath "$logdir" "kno")
+else
+   kno_rundir=$(mkpath "${SYSROOT}" "run")
+   kno_logdir=$(mkpath "${SYSROOT}" "log")
+fi;
+
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
-rundir=$localstatedir/run
-logdir=$localstatedir/log
-kno_rundir="$rundir/kno"
-kno_logdir="$logdir/kno"
 daemon_logdir="$kno_logdir/daemons"
 servlet_logdir="$kno_logdir/servlets"
 daemon_rundir="$kno_rundir/daemons"
@@ -9910,8 +9956,8 @@ $as_echo_n "checking for group default_admin_group... " >&6; }
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
 $as_echo "$found_group" >&6; }
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonid" >&5
-$as_echo_n "checking for user default_daemonid... " >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonuser" >&5
+$as_echo_n "checking for user default_daemonuser... " >&6; }
   found_user="none";
   for user in knod _knod knodaemon _knodaemon daemon nobody;
   do
@@ -9921,7 +9967,7 @@ $as_echo_n "checking for user default_daemonid... " >&6; }
 	break;
   fi;
   done;
-  default_daemonid=$found_user;
+  default_daemonuser=$found_user;
   { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
 $as_echo "$found_user" >&6; }
 
@@ -9999,24 +10045,24 @@ _ACEOF
 
 
 
-# Check whether --with-daemonid was given.
-if test "${with_daemonid+set}" = set; then :
-  withval=$with_daemonid;
+# Check whether --with-daemonuser was given.
+if test "${with_daemonuser+set}" = set; then :
+  withval=$with_daemonuser;
 else
-  with_daemonid=${default_daemonid}
+  with_daemonuser=${default_daemonuser}
 fi
 
 
-if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
-   knouser=$with_daemonid
+if test "$with_daemonuser" != "no" && test "$with_daemonuser" != "none"; then
+   knouser=$with_daemonuser
    knouserinstall="-o $knouser";
 else
    knouserinstall=""
-   knouser=$default_daemonid
+   knouser=$default_daemonuser
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_DAEMON "$daemonid"
+#define KNO_DAEMON "$daemonuser"
 _ACEOF
 
 
@@ -10522,12 +10568,18 @@ _ACEOF
 
 
 
+if test -z "${SYSROOT}"; then
+   default_share_dir="$prefix/share/kno";
+else
+   default_share_dir=$(mkpath "${SYSROOT}" "share");
+fi
+
 
 # Check whether --with-share_dir was given.
 if test "${with_share_dir+set}" = set; then :
   withval=$with_share_dir;
 else
-  with_share_dir=$prefix/share/kno
+  with_share_dir=${default_share_dir}
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -10536,12 +10588,18 @@ _ACEOF
 
 share_dir=$with_share_dir
 
+if test -z "${SYSROOT}"; then
+   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+else
+   default_data_dir=$(mkpath "${SYSROOT}" "data")
+fi
+
 
 # Check whether --with-data_dir was given.
 if test "${with_data_dir+set}" = set; then :
   withval=$with_data_dir;
 else
-  with_data_dir=$share_dir/data
+  with_data_dir=${default_data_dir}
 fi
 
 cat >>confdefs.h <<_ACEOF
@@ -10550,7 +10608,10 @@ _ACEOF
 
 data_dir=$with_data_dir
 
-if test $prefix == "/usr"; then
+if test ! -z "${SYSROOT}"; then
+   default_config_dir=$(mkpath "${SYSROOT}" "etc");
+   default_buildopts_dir=$(mkpath "${SYSROOT}" "etc/buildopts");
+elif test $prefix == "/usr"; then
    default_config_dir="/etc/kno${suffix}";
    default_buildopts_dir="/etc/beingmeta/opts";
 else
@@ -10730,12 +10791,9 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-
 installed_module_path=$installed_module_dir/
-
 local_module_path=$local_module_dir/
-
-default_module_path=$local_module_path,$installed_module_path,$stdlib_module_path
+default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
 
 # Check whether --with-module_path was given.

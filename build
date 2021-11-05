@@ -7,6 +7,7 @@ INSTALL_ARGS=
 OFFLINE=
 SUFFIX=
 BUILD=$(pwd)
+SKIP_BUILD=
 SRC=$(dirname $(pwd))
 ECHO=$(which echo)
 doclean=1;
@@ -23,6 +24,8 @@ usage () {
     echo "           (malloc library)"
     echo "       dev | livesources";
     echo "            (uses current directory sources as default library (libscm, etc) sources)";
+    echo "       relocatable | relocate";
+    echo "            (builds Kno executables to be relocatable)";
     echo "       install";
     echo "            (installs after build)";
     echo "       tests | memtests | leaktests | libtests | schemetests | dbtests | cmdtests"
@@ -37,6 +40,8 @@ usage () {
     echo "           (C build options, xcprofiling disables even more optimizations)"
     echo "       nopython|noparseltongue python|parseltongue (default)";
     echo "           (controls building of the parseltongue Python bridge)"
+    echo "       skipbuild|setup"
+    echo "           (just configure, don't make)"
     echo "       offline"
     echo "           (don't update from remote repositories)"
 }
@@ -58,8 +63,10 @@ status () {
     fi;
 }
 
-
+use_prefix=
 LOCAL_STDLIB=${BUILD}/src/stdmods,${BUILD}/src/textmods,${BUILD}/src/webmods
+BUNDLE_NAME=
+
 while [ $# -gt 0 ]; do
     arg=$1
     case ${arg} in
@@ -70,11 +77,29 @@ while [ $# -gt 0 ]; do
 	offline)
 	    OFFLINE=yes;
 	    ;;
+	relocate|relocatable)
+	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib";
+	    ;;
+	portable)
+	    BUNDLE_NAME="kno-$(u8_gitversion etc/base_version)"
+	    use_prefix=/opt/${BUNDLE_NAME}
+	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --with-admin-group=none --with-daemonuser=none";
+	    INSTALL_ARGS="DESTDIR=staging DOINSTALL= install";
+	    ;;
+	bundle)
+	    BUNDLE_NAME="kno-$(u8_gitversion etc/base_version)"
+	    use_prefix=/opt/${BUNDLE_NAME};
+	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --with-admin-group=none --with-daemonuser=none";
+	    INSTALL_ARGS="DESTDIR=staging DOINSTALL= install";
+	    ;;
 	current|.)
 	    BRANCH="use_current_branch";
 	    ;;
 	noclean|keep)
 	    doclean=1;
+	    ;;
+	setup|skipbuild)
+	    SKIP_BUILD=yes;
 	    ;;
 	dev|livesource|livesources)
 	    CONFIG_ARGS="--with-libscm=${BUILD}/src/libscm/ --with-stdlibs=${LOCAL_STDLIB} ${CONFIG_ARGS}";
@@ -116,6 +141,12 @@ while [ $# -gt 0 ]; do
 	-M*)
 	    MAKE_ARGS="${arg#-M} ${MAKE_ARGS}"; 
 	    ;;
+	prefix=*)
+	    use_prefix=${arg#prefix=};
+	    ;;
+	--prefix=*)
+	    use_prefix=${arg#--prefix=};
+	    ;;
 	--suffix=.*)
 	    SUFFIX=${arg#--suffix=}
 	    ;;
@@ -154,8 +185,12 @@ while [ $# -gt 0 ]; do
     shift;
 done;
 
+if [ ! -z "${use_prefix}" ]; then
+    CONFIG_ARGS="--prefix=${use_prefix} ${CONFIG_ARGS}";
+fi
+
 if [ "${with_parseltongue}" = "yes" ]; then
-    CONFIG_ARGS="--with-parseltongue ${CONFIG_ARGS}"
+    CONFIG_ARGS="${CONFIG_ARGS} --with-parseltongue"
 fi;
 
 if [ ! -z "${SUFFIX}" ]; then
@@ -204,7 +239,10 @@ fi;
 
 git submodule update
     
-make -j ${MAKE_ARGS} $* && 
-    if [ ! -z "${TEST_ARGS}" ]; then make -j ${TEST_ARGS}; fi &&
-    if [ ! -z "${INSTALL_ARGS}" ]; then make ${INSTALL_ARGS}; fi &&
-    ${ECHO} -n "All done: "; status; echo;
+if [ -z "${SKIP_BUILD}" ]; then
+    make -j ${MAKE_ARGS} $* && 
+	if [ ! -z "${TEST_ARGS}" ]; then make -j ${TEST_ARGS}; fi &&
+	if [ ! -z "${INSTALL_ARGS}" ]; then make ${INSTALL_ARGS}; fi &&
+	${ECHO} -n "All done: "; status; echo;
+fi
+

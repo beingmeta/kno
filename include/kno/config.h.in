@@ -20,7 +20,10 @@
 #undef KNO_INSTALL_ROOT
 
 /* Whether to handle sysroot */
-#undef KNO_WITH_SYSROOT
+#undef KNO_SYSROOT
+
+/* Whether to handle sysroot */
+#undef KNO_RELOCATION_ENABLED
 
 /* Define if you don't have off_t */
 #undef off_t

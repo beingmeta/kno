@@ -4,17 +4,6 @@ AC_CONFIG_SRCDIR([include/kno/lisp.h])
 AC_PREFIX_PROGRAM(autoconf)
 AC_USE_SYSTEM_EXTENSIONS
 
-AC_DEFINE_UNQUOTED(KNO_INSTALL_ROOT,"$prefix/")
-
-AC_ARG_WITH(sysroot,--with-sysroot where to keep local state e.g. /var,with_sysroot=$withval,with_sysroot=no)
-
-if test "${with_sysroot}" = "yes"; then
-   AC_DEFINE(KNO_WITH_SYSROOT,1)
-elif test "${with_sysroot}" = "env"; then
-   AC_DEFINE(KNO_WITH_SYSROOT,2)
-fi;
-
-
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
@@ -41,8 +30,47 @@ AC_MSG_CHECKING([for group $1])
   $1=$found_group;
   AC_MSG_RESULT($found_group)])
 
+mkpath(){
+  local dir=$1
+  local path=$2
+  if test "${dir%/}" = ${dir}; then
+    echo ${dir}/${path};
+  else
+    echo ${dir}${path};
+  fi;
+}
+
+# Basic path information
+
+AC_DEFINE_UNQUOTED(KNO_INSTALL_ROOT,"$prefix/")
+
+SYSROOT=
+
+AC_ARG_WITH(sysroot,--with-sysroot where to place all KNO support files,with_sysroot=$withval,with_sysroot=no)
+
+if test "${with_sysroot}" != "no"; then
+   SYSROOT=$(mkpath ${with_sysroot} "")
+fi
+default_localstatedir=/var
+if test ! -z "${SYSROOT}" ; then
+   AC_DEFINE_UNQUOTED(KNO_SYSROOT,"${SYSROOT}")
+   default_localstatedir="${SYSROOT}"
+fi
+
+AC_ARG_ENABLE(relocation,--en/disable-relocation makes kno handle relocation of executables,,enable_relocation="no")
+
+if test "${enable_relocation}" != "no"; then
+   RELOCATABLE=true;
+else
+   RELOCATABLE=false;
+fi
+
+if test ${RELOCATABLE} = "yes"; then
+   AC_DEFINE(KNO_RELOCATION_ENABLED,1)
+fi
+
 # Override the default value for localstatedir
-AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="/var")
+AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,localstatedir=$withval,localstatedir="${default_localstatedir}")
 
 CC=${CC}
 DEFAULTMAKETARGET=update
@@ -53,9 +81,9 @@ rpath_default=$exec_prefix
 tls_default="no"
 global_ipeval_default="no"
 enable_ipeval_default="no"
-install_dir_opts="-d -m 0775"
-install_file_opts="-m 0664"
-install_exe_opts="-m 0775"
+install_dir_opts="-m ug+rwx,o+rx -d"
+install_file_opts="-m ug+rw,o+r"
+install_exe_opts="-m ug+rwx,o+rx"
 ifmacos="#"
 webuser=""
 webgroup=""
@@ -159,15 +187,23 @@ TAGS_TARGET="alltags"
 LIBSCM=""
 install_libscm="install-libscm"
 STDLIB=""
+
+rundir=$(mkpath "${localstatedir}" "run")
+logdir=$(mkpath "${localstatedir}" "log")
+
+if test -z "${SYSROOT}"; then
+   kno_rundir=$(mkpath "$rundir" "kno")
+   kno_logdir=$(mkpath "$logdir" "kno")
+else
+   kno_rundir=$(mkpath "${SYSROOT}" "run")
+   kno_logdir=$(mkpath "${SYSROOT}" "log")
+fi;
+
 default_source_dir="\$prefix/src"
 default_config_dir="\$prefix/etc/kno"
 default_buildopts_dir="\$prefix/etc/beingmeta/opts"
 local_config="\$prefix/etc/kno"
 shared_config="\$prefix/etc/kno"
-rundir=$localstatedir/run
-logdir=$localstatedir/log
-kno_rundir="$rundir/kno"
-kno_logdir="$logdir/kno"
 daemon_logdir="$kno_logdir/daemons"
 servlet_logdir="$kno_logdir/servlets"
 daemon_rundir="$kno_rundir/daemons"
@@ -302,8 +338,8 @@ AC_SUBST(knouser)
 AC_SUBST(knouserinstall)
 AC_SUBST(admin_group)
 AC_SUBST(admininstall)
-AC_SUBST(daemonid)
-AC_SUBST(daemonidinstall)
+AC_SUBST(daemonuser)
+AC_SUBST(daemonuserinstall)
 AC_SUBST(rundir)
 AC_SUBST(logdir)
 AC_SUBST(bugjar)
@@ -1118,7 +1154,7 @@ AC_CHECK_PROGS(rpm,"lsb-rpm","rpm","na")
 ### System users, groups, and paths for Kno
 
 AC_CHECK_GROUP(default_admin_group,kno _kno adm admin)
-AC_CHECK_USER(default_daemonid,knod _knod knodaemon _knodaemon daemon nobody)
+AC_CHECK_USER(default_daemonuser,knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_daemon,xdaemon knod _knod knodaemon _knodaemon daemon nobody)
 AC_CHECK_USER(default_webuser,www apache httpd www-data _www)
 AC_CHECK_USER(default_webgroup,www apache httpd www-data _www)
@@ -1144,17 +1180,17 @@ fi
 AC_DEFINE_UNQUOTED(KNO_ADMIN_GROUP,"$admin_group")
 
 dnl Specifies a daemon identity user/group for managed Kno servers
-AC_ARG_WITH(daemonid,--with-daemonid The identity (user) for Kno servers to run as,,with_daemonid=${default_daemonid})
+AC_ARG_WITH(daemonuser,--with-daemonuser The identity (user) for Kno servers to run as,,with_daemonuser=${default_daemonuser})
 
-if test "$with_daemonid" != "no" && test "$with_daemonid" != "none"; then
-   knouser=$with_daemonid
+if test "$with_daemonuser" != "no" && test "$with_daemonuser" != "none"; then
+   knouser=$with_daemonuser
    knouserinstall="-o $knouser";
 else
    knouserinstall=""
-   knouser=$default_daemonid
+   knouser=$default_daemonuser
 fi
 
-AC_DEFINE_UNQUOTED(KNO_DAEMON,"$daemonid")
+AC_DEFINE_UNQUOTED(KNO_DAEMON,"$daemonuser")
 
 dnl Specifies where server state files should live
 AC_ARG_WITH(rundir,--with-rundir The default location for server state files,,with_rundir="$kno_rundir")
@@ -1325,15 +1361,30 @@ AC_CHECK_DECLS([RUSAGE_THREAD],[],[],[#include <sys/resource.h>])
 
 dnl Various directory/path configuration options
 
-AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=$prefix/share/kno)
+if test -z "${SYSROOT}"; then
+   default_share_dir="$prefix/share/kno";
+else
+   default_share_dir=$(mkpath "${SYSROOT}" "share");
+fi
+
+AC_ARG_WITH(share_dir,--with-share-dir location,,with_share_dir=${default_share_dir})
 AC_DEFINE_UNQUOTED(KNO_SHARE_DIR,"$with_share_dir")
 share_dir=$with_share_dir
 
-AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=$share_dir/data)
+if test -z "${SYSROOT}"; then
+   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+else
+   default_data_dir=$(mkpath "${SYSROOT}" "data")
+fi
+
+AC_ARG_WITH(data_dir,--with-data-dir location,,with_data_dir=${default_data_dir})
 AC_DEFINE_UNQUOTED(KNO_DATA_DIR,"$with_data_dir")
 data_dir=$with_data_dir
 
-if test $prefix == "/usr"; then
+if test ! -z "${SYSROOT}"; then
+   default_config_dir=$(mkpath "${SYSROOT}" "etc");
+   default_buildopts_dir=$(mkpath "${SYSROOT}" "etc/buildopts");
+elif test $prefix == "/usr"; then
    default_config_dir="/etc/kno${suffix}";
    default_buildopts_dir="/etc/beingmeta/opts";
 else
@@ -1422,12 +1473,9 @@ else
 fi;
 
 stdlib_module_path=$stdlib_search_dir
-
 installed_module_path=$installed_module_dir/
-
 local_module_path=$local_module_dir/
-
-default_module_path=$local_module_path,$installed_module_path,$stdlib_module_path
+default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
 AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
 module_path=$with_module_path
