@@ -605,17 +605,13 @@
 /* The name of the default malloc library (used by executables) */
 #undef KNO_DEFAULT_MALLOC
 
-/* Default web (servlet) user */
+/* Default web (servlet) user/group */
 #undef KNO_WEBUSER
-
-/* Default web (servlet) group */
 #undef KNO_WEBGROUP
 
-/* Default daemon user */
-#undef KNO_DAEMON
-
-/* Default admin group */
-#undef KNO_ADMIN_GROUP
+/* Default install user/group */
+#undef KNO_INSTALL_USER
+#undef KNO_INSTALL_GROUP
 
 /* Default module dirs */
 #undef KNO_LOCAL_MODULE_DIR

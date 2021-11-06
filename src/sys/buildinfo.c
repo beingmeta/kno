@@ -517,8 +517,8 @@ KNO_EXPORT void kno_init_build_info()
   config_string(KNO_DAEMON_LOG_DIR);
   config_string(KNO_WEBUSER);
   config_string(KNO_WEBGROUP);
-  config_string(KNO_DAEMON);
-  config_string(KNO_ADMIN_GROUP);
+  config_string(KNO_INSTALL_USER);
+  config_string(KNO_INSTALL_GROUP);
   config_string(KNO_CONFIG_FILE_PATH);
   config_string(KNO_DEFAULT_LOADPATH);
   config_string(KNO_DEFAULT_DLOADPATH);

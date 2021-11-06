@@ -738,7 +738,7 @@ CMODULES
 EXTMODS
 WWWUSER
 ZIPCMD
-DOINSTALL
+SUINSTALL
 SUDO
 INSTALLI18N
 I18N
@@ -787,7 +787,6 @@ debuglibs
 debugldflags
 debugcflags
 extra_gdb_sources
-setup_target
 versionsh
 archflags
 servlet_bugjar
@@ -801,13 +800,8 @@ kno_rundir
 bugjar
 logdir
 rundir
-daemonuserinstall
-daemonuser
-admininstall
-admin_group
-knouserinstall
-knouser
-wwwinstall
+install_group
+install_user
 webgroup
 webuser
 apache_modinfo
@@ -847,10 +841,12 @@ mshared_suffix
 vshared_suffix
 shared_suffix
 ifmacos
+setup_target
 install_exe_opts
 install_file_opts
 install_dir_opts
 DEFAULTMAKETARGET
+SYSROOT
 EGREP
 GREP
 CPP
@@ -881,7 +877,6 @@ infodir
 docdir
 oldincludedir
 includedir
-runstatedir
 localstatedir
 sharedstatedir
 sysconfdir
@@ -950,8 +945,8 @@ enable_prefetching
 with_codename
 with_reponame
 with_relstatus
-with_admin_group
-with_daemonuser
+with_install_group
+with_install_user
 with_rundir
 with_logdir
 with_bugjar
@@ -998,6 +993,7 @@ with_rocksdb
 with_odbc
 with_mariadb
 with_libpq
+with_setup
 '
       ac_precious_vars='build_alias
 host_alias
@@ -1049,7 +1045,6 @@ datadir='${datarootdir}'
 sysconfdir='${prefix}/etc'
 sharedstatedir='${prefix}/com'
 localstatedir='${prefix}/var'
-runstatedir='${localstatedir}/run'
 includedir='${prefix}/include'
 oldincludedir='/usr/include'
 docdir='${datarootdir}/doc/${PACKAGE}'
@@ -1302,15 +1297,6 @@ do
   | -silent | --silent | --silen | --sile | --sil)
     silent=yes ;;
 
-  -runstatedir | --runstatedir | --runstatedi | --runstated \
-  | --runstate | --runstat | --runsta | --runst | --runs \
-  | --run | --ru | --r)
-    ac_prev=runstatedir ;;
-  -runstatedir=* | --runstatedir=* | --runstatedi=* | --runstated=* \
-  | --runstate=* | --runstat=* | --runsta=* | --runst=* | --runs=* \
-  | --run=* | --ru=* | --r=*)
-    runstatedir=$ac_optarg ;;
-
   -sbindir | --sbindir | --sbindi | --sbind | --sbin | --sbi | --sb)
     ac_prev=sbindir ;;
   -sbindir=* | --sbindir=* | --sbindi=* | --sbind=* | --sbin=* \
@@ -1448,7 +1434,7 @@ fi
 for ac_var in	exec_prefix prefix bindir sbindir libexecdir datarootdir \
 		datadir sysconfdir sharedstatedir localstatedir includedir \
 		oldincludedir docdir infodir htmldir dvidir pdfdir psdir \
-		libdir localedir mandir runstatedir
+		libdir localedir mandir
 do
   eval ac_val=\$$ac_var
   # Remove trailing slashes.
@@ -1601,7 +1587,6 @@ Fine tuning of the installation directories:
   --sysconfdir=DIR        read-only single-machine data [PREFIX/etc]
   --sharedstatedir=DIR    modifiable architecture-independent data [PREFIX/com]
   --localstatedir=DIR     modifiable single-machine data [PREFIX/var]
-  --runstatedir=DIR       modifiable per-process data [LOCALSTATEDIR/run]
   --libdir=DIR            object code libraries [EPREFIX/lib]
   --includedir=DIR        C header files [PREFIX/include]
   --oldincludedir=DIR     C header files for non-gcc [/usr/include]
@@ -1694,8 +1679,8 @@ Optional Packages:
 --with-codename for distribution
 --with-reponame for distribution
 --with-relstatus e.g. stable or testing
---with-admin-group Install files with admin group and group write permissions
---with-daemonuser The identity (user) for Kno servers to run as
+--with-install-group group name for normal file/directory installation
+--with-install-user user name for normal file/directory installation
 --with-rundir The default location for server state files
 --with-logdir The default location for log files
 --with-bugjar The default location for bugjar reports
@@ -1732,6 +1717,7 @@ Optional Packages:
 --with-odbc Specify building with the ODBC bindings
 --with-mariadb Specify building with the MariaDB/MySQL bindings
 --with-libpq Specify building with the Postgres libpq bindings
+--with-setup how to setup the system on installation
 
 Some influential environment variables:
   CC          C compiler command
@@ -4242,13 +4228,14 @@ fi
 if test "${with_sysroot}" != "no"; then
    SYSROOT=$(mkpath ${with_sysroot} "")
 fi
-default_localstatedir=/var
+default_statedir=/var
 if test ! -z "${SYSROOT}" ; then
    cat >>confdefs.h <<_ACEOF
 #define KNO_SYSROOT "${SYSROOT}"
 _ACEOF
 
-   default_localstatedir="${SYSROOT}"
+   default_statedir="${SYSROOT}"
+
 fi
 
 # Check whether --enable-relocation was given.
@@ -4270,13 +4257,13 @@ if test ${RELOCATABLE} = "yes"; then
 
 fi
 
-# Override the default value for localstatedir
+# Override the default value for statedir
 
 # Check whether --with-statedir was given.
 if test "${with_statedir+set}" = set; then :
-  withval=$with_statedir; localstatedir=$withval
+  withval=$with_statedir; statedir=$withval
 else
-  localstatedir="${default_localstatedir}"
+  statedir="${default_statedir}"
 fi
 
 
@@ -4292,14 +4279,12 @@ enable_ipeval_default="no"
 install_dir_opts="-m ug+rwx,o+rx -d"
 install_file_opts="-m ug+rw,o+r"
 install_exe_opts="-m ug+rwx,o+rx"
+setup_target
 ifmacos="#"
 webuser=""
 webgroup=""
-wwwinstall=""
-admin_group=""
-admininstall=""
-knouser=""
-knouserinstall=""
+install_user=
+install_group=
 libc_pthreads="no"
 libc_dlopen="no"
 calltracko=""
@@ -4383,7 +4368,7 @@ INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
-DOINSTALL=
+SUINSTALL=
 RPMDIR=${RPMDIR:-dist}
 RPMFLAGS=${RPMFLAGS:-}
 APTLY=
@@ -4396,8 +4381,8 @@ LIBSCM=""
 install_libscm="install-libscm"
 STDLIB=""
 
-rundir=$(mkpath "${localstatedir}" "run")
-logdir=$(mkpath "${localstatedir}" "log")
+rundir=$(mkpath "${statedir}" "run")
+logdir=$(mkpath "${statedir}" "log")
 
 if test -z "${SYSROOT}"; then
    kno_rundir=$(mkpath "$rundir" "kno")
@@ -4564,10 +4549,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
-
 
 
 
@@ -9262,7 +9243,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9308,7 +9289,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9332,7 +9313,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9377,7 +9358,7 @@ else
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9401,7 +9382,7 @@ rm -f core conftest.err conftest.$ac_objext conftest.$ac_ext
     We can't simply define LARGE_OFF_T to be 9223372036854775807,
     since some C++ compilers masquerading as C compilers
     incorrectly reject 9223372036854775807.  */
-#define LARGE_OFF_T ((((off_t) 1 << 31) << 31) - 1 + (((off_t) 1 << 31) << 31))
+#define LARGE_OFF_T (((off_t) 1 << 62) - 1 + ((off_t) 1 << 62))
   int off_t_is_large[(LARGE_OFF_T % 2147483629 == 721
 		       && LARGE_OFF_T % 2147483647 == 1)
 		      ? 1 : -1];
@@ -9943,49 +9924,6 @@ test -n "$rpm" || rpm=""rpm""
 ### System users, groups, and paths for Kno
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for group default_admin_group" >&5
-$as_echo_n "checking for group default_admin_group... " >&6; }
-  found_group="none";
-  for group in kno _kno adm admin;
-  do if grep ^$group: /etc/group > /dev/null;
-  then
-	found_group=$group;
-	break;
-  fi; done;
-  default_admin_group=$found_group;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_group" >&5
-$as_echo "$found_group" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemonuser" >&5
-$as_echo_n "checking for user default_daemonuser... " >&6; }
-  found_user="none";
-  for user in knod _knod knodaemon _knodaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_daemonuser=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_daemon" >&5
-$as_echo_n "checking for user default_daemon... " >&6; }
-  found_user="none";
-  for user in xdaemon knod _knod knodaemon _knodaemon daemon nobody;
-  do
-  if grep ^$user: /etc/passwd > /dev/null;
-  then
-	found_user=$user;
-	break;
-  fi;
-  done;
-  default_daemon=$found_user;
-  { $as_echo "$as_me:${as_lineno-$LINENO}: result: $found_user" >&5
-$as_echo "$found_user" >&6; }
-
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for user default_webuser" >&5
 $as_echo_n "checking for user default_webuser... " >&6; }
   found_user="none";
@@ -10017,52 +9955,41 @@ $as_echo_n "checking for user default_webgroup... " >&6; }
 $as_echo "$found_user" >&6; }
 
 
-# Check whether --with-admin_group was given.
-if test "${with_admin_group+set}" = set; then :
-  withval=$with_admin_group;
+# Check whether --with-install_group was given.
+if test "${with_install_group+set}" = set; then :
+  withval=$with_install_group; install_group=$withval
 else
-  with_admin_group=${default_admin_group}
+  install_group=none
 fi
 
 
-if test "$with_admin_group" != "no" && test "$with_admin_group" != "none"; then
-  install_dir_opts="-g $with_admin_group -m 0775 $install_dir_opts"
-  install_file_opts="-g $with_admin_group $install_file_opts"
-  install_exe_opts="-g $with_admin_group $install_exe_opts"
-  admininstall="-g $with_admin_group"
-  admin_group=$with_admin_group
+if test "${install_group}" != "none"; then
+  install_dir_opts="-g $install_group -m ug+rwx,o+rx $install_dir_opts"
+  install_file_opts="-g $install_group $install_file_opts"
+  install_exe_opts="-g $install_group $install_exe_opts"
+fi
+
+
+# Check whether --with-install_user was given.
+if test "${with_install_user+set}" = set; then :
+  withval=$with_install_user; install_user=$withval
 else
-  install_dir_opts="$install_dir_opts"
-  install_file_opts="$install_file_opts"
-  install_exe_opts="$install_exe_opts"
-  admin_group=$default_admin_group
-  admininstall=""
+  install_user=none
+fi
+
+
+if test "${install_user}" != "none"; then
+  install_dir_opts="-u $install_user $install_dir_opts"
+  install_file_opts="-u $install_user $install_file_opts"
+  install_exe_opts="-u $install_user $install_exe_opts"
 fi
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_ADMIN_GROUP "$admin_group"
+#define KNO_INSTALL_USER "$install_user"
 _ACEOF
 
-
-
-# Check whether --with-daemonuser was given.
-if test "${with_daemonuser+set}" = set; then :
-  withval=$with_daemonuser;
-else
-  with_daemonuser=${default_daemonuser}
-fi
-
-
-if test "$with_daemonuser" != "no" && test "$with_daemonuser" != "none"; then
-   knouser=$with_daemonuser
-   knouserinstall="-o $knouser";
-else
-   knouserinstall=""
-   knouser=$default_daemonuser
-fi
-
 cat >>confdefs.h <<_ACEOF
-#define KNO_DAEMON "$daemonuser"
+#define KNO_INSTALL_GROUP "$install_group"
 _ACEOF
 
 
@@ -10117,7 +10044,7 @@ cat >>confdefs.h <<_ACEOF
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_SERVLET_RUN_DIR "$daemon_rundir"
+#define KNO_SERVLET_RUN_DIR "$servlet_rundir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -13410,16 +13337,16 @@ fi;
 if test "${with_sudo+set}" = set; then :
   withval=$with_sudo;
 else
-  with_sudo="$SUDO"
+  with_sudo="yes"
 fi
 
 
 if test "$with_sudo" == "yes"; then
-   DOINSTALL="${SUDO} ";
+   SUINSTALL='${SUDO} ';
 elif test "$with_sudo" == "no"; then
-   DOINSTALL="";
+   SUINSTALL="";
 else
-   DOINSTALL="$with_sudo ";
+   SUINSTALL="$with_sudo ";
 fi
 
 ### zlib/libz compression functions
@@ -14225,6 +14152,17 @@ if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
 else auto_disabled="libpq(postgres) ${auto_disabled}";
 fi;
 
+### Setup options
+
+
+# Check whether --with-setup was given.
+if test "${with_setup+set}" = set; then :
+  withval=$with_setup; setup_target=setup-$withval
+else
+  setup_target=setup-unix
+fi
+
+
 ### These are components to preload
 
 cat >>confdefs.h <<_ACEOF
@@ -14247,7 +14185,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob src/shell/usebundle.sh tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14987,6 +14925,7 @@ do
     "src/shell/knogetconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knogetconfig" ;;
     "src/shell/knoconfig") CONFIG_FILES="$CONFIG_FILES src/shell/knoconfig" ;;
     "src/shell/knojob") CONFIG_FILES="$CONFIG_FILES src/shell/knojob" ;;
+    "src/shell/usebundle.sh") CONFIG_FILES="$CONFIG_FILES src/shell/usebundle.sh" ;;
     "tests/testenv.sh") CONFIG_FILES="$CONFIG_FILES tests/testenv.sh" ;;
     "tests/xtest") CONFIG_FILES="$CONFIG_FILES tests/xtest" ;;
     "tests/runtest") CONFIG_FILES="$CONFIG_FILES tests/runtest" ;;

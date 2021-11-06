@@ -4,10 +4,12 @@ CONFIG_ARGS=
 MAKE_ARGS=
 TEST_ARGS=
 INSTALL_ARGS=
+INSTALL_TARGET=install
 OFFLINE=
 SUFFIX=
 BUILD=$(pwd)
 SKIP_BUILD=
+DO_INSTALL=
 SRC=$(dirname $(pwd))
 ECHO=$(which echo)
 doclean=1;
@@ -80,17 +82,19 @@ while [ $# -gt 0 ]; do
 	relocate|relocatable)
 	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib";
 	    ;;
-	portable)
+	portable|bundle)
 	    BUNDLE_NAME="kno-$(u8_gitversion etc/base_version)"
 	    use_prefix=/opt/${BUNDLE_NAME}
-	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --with-admin-group=none --with-daemonuser=none";
-	    INSTALL_ARGS="DESTDIR=staging DOINSTALL= install";
+	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --without-sudo --with-setup=none";
+	    INSTALL_ARGS="DOSETUP= install";
 	    ;;
-	bundle)
-	    BUNDLE_NAME="kno-$(u8_gitversion etc/base_version)"
-	    use_prefix=/opt/${BUNDLE_NAME};
-	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --with-admin-group=none --with-daemonuser=none";
-	    INSTALL_ARGS="DESTDIR=staging DOINSTALL= install";
+	install)
+	    DO_INSTALL=yes
+	    ;;
+	stage|staging)
+	    if [ ! -d staging/root ]; then mkdir staging/root; fi;
+	    INSTALL_ARGS="DESTDIR=staging/root SUINSTALL=";
+	    DO_INSTALL=yes;
 	    ;;
 	current|.)
 	    BRANCH="use_current_branch";
@@ -242,7 +246,9 @@ git submodule update
 if [ -z "${SKIP_BUILD}" ]; then
     make -j ${MAKE_ARGS} $* && 
 	if [ ! -z "${TEST_ARGS}" ]; then make -j ${TEST_ARGS}; fi &&
-	if [ ! -z "${INSTALL_ARGS}" ]; then make ${INSTALL_ARGS}; fi &&
+	if [ ! -z "${DO_INSTALL}" ]; then
+	    make ${INSTALL_ARGS} ${INSTALL_TARGET}; 
+	fi &&
 	${ECHO} -n "All done: "; status; echo;
 fi
 

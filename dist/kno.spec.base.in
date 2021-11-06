@@ -73,7 +73,7 @@ from KNO for mariadb
 %package        postgres
 Summary:        KNO SQL drivers for postgres
 Group:          Development/Libraries
-Requires:       %{name} = %{version}-%{release} postgres
+Requires:       %{name} = %{version}-%{release} libpq-devel
 
 %description    postgres
 The %{name}-postgres package provides SQLDB drivers
@@ -135,8 +135,9 @@ rm -rf $RPM_BUILD_ROOT
 %attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_MAJOR@
 %attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_VERSION@
 %attr(-,root,adm) %{_datadir}/kno/libscm/kno-@KNO_PATCHVERSION@
-%attr(-,root,adm) %{_datadir}/kno/stdlib/kno-@KNO_VERSION@
-%attr(-,root,adm) %{_datadir}/kno/stdlib/kno-@KNO_VERSION@.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_MAJOR@.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_VERSION@.zip
+%attr(-,root,adm) %{_datadir}/kno/stdlib/stdlib-@KNO_PATCHVERSION@.zip
 %attr(-,root,adm) %{_datadir}/kno/modules/local
 %attr(-,root,adm) %{_datadir}/kno/modules/installed
 %attr(-,root,adm) %{_datadir}/locale/es/LC_MESSAGES/kno.mo

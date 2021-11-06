@@ -3,6 +3,7 @@
 # This file is a part of beingmeta's Kno implementation
 
 CC		  = @CC@
+SYSROOT		  = @SYSROOT@
 XCFLAGS		  =
 OPTFLAGS	  = "@OPTFLAGS@"
 XOPTFLAGS	  = "@XOPTFLAGS@"
@@ -65,11 +66,13 @@ CLEAN		  = @CLEAN@
 ECHO		  = @ECHO@
 GZIP		  = @GZIP@
 MSG		  = @MSG@
-DOINSTALL	  = @DOINSTALL@
-SYSINSTALL	  = @DOINSTALL@ @INSTALL@
+SUINSTALL	  = @SUINSTALL@
+SYSINSTALL	  = ${SUINSTALL} @INSTALL@
+SYSINSTALLDIR	  = ${SUINSTALL} @INSTALL@ -d
+DOSETUP	          = @setup_target@
 SUDO		  = @SUDO@
 INSTALL		  = @INSTALL@
-GZINSTALL	  = ${DOINSTALL} ${GZIP} -cf
+GZINSTALL	  = ${SUINSTALL} ${GZIP} -cf
 MKSTATIC	  = @MKSTATIC@ -o 
 CODENAME	  = @CODENAME@
 REL_BRANCH	:= $(shell ./etc/getbuildopt REL_BRANCH current)
@@ -624,16 +627,6 @@ exe/.gdbinit: exe/.gdbinit.in ./config.status
 etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
 	dbg/.gdbinit exe/.gdbinit
 
-# Makes everything and then sudoes the install, keeping build files
-# non-root
-
-suinstall:
-	make all
-	@$(SUDO) make install
-dbginstall:
-	make XCFLAGS="-O0" all
-	@$(SUDO) make install
-
 # Implicit make rules
 
 %.o: %.c ${CONFIG_HDRS}
@@ -765,10 +758,10 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
-	@$(DOINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
 
 ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
@@ -776,11 +769,11 @@ ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
-	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@ 
 	@make -s ${CMODULES}/$(*F).@mshared_suffix@
-	@$(DOINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG) Linking $@ to $(*F).@vshared_suffix@
 
 $(BININSTALLDIR)/%: src/scripts/%
@@ -803,7 +796,7 @@ $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $@
 
 $(DESTDIR)@share_dir@/% $(DESTDIR)@share_dir@/modules/%:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+	@$(SYSINSTALL) @install_dir_opts@ $@
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
@@ -852,38 +845,10 @@ cwrappers: @CWRAPPERS@
 dbg/knocgi.webuser: dbg/knocgi
 	@echo "Making" $@
 	@cp dbg/knocgi dbg/knocgi.webuser
-	@sudo chown @webuser@:@admin_group@ dbg/knocgi.webuser
+	@sudo chown @webuser@:@install_group@ dbg/knocgi.webuser
 	@sudo chmod ug+s dbg/knocgi.webuser
 
-# Uninstall
 
-LIBBASE=libkno libknocore libknostorage libknodrivers libknoscheme \
-	libknowebtools libknotexttools
-
-uninstall-core:
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
-	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_VERSION@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@KNO_MINOR@.@shared_suffix@" $(LIBBASE)
-	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
-	rm -rf $(DESTDIR)${CMODULES}
-uninstall-all: uninstall-core
-	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
-		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@
-uninstall: uninstall-core
-	@if (test -d $(DESTDIR)@share_dir@); then \
-	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
-	@if (test -d $(DESTDIR)@config_dir@); then \
-	  $(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
-	@if (test -d $(DESTDIR)@local_config@); then \
-	  $(MSG) $(DESTDIR)@local_config@ "still exists"; fi
-	@if (test -d $(DESTDIR)@shared_config@); then \
-	  $(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
-	@if (test -d $(DESTDIR)@module_dir@); then \
-	  $(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
 
 # Utility targets
 
@@ -1067,7 +1032,7 @@ clean: tidy
 	cd tests; make -s clean
 	find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
-	rm -f .buildmode
+	rm -f .buildmode REVISION
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/libtests/makefile tests/makefile tests/lisp/.gdbinit
 	rm -f dbg/gdbinit
@@ -1255,7 +1220,7 @@ install-parseltongue2: ${CMODULES}/parseltongue2.@shared_suffix@ \
 # Internationalization stuff
 
 $(LOCALEDIR)/%/LC_MESSAGES/kno.mo: etc/intl/%.gmo
-	@$(DOINSTALL) install -D $^ $@
+	@$(SUINSTALL) install -D $^ $@
 
 etc/intl/kno.pot:
 	@XGETTEXT@ --from-code=utf-8 -dfdstorage -oetc/intl/kno.pot -k_ \
@@ -1306,16 +1271,19 @@ install: install-status install-core		\
 		install-cmodules		\
 		install-cwrappers		\
 		@install_libscm@ install-stdlib \
-		install-dev			\
-		@setup_target@
+		install-dev ${DOSETUP}
+	if [ ! -z "${SYSROOT}" ]; then make setup-bundle; fi;
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
+setup: install
+	make unix-setup
+
 install-bin: install-shared-libs install-exe
 install-stripped:
 	make LIBSOURCE=lib/stripped EXECSOURCE=exe/stripped install-bin
 install-text: @install_libscm@ install-scripts install-support
-install-dirs: confdirs workdirs
+install-dirs: install-confdirs install-workdirs
 install-core: install-dirs install-bin @INSTALLI18N@ install-text install-data
 install-dev:  install-headers install-pkgconfig
 
@@ -1330,17 +1298,17 @@ $(LIBINSTALLDIR):
 ${CMODULES}:
 	@$(SYSINSTALL) @install_dir_opts@ ${CMODULES}
 $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+	@$(SYSINSTALL) @install_dir_opts@ $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+	@$(SYSINSTALL) @install_dir_opts@ $@
 $(DESTDIR)@config_dir@/daemons \
 		$(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+	@$(SYSINSTALL) @install_dir_opts@ $@
 $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
-	@$(DOINSTALL) ln -sf kno-@KNO_PATCHVERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
-	@$(DOINSTALL) ln -sf kno-@KNO_VERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_MAJOR@
+	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SUINSTALL) ln -sf kno-@KNO_PATCHVERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
+	@$(SUINSTALL) ln -sf kno-@KNO_VERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_MAJOR@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
 	make $(LIBINSTALLDIR)/libkno@suffix@.a			\
@@ -1378,16 +1346,20 @@ install-data: $(DATADIR)
 
 install-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@$(DOINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
+	@$(SUINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 	@$(SYSINSTALL) -p @install_exe_opts@ $(EXECUTABLES) $(BININSTALLDIR)
-	@$(DOINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
+	@$(SUINSTALL) ln -sf knox@suffix@ $(BININSTALLDIR)/knapp@suffix@
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
 	@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
+
+setup-bundle:
+	@$(SYSINSTALL) docs/bundle.README $(DESTDIR)@SYSROOT@/README.md
+	@$(SYSINSTALL) src/shell/usebundle.sh $(DESTDIR)@SYSROOT@
 
 install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon.service	\
@@ -1400,6 +1372,27 @@ install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon-init.d		\
 	$(DESTDIR)@config_dir@/boot/kno.conf		\
 	$(DESTDIR)@config_dir@/boot/logrotate
+
+# Setup targets
+
+install-workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
+	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
+	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
+	$(DESTDIR)@bugjar@
+
+install-confdirs: $(DESTDIR)@installed_module_dir@ \
+	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
+	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
+	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
+	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
+	  $(DESTDIR)@config_dir@/config
+	@$(MSG) Setting up configuration directories
+	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
+		$(SYSINSTALL) @install_file_opts@ /dev/null \
+			$(DESTDIR)@config_dir@/servers; fi
+
+$(DESTDIR)@unpackage_dir@:
+	@$(SYSINSTALL) @install_dir_opts@ $@
 
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
@@ -1417,32 +1410,51 @@ install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
 install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
 install-postgres: ${CMODULES}/pqprims.@shared_suffix@ ${CMODULES}/pqprims.@vshared_suffix@ \
 	          $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
-	${INSTALL} src/cwrappers/postgres.scm $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
+	${SUINSTALL} ${INSTALL} src/cwrappers/postgres.scm $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
 
 install-cwrappers: @INSTALL_CWRAPPERS@
 
-# Setup targets
+# Install variants
 
-workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
-	$(DESTDIR)@daemon_rundir@ $(DESTDIR)@daemon_logdir@ \
-	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
-	$(DESTDIR)@bugjar@
+# Makes everything and then sudoes the install, keeping build files
+# non-root
 
-confdirs: $(DESTDIR)@installed_module_dir@ \
-	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
-	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
-	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
-	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
-	  $(DESTDIR)@config_dir@/config
-	@$(MSG) Setting up configuration directories
-	@if test ! -f $(DESTDIR)@config_dir@/servers; then \
-		$(SYSINSTALL) @install_file_opts@ /dev/null \
-			$(DESTDIR)@config_dir@/servers; fi
+suinstall:
+	make all
+	@$(SUDO) make install
+dbginstall:
+	make XCFLAGS="-O0" all
+	@$(SUDO) make install
 
-$(DESTDIR)@unpackage_dir@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $@
+# Uninstall
 
-upstartdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
+LIBBASE=libkno libknocore libknostorage libknodrivers libknoscheme \
+	libknowebtools libknotexttools
+
+uninstall-core:
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(EXECUTABLES) knocgi
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SHELL_SCRIPTS)
+	./etc/uninstall $(DESTDIR)$(BININSTALLDIR) "" $(SCHEME_SCRIPTS)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.a" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_VERSION@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@KNO_MAJOR@.@KNO_MINOR@.@shared_suffix@" $(LIBBASE)
+	./etc/uninstall $(DESTDIR)$(LIBINSTALLDIR) "@suffix@.@shared_suffix@" $(LIBBASE)
+	rm -rf $(DESTDIR)${CMODULES}
+uninstall-all: uninstall-core
+	rm -rf $(DESTDIR)@share_dir@ $(DESTDIR)@config_dir@ \
+		$(DESTDIR)@local_config@ $(DESTDIR)@shared_config@
+uninstall: uninstall-core
+	@if (test -d $(DESTDIR)@share_dir@); then \
+	  $(MSG) $(DESTDIR)@share_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@config_dir@); then \
+	  $(MSG) $(DESTDIR)@config_dir@ "still exists"; fi
+	@if (test -d $(DESTDIR)@local_config@); then \
+	  $(MSG) $(DESTDIR)@local_config@ "still exists"; fi
+	@if (test -d $(DESTDIR)@shared_config@); then \
+	  $(MSG) $(DESTDIR)@shared_config@ "still exists"; fi
+	@if (test -d $(DESTDIR)@module_dir@); then \
+	  $(MSG) $(DESTDIR)@module_dir@ "still exists"; fi
 
 FIND_FLAGS="-exclude ".attic" -exclude "*~" -exclude "#*""
 
@@ -1469,11 +1481,10 @@ src/brico/brico.scm:
 	git submodule update --remote --merge src/brico;
 
 install-support: $(DESTDIR)@share_dir@
-	cd $(BUILD)/etc; $(SYSINSTALL) @install_file_opts@	\
-		gdbinit makefile.include knoc.el		\
-		$(DESTDIR)@share_dir@
-	cd $(BUILD)/src/web; $(SYSINSTALL) @install_file_opts@	\
-		webinfo.knocgi $(DESTDIR)@share_dir@
+	$(SYSINSTALL) @install_file_opts@ 		\
+	   etc/gdbinit etc/makefile.include etc/knoc.el	\
+	   $(DESTDIR)@share_dir@
+	$(SYSINSTALL) @install_file_opts@ src/web/webinfo.knocgi $(DESTDIR)@share_dir@
 
 install-libscm: src/libscm.zip \
 		$(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@ \
@@ -1489,8 +1500,8 @@ install-libscm.skip: src/libscm.zip
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
 	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
-	@$(DOINSTALL) ln -sf stdlib-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
-	@$(DOINSTALL) ln -sf stdlib-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
+	@$(SUINSTALL) ln -sf stdlib-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
+	@$(SUINSTALL) ln -sf stdlib-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@
 
@@ -1500,34 +1511,26 @@ $(DESTDIR)/etc/init.d:
 	@$(SYSINSTALL) -m 0755 -d $(DESTDIR)/etc/init.d
 $(DESTDIR)/etc/init.d/kno: etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d
 	@$(MSG) Installing Kno init.d
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
+	@$(SYSINSTALL) etc/sysv/kno-rc.d $(DESTDIR)/etc/init.d/kno
 $(DESTDIR)@kno_rundir@:
 	@$(MSG) Installing Kno run directory
-	@$(SYSINSTALL) -m 0775	@knouserinstall@ @admininstall@ -d \
-		   $(DESTDIR)@kno_rundir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@kno_rundir@
 $(DESTDIR)@daemon_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno daemon run directory
-	@$(SYSINSTALL) -m 0775	@knouserinstall@ @admininstall@ -d \
-		   $(DESTDIR)@daemon_rundir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@daemon_rundir@
 $(DESTDIR)@servlet_rundir@: $(DESTDIR)@kno_rundir@
 	@$(MSG) Installing Kno servlet run directory
-	@$(SYSINSTALL) -m 0775	@wwwinstall@ @admininstall@ -d \
-		   $(DESTDIR)@servlet_rundir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@servlet_rundir@
 $(DESTDIR)@kno_logdir@:
 	@$(MSG) Installing Kno log directory
-	@$(SYSINSTALL) -m 0775 @knouserinstall@	 @admininstall@ -d \
-		   $(DESTDIR)@kno_logdir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@kno_logdir@
 $(DESTDIR)@bugjar@: $(DESTDIR)@kno_logdir@
 	@$(MSG) Installing Kno bugjar directory
-	@$(SYSINSTALL) -m 0777 @knouserinstall@	 @admininstall@ -d \
-		   $(DESTDIR)@bugjar@
+	@$(SYSINSTALLDIR) $(DESTDIR)@bugjar@
 $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @knouserinstall@ @admininstall@ \
-		-d $(DESTDIR)@daemon_logdir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@daemon_logdir@
 $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
-	@$(SYSINSTALL) -m 0775 @wwwinstall@ @admininstall@ \
-		-d $(DESTDIR)@servlet_logdir@
+	@$(SYSINSTALLDIR) $(DESTDIR)@servlet_logdir@
 
 $(DESTDIR)@config_dir@/boot:
 	@$(SYSINSTALL) @install_dir_opts@ $@
@@ -1536,7 +1539,7 @@ setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs
 enable-sysv: setup-sysv
 	@if which update-rc.d; then \
 		$(MSG) Updating rc.d; \
-		$(DOINSTALL) update-rc.d kno defaults; \
+		$(SUINSTALL) update-rc.d kno defaults; \
 	 fi
 
 info:
@@ -1548,21 +1551,20 @@ startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 setup-upstart: $(DESTDIR)/etc/init/kno.conf startupdirs
 
 $(DESTDIR)/etc/init:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)/etc/init
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/kno.conf: etc/upstart/kno.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
-	@$(SYSINSTALL) -m 0555 @admininstall@ \
-		   etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
+	@$(SYSINSTALL) etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
 
 $(DESTDIR)@systemd_loc@:
-	@$(SYSINSTALL) -m 0775 @admininstall@ -d $(DESTDIR)@systemd_loc@
+	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 		$(DESTDIR)@systemd_loc@/kno-daemons.service \
 		$(DESTDIR)@systemd_loc@/kno-servlets.service \
 		startupdirs
 $(DESTDIR)@systemd_loc@/%: etc/systemd/% $(DESTDIR)@systemd_loc@
 	@$(MSG) Installing systemd config in $@
-	@$(SYSINSTALL) -m 0444 @admininstall@ $< $@
+	@$(SYSINSTALL) $< $@
 	@if test -z "${DESTDIR}" && test ! -z "${SUDO}"; then	\
 	   ${MSG} systemctl daemon-reload;			\
 	   ${SUDO} systemctl daemon-reload;			\
@@ -1577,12 +1579,14 @@ $(DESTDIR)/etc/logrotate.d/kno: etc/logrotate $(DESTDIR)/etc/logrotate.d
 
 setup-allboot: setup-sysv setup-systemd #  setup-upstart
 
+setup-none:
+
 setup-unix: @BOOTSETUP@ setup-logrotate
 setup-linux: setup-unix
 
 setup-osx: @share_dir@ startupdirs statedirs logdirs 
 	@$(MSG) Setting up OSX system configuration
-	@$(DOINSTALL) etc/macos/setup-osx "@share_dir@" \
+	@$(SUINSTALL) etc/macos/setup-osx "@share_dir@" \
 		"${INSTALL} @install_dir_opts@" \
 		"${INSTALL} @install_exe_opts@" \
 		"${INSTALL} @install_exe_opts@" \
@@ -1823,14 +1827,18 @@ staging/env.macports: makefile
 
 # Packaging targets
 
-rpms: dist/rpms.done
-debian deb debs: dist/debs.done
-debsource: dist/debsource.done
+rpms: status/rpms.done
+debian deb debs: status/debian.done
+debsource: status/debsource.done
+
+.PRECIOUS: status/%
+.SECONDARY: status/%
 
 pkgclean: 
-	rm -f dist/*.built dist/*.signed dist/*.done dist/*.ready dist/*.installed
+	rm -f status/*.built status/*.signed status/*.done status/*.ready status/*.installed
 	rm -rf staging/kno* staging/*.tar staging/*.gz dist/*.tar dist/*.gz
 	rm -f dist/*.deb dist/*.dsc dist/*.changes dist/*.buildinfo
+	rm -f states/debian.*
 	find dist -name "*.rpm" -writable | xargs -r rm
 	rm -rf staging/alpine*
 cleandist cleanrpms cleandeb rpmclean debclean alpineclean: pkgclean
@@ -1911,37 +1919,38 @@ dist/kno.spec.base: dist/kno.spec.base.in
 
 # Rules for Debian building
 
-dist/debian.ready: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+status/debian.ready: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	make staging/kno_@KNO_VERSION@ && touch $@
 
-dist/debian.built: dist/debian.ready
+status/debian.built: status/debian.ready
+	(cd staging; tar czf kno_@KNO_PATCHVERSION@.orig.tar.gz kno_@KNO_VERSION@);
 	(cd staging/kno_@KNO_VERSION@;			\
 	 dpkg-buildpackage -sa -us -uc -F) &&		\
 	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
 	 mv staging/*_@KNO_VERSION@*.* dist &&		\
 	touch $@
 
-dist/debian.signed: dist/debian.built
+status/debian.signed: status/debian.built
 	debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes && touch $@
 
-dist/debian.done:
+status/debian.done: status/debian.built
 	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
 	    echo "Skipping GPG signing of debian packages";		\
-	  else make dist/debs.signed; fi) && 				\
+	  else make status/debian.signed; fi) && 				\
 	touch $@
 
 unsigned-debs usdebs:
-	make GPGID=none dist/debian.done
+	make GPGID=none status/debian.done
 
-dist/debian.installed: dist/debian.done
+status/debian.installed: status/debian.done
 	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
 	   $(SUDO) dpkg -i dist/*.deb ) && \
 	 touch $@
-install-debian install-debs debinstall installdebs: dist/debian.installed
+install-debian install-debs debinstall installdebs: status/debian.installed
 
-dist/debs.uploaded: dist/debs.done
+status/debian.uploaded: status/debian.done
 	@@U8BIN@u8_dupload dist/kno_@KNO_VERSION@*.changes ${APT_INCOMING} && touch debs.uploaded
-update-apt apt-upload: dist/debs.uploaded
+update-apt apt-upload: status/debian.uploaded
 
 # RPM targets
 
@@ -1949,18 +1958,18 @@ staging/kno_@KNO_VERSION@.orig.tar.gz: staging/kno_@KNO_VERSION@
 	tar -czf staging/kno_@KNO_VERSION@.tar.gz -C staging kno_@KNO_VERSION@
 	cd staging; ln -s kno.tar.gz kno_@KNO_VERSION@.tar.gz
 
-dist/rpms.ready:
+status/rpms.ready:
 	@make staging/kno-@KNO_VERSION@ staging/kno-@KNO_VERSION@.tar.gz
 
-dist/rpms.built: dist/rpms.ready
+status/rpms.built: status/rpms.ready
 	@buildrpm@ $(RPMFLAGS)				\
 	   --define="_rpmdir $(RPMDIR)"			\
 	   --define="_srcrpmdir $(RPMDIR)"		\
 	   --nodeps -ta					\
 	    staging/kno-@KNO_VERSION@.tar.gz &&		\
-	touch dist/rpms.ready
+	touch status/rpms.ready
 
-dist/rpms.signed: dist/rpms.built
+status/rpms.signed: status/rpms.built
      echo "Enter passphrase for '$(GPGID)':";		\
      @@rpm@ --addsign --define="_gpg_name $(GPGID)"	\
 	--define="__gpg_sign_cmd $(RPMGPG)"		\
@@ -1968,33 +1977,33 @@ dist/rpms.signed: dist/rpms.built
 	$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;	&& 	\
       touch $@
 
-dist/rpms.done: dist/rpms.ready
+status/rpms.done: status/rpms.ready
 	@(if (test "$(GPGID)" = "none" || test "$(GPGID)" = "" ); then	\
 	    echo "Skipping RPM signing";				\
-	  else make dist/rpms.signed; fi) &&				\
+	  else make status/rpms.signed; fi) &&				\
 	 touch $@;
 	@ls -l $(RPMDIR)/kno-@KNO_VERSION@-*.src.rpm \
 		$(RPMDIR)/*/kno*-@KNO_VERSION@-*.rpm;
 
 rpmupdate update-rpms freshrpms: cleanrpms
-	rm -f dist/rpms.done dist/rpms.ready
-	make -s dist/rpms.done
-dist/rpms.zip: dist/rpms.done
+	rm -f status/rpms.done status/rpms.ready
+	make -s status/rpms.done
+dist/rpms.zip: status/rpms.done
 	@rm -f dist/rpms.zip
 	@zip dist/rpms.zip \
 		$(RPMDIR)/kno*-@KNO_VERSION@-*.src.rpm \
 		$(RPMDIR)/*/kno-*-@KNO_VERSION@-*.rpm
 
-redhat rpms rpm: dist/rpms.done
+redhat rpms rpm: status/rpms.done
 
 unsigned-rpms usrpms:
-	make GPGID=none dist/rpms.done
+	make GPGID=none status/rpms.done
 
-dist/rpms.installed: dist/rpms.done
+status/rpms.installed: status/rpms.done
 	@( $(SUDO) rpm -Uvh dist/@target_cpu@/kno*@KNO_VERSION@*.rpm ) && \
 	 ( $(SUDO) rpm -Uvh dist/kno-*@KNO_VERSION@*.src.rpm ) && \
 	 touch $@
-install-rpms rpminstall installrpms: dist/rpms.installed
+install-rpms rpminstall installrpms: status/rpms.installed
 
 # Alpine packaging
 
@@ -2012,7 +2021,7 @@ staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
 staging/alpine/kno_@KNO_VERSION@.tar: dist/kno.tar staging/alpine
 	cp dist/kno.tar $@
 
-dist/alpine.ready: dist/alpine/APKBUILD include/kno/revision.h makefile
+status/alpine.ready: dist/alpine/APKBUILD include/kno/revision.h makefile
         # We use `make` here rather than a dependency because otherwise
 	# the dependent tar might be auto-deleted
 	make staging/alpine/kno_@KNO_VERSION@.tar staging/alpine/APKBUILD && \
@@ -2020,20 +2029,20 @@ dist/alpine.ready: dist/alpine/APKBUILD include/kno/revision.h makefile
 	(cd staging/alpine; abuild -P ${APKREPO} clean cleancache cleanpkg && abuild checksum ) && \
 	touch $@
 
-dist/alpine.done: dist/alpine.ready
+status/alpine.done: status/alpine.ready
 	(cd staging/alpine; abuild -P ${APKREPO}) && touch $@
 
 ## Unlike debian and rpms, alpine writes into the repository itself, in APK_REPO
 ## So we don't call the installer on the package files but from the package manager
 ##  directly.
-dist/alpine.installed:
+status/alpine.installed:
 	cd staging/alpine; \
 	  apk add --force-overwrite \
 	          --repository=${APKREPO}/staging \
 	      ${ALPINE_PKGS}
 
-alpine: dist/alpine.done
-install-alpine: dist/alpine.installed
+alpine: status/alpine.done
+install-alpine: status/alpine.installed
 
 .PHONY: alpine
 

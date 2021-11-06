@@ -37,7 +37,7 @@ usr/share/kno/makefile.include
 usr/share/kno/webinfo.knocgi
 etc/logrotate.d/kno
 usr/share/kno/libscm/kno-*.zip
-usr/share/kno/stdlib/kno-*.zip
+usr/share/kno/stdlib/stdlib-*.zip
 usr/share/man/man1/*.1*
 usr/share/man/man8/*.8*
 usr/share/doc/kno/html/*.html

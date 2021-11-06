@@ -554,6 +554,7 @@ KNO_EXPORT void kno_log_status(u8_condition why)
            heapsize,heapu);}
 }
 
+#if KNO_RELOCATION_ENABLED
 static void relocate_sysroot()
 {
   u8_string sysroot = u8_getenv("KNO_SYSROOT");
@@ -580,6 +581,7 @@ static void relocate_sysroot()
     u8_free(kno_sysroot);
     kno_sysroot=NULL;}
 }
+#endif
 
 KNO_EXPORT int kno_init_lisp_types()
 {
