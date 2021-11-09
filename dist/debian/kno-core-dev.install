@@ -1,6 +1,0 @@
-usr/lib/libkno.a
-usr/lib/libkno.so
-usr/lib/libknowebtools.a
-usr/lib/libknotexttools.a
-usr/include/kno/*.h
-usr/share/pkgconfig/*.pc

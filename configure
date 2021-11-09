@@ -621,15 +621,6 @@ ac_includes_default="\
 
 ac_subst_vars='LTLIBOBJS
 LIBOBJS
-LIBPQ_LIBS
-LIBPQ_CFLAGS
-MARIADB_LIBS
-MARIADB_CFLAGS
-ODBC_CFLAGS
-ROCKSDB_LIBS
-ROCKSDB_CFLAGS
-LEVELDB_LIBS
-LEVELDB_CFLAGS
 sudo_program
 PYTHON2_LIB
 PYTHON2_INCLUDE_DIR
@@ -729,9 +720,6 @@ MALLOC_FLAGS
 PKG_CFLAGS
 BOOTSETUP
 DATAFILES
-INSTALL_CWRAPPERS
-TEST_CWRAPPERS
-CWRAPPERS
 INSTALL_CMODULES
 TEST_CMODULES
 CMODULES
@@ -989,11 +977,6 @@ with_parseltongue
 with_sudo
 with_bootsystem
 with_systemd
-with_leveldb
-with_rocksdb
-with_odbc
-with_mariadb
-with_libpq
 with_setup
 '
       ac_precious_vars='build_alias
@@ -1724,11 +1707,6 @@ Optional Packages:
 --with/out-sudo use sudo with install
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
---with-leveldb Specify building with the LevelDB bindings
---with-rocksdb Specify building with the RocksDB bindings
---with-odbc Specify building with the ODBC bindings
---with-mariadb Specify building with the MariaDB/MySQL bindings
---with-libpq Specify building with the Postgres libpq bindings
 --with-setup how to setup the system on installation
 
 Some influential environment variables:
@@ -4336,18 +4314,13 @@ U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else cat etc/base_version; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
-KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
-if test -z "${KNO_PATCHLEVEL}"; then
-   KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
-   KNO_CHANNEL=main;
-else
-   KNO_CHANNEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
-fi;
+KNO_PATCHLEVEL=$(echo ${KNO_VERSION} | cut -d'.' -f3)
+KNO_CHANNEL=${KNO_BRANCH}
 
 VERSION=$KNO_VERSION
 LIBSOURCE=lib
@@ -4370,13 +4343,10 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
+EXTMODS=""
 CMODULES=""
 TEST_CMODULES=""
 INSTALL_CMODULES=""
-CWRAPPERS=""
-TEST_CWRAPPERS=""
-INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -4561,9 +4531,6 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
-
-
-
 
 
 
@@ -6572,27 +6539,6 @@ fi
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 PKG_CFLAGS="-I$prefix/include/$host/ $PKG_CFLAGS"
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_VERSION "$KNO_VERSION"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_MAJOR_VERSION $KNO_MAJOR
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_MINOR_VERSION $KNO_MINOR
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_RELEASE_VERSION $KNO_PATCHLEVEL
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
-#define KNO_BRANCH $KNO_BRANCH
-_ACEOF
-
 
 
 # Check whether --with-suffix was given.
@@ -13609,74 +13555,6 @@ else
    missing="zstd ${missing}";
 fi;
 
-### archive library (manipulates various kinds of archives)
-
-for ac_header in archive.h
-do :
-  ac_fn_c_check_header_mongrel "$LINENO" "archive.h" "ac_cv_header_archive_h" "$ac_includes_default"
-if test "x$ac_cv_header_archive_h" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_ARCHIVE_H 1
-_ACEOF
-
-fi
-
-done
-
-{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for archive_read_new in -larchive" >&5
-$as_echo_n "checking for archive_read_new in -larchive... " >&6; }
-if ${ac_cv_lib_archive_archive_read_new+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-larchive  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char archive_read_new ();
-int
-main ()
-{
-return archive_read_new ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_archive_archive_read_new=yes
-else
-  ac_cv_lib_archive_archive_read_new=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_archive_archive_read_new" >&5
-$as_echo "$ac_cv_lib_archive_archive_read_new" >&6; }
-if test "x$ac_cv_lib_archive_archive_read_new" = xyes; then :
-  cat >>confdefs.h <<_ACEOF
-#define HAVE_LIBARCHIVE 1
-_ACEOF
-
-  LIBS="-larchive $LIBS"
-
-fi
-
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/kno/archivetools.${shared_suffix} ${CMODULES}"
-  INSTALL_CMODULES="install-archivetools ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-archivetools"
-else
-  auto_disabled="archivetools ${auto_disabled}"
-fi
-
 ### SQLITE3
 
 ac_fn_c_check_header_mongrel "$LINENO" "sqlite3.h" "ac_cv_header_sqlite3_h" "$ac_includes_default"
@@ -13776,9 +13654,9 @@ if test "x$ac_cv_lib_sqlite3_sqlite3_open_v2" = xyes; then :
 fi
 
   if test "$sqlite3_ok" = "yes"; then
-    CWRAPPERS="lib/kno/sqlite.$shared_suffix ${CWRAPPERS}";
-    INSTALL_CWRAPPERS="install-sqlite ${INSTALL_CWRAPPERS}";
-    TEST_CWRAPPERS="${TEST_CWRAPPERS} test-sqlite"
+    CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
+    INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -13843,326 +13721,6 @@ if test "$prefix" != "/usr"; then
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
-
-### CWRAPPERS config
-
-WITH_LEVELDB_WRAPPER=
-WITH_ROCKSDB_WRAPPER=
-WITH_ODBC_WRAPPER=
-WITH_MARIADB_WRAPPER=
-WITH_LIBPQ_WRAPPER=
-
-
-# Check whether --with-leveldb was given.
-if test "${with_leveldb+set}" = set; then :
-  withval=$with_leveldb;
-else
-  with_leveldb=auto
-fi
-
-
-# Check whether --with-rocksdb was given.
-if test "${with_rocksdb+set}" = set; then :
-  withval=$with_rocksdb;
-else
-  with_rocksdb=auto
-fi
-
-
-# Check whether --with-odbc was given.
-if test "${with_odbc+set}" = set; then :
-  withval=$with_odbc;
-else
-  with_odbc=auto
-fi
-
-
-# Check whether --with-mariadb was given.
-if test "${with_mariadb+set}" = set; then :
-  withval=$with_mariadb;
-else
-  with_mariadb=auto
-fi
-
-
-# Check whether --with-libpq was given.
-if test "${with_libpq+set}" = set; then :
-  withval=$with_libpq;
-else
-  with_libpq=auto
-fi
-
-
-LEVELDB_CFLAGS=
-LEVELDB_LIBS=-lleveldb
-
-
-
-if test "${with_leveldb}" == "no"; then
-  manually_disabled="leveldb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
-  LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
-  LEVELDB_LIBS=$(pkg-config --libs leveldb)
-  WITH_LEVELDB_WRAPPER=yes
-else
-   ac_fn_c_check_header_mongrel "$LINENO" "leveldb/c.h" "ac_cv_header_leveldb_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_leveldb_c_h" = xyes; then :
-  HAVE_LEVELDB_HEADER=yes
-fi
-
-
-   if test ! -z "${HAVE_LEVELDB_HEADER}"; then
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
-$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
-if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lleveldb  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char leveldb_open ();
-int
-main ()
-{
-return leveldb_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_leveldb_leveldb_open=yes
-else
-  ac_cv_lib_leveldb_leveldb_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
-$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
-if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
-  WITH_LEVELDB_WRAPPER=yes
-fi
-
-   fi;
-fi;
-if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
-   force_enabled="leveldb ${force_enabled}"
-   WITH_LEVELDB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-leveldb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
-else auto_disabled="leveldb ${auto_disabled}";
-fi;
-
-
-ROCKSDB_CFLAGS=
-ROCKSDB_LIBS=-lrocksdb
-
-
-
-if test "${with_rocksdb}" == "no"; then
-  manually_disabled="rocksdb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
-  ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
-  ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
-  WITH_ROCKSDB_WRAPPER=yes
-else
-   ac_fn_c_check_header_mongrel "$LINENO" "rocksdb/c.h" "ac_cv_header_rocksdb_c_h" "$ac_includes_default"
-if test "x$ac_cv_header_rocksdb_c_h" = xyes; then :
-  HAVE_ROCKSDB_HEADER=yes
-fi
-
-
-   if test ! -z "${HAVE_ROCKSDB_HEADER}"; then
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for rocksdb_open in -lrocksdb" >&5
-$as_echo_n "checking for rocksdb_open in -lrocksdb... " >&6; }
-if ${ac_cv_lib_rocksdb_rocksdb_open+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lrocksdb  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char rocksdb_open ();
-int
-main ()
-{
-return rocksdb_open ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_rocksdb_rocksdb_open=yes
-else
-  ac_cv_lib_rocksdb_rocksdb_open=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
-$as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
-if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
-  WITH_ROCKSDB_WRAPPER=yes
-fi
-
-   fi;
-fi;
-
-if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
-   force_enabled="rocksdb ${force_enabled}"
-   WITH_ROCKSDB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-rocksdb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
-else auto_disabled="rocksdb ${auto_disabled}";
-fi;
-
-ODBC_CFLAGS=
-ODBC_LIBS=-lodbc
-
-
-
-if test "${with_odbc}" == "no"; then
-  manually_disabled="odbc ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
-  ODBC_CFLAGS=$(pkg-config --cflags odbc)
-  ODBC_LIBS=$(pkg-config --libs odbc)
-  WITH_ODBC_WRAPPER=yes
-else
-   ac_fn_c_check_header_mongrel "$LINENO" "sql.h" "ac_cv_header_sql_h" "$ac_includes_default"
-if test "x$ac_cv_header_sql_h" = xyes; then :
-  HAVE_ODBC_HEADER=yes
-fi
-
-
-   if test ! -z "${HAVE_ODBC_HEADER}"; then
-     { $as_echo "$as_me:${as_lineno-$LINENO}: checking for SQLDriverConnect in -lodbc" >&5
-$as_echo_n "checking for SQLDriverConnect in -lodbc... " >&6; }
-if ${ac_cv_lib_odbc_SQLDriverConnect+:} false; then :
-  $as_echo_n "(cached) " >&6
-else
-  ac_check_lib_save_LIBS=$LIBS
-LIBS="-lodbc  $LIBS"
-cat confdefs.h - <<_ACEOF >conftest.$ac_ext
-/* end confdefs.h.  */
-
-/* Override any GCC internal prototype to avoid an error.
-   Use char because int might match the return type of a GCC
-   builtin and then its argument prototype would still apply.  */
-#ifdef __cplusplus
-extern "C"
-#endif
-char SQLDriverConnect ();
-int
-main ()
-{
-return SQLDriverConnect ();
-  ;
-  return 0;
-}
-_ACEOF
-if ac_fn_c_try_link "$LINENO"; then :
-  ac_cv_lib_odbc_SQLDriverConnect=yes
-else
-  ac_cv_lib_odbc_SQLDriverConnect=no
-fi
-rm -f core conftest.err conftest.$ac_objext \
-    conftest$ac_exeext conftest.$ac_ext
-LIBS=$ac_check_lib_save_LIBS
-fi
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_odbc_SQLDriverConnect" >&5
-$as_echo "$ac_cv_lib_odbc_SQLDriverConnect" >&6; }
-if test "x$ac_cv_lib_odbc_SQLDriverConnect" = xyes; then :
-  WITH_ODBC_WRAPPER=yes
-fi
-
-   fi;
-fi;
-
-if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
-   force_enabled="odbc ${force_enabled}"
-   WITH_ODBC_WRAPPER=forced
-fi;
-if test ! -z "${WITH_ODBC_WRAPPER}"; then
-   CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-odbc ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
-else auto_disabled="odbc ${auto_disabled}";
-fi;
-
-MARIADB_CFLAGS=
-MARIADB_LIBS=-lmariadb
-
-
-
-if test "${with_mariadb}" == "no"; then
-  manually_disabled="mariadb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
-  MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
-  MARIADB_LIBS=$(pkg-config --libs libmariadb)
-  WITH_MARIADB_WRAPPER=yes
-elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
-  MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
-  MARIADB_LIBS=$(pkg-config --libs bmariadb)
-  WITH_MARIADB_WRAPPER=yes
-fi;
-
-if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
-   force_enabled="mariadb ${force_enabled}"
-   WITH_MARIADB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_MARIADB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-mariadb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
-else auto_disabled="leveldb ${auto_disabled}";
-fi;
-
-LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lpq
-
-
-
-if test "${with_libpq}" == "no"; then
-  manually_disabled="libpq(postgres) ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists libpq; then
-  LIBPQ_CFLAGS=$(pkg-config --cflags libpq)
-  LIBPQ_LIBS=$(pkg-config --libs libpq)
-  WITH_LIBPQ_WRAPPER=yes
-fi;
-
-if test -z "${WITH_LIBPQ_WRAPPER}" && test "${with_libpq}" = "libpq"; then
-   force_enabled="libpq(postgres) ${force_enabled}"
-   WITH_LIBPQ_WRAPPER=forced
-fi;
-if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
-   CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
-else auto_disabled="libpq(postgres) ${auto_disabled}";
-fi;
 
 ### Setup options
 
@@ -15590,6 +15148,7 @@ if test "$enable_ipeval" = "yes"; then
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
 fi
 echo "+++ Thanks for using Kno!";
+echo "EXTMODS=${EXTMODS}";
 
 
 # Emacs local variables

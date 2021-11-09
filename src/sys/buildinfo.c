@@ -506,7 +506,7 @@ KNO_EXPORT void kno_init_build_info()
 #endif
 
   config_string(KNO_VERSION);
-  config_string(KNO_REVISION);
+  config_string(KNO_VERSION);
   config_string(KNO_SHARE_DIR);
   config_string(KNO_DATA_DIR);
   config_string(KNO_RUN_DIR);

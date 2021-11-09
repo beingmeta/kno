@@ -1,0 +1,26 @@
+#!/bin/sh
+
+TARGET=$1
+TARNAME=$(basename ${TARGET})
+git submodule update;
+git archive -o staging/base.tar HEAD
+("cd" src/stdmods; git archive -o ../../staging/stdmods.tar HEAD)
+("cd" src/textmods; git archive -o ../../staging/textmods.tar HEAD)
+("cd" src/webmods; git archive  -o ../../staging/webmods.tar HEAD)
+("cd" src/brico; git archive -o ../../staging/brico.tar HEAD)
+if [ -d staging/tar_root ]; then
+    rm -rf staging/tar_root;
+fi;
+mkdir staging/tar_root;
+("cd" staging/tar_root; tar xf ../base.tar)
+("cd" staging/tar_root/src/stdmods; tar xf ../../../stdmods.tar)
+("cd" staging/tar_root/src/webmods; tar xf ../../../webmods.tar)
+("cd" staging/tar_root/src/textmods; tar xf ../../../textmods.tar)
+("cd" staging/tar_root/src/brico; tar xf ../../../brico.tar)
+cp etc/base_version staging/tar_root/BASE_VERSION
+u8_gitversion etc/base_version > staging/tar_root/VERSION
+u8_gitversion etc/base_version -full > staging/tar_root/FULL_VERSION
+u8_gitbranch > staging/tar_root/BRANCH
+("cd" staging; rm base.tar stdmods.tar webmods.tar textmods.tar brico.tar);
+("cd" staging/tar_root; tar cf ../../${TARGET} *; );
+rm -rf staging/tar_root;

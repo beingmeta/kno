@@ -130,18 +130,13 @@ U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f REVISION; then cat REVISION; else cat etc/base_version; fi)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else cat etc/base_version; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
 KNO_MINOR=$(echo ${KNO_VERSION} | cut -d'.' -f2)
-KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f3)
-if test -z "${KNO_PATCHLEVEL}"; then
-   KNO_PATCHLEVEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
-   KNO_CHANNEL=main;
-else
-   KNO_CHANNEL=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f2)
-fi;
+KNO_PATCHLEVEL=$(echo ${KNO_VERSION} | cut -d'.' -f3)
+KNO_CHANNEL=${KNO_BRANCH}
 
 VERSION=$KNO_VERSION
 LIBSOURCE=lib
@@ -164,13 +159,10 @@ local_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS="hyphenate imagetools mod_knocgi mongodb nng sundown tidy zeromq ziptools"
+EXTMODS=""
 CMODULES=""
 TEST_CMODULES=""
 INSTALL_CMODULES=""
-CWRAPPERS=""
-TEST_CWRAPPERS=""
-INSTALL_CWRAPPERS=""
 DATAFILES="etc/base_version"
 ZIPCMD=""
 SUDO=""
@@ -407,9 +399,6 @@ AC_SUBST(EXTMODS)
 AC_SUBST(CMODULES)
 AC_SUBST(TEST_CMODULES)
 AC_SUBST(INSTALL_CMODULES)
-AC_SUBST(CWRAPPERS)
-AC_SUBST(TEST_CWRAPPERS)
-AC_SUBST(INSTALL_CWRAPPERS)
 AC_SUBST(DATAFILES)
 AC_SUBST(BOOTSETUP)
 AC_SUBST(PKG_CFLAGS)
@@ -556,12 +545,6 @@ AC_PROG_RANLIB
 
 CFLAGS="-I$prefix/include/$host/ $CFLAGS"
 PKG_CFLAGS="-I$prefix/include/$host/ $PKG_CFLAGS"
-
-AC_DEFINE_UNQUOTED(KNO_VERSION,"$KNO_VERSION")
-AC_DEFINE_UNQUOTED(KNO_MAJOR_VERSION,$KNO_MAJOR)
-AC_DEFINE_UNQUOTED(KNO_MINOR_VERSION,$KNO_MINOR)
-AC_DEFINE_UNQUOTED(KNO_RELEASE_VERSION,$KNO_PATCHLEVEL)
-AC_DEFINE_UNQUOTED(KNO_BRANCH,$KNO_BRANCH)
 
 AC_ARG_WITH(suffix,--with-suffix string,,with_suffix="")
 suffix=$with_suffix
@@ -1831,19 +1814,6 @@ else
    missing="zstd ${missing}";
 fi;
 
-### archive library (manipulates various kinds of archives)
-
-AC_CHECK_HEADERS(archive.h)
-AC_CHECK_LIB(archive,archive_read_new)
-if test "${ac_cv_header_archive_h}" == "yes" && \
-   test "${ac_cv_lib_archive_archive_read_new}" == "yes"; then
-  CMODULES="lib/kno/archivetools.${shared_suffix} ${CMODULES}"
-  INSTALL_CMODULES="install-archivetools ${INSTALL_CMODULES}"
-  TEST_CMODULES="${TEST_CMODULES} test-archivetools"
-else
-  auto_disabled="archivetools ${auto_disabled}"
-fi
-
 ### SQLITE3
 
 AC_CHECK_HEADER(sqlite3.h,have_sqlite3_h="yes",have_sqlite3_h="no")
@@ -1857,9 +1827,9 @@ if test $have_sqlite3_h = "yes"; then
   AC_CHECK_LIB(sqlite3,sqlite3_open,sqlite3_ok="yes")
   AC_CHECK_LIB(sqlite3,sqlite3_open_v2,sqlite3v2_ok="yes")
   if test "$sqlite3_ok" = "yes"; then
-    CWRAPPERS="lib/kno/sqlite.$shared_suffix ${CWRAPPERS}";
-    INSTALL_CWRAPPERS="install-sqlite ${INSTALL_CWRAPPERS}";
-    TEST_CWRAPPERS="${TEST_CWRAPPERS} test-sqlite"
+    CMODULES="lib/kno/sqlite.$shared_suffix ${CMODULES}";
+    INSTALL_CMODULES="install-sqlite ${INSTALL_CMODULES}";
+    TEST_CMODULES="${TEST_CMODULES} test-sqlite"
     SQLITE3_LIBS=-lsqlite3
     sqlite_included=yes
     if test "${sqlite3v2_ok}" == "yes"; then
@@ -1909,159 +1879,6 @@ if test "$prefix" != "/usr"; then
   CPPFLAGS="$CPPFLAGS -I$prefix/include"
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
-
-### CWRAPPERS config
-
-WITH_LEVELDB_WRAPPER=
-WITH_ROCKSDB_WRAPPER=
-WITH_ODBC_WRAPPER=
-WITH_MARIADB_WRAPPER=
-WITH_LIBPQ_WRAPPER=
-
-AC_ARG_WITH(leveldb,--with-leveldb Specify building with the LevelDB bindings,,with_leveldb=auto)
-AC_ARG_WITH(rocksdb,--with-rocksdb Specify building with the RocksDB bindings,,with_rocksdb=auto)
-AC_ARG_WITH(odbc,--with-odbc Specify building with the ODBC bindings,,with_odbc=auto)
-AC_ARG_WITH(mariadb,--with-mariadb Specify building with the MariaDB/MySQL bindings,,with_mariadb=auto)
-AC_ARG_WITH(libpq,--with-libpq Specify building with the Postgres libpq bindings,,with_libpq=auto)
-
-LEVELDB_CFLAGS=
-LEVELDB_LIBS=-lleveldb
-AC_SUBST(LEVELDB_CFLAGS)
-AC_SUBST(LEVELDB_LIBS)
-
-if test "${with_leveldb}" == "no"; then
-  manually_disabled="leveldb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists leveldb; then
-  LEVELDB_CFLAGS=$(pkg-config --cflags leveldb)
-  LEVELDB_LIBS=$(pkg-config --libs leveldb)
-  WITH_LEVELDB_WRAPPER=yes
-else
-   AC_CHECK_HEADER(leveldb/c.h,HAVE_LEVELDB_HEADER=yes)
-   if test ! -z "${HAVE_LEVELDB_HEADER}"; then
-     AC_CHECK_LIB(leveldb,leveldb_open,WITH_LEVELDB_WRAPPER=yes)
-   fi;
-fi;
-if test -z "${WITH_LEVELDB_WRAPPER}" && test "${with_leveldb}" = "force"; then
-   force_enabled="leveldb ${force_enabled}"
-   WITH_LEVELDB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_LEVELDB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/leveldb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-leveldb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-leveldb ${INSTALL_CWRAPPERS}";
-else auto_disabled="leveldb ${auto_disabled}";
-fi;   
-
-
-ROCKSDB_CFLAGS=
-ROCKSDB_LIBS=-lrocksdb
-AC_SUBST(ROCKSDB_CFLAGS)
-AC_SUBST(ROCKSDB_LIBS)
-
-if test "${with_rocksdb}" == "no"; then
-  manually_disabled="rocksdb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists rocksdb; then
-  ROCKSDB_CFLAGS=$(pkg-config --cflags rocksdb)
-  ROCKSDB_LIBS=$(pkg-config --libs rocksdb)
-  WITH_ROCKSDB_WRAPPER=yes
-else
-   AC_CHECK_HEADER(rocksdb/c.h,HAVE_ROCKSDB_HEADER=yes)
-   if test ! -z "${HAVE_ROCKSDB_HEADER}"; then
-     AC_CHECK_LIB(rocksdb,rocksdb_open,WITH_ROCKSDB_WRAPPER=yes)
-   fi;
-fi;
-
-if test -z "${WITH_ROCKSDB_WRAPPER}" && test "${with_rocksdb}" = "force"; then
-   force_enabled="rocksdb ${force_enabled}"
-   WITH_ROCKSDB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_ROCKSDB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/rocksdb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-rocksdb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-rocksdb ${INSTALL_CWRAPPERS}";
-else auto_disabled="rocksdb ${auto_disabled}";
-fi;   
-
-ODBC_CFLAGS=
-ODBC_LIBS=-lodbc
-AC_SUBST(ODBC_CFLAGS)
-AC_SUBST(ODBC_LIBS)
-
-if test "${with_odbc}" == "no"; then
-  manually_disabled="odbc ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists odbc; then
-  ODBC_CFLAGS=$(pkg-config --cflags odbc)
-  ODBC_LIBS=$(pkg-config --libs odbc)
-  WITH_ODBC_WRAPPER=yes
-else
-   AC_CHECK_HEADER(sql.h,HAVE_ODBC_HEADER=yes)
-   if test ! -z "${HAVE_ODBC_HEADER}"; then
-     AC_CHECK_LIB(odbc,SQLDriverConnect,WITH_ODBC_WRAPPER=yes)
-   fi;
-fi;
-
-if test -z "${WITH_ODBC_WRAPPER}" && test "${with_odbc}" = "force"; then
-   force_enabled="odbc ${force_enabled}"
-   WITH_ODBC_WRAPPER=forced
-fi;
-if test ! -z "${WITH_ODBC_WRAPPER}"; then
-   CWRAPPERS="lib/kno/odbc.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-odbc ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-odbc ${INSTALL_CWRAPPERS}";
-else auto_disabled="odbc ${auto_disabled}";
-fi;   
-
-MARIADB_CFLAGS=
-MARIADB_LIBS=-lmariadb
-AC_SUBST(MARIADB_CFLAGS)
-AC_SUBST(MARIADB_LIBS)
-
-if test "${with_mariadb}" == "no"; then
-  manually_disabled="mariadb ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists libmariadb; then
-  MARIADB_CFLAGS=$(pkg-config --cflags libmariadb)
-  MARIADB_LIBS=$(pkg-config --libs libmariadb)
-  WITH_MARIADB_WRAPPER=yes
-elif which pkg-config 2> /dev/null && pkg-config --exists mariadb; then
-  MARIADB_CFLAGS=$(pkg-config --cflags bmariadb)
-  MARIADB_LIBS=$(pkg-config --libs bmariadb)
-  WITH_MARIADB_WRAPPER=yes
-fi;
-
-if test -z "${WITH_MARIADB_WRAPPER}" && test "${with_mariadb}" = "force"; then
-   force_enabled="mariadb ${force_enabled}"
-   WITH_MARIADB_WRAPPER=forced
-fi;
-if test ! -z "${WITH_MARIADB_WRAPPER}"; then
-   CWRAPPERS="lib/kno/mariadb.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-mariadb ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-mariadb ${INSTALL_CWRAPPERS}";
-else auto_disabled="leveldb ${auto_disabled}";
-fi;   
-
-LIBPQ_CFLAGS=
-LIBPQ_LIBS=-lpq
-AC_SUBST(LIBPQ_CFLAGS)
-AC_SUBST(LIBPQ_LIBS)
-
-if test "${with_libpq}" == "no"; then
-  manually_disabled="libpq(postgres) ${manually_disabled}";
-elif which pkg-config 2> /dev/null && pkg-config --exists libpq; then
-  LIBPQ_CFLAGS=$(pkg-config --cflags libpq)
-  LIBPQ_LIBS=$(pkg-config --libs libpq)
-  WITH_LIBPQ_WRAPPER=yes
-fi;
-
-if test -z "${WITH_LIBPQ_WRAPPER}" && test "${with_libpq}" = "libpq"; then
-   force_enabled="libpq(postgres) ${force_enabled}"
-   WITH_LIBPQ_WRAPPER=forced
-fi;
-if test ! -z "${WITH_LIBPQ_WRAPPER}"; then
-   CWRAPPERS="lib/kno/pqprims.${shared_suffix} ${CWRAPPERS}";
-   TEST_CWRAPPERS="test-pqprims ${TEST_CWRAPPERS}";
-   INSTALL_CWRAPPERS="install-postgres ${INSTALL_CWRAPPERS}";
-else auto_disabled="libpq(postgres) ${auto_disabled}";
-fi;   
 
 ### Setup options
 
@@ -2160,6 +1977,7 @@ if test "$enable_ipeval" = "yes"; then
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
 fi
 echo "+++ Thanks for using Kno!";
+echo "EXTMODS=${EXTMODS}";
 
 
 # Emacs local variables

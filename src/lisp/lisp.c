@@ -37,10 +37,9 @@ double kno_load_start = -1.0;
 u8_condition kno_NoMethod=_("Method not supported");
 
 u8_string kno_version = KNO_VERSION;
-u8_string kno_revision = KNO_REVISION;
 int kno_major_version = KNO_MAJOR_VERSION;
 int kno_minor_version = KNO_MINOR_VERSION;
-int kno_release_version = KNO_RELEASE_VERSION;
+int kno_release_version = KNO_PATCHLEVEL;
 
 u8_string kno_sysroot = NULL;
 u8_string kno_exec_dir = NULL;
@@ -52,7 +51,6 @@ u8_string config_sysroot = KNO_INSTALL_ROOT;
 #endif
 
 KNO_EXPORT u8_string kno_getversion(){return KNO_VERSION;}
-KNO_EXPORT u8_string kno_getrevision(){return KNO_REVISION;}
 KNO_EXPORT int kno_getmajorversion(){return KNO_MAJOR_VERSION;}
 
 u8_string kno_type_names[KNO_TYPE_MAX] = { NULL };
@@ -549,7 +547,7 @@ KNO_EXPORT void kno_log_status(u8_condition why)
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
     u8_log(U8_LOG_MSG,why,
            "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
-           KNO_REVISION,u8_appid(),getpid(),
+           KNO_VERSION,u8_appid(),getpid(),
            elapsed,etu,usertime,utu,systime,stu,
            heapsize,heapu);}
 }

@@ -1150,10 +1150,6 @@ static lispval knoversion_config_get(lispval var,void *data)
 {
   return kno_mkstring(KNO_VERSION);
 }
-static lispval knorevision_config_get(lispval var,void *data)
-{
-  return kno_mkstring(KNO_REVISION);
-}
 static lispval knobranch_config_get(lispval var,void *data)
 {
 #ifdef KNO_BRANCH
@@ -1169,10 +1165,6 @@ static lispval knomajor_config_get(lispval var,void *data)
 static lispval u8version_config_get(lispval var,void *data)
 {
   return kno_mkstring(u8_getversion());
-}
-static lispval u8revision_config_get(lispval var,void *data)
-{
-  return kno_mkstring(u8_getrevision());
 }
 static lispval u8major_config_get(lispval var,void *data)
 {
@@ -1525,8 +1517,8 @@ void kno_init_configs_c()
     ("KNOVERSION",_("Get the Kno version string"),
      knoversion_config_get,kno_readonly_config_set,NULL);
   kno_register_config
-    ("KNOREVISION",_("Get the Kno revision identifier"),
-     knorevision_config_get,kno_readonly_config_set,NULL);
+    ("KNOVERSION",_("Get the Kno version identifier"),
+     knoversion_config_get,kno_readonly_config_set,NULL);
   kno_register_config
     ("KNOBRANCH",_("Get the Kno branch name"),
      knobranch_config_get,kno_readonly_config_set,NULL);
@@ -1537,8 +1529,8 @@ void kno_init_configs_c()
     ("U8VERSION",_("Get the libu8 version string"),
      u8version_config_get,kno_readonly_config_set,NULL);
   kno_register_config
-    ("U8REVISION",_("Get the libu8 revision identifier"),
-     u8revision_config_get,kno_readonly_config_set,NULL);
+    ("U8VERSION",_("Get the libu8 version identifier"),
+     u8version_config_get,kno_readonly_config_set,NULL);
   kno_register_config
     ("U8MAJOR",_("Get the libu8 major version number"),
      u8major_config_get,kno_readonly_config_set,NULL);

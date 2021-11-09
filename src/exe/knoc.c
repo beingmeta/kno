@@ -531,7 +531,7 @@ static void exit_knoc()
   if (!(quiet_console)) {
     if (run_start<0)
       u8_message("<%ld> Exiting Kno (%s) console before we even started!",
-                 (long)getpid(),KNO_REVISION);
+                 (long)getpid(),KNO_VERSION);
     else if (!(kno_be_vewy_quiet))
       kno_log_status("Exit(knoc)");
     else {}}

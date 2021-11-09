@@ -13,7 +13,7 @@
 #endif
 
 #include "config.h"
-#include "revision.h"
+#include "kno_version.h"
 
 #define KNO_EXPORT extern
 #ifndef KNO_INLINE
@@ -484,8 +484,8 @@ typedef double kno_double;
 #define _(x) (x)
 
 #ifndef KNO_LIBSCM_DIR
-#ifdef KNO_REVISION
-#define KNO_LIBSCM_DIR KNO_SHARE_DIR "/libscm/" KNO_REVISION
+#ifdef KNO_VERSION
+#define KNO_LIBSCM_DIR KNO_SHARE_DIR "/libscm/" KNO_VERSION
 #else
 #define KNO_LIBSCM_DIR KNO_SHARE_DIR  "/libscm/" KNO_VERSION
 #endif

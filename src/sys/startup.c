@@ -894,7 +894,7 @@ KNO_EXPORT int kno_boot_message()
          (unsigned long long)getpid(),
          u8_username(uid),u8_gethostname(),u8_getcwd(),
          curtime.u8_outbuf,
-         kno_getrevision(),u8_getrevision(),
+         kno_getversion(),u8_getversion(),
          COPYRIGHT_MESSAGE);
   if ( (kno_logcmd) && (kno_argc > 1) )
     log_argv(kno_argc,kno_argv);

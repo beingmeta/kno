@@ -1,3 +1,0 @@
-/lib/systemd/system/kno.target
-/lib/systemd/system/kno-daemons.service
-/lib/systemd/system/kno-servlets.service

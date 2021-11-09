@@ -668,12 +668,12 @@ static lispval check_version_prim(int n,kno_argvec args)
   else if (rv>0) return KNO_TRUE;
   else if (rv<0) return KNO_FALSE;
   else if (n==2) return KNO_TRUE;
-  else rv = check_num(args[2],KNO_RELEASE_VERSION);
+  else rv = check_num(args[2],KNO_PATCHLEVEL);
   if (rv<-1) return KNO_ERROR;
   else if (rv>0) return KNO_TRUE;
   else if (rv<0) return KNO_FALSE;
   else if (n==3) return KNO_TRUE;
-  else rv = check_num(args[2],KNO_RELEASE_VERSION-1);
+  else rv = check_num(args[2],KNO_PATCHLEVEL-1);
   /* The fourth argument should be a patch level, but we're not
      getting that in builds yet. So if there are more arguments,
      we see if required release number is larger than release-1
@@ -708,7 +708,7 @@ static lispval require_version_prim(int n,kno_argvec args)
       else i++;}
     lispval version_vec = kno_make_vector(n,(lispval *)args);
     kno_seterr("VersionError","require_version_prim",
-	       u8_sprintf(buf,50,"Version is %s",KNO_REVISION),
+	       u8_sprintf(buf,50,"Version is %s",KNO_VERSION),
 	       /* We don't need to incref *args* because they're all fixnums */
 	       version_vec);
     kno_decref(version_vec);

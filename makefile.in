@@ -147,7 +147,7 @@ STORAGE_HEADERS=\
 DRIVERS_H=include/kno/drivers.h
 SCHEME_HEADERS=include/kno/eval.h include/kno/threads.h \
 	include/kno/opcodes.h include/kno/seqprims.h \
-	include/kno/procprims.h
+	include/kno/procprims.h include/kno/ports.h
 LIB_HEADERS=include/kno/texttools.h include/kno/webtools.h
 
 # Headers which don't live in include/kno
@@ -196,9 +196,9 @@ APPLY_OBJS=\
 	src/apply/dispatch.o src/apply/sql.o 			\
 	src/apply/services.o
 
-REVISION_H   =include/kno/revision.h
+VERSION_H   =include/kno/kno_version.h
 CONFIG_H     =include/kno/config.h
-CONFIG_HDRS  =${REVISION_H} ${CONFIG_H}
+CONFIG_HDRS  =${VERSION_H} ${CONFIG_H}
 
 STORAGE_OBJS=\
 	src/storage/storage.o src/storage/streams.o		\
@@ -304,7 +304,7 @@ PYTHON_OBJS=				\
 	src/python/parseltongue2.o
 
 CMODULE_OBJS=src/cmodules/crypto.o	\
-	     src/cmodules/archivetools.o	\
+	     src/cmodules/sqlite.o	\
 	     src/cmodules/testcapi.o
 
 EXECUTABLES=${SHAREDEXE}/knox@suffix@ ${SHAREDEXE}/knoc@suffix@ ${SHAREDEXE}/knocgi@suffix@
@@ -332,7 +332,7 @@ CLEANDIRS=include/kno src/drivers/headers		\
 	src/eval src/prims				\
 	src/text src/textmods				\
 	src/web src/webmods				\
-	src/cmodules src/cwrappers src/stdmods		\
+	src/cmodules src/stdmods			\
 	etc
 
 KNO_HEADERS= \
@@ -405,17 +405,9 @@ KNO_SOURCES=									\
 	src/exe/knoc.c src/exe/knox.c src/exe/knocgi.c
 
 CMODULE_SOURCES=			\
-	src/cmodules/archivetools.c	\
+	src/cmodules/sqlite.c		\
 	src/cmodules/gperftools.c	\
 	src/cmodules/crypto.c
-
-CWRAPPER_SOURCES=			\
-	src/cwrappers/sqlite.c		\
-	src/cwrappers/mariadb.c		\
-	src/cwrappers/odbc.c		\
-	src/cwrappers/pqprims.c		\
-	src/cwrappers/leveldb.c		\
-	src/cwrappers/rocksdb.c
 
 STATIC_LIBS=lib/libkno@suffix@.a	\
 	lib/libknowebtools@suffix@.a	\
@@ -466,7 +458,7 @@ SCHEME_MODULES=src/stdmods/*.scm \
 # These might be neccessary on MacOS
 CMODULE_DEPENDS=lib/libkno@suffix@.@shared_suffix@
 
-ALL=testbin exe cmodules cwrappers @TAGS_TARGET@
+ALL=testbin exe cmodules @TAGS_TARGET@
 
 # Makefile targets
 
@@ -485,7 +477,7 @@ normal:
 	@make TAGS
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s testbin exe cmodules cwrappers etc @TAGS_TARGET@
+	@+make -s testbin exe cmodules etc @TAGS_TARGET@
 
 debugging:
 	@echo Building DEBUGGING configuration
@@ -498,7 +490,7 @@ debugging:
 		  XLDFLAGS="@debugldflags@ $(XLDFLAGS)"		\
 		  XOPTFLAGS="-O0" OPTFLAGS="-O0"		\
 		  XLIBS="@debuglibs@ $(XLIBS)"			\
-	  testbin exe cmodules cwrappers etc @TAGS_TARGET@
+	  testbin exe cmodules etc @TAGS_TARGET@
 
 profiling:
 	@echo Building PROFILING configuration
@@ -509,30 +501,30 @@ profiling:
 		  XLDFLAGS="@profileldflags@ $(XLDFLAGS)"		\
 		  XOPTFLAGS="-O0" OPTFLAGS="-O0"		\
 		  XLIBS="@debuglibs@ $(XLIBS)"			\
-		testbin libs exe cmodules cwrappers etc @TAGS_TARGET@
+		testbin libs exe cmodules etc @TAGS_TARGET@
 
 optimizing:
 	@echo Building OPTIMIZING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -DKNO_OPTIMIZING_BUILD=1" testbin exe cmodules cwrappers etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-O3 -DKNO_OPTIMIZING_BUILD=1" testbin exe cmodules etc @TAGS_TARGET@
 zooming:
 	@echo Building Zooming configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules cwrappers etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-O3 -g0" testbin exe cmodules etc @TAGS_TARGET@
 nitpicking:
 	@echo Building NITPICKING configuration
 	@if test -f .malloc; then \
 	  echo With $(shell cat .malloc) malloc; fi;
-	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules cwrappers etc @TAGS_TARGET@
+	@+make -s XCFLAGS="-Wall -Wno-unknown-pragmas ${XCFLAGS}" testbin exe cmodules etc @TAGS_TARGET@
 distribution:
 	@echo Building DISTRIBUTION configuration
 	@+make -s XCFLAGS="$(XCFLAGS) KNO_DISTRIBUTION_BUILD=1" \
-		exe cmodules cwrappers etc scripts @TAGS_TARGET@
+		exe cmodules etc scripts @TAGS_TARGET@
 
-all: testbin debug-exe exe cmodules cwrappers etc i18n @TAGS_TARGET@
-packaged: exe cmodules cwrappers etc i18n
+all: testbin debug-exe exe cmodules etc i18n @TAGS_TARGET@
+packaged: exe cmodules etc i18n
 
 fresh: clean
 	make update
@@ -577,26 +569,44 @@ knodb:
 
 # Versioning
 
-REVISION: etc/base_version
+VERSION: etc/base_version
 	if test -d .git; then				\
 	  @U8BIN@u8_gitversion etc/base_version > $@;	\
 	elif test -f $@; then				\
-	  touch REVISION;				\
-	else cp etc/base_version $@;			\
+	  touch VERSION;				\
+	else 						\
+	 BASE_VERSION=$$(cat etc/base_version); 		\
+	 echo $${BASE_VERSION}.0 > $@;			\
 	fi;
-FULL_REVISION: etc/base_version
+FULL_VERSION: etc/base_version VERSION
 	if test -d .git; then				\
-	  @U8BIN@u8_gitversion etc/base_version full > $@;	\
+	  @U8BIN@u8_gitversion etc/base_version -full > $@;	\
 	elif test -f $@; then				\
-	  touch REVISION;				\
-	else cp etc/base_version $@;			\
+	  touch $@;					\
+	else 						\
+	 VERSION=$$(cat VERSION); 			\
+	 echo $${VERSION}-noinfo > $@;			\
 	fi;
 
-include/kno/revision.h: REVISION FULL_REVISION
-	@REVISION=$$(cat REVISION);					\
-	 FULL_REVISION=$$(cat FULL_REVISION);				\
-	 echo "#define KNO_REVISION \"kno-$$REVISION\"" > $@;		\
-	 echo "#define KNO_FULL_REVISION \"kno-$$FULL_REVISION\"" >> $@;
+include/kno/kno_version.h: VERSION etc/base_version makefile.in
+	@BASE_VERSION=$$(cat etc/base_version);						\
+	 VERSION=$$(cat VERSION 2>/dev/null || u8_gitversion etc/base_version);		\
+	 GIT_VERSION=$$(cat FULL_VERSION 2>/dev/null || 				\
+				u8_gitversion etc/base_version -full || 		\
+				echo $$VERSION);					\
+	 MAJOR_VERSION=$$(echo $${VERSION} | cut - -d '.' -f 1);			\
+	 MINOR_VERSION=$$(echo $${VERSION} | cut - -d '.' -f 2);			\
+	 PATCHLEVEL=$$(echo $${VERSION} | cut - -d '.' -f 3);				\
+	 BRANCH=$$(cat BRANCH 2>/dev/null || u8_gitbranch 2>/dev/null || echo none);	\
+	 if [ -z "$${PATCHLEVEL}" ]; then PATCHLEVEL=0; VERSION="$${VERSION}.0"; fi;	\
+	 echo "#define KNO_VERSION \"$$VERSION\"" > $@;					\
+	 echo "#define KNO_MAJOR_VERSION $$MAJOR_VERSION" >> $@;			\
+	 echo "#define KNO_MINOR_VERSION $$MINOR_VERSION" >> $@;			\
+	 echo "#define KNO_PATCHLEVEL $$PATCHLEVEL" >> $@;				\
+	 echo "#define KNO_SOURCE_BRANCH \"$${BRANCH}\"" >> $@;				\
+	 echo "#define KNO_BASE_VERSION \"$${BASE_VERSION}\"" >> $@; 			\
+	 echo "#define KNO_BRANCH_VERSION \"kno-$${VERSION}-$${BRANCH}\"" >> $@;	\
+	 echo "#define KNO_GIT_VERSION \"$$GIT_VERSION\"" >> $@;
 
 # configure/autoconf stuff
 
@@ -604,7 +614,7 @@ makefile: makefile.in config.status
 	if test -x ./config.status; then ./config.status; fi
 ./config.status: configure
 	if test -x ./config.status; then ./config.status --recheck; fi
-configure: configure.ac REVISION
+configure: configure.ac VERSION
 	@if test -f .staticautoconf; then \
 	    echo "WARNING: configure may be out of date"; \
 	else echo "REBUILDING configure"; autoconf; fi
@@ -630,7 +640,7 @@ etc: etc/logrotate etc/install-script etc/sysv/kno-rc.d etc/logrotate	\
 # Implicit make rules
 
 %.o: %.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) -D_FILEINFO="\"$(shell u8_fileinfo ./$< .)\"" -o $@ -c $<
+	@$(CC) $(CFLAGS) -D_FILEINFO="\"$(shell u8_fileinfo ./$< .)\"" -o $@ -c $<
 	@$(MSG) CC $@ $<
 
 exe/scripts/%: src/scripts/%.scm
@@ -671,27 +681,13 @@ lib/kno/%.dylib: src/cmodules/%.o ${CMODULE_DEPENDS}
 lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 	@ln -sf $(*F).dylib $@
 
-src/cwrappers/%.o: src/cwrappers/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS) $(MOD_CFLAGS) -o $@ -c $<
-	@$(MSG) CC_MODULE  $@ $<
-
-lib/kno/%.so: src/cwrappers/%.o
-	@$(MKSO) -L./lib -L./ -o $@ $< ${MODLIBS}
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO  $@ $<
-lib/kno/%.dylib: src/cwrappers/%.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) ${MODLIBS} -o $@ $< 
-	@$(MSG) MACLIBTOOL  $@ $<
-
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
 	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS)	\
 	      -lu8 -lu8stdio -lu8syslog			\
 	      $(LIBS) $(EXELIBS)
-dbg/%: ${REVISION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
+dbg/%: ${VERSION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
 etc/%: etc/%.in ./config.status
 	@echo "Configuring $@"
@@ -709,7 +705,7 @@ src/%.zip: src/%
 
 # We can selectively link some executables statically to avoid 
 # library dependencies with programs which will typically run as daemons
-static/%@suffix@: src/exe/%.c $(LINK_STATIC_LIBS) ${REVISION_H} ${CONFIG_H}
+static/%@suffix@: src/exe/%.c $(LINK_STATIC_LIBS) ${VERSION_H} ${CONFIG_H}
 	@echo MKEXE_STATIC $@
 	$(CC) $(STATIC_CFLAGS) -o $@ $^ $(STATIC_LDFLAGS) -lu8stdio -lu8syslog $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE_STATIC $@
@@ -840,7 +836,6 @@ libtestbin: libs tests/libtests/makefile
 	@make -s XCFLAGS="$(XCFLAGS)" XLDFLAGS="$(XLDFLAGS)" XLIBS="$(XLIBS)" \
 		-C tests/libtests
 cmodules: @CMODULES@
-cwrappers: @CWRAPPERS@
 
 dbg/knocgi.webuser: dbg/knocgi
 	@echo "Making" $@
@@ -865,7 +860,6 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 		src/prims/*.c						\
 		src/text/*.c src/web/*.c				\
 		src/cmodules/*.c					\
-		src/cwrappers/*.c					\
 		src/python/*.c						\
 		src/libscm/*.scm src/libscm/*/*.scm			\
 		src/libscm/*/*/*.scm					\
@@ -892,7 +886,7 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 	@etags -o $@ -a src/eval/*.c src/eval/*.h src/prims/*.c
 	@etags -o $@ -a src/web/*.c src/text/*.c;
 	@etags -o $@ -a tests/libtests/*.c tests/*.scm;
-	@etags -o $@ -a src/cmodules/*.c src/cwrappers/*.c;
+	@etags -o $@ -a src/cmodules/*.c;
 	@etags -o $@ -a src/python/*.c;
 	@etags -o $@ -a src/scripts/*.scm;
 	@etags -o $@ -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
@@ -1032,13 +1026,13 @@ clean: tidy
 	cd tests; make -s clean
 	find . -name "*.dSYM" -writable | xargs rm -rf
 distclean: clean
-	rm -f .buildmode REVISION
+	rm -f .buildmode VERSION
 	rm -f makefile config.log config.status config.cache
 	rm -f tests/libtests/makefile tests/makefile tests/lisp/.gdbinit
 	rm -f dbg/gdbinit
 	rm -f etc/knogetconfig etc/knosetconfig
 	rm -f etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d
-	rm -f exe/.gdbinit include/kno/config.h include/kno/revision.h
+	rm -f exe/.gdbinit include/kno/config.h include/kno/kno_version.h
 
 commit:
 	git commit
@@ -1116,20 +1110,6 @@ lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) lib/libkno@suffix@.dylib
 		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
-src/cmodules/archivetools.o: src/cmodules/archivetools.c ${CONFIG_HDRS}
-	@$(CC) $(CFLAGS) @LIBZIP_CFLAGS@ -o $@ -c $<
-	@$(MSG) CC "(LIBARCHIVE)"  $@ $<
-lib/kno/archivetools.so: src/cmodules/archivetools.o
-	@$(MKSO) -L./ -L./lib -o $@ $< -larchive
-	@ln -sf $(@F) $(@D)/$(@F).@KNO_MAJOR@
-	@$(MSG) MKSO "(LIBARCHIVE)"  $@ $<
-lib/kno/archivetools.dylib: src/cmodules/archivetools.o ${CMODULE_DEPENDS}
-	@$(MACLIBTOOL) -install_name \
-		`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
-		-o $@ $<
-	@$(MSG) MACLIBTOOL "(LIBARCHIVE)" $@
-
 src/cmodules/crypto.o: src/cmodules/crypto.c
 lib/kno/crypto.so: src/cmodules/crypto.o
 lib/kno/crypto.dylib: src/cmodules/crypto.o ${CMODULE_DEPENDS}
@@ -1139,12 +1119,8 @@ lib/kno/testcapi.so: src/cmodules/testcapi.o
 lib/kno/testcapi.dylib: src/cmodules/testcapi.o ${CMODULE_DEPENDS}
 
 lib/kno/sqlite.so lib/kno/sqlite.dylib : MODLIBS=-lsqlite3
-lib/kno/sqlite.so: src/cwrappers/sqlite.o
-lib/kno/sqlite.dylib: src/cwrappers/sqlite.o ${CMODULE_DEPENDS}
-
-lib/kno/archivetools.o: src/cmodules/archivetools.c
-lib/kno/archivetools.so: src/cmodules/archivetools.o
-lib/kno/archivetools.dylib: src/cmodules/archivetools.o ${CMODULE_DEPENDS}
+lib/kno/sqlite.so: src/cmodules/sqlite.o
+lib/kno/sqlite.dylib: src/cmodules/sqlite.o ${CMODULE_DEPENDS}
 
 lib/kno/gperftools.so : MODLIBS="-lprofiler"
 lib/kno/gperftools.o: src/cmodules/gperftools.c
@@ -1269,10 +1245,9 @@ install-status:
 install: install-status install-core		\
 		install-static-libs		\
 		install-cmodules		\
-		install-cwrappers		\
 		@install_libscm@ install-stdlib \
 		install-dev ${DOSETUP}
-	if [ ! -z "${SYSROOT}" ]; then make setup-bundle; fi;
+	@if [ ! -z "${SYSROOT}" ]; then make setup-bundle; fi;
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
 	fi;
@@ -1330,7 +1305,7 @@ install-headers: $(INCINSTALLDIR)
 		   $(LISP_HEADERS) $(APPLY_HEADERS)	\
 		   $(STORAGE_HEADERS) $(DRIVERS_H)	\
 		   $(SCHEME_HEADERS) $(LIB_HEADERS)	\
-		   $(REVISION_H)			\
+		   $(VERSION_H)			\
 		$(INCINSTALLDIR)
 
 install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
@@ -1402,17 +1377,7 @@ install-cmodules: @INSTALL_CMODULES@
 install-testcapi: ${CMODULES}/testcapi.@shared_suffix@ ${CMODULES}/testcapi.@vshared_suffix@
 install-crypto: ${CMODULES}/crypto.@shared_suffix@ ${CMODULES}/crypto.@vshared_suffix@
 install-sqlite: ${CMODULES}/sqlite.@shared_suffix@ ${CMODULES}/sqlite.@vshared_suffix@
-install-archivetools: ${CMODULES}/archivetools.@shared_suffix@ ${CMODULES}/archivetools.@vshared_suffix@
 install-gperftools: ${CMODULES}/gperftools.@shared_suffix@ ${CMODULES}/gperftools.@vshared_suffix@
-install-rocksdb: ${CMODULES}/rocksdb.@shared_suffix@ ${CMODULES}/rocksdb.@vshared_suffix@
-install-leveldb: ${CMODULES}/leveldb.@shared_suffix@ ${CMODULES}/leveldb.@vshared_suffix@
-install-odbc: ${CMODULES}/odbc.@shared_suffix@ ${CMODULES}/odbc.@vshared_suffix@
-install-mariadb: ${CMODULES}/mariadb.@shared_suffix@ ${CMODULES}/mariadb.@vshared_suffix@
-install-postgres: ${CMODULES}/pqprims.@shared_suffix@ ${CMODULES}/pqprims.@vshared_suffix@ \
-	          $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
-	${SUINSTALL} ${INSTALL} src/cwrappers/postgres.scm $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@
-
-install-cwrappers: @INSTALL_CWRAPPERS@
 
 # Install variants
 
@@ -1772,24 +1737,7 @@ submodules update-submodules update-git update-modules:
 .PHONY: submodules update-modules update-git update-submodules
 
 ### Executables #including src/exe/main.c
-$(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(REVISION_H) src/exe/main.c
-
-### CWRAPPERS build rules
-
-lib/kno/rocksdb.@shared_suffix@ : MODLIBS=@ROCKSDB_LIBS@
-scr/cwrappers/rocksdb.o : MOD_CFLAGS=@ROCKSDB_CFLAGS@
-
-lib/kno/leveldb.@shared_suffix@ : MODLIBS=@LEVELDB_LIBS@
-scr/cwrappers/leveldb.o : MOD_CFLAGS=@LEVELDB_CFLAGS@
-
-lib/kno/odbc.@shared_suffix@ : MODLIBS=@ODBC_LIBS@
-scr/cwrappers/odbc.o : MOD_CFLAGS=@ODBC_CFLAGS@
-
-lib/kno/mariadb.@shared_suffix@ : MODLIBS=@MARIADB_LIBS@
-src/cwrappers/mariadb.o : MOD_CFLAGS=@MARIADB_CFLAGS@
-
-lib/kno/pqprims.@shared_suffix@ : MODLIBS=@LIBPQ_LIBS@
-src/cwrappers/pqprims.o : MOD_CFLAGS=@LIBPQ_CFLAGS@
+$(EXECUTABLES) $(STATIC_EXECUTABLES) $(DEBUG_EXECUTABLES): $(VERSION_H) src/exe/main.c
 
 # Build setups
 
@@ -1828,8 +1776,6 @@ staging/env.macports: makefile
 # Packaging targets
 
 rpms: status/rpms.done
-debian deb debs: status/debian.done
-debsource: status/debsource.done
 
 .PRECIOUS: status/%
 .SECONDARY: status/%
@@ -1838,26 +1784,15 @@ pkgclean:
 	rm -f status/*.built status/*.signed status/*.done status/*.ready status/*.installed
 	rm -rf staging/kno* staging/*.tar staging/*.gz dist/*.tar dist/*.gz
 	rm -f dist/*.deb dist/*.dsc dist/*.changes dist/*.buildinfo
-	rm -f states/debian.*
 	find dist -name "*.rpm" -writable | xargs -r rm
 	rm -rf staging/alpine*
 cleandist cleanrpms cleandeb rpmclean debclean alpineclean: pkgclean
 
 .PHONY: pkgclean cleandist cleanrpms cleandeb rpmclean debclean alpineclean
 
-debfresh freshdeb:
-	make -s debclean
-	rm -f include/kno/revision.h; make include/kno/revision.h
-	make -s debian
-
-debupdate:
-	@if [ "${DEBNAME}" = "kno_${APTVERSION}" ]; then	\
-	  echo "Debian build of Kno is up to date";		\
-	else make debfresh; fi;
-
 # Creating a source tree for packaging
 
-staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
+staging/kno: VERSION FULL_VERSION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
 	git archive -o staging/knobase.tar HEAD
 	cd src/stdmods; git archive -o ../../staging/stdmods.tar HEAD;
 	cd src/textmods; git archive -o ../../staging/textmods.tar HEAD;
@@ -1869,8 +1804,9 @@ staging/kno: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEAD
 	cd staging/kno/src/webmods; tar xf ../../../webmods.tar;
 	cd staging/kno/src/textmods; tar xf ../../../textmods.tar;
 	cd staging/kno/src/brico; tar xf ../../../brico.tar;
-	@U8BIN@u8_gitversion etc/base_version > staging/kno/REVISION
-	@U8BIN@u8_gitversion etc/base_version full > staging/kno/FULL_REVISION
+	@U8BIN@u8_gitversion etc/base_version > staging/kno/VERSION
+	@U8BIN@u8_gitversion etc/base_version -full > staging/kno/FULL_VERSION
+	@U8BIN@u8_gitbranch > staging/kno/BRANCH
 	cd staging; rm -f knobase.tar stdlib.tar brico.tar
 
 dist/kno.tar: staging/kno
@@ -1884,25 +1820,10 @@ dist/source.tar: dist/kno.tar
 
 # Creating staging areas from GIT
 
-staging/kno_@KNO_VERSION@: REVISION FULL_REVISION staging/kno
+staging/kno-@KNO_VERSION@: VERSION FULL_VERSION staging/kno dist/kno.spec.base
 	cd staging; cp -r kno/dist/debian kno/debian;
 	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
-	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
-			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
-			< dist/debian/changelog \
-			> staging/kno/debian/changelog;
-	cd staging/kno/debian; \
-	  for file in kno-core.dirs kno-postgres.install; do \
-	    u8_xsubst $${file} inplace KNO_VERSION @KNO_VERSION@ KNO_MAJOR @KNO_MAJOR@ KNO_PATCHVERSION @KNO_PATCHVERSION@; done;
-	if [ -d staging/kno_@KNO_VERSION@ ]; then rm -rf staging/kno_@KNO_VERSION@; fi
-	cd staging; mv kno kno_@KNO_VERSION@;
-staging/kno_@KNO_VERSION@.tar.gz: staging/kno_@KNO_VERSION@
-	cd staging; tar -czf kno_@KNO_VERSION@.tar.gz kno_@KNO_VERSION@
-
-staging/kno-@KNO_VERSION@: REVISION FULL_REVISION staging/kno dist/kno.spec.base
-	cd staging; cp -r kno/dist/debian kno/debian;
-	cp dist/kno.spec.base staging/kno/dist/kno-@KNO_VERSION@.spec;
-	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./REVISION) \
+	@U8BIN@u8_debchangelog kno ${CODENAME} $(shell cat ./VERSION) \
 			${REL_BRANCH} ${REL_STATUS} ${REL_PRIORITY} \
 			< dist/debian/changelog \
 			> staging/kno/debian/changelog;
@@ -1916,41 +1837,6 @@ staging/kno-@KNO_VERSION@.tar.gz: staging/kno-@KNO_VERSION@
 
 dist/kno.spec.base: dist/kno.spec.base.in
 	config.status
-
-# Rules for Debian building
-
-status/debian.ready: REVISION FULL_REVISION $(KNO_SOURCES) $(CMODULE_SOURCES) $(KNO_HEADERS)
-	make staging/kno_@KNO_VERSION@ && touch $@
-
-status/debian.built: status/debian.ready
-	(cd staging; tar czf kno_@KNO_PATCHVERSION@.orig.tar.gz kno_@KNO_VERSION@);
-	(cd staging/kno_@KNO_VERSION@;			\
-	 dpkg-buildpackage -sa -us -uc -F) &&		\
-	 cp staging/kno_@KNO_VERSION@*.tar.?z dist &&	\
-	 mv staging/*_@KNO_VERSION@*.* dist &&		\
-	touch $@
-
-status/debian.signed: status/debian.built
-	debsign -p${GPG} --re-sign -k${GPGID} dist/kno_@KNO_VERSION@*.changes && touch $@
-
-status/debian.done: status/debian.built
-	@(if test "${GPGID}" = "none" || test "${GPGID}" = ""; then	\
-	    echo "Skipping GPG signing of debian packages";		\
-	  else make status/debian.signed; fi) && 				\
-	touch $@
-
-unsigned-debs usdebs:
-	make GPGID=none status/debian.done
-
-status/debian.installed: status/debian.done
-	@( $(SUDO) dpkg -i dist/kno*@KNO_VERSION@*.deb dist/elpa-knoc*@KNO_VERSION@*.deb || \
-	   $(SUDO) dpkg -i dist/*.deb ) && \
-	 touch $@
-install-debian install-debs debinstall installdebs: status/debian.installed
-
-status/debian.uploaded: status/debian.done
-	@@U8BIN@u8_dupload dist/kno_@KNO_VERSION@*.changes ${APT_INCOMING} && touch debs.uploaded
-update-apt apt-upload: status/debian.uploaded
 
 # RPM targets
 
@@ -2021,7 +1907,7 @@ staging/alpine/APKBUILD: dist/alpine/APKBUILD staging/alpine
 staging/alpine/kno_@KNO_VERSION@.tar: dist/kno.tar staging/alpine
 	cp dist/kno.tar $@
 
-status/alpine.ready: dist/alpine/APKBUILD include/kno/revision.h makefile
+status/alpine.ready: dist/alpine/APKBUILD include/kno/kno_version.h makefile
         # We use `make` here rather than a dependency because otherwise
 	# the dependent tar might be auto-deleted
 	make staging/alpine/kno_@KNO_VERSION@.tar staging/alpine/APKBUILD && \
@@ -2048,24 +1934,24 @@ install-alpine: status/alpine.installed
 
 ### Depending on the .buildmode
 
-$(LISP_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
-$(SYS_OBJS): $(LISP_HEADERS) $(REVISION_H) .buildmode 
-$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(REVISION_H) .buildmode 
-$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(REVISION_H) .buildmode 
-$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(REVISION_H) .buildmode 
+$(LISP_OBJS): $(LISP_HEADERS) $(VERSION_H) .buildmode 
+$(SYS_OBJS): $(LISP_HEADERS) $(VERSION_H) .buildmode 
+$(APPLY_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(VERSION_H) .buildmode 
+$(STORAGE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(VERSION_H) .buildmode 
+$(DRIVER_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) $(VERSION_H) .buildmode 
 $(SCHEME_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode 
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(VERSION_H) .buildmode 
 $(WEB_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) ./include/kno/webtools.h .buildmode 
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(VERSION_H) ./include/kno/webtools.h .buildmode 
 $(TEXT_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(REVISION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h .buildmode 
+	$(APPLY_HEADERS) $(VERSION_H) $(SCHEME_HEADERS) ./include/kno/texttools.h .buildmode 
 $(LISP_OBJS) $(SYS_OBJS) $(APPLY_OBJS): .buildmode
 $(STORAGE_OBJS) $(DRIVER_OBJS): .buildmode
 $(SCHEME_OBJS): .buildmode
 $(WEB_OBJS) $(TEXT_OBJS): .buildmode
-$(PYTHON_OBJS) $(TEXT_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
+$(PYTHON_OBJS) $(TEXT_OBJS): $(LISP_HEADERS) $(APPLY_HEADERS) $(SCHEME_HEADERS) $(VERSION_H) .buildmode
 $(CMODULE_OBJS): $(LISP_HEADERS) $(STORAGE_HEADERS) $(DRIVERS_H) \
-	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(REVISION_H) .buildmode
+	$(APPLY_HEADERS) $(SCHEME_HEADERS) $(VERSION_H) .buildmode
 
 ### Other dependencies
 

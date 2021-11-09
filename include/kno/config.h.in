@@ -10,12 +10,6 @@
 #define KNO_CONFIG_H_INFO "include/kno/config.h"
 #endif
 
-/* Define the Kno version (originates in configure.ac) */
-#undef KNO_VERSION
-#undef KNO_MAJOR_VERSION
-#undef KNO_MINOR_VERSION
-#undef KNO_RELEASE_VERSION
-
 /* Where we're originally installed */
 #undef KNO_INSTALL_ROOT
 

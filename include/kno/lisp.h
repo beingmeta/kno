@@ -24,13 +24,13 @@ KNO_EXPORT u8_condition kno_NotAnOID;
 KNO_EXPORT double kno_load_start;
 
 KNO_EXPORT int kno_major_version, kno_minor_version, kno_release_version;
-KNO_EXPORT u8_string kno_version, kno_revision;
+KNO_EXPORT u8_string kno_version, kno_version;
 
 U8_EXPORT
-/** Returns the current Kno revision string (derived from the GIT branch)
+/** Returns the current Kno version string (derived from the GIT branch)
     @returns a utf8 string
 **/
-u8_string kno_getrevision(void);
+u8_string kno_getversion(void);
 
 U8_EXPORT
 /** Returns the current Kno version string (major.minor.release)
