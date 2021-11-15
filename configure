@@ -804,6 +804,7 @@ buildopts_dir
 config_dir
 default_module_path
 local_module_dir
+git_module_dir
 installed_module_dir
 unpackage_dir
 share_dir
@@ -952,6 +953,7 @@ with_unpackage_dir
 enable_fileconfig
 enable_xprofiling
 with_installed_module_dir
+with_git_module_dir
 with_local_modules
 with_loadpath
 with_libscm
@@ -1689,6 +1691,7 @@ Optional Packages:
 --with-shared-config location
 --with-unpackage-dir location
 --with-installed-module-dir location
+--with-git-module-dir location
 --with-local-modules location
 --with-loadpath location
 --with-libscm location
@@ -4269,7 +4272,7 @@ enable_ipeval_default="no"
 install_dir_opts="-m ug+rwx,o+rx -d"
 install_file_opts="-m ug+rw,o+r"
 install_exe_opts="-m ug+rwx,o+rx"
-setup_target
+setup_target=
 ifmacos="#"
 webuser=""
 webgroup=""
@@ -4339,6 +4342,7 @@ apache_modinfo="/etc/apache2"
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
+git_module_dir=""
 local_module_dir=""
 default_module_path=""
 module_path=""
@@ -10592,12 +10596,21 @@ fi;
 
 # Check whether --with-installed_module_dir was given.
 if test "${with_installed_module_dir+set}" = set; then :
-  withval=$with_installed_module_dir;
+  withval=$with_installed_module_dir; installed_module_dir=$withval
 else
-  with_installed_module_dir=$share_dir/modules/installed
+  installed_module_dir=$share_dir/modules/installed
 fi
 
 installed_module_dir=$with_installed_module_dir
+
+
+# Check whether --with-git_module_dir was given.
+if test "${with_git_module_dir+set}" = set; then :
+  withval=$with_git_module_dir; git_module_dir=$share_dir/modules/installed=$withval
+else
+  git_module_dir=$share_dir/modules/installed
+fi
+
 
 
 # Check whether --with-local_modules was given.
@@ -10677,6 +10690,7 @@ fi;
 
 stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
+git_module_path=$git_module_dir/
 local_module_path=$local_module_dir/
 default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
@@ -10700,6 +10714,10 @@ _ACEOF
 
 cat >>confdefs.h <<_ACEOF
 #define KNO_INSTALLED_MODULE_DIR "$installed_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_GIT_MODULE_DIR "$git_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF

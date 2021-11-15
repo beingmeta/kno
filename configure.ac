@@ -85,7 +85,7 @@ enable_ipeval_default="no"
 install_dir_opts="-m ug+rwx,o+rx -d"
 install_file_opts="-m ug+rw,o+r"
 install_exe_opts="-m ug+rwx,o+rx"
-setup_target
+setup_target=
 ifmacos="#"
 webuser=""
 webgroup=""
@@ -155,6 +155,7 @@ apache_modinfo="/etc/apache2"
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
+git_module_dir=""
 local_module_dir=""
 default_module_path=""
 module_path=""
@@ -311,6 +312,7 @@ AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
 AC_SUBST(installed_module_dir)
+AC_SUBST(git_module_dir)
 AC_SUBST(local_module_dir)
 AC_SUBST(default_module_path)
 AC_SUBST(config_dir)
@@ -340,7 +342,6 @@ AC_SUBST(servlet_logdir)
 AC_SUBST(servlet_bugjar)
 AC_SUBST(archflags)
 AC_SUBST(versionsh)
-AC_SUBST(setup_target)
 AC_SUBST(extra_gdb_sources)
 AC_SUBST(debugcflags)
 AC_SUBST(debugldflags)
@@ -1392,8 +1393,10 @@ fi;
 
 ### Scheme Module search paths
 
-AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,,with_installed_module_dir=$share_dir/modules/installed)
+AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,installed_module_dir=$withval,installed_module_dir=$share_dir/modules/installed)
 installed_module_dir=$with_installed_module_dir
+
+AC_ARG_WITH(git_module_dir,--with-git-module-dir location,git_module_dir=$share_dir/modules/installed=$withval,git_module_dir=$share_dir/modules/installed)
 
 AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
 local_module_dir=$with_local_modules
@@ -1439,6 +1442,7 @@ fi;
 
 stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
+git_module_path=$git_module_dir/
 local_module_path=$local_module_dir/
 default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
 
@@ -1451,6 +1455,7 @@ fi;
 
 AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(KNO_INSTALLED_MODULE_DIR,"$installed_module_dir")
+AC_DEFINE_UNQUOTED(KNO_GIT_MODULE_DIR,"$git_module_dir")
 AC_DEFINE_UNQUOTED(KNO_STDLIB_INSTALL_DIR,"$stdlib_install_dir")
 AC_DEFINE_UNQUOTED(KNO_UNPACKAGE_DIR,"$unpackage_dir")
 

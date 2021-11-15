@@ -31,6 +31,7 @@ usage() {
 	echo "\t"stdlib_modules "\t\t\t(Where built-in Kno source modules live)";
 	echo "\t"installed_modules\|installmods "\t(Where installed source modules live)";
 	echo "\t"local_modules\|localmods "\t(Where locally installed source modules live)";
+	echo "\t"git_modules\|gitmods "\t(Where checked out GIT modules live)";
 	echo "\t"cmodules "\t\t\t(Where compiled dynamic modules live)";
 	echo "\t"webuser "\t\t\t(The name of the web content user account for this installation)";
 	echo "\t"install_user "\t\t\t(The name of the user for installing system files";
@@ -104,6 +105,8 @@ case ${option} in
 	echo "@stdlib_module_dir@";;
     installed_modules|installmods)
 	echo "@installed_module_dir@";;
+    git_modules|gitmods)
+	echo "@git_module_dir@";;
     local_modules|localmods)
 	echo "@local_module_dir@";;
     cmodules)
