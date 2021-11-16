@@ -1356,7 +1356,8 @@ install-workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@bugjar@
 
 install-confdirs: $(DESTDIR)@installed_module_dir@ \
-	  $(DESTDIR)@local_module_dir@ $(DESTDIR)@unpackage_dir@ \
+	  $(DESTDIR)@git_module_dir@ $(DESTDIR)@local_module_dir@ \
+	  $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
 	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
@@ -1464,8 +1465,8 @@ install-libscm.skip: src/libscm.zip
 	@echo "Skipping libscm install, using runtime specified ${LIBSCM}"
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
-	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_PATCHVERSION@.zip
-	@$(SUINSTALL) ln -sf stdlib-@KNO_PATCHVERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
+	@$(SYSINSTALL) src/stdlib.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_VERSION@.zip
+	@$(SUINSTALL) ln -sf stdlib-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.@KNO_MINOR@.zip
 	@$(SUINSTALL) ln -sf stdlib-@KNO_VERSION@.zip $(DESTDIR)@share_dir@/stdlib/stdlib-@KNO_MAJOR@.zip
 
 logdirs: $(DESTDIR)@kno_logdir@ $(DESTDIR)@servlet_logdir@ $(DESTDIR)@daemon_logdir@

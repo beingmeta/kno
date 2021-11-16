@@ -1338,7 +1338,7 @@ AC_DEFINE_UNQUOTED(KNO_SHARE_DIR,"$with_share_dir")
 share_dir=$with_share_dir
 
 if test -z "${SYSROOT}"; then
-   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+   default_data_dir=$(mkpath "${share_dir}" "data");
 else
    default_data_dir=$(mkpath "${SYSROOT}" "data")
 fi
@@ -1394,12 +1394,10 @@ fi;
 ### Scheme Module search paths
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,installed_module_dir=$withval,installed_module_dir=$share_dir/modules/installed)
-installed_module_dir=$with_installed_module_dir
 
-AC_ARG_WITH(git_module_dir,--with-git-module-dir location,git_module_dir=$share_dir/modules/installed=$withval,git_module_dir=$share_dir/modules/installed)
+AC_ARG_WITH(git_module_dir,--with-git-module-dir location,git_module_dir=$withval,git_module_dir=$share_dir/modules/gits)
 
-AC_ARG_WITH(local_modules,--with-local-modules location,,with_local_modules=$share_dir/modules/local)
-local_module_dir=$with_local_modules
+AC_ARG_WITH(local_modules,--with-local-modules location,local_module_dir=$withval,local_module_dir=$share_dir/modules/local)
 
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
@@ -1444,10 +1442,9 @@ stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
 git_module_path=$git_module_dir/
 local_module_path=$local_module_dir/
-default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
+default_module_path="$local_module_path,$git_module_path,$installed_module_path,$stdlib_module_path"
 
-AC_ARG_WITH(module_path,--with-module-path location,,with_module_path=$default_module_path)
-module_path=$with_module_path
+AC_ARG_WITH(module_path,--with-module-path location,module_path=$withval,module_path=$default_module_path)
 
 if test ! -z ${with_loadpath}; then
    module_path="${with_loadpath},${module_path}";

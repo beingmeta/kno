@@ -10478,7 +10478,7 @@ _ACEOF
 share_dir=$with_share_dir
 
 if test -z "${SYSROOT}"; then
-   default_data_dir=$(mkpath "${share_dir}" "kno/data");
+   default_data_dir=$(mkpath "${share_dir}" "data");
 else
    default_data_dir=$(mkpath "${SYSROOT}" "data")
 fi
@@ -10601,26 +10601,24 @@ else
   installed_module_dir=$share_dir/modules/installed
 fi
 
-installed_module_dir=$with_installed_module_dir
 
 
 # Check whether --with-git_module_dir was given.
 if test "${with_git_module_dir+set}" = set; then :
-  withval=$with_git_module_dir; git_module_dir=$share_dir/modules/installed=$withval
+  withval=$with_git_module_dir; git_module_dir=$withval
 else
-  git_module_dir=$share_dir/modules/installed
+  git_module_dir=$share_dir/modules/gits
 fi
 
 
 
 # Check whether --with-local_modules was given.
 if test "${with_local_modules+set}" = set; then :
-  withval=$with_local_modules;
+  withval=$with_local_modules; local_module_dir=$withval
 else
-  with_local_modules=$share_dir/modules/local
+  local_module_dir=$share_dir/modules/local
 fi
 
-local_module_dir=$with_local_modules
 
 
 # Check whether --with-loadpath was given.
@@ -10692,17 +10690,16 @@ stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
 git_module_path=$git_module_dir/
 local_module_path=$local_module_dir/
-default_module_path="$local_module_path,$installed_module_path,$stdlib_module_path"
+default_module_path="$local_module_path,$git_module_path,$installed_module_path,$stdlib_module_path"
 
 
 # Check whether --with-module_path was given.
 if test "${with_module_path+set}" = set; then :
-  withval=$with_module_path;
+  withval=$with_module_path; module_path=$withval
 else
-  with_module_path=$default_module_path
+  module_path=$default_module_path
 fi
 
-module_path=$with_module_path
 
 if test ! -z ${with_loadpath}; then
    module_path="${with_loadpath},${module_path}";
