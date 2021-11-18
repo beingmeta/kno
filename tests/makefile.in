@@ -98,7 +98,7 @@ all_tests alltests all: cleanlogs
           malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
 	  branch=$$(git branch --show-current|| echo none);	\
 	  echo "Running alltests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
-	make libtests tables dbs cmodules cwrappers
+	make libtests tables dbs cmodules
 	make framedbs
 	make optimize_modules
 	make cmdtests
@@ -821,7 +821,6 @@ optscheme_leaktest:
 # CMODULE tests
 
 test-cmodules cmodules: @TEST_CMODULES@
-test-cwrappers cwrappers: @TEST_CWRAPPERS@
 
 # Standard module tests
 

@@ -649,11 +649,9 @@ KNO_EXPORT int kno_default_config_assignment(u8_string assignment)
 KNO_EXPORT lispval kno_interpret_config(lispval expr)
 {
   if ( (KNO_PAIRP(expr)) &&
-       (KNO_SYMBOLP(KNO_CAR(expr))) &&
-       (KNO_PAIRP(KNO_CDR(expr))) &&
-       (KNO_CDDR(expr) == KNO_NIL) ) {
+       (KNO_SYMBOLP(KNO_CAR(expr))) ) {
     lispval head = KNO_CAR(expr);
-    lispval arg = KNO_CADR(expr);
+    lispval arg = (PAIRP(CDR(expr))) ? (KNO_CADR(expr)) : (KNO_FALSE);
     if (head == path_macro) {
       if ( (KNO_STRINGP(arg)) ) {
         u8_string fullpath = (u8_abspath(KNO_CSTRING(arg),NULL));
@@ -670,7 +668,8 @@ KNO_EXPORT lispval kno_interpret_config(lispval expr)
         return kno_wrapstring(str);}
       else return kno_incref(expr);}
     else if (head == config_macro) {
-      if (KNO_SYMBOLP(arg)) {
+      if (KNO_FALSEP(arg)) return kno_incref(expr);
+      else if (KNO_SYMBOLP(arg)) {
         lispval v = kno_config_get(KNO_SYMBOL_NAME(arg));
 	if (KNO_VOIDP(v))
 	  return expr;
@@ -685,6 +684,7 @@ KNO_EXPORT lispval kno_interpret_config(lispval expr)
 	else return kno_incref(expr);}
       else return kno_incref(expr);}
     else if (head == env_macro) {
+      if (KNO_FALSEP(arg)) return kno_incref(expr);
       u8_string varname; int free_varname = 0;
       if (KNO_SYMBOLP(arg)) {
         varname = u8_upcase(KNO_SYMBOL_NAME(arg));
@@ -717,6 +717,7 @@ KNO_EXPORT lispval kno_interpret_config(lispval expr)
         else return v;}
       else return kno_make_timestamp(NULL);}
     else if ( (head == glom_macro) || (head == string_macro) ) {
+      if (KNO_FALSEP(arg)) return kno_incref(expr);
       if (KNO_PAIRP(arg)) {
 	U8_STATIC_OUTPUT(string,128);
 	lispval scan = arg; while (KNO_PAIRP(scan)) {
@@ -745,6 +746,9 @@ int skip_space(u8_input in)
   return c;
 }
 
+#define DEFAULT_SELECTORP(selector) \
+  ((KNO_TRUEP(selector)) || (KNO_DEFAULTP(selector)) || ((selector)==KNOSYM_DEFAULT) )
+
 /* This reads a config file.  It consists of a series of entries, each of which is
    either a list (var value) or an assignment var = value.
    Both # and ; are comment characters at the beginning of lines. */
@@ -771,10 +775,12 @@ static int read_config(U8_INPUT *in,int dflt)
 	if (KNO_ABORTP(entry))
 	  return kno_interr(entry);
 	else if ((PAIRP(entry)) &&
-		 (SYMBOLP(KNO_CAR(entry))) &&
+		 ( (SYMBOLP(KNO_CAR(entry))) || (STRINGP(KNO_CAR(entry))) ) &&
 		 (PAIRP(KNO_CDR(entry)))) {
 	  lispval val = kno_interpret_config(KNO_CADR(entry));
-	  int rv = (dflt) ?
+	  lispval cddr = KNO_CDR(KNO_CDR(entry));
+	  lispval selector = (PAIRP(cddr)) ?  (KNO_CAR(cddr)) : (KNO_VOID);
+	  int rv = ( (dflt) || (DEFAULT_SELECTORP(selector)) ) ?
 	    (kno_set_default_config(SYM_NAME(KNO_CAR(entry)),val)<0) :
 	    (kno_set_config(SYM_NAME(KNO_CAR(entry)),val)<0);
 	  if (rv < 0) {
@@ -1484,6 +1490,8 @@ static int add_default_config_file(lispval var,lispval val,void U8_MAYBE_UNUSED 
 
 /* Initialization */
 
+#define KNOROOT_DOC "The KNO_SYSROOT is used for translating system paths (read-only)"
+
 void kno_init_configs_c()
 {
   if (support_config_c_init_done)
@@ -1539,8 +1547,8 @@ void kno_init_configs_c()
     ("LOGLEVEL",_("default loglevel (from libu8) for the session"),
      kno_intconfig_get,loglevelconfig_set,&u8_loglevel);
 
-  kno_register_config("SYSROOT","Sets the KNO_PATH ",
-		      kno_sconfig_get,NULL,&kno_sysroot);
+  kno_register_config("KNOROOT",KNOROOT_DOC,kno_sconfig_get,NULL,&kno_sysroot);
+  kno_register_config("SYSROOT",KNOROOT_DOC,kno_sconfig_get,NULL,&kno_sysroot);
 
 #if KNO_FILECONFIG_ENABLED
 #if KNO_FILECONFIG_DEFAULTS

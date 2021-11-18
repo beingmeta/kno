@@ -1,7 +1,6 @@
 #!/bin/sh
-ALLDIRS="leveldb rocksdb imagetools mariadb odbc zeromq mongodb nng ziptools sundown"
+ALLDIRS="@EXTMODS@"
 DIRS=
-ROOT=$(pwd)
 ARGS=
 if [ $# = 1 ]; then
     if [ -d $1 ]; then
@@ -27,11 +26,11 @@ make symlinks
 # Switch branches
 BRANCH=$(cat .branch || u8_gitbranch || echo main)
 for dir in ${DIRS}; do command cd ${dir}; git checkout ${BRANCH}; command cd ..; done;
-# Do all the targets on all the directories, using the current versions of knoconfig and knobuild
+# Do all the targets on all the directories
 FAILED=
 for dir in ${DIRS}; do
     if [ ! -f ${dir}.skip ]; then
-	("cd" ${dir}; make KNOCONFIG="${ROOT}/knoconfig" KNOBUILD="${ROOT}/knobuild" ${ARGS}) || FAILED="${dir} ${FAILED}";
+	("cd" ${dir}; make -C ${dir} ${ARGS}) || FAILED="${dir} ${FAILED}";
     fi;
 done
 if [ ! -z "${FAILED}" ]; then

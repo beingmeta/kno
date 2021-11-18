@@ -803,8 +803,9 @@ local_config
 buildopts_dir
 config_dir
 default_module_path
+conf_module_dir
 local_module_dir
-git_module_dir
+source_module_dir
 installed_module_dir
 unpackage_dir
 share_dir
@@ -953,8 +954,9 @@ with_unpackage_dir
 enable_fileconfig
 enable_xprofiling
 with_installed_module_dir
-with_git_module_dir
+with_source_module_dir
 with_local_modules
+with_config_modules
 with_loadpath
 with_libscm
 with_stdlibs
@@ -1691,8 +1693,9 @@ Optional Packages:
 --with-shared-config location
 --with-unpackage-dir location
 --with-installed-module-dir location
---with-git-module-dir location
+--with-source-module-dir location
 --with-local-modules location
+--with-config-modules location
 --with-loadpath location
 --with-libscm location
 --with-stdlibs location
@@ -4233,11 +4236,13 @@ fi
 
 # Check whether --enable-relocation was given.
 if test "${enable_relocation+set}" = set; then :
-  enableval=$enable_relocation;
+  enableval=$enable_relocation; enable_relocation=$enableval
 else
   enable_relocation="no"
 fi
 
+
+echo "enable_relocation=${enable_relocation}";
 
 if test "${enable_relocation}" != "no"; then
    RELOCATABLE=true;
@@ -4245,7 +4250,7 @@ else
    RELOCATABLE=false;
 fi
 
-if test ${RELOCATABLE} = "yes"; then
+if ${RELOCATABLE}; then
    $as_echo "#define KNO_RELOCATION_ENABLED 1" >>confdefs.h
 
 fi
@@ -4317,7 +4322,7 @@ U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else cat etc/base_version; fi)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else echo "$(cat etc/base_version).0"; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -4330,6 +4335,7 @@ LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
+mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
 CLEAN="rm -f "
 I18N=""
@@ -4342,8 +4348,9 @@ apache_modinfo="/etc/apache2"
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
-git_module_dir=""
+source_module_dir=""
 local_module_dir=""
+conf_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
@@ -4535,6 +4542,7 @@ ac_configure="$SHELL $ac_aux_dir/configure"  # Please don't use this var.
 
 
 ac_config_headers="$ac_config_headers include/kno/knosource.h include/kno/config.h"
+
 
 
 
@@ -6692,7 +6700,6 @@ PKGCONFIG_DIR=${with_pkgconfig_dir}
 cat >>confdefs.h <<_ACEOF
 #define KNO_PKGCONFIG_DIR "$with_pkgconfig_dir"
 _ACEOF
-
 
 
 ### Checking the compiler
@@ -10511,34 +10518,32 @@ fi
 
 # Check whether --with-config_dir was given.
 if test "${with_config_dir+set}" = set; then :
-  withval=$with_config_dir;
+  withval=$with_config_dir; config_dir=$withval
 else
-  with_config_dir=$default_config_dir
+  config_dir=$default_config_dir
 fi
 
-config_dir=$with_config_dir
 
 
 # Check whether --with-local_config was given.
 if test "${with_local_config+set}" = set; then :
-  withval=$with_local_config;
+  withval=$with_local_config; local_config=$withval
 else
-  with_local_config=$config_dir/config
+  local_config=$config_dir/config
 fi
 
-local_config=$with_local_config
+
 
 # Check whether --with-shared_config was given.
 if test "${with_shared_config+set}" = set; then :
-  withval=$with_shared_config;
+  withval=$with_shared_config; shared_config=$withval
 else
-  with_shared_config=$share_dir/config
+  shared_config=$share_dir/config
 fi
 
-shared_config=$with_shared_config
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_CONFIG_FILE_PATH "$with_local_config/%:$with_shared_config/%"
+#define KNO_CONFIG_FILE_PATH "$local_config/%:$shared_config/%"
 _ACEOF
 
 
@@ -10603,11 +10608,11 @@ fi
 
 
 
-# Check whether --with-git_module_dir was given.
-if test "${with_git_module_dir+set}" = set; then :
-  withval=$with_git_module_dir; git_module_dir=$withval
+# Check whether --with-source_module_dir was given.
+if test "${with_source_module_dir+set}" = set; then :
+  withval=$with_source_module_dir; source_module_dir=$withval
 else
-  git_module_dir=$share_dir/modules/gits
+  source_module_dir=$share_dir/modules/source
 fi
 
 
@@ -10617,6 +10622,15 @@ if test "${with_local_modules+set}" = set; then :
   withval=$with_local_modules; local_module_dir=$withval
 else
   local_module_dir=$share_dir/modules/local
+fi
+
+
+
+# Check whether --with-config_modules was given.
+if test "${with_config_modules+set}" = set; then :
+  withval=$with_config_modules; conf_module_dir=$withval
+else
+  conf_module_dir=$config_dir/modules
 fi
 
 
@@ -10688,9 +10702,10 @@ fi;
 
 stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
-git_module_path=$git_module_dir/
+source_module_path=$source_module_dir/
 local_module_path=$local_module_dir/
-default_module_path="$local_module_path,$git_module_path,$installed_module_path,$stdlib_module_path"
+conf_module_path=$conf_module_dir/
+default_module_path="$conf_module_path,$local_module_path,$source_module_path,$installed_module_path,$stdlib_module_path"
 
 
 # Check whether --with-module_path was given.
@@ -10706,15 +10721,19 @@ if test ! -z ${with_loadpath}; then
 fi;
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_LOCAL_MODULE_DIR "$local_module_dir"
-_ACEOF
-
-cat >>confdefs.h <<_ACEOF
 #define KNO_INSTALLED_MODULE_DIR "$installed_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
-#define KNO_GIT_MODULE_DIR "$git_module_dir"
+#define KNO_SOURCE_MODULE_DIR "$source_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_LOCAL_MODULE_DIR "$local_module_dir"
+_ACEOF
+
+cat >>confdefs.h <<_ACEOF
+#define KNO_CONF_MODULE_DIR "conf_module_dir"
 _ACEOF
 
 cat >>confdefs.h <<_ACEOF
@@ -13737,6 +13756,142 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
+### Figure out extmods
+
+EXTMODS="mongodb nng ziptools sundown"
+
+if pkg-config libzmq --exists; then EXTMODS="zeromq ${EXTMODS}"; fi
+if pkg-config libpq --libarchive; then EXTMODS="postgres ${EXTMODS}"; fi
+if pkg-config odbc --exists; then EXTMODS="odbc ${EXTMODS}"; fi
+if pkg-config libmariadb --exists; then EXTMODS="mariadb ${EXTMODS}"; fi
+
+if pkg-config libqrencode --exists &&
+   pkg-config libexif --exists &&
+   pkg-config MagickWand --exists; then
+   EXTMODS="imagetools ${EXTMODS}";
+fi;
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for rocksdb_open in -lrocksdb" >&5
+$as_echo_n "checking for rocksdb_open in -lrocksdb... " >&6; }
+if ${ac_cv_lib_rocksdb_rocksdb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lrocksdb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char rocksdb_open ();
+int
+main ()
+{
+return rocksdb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_rocksdb_rocksdb_open=yes
+else
+  ac_cv_lib_rocksdb_rocksdb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_rocksdb_rocksdb_open" >&5
+$as_echo "$ac_cv_lib_rocksdb_rocksdb_open" >&6; }
+if test "x$ac_cv_lib_rocksdb_rocksdb_open" = xyes; then :
+  EXTMODS="rocksdb ${EXTMODS}"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -lleveldb" >&5
+$as_echo_n "checking for leveldb_open in -lleveldb... " >&6; }
+if ${ac_cv_lib_leveldb_leveldb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lleveldb  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char leveldb_open ();
+int
+main ()
+{
+return leveldb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_leveldb_leveldb_open=yes
+else
+  ac_cv_lib_leveldb_leveldb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_leveldb_leveldb_open" >&5
+$as_echo "$ac_cv_lib_leveldb_leveldb_open" >&6; }
+if test "x$ac_cv_lib_leveldb_leveldb_open" = xyes; then :
+  EXTMODS="leveldb ${EXTMODS}"
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking for leveldb_open in -llibhyphen" >&5
+$as_echo_n "checking for leveldb_open in -llibhyphen... " >&6; }
+if ${ac_cv_lib_libhyphen_leveldb_open+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-llibhyphen  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char leveldb_open ();
+int
+main ()
+{
+return leveldb_open ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_libhyphen_leveldb_open=yes
+else
+  ac_cv_lib_libhyphen_leveldb_open=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_libhyphen_leveldb_open" >&5
+$as_echo "$ac_cv_lib_libhyphen_leveldb_open" >&6; }
+if test "x$ac_cv_lib_libhyphen_leveldb_open" = xyes; then :
+  EXTMODS="hyphenate ${EXTMODS}"
+fi
+
+
 ### Setup options
 
 
@@ -13770,7 +13925,7 @@ fi;
 
 ### Here's where stuff gets made
 
-ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob src/shell/usebundle.sh tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
+ac_config_files="$ac_config_files makefile etc/version etc/makefile.include src/extmods/makefile DIY/makefile tests/makefile tests/libtests/makefile etc/gdbinit etc/lldbinit exe/.gdbinit exe/.lldbinit dbg/runenv.sh dbg/.gdbinit dbg/.lldbinit dbg/.valgrind etc/kno.pc src/shell/knolaunch src/shell/knobuild src/shell/kno_fixdirs src/shell/kno_start_servlets src/shell/kno_start_daemons src/shell/kno_stop_jobs src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall src/shell/knocleanup src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog src/shell/knoreload src/shell/knorestart src/shell/knogdb src/shell/knodbgexec src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knojob src/shell/usebundle.sh tests/testenv.sh tests/xtest tests/runtest tests/memtest tests/leaktest tests/knoxtest src/scripts/knopkg.scm src/extmods/knoconfig src/extmods/submake src/extmods/domake etc/logrotate etc/sysv/kno-rc.d etc/sysv/ex_servlet-init.d etc/sysv/ex_daemon-init.d etc/upstart/kno.conf etc/upstart/knod.conf etc/upstart/knoservlets.conf etc/upstart/ex_knoservlet.conf etc/systemd/ex_servlet.service etc/systemd/ex_daemon.service etc/systemd/kno-daemons.service etc/systemd/kno-servlets.service etc/macos/OSXStartupItem/KNO etc/macos/KNO.plist etc/apache/knocgi.conf etc/apache/knocgi.load etc/install-script etc/getbuildopt dist/alpine/APKBUILD dist/kno.spec.base"
 
 ac_config_commands="$ac_config_commands default"
 
@@ -14519,6 +14674,8 @@ do
     "tests/knoxtest") CONFIG_FILES="$CONFIG_FILES tests/knoxtest" ;;
     "src/scripts/knopkg.scm") CONFIG_FILES="$CONFIG_FILES src/scripts/knopkg.scm" ;;
     "src/extmods/knoconfig") CONFIG_FILES="$CONFIG_FILES src/extmods/knoconfig" ;;
+    "src/extmods/submake") CONFIG_FILES="$CONFIG_FILES src/extmods/submake" ;;
+    "src/extmods/domake") CONFIG_FILES="$CONFIG_FILES src/extmods/domake" ;;
     "etc/logrotate") CONFIG_FILES="$CONFIG_FILES etc/logrotate" ;;
     "etc/sysv/kno-rc.d") CONFIG_FILES="$CONFIG_FILES etc/sysv/kno-rc.d" ;;
     "etc/sysv/ex_servlet-init.d") CONFIG_FILES="$CONFIG_FILES etc/sysv/ex_servlet-init.d" ;;
@@ -15095,7 +15252,7 @@ $as_echo "$as_me: executing $ac_file commands" >&6;}
 
 
   case $ac_file$ac_mode in
-    "default":C) chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig ;;
+    "default":C) chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig src/extmods/*make ;;
 
   esac
 done # for ac_tag
@@ -15162,8 +15319,9 @@ if test "$enable_ipeval" = "yes"; then
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
 fi
+echo "You should be able to build these KNO modules in src/extmods:";
+echo "      ${EXTMODS}";
 echo "+++ Thanks for using Kno!";
-echo "EXTMODS=${EXTMODS}";
 
 
 # Emacs local variables

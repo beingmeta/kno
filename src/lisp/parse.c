@@ -1171,6 +1171,13 @@ static lispval parse_record(U8_INPUT *in)
 
 static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase);
 
+static int label_endp(int ch)
+{
+  if ( (u8_isspace(ch)) || (strchr("{(\":;'`#",ch)) )
+    return 1;
+  else return 0;
+}
+
 KNO_EXPORT
 /* kno_parser:
    Arguments: a U8 input stream and a memory pool
@@ -1269,16 +1276,18 @@ lispval kno_parser(u8_input in)
           u8_putc(labelout,'#');
           ch = u8_getc(in);
           while ( ( ch >= 0 ) && (label_length < 42) &&
-                  (strchr("{([\":'`#",ch) == NULL) ) {
+		  (!(u8_isspace(ch))) &&
+		  (strchr("{([\":'`#",ch) == NULL) ) {
             int uch = u8_tolower(ch);
             u8_putc(labelout,uch);
             ch = u8_getc(in);
             label_length++;}
-          if ( (strchr("{(\":;'`#",ch) == NULL) || (label_length >= 42) ) {
+	  if ( (label_length >= 42) || (!(label_endp(ch))) ) {
             u8_seterr("Unclosed Reader Macro","kno_parser",NULL);
             return KNO_PARSE_ERROR;}
           if (! (ch == ':') ) u8_ungetc(in,ch);
           lispval sym = kno_intern(label.u8_outbuf);
+	  if (u8_isspace(ch)) return kno_init_pair(NULL,sym,KNO_EMPTY_LIST);
           int nextch = u8_probec(in);
           if ( (u8_isspace(nextch)) ||
                ( (nextch<128) && (strchr("]})",nextch))) ) {

@@ -58,7 +58,9 @@ if test ! -z "${SYSROOT}" ; then
    AC_SUBST(SYSROOT)
 fi
 
-AC_ARG_ENABLE(relocation,--en/disable-relocation makes kno handle relocation of executables,,enable_relocation="no")
+AC_ARG_ENABLE(relocation,--en/disable-relocation makes kno handle relocation of executables,enable_relocation=$enableval,enable_relocation="no")
+
+echo "enable_relocation=${enable_relocation}";
 
 if test "${enable_relocation}" != "no"; then
    RELOCATABLE=true;
@@ -66,7 +68,7 @@ else
    RELOCATABLE=false;
 fi
 
-if test ${RELOCATABLE} = "yes"; then
+if ${RELOCATABLE}; then
    AC_DEFINE(KNO_RELOCATION_ENABLED,1)
 fi
 
@@ -130,7 +132,7 @@ U8BIN="${U8BIN}"
 U8RUN=${U8BIN}/u8run
 RPATHFLAGS=-Wl,-rpath,"\\\$\$ORIGIN/\${RPATH}"
 SHARED_LIB_TARGET=shared-libs
-KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else cat etc/base_version; fi)
+KNO_PATCHVERSION=$(if test -d .git; then ${U8BIN}/u8_gitversion etc/base_version; elif test -f VERSION; then cat VERSION; else echo "$(cat etc/base_version).0"; fi)
 KNO_BRANCH=$(${U8BIN}/u8_gitbranch)
 KNO_VERSION=$(echo ${KNO_PATCHVERSION} | cut -d'-' -f1)
 KNO_MAJOR=$(echo ${KNO_VERSION} | cut -d'.' -f1)
@@ -143,6 +145,7 @@ LIBSOURCE=lib
 SHAREDEXE=exe
 STATICEXE=static
 mshared_suffix=so.${KNO_MAJOR}
+mmshared_suffix=so.${KNO_MAJOR}.${KNO_MINOR}
 vshared_suffix=so.${KNO_VERSION}
 CLEAN="rm -f "
 I18N=""
@@ -155,8 +158,9 @@ apache_modinfo="/etc/apache2"
 A2EN="none"
 stdlib_install_dir=""
 installed_module_dir=""
-git_module_dir=""
+source_module_dir=""
 local_module_dir=""
+conf_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
@@ -312,8 +316,9 @@ AC_SUBST(systemd_loc)
 AC_SUBST(share_dir)
 AC_SUBST(unpackage_dir)
 AC_SUBST(installed_module_dir)
-AC_SUBST(git_module_dir)
+AC_SUBST(source_module_dir)
 AC_SUBST(local_module_dir)
+AC_SUBST(conf_module_dir)
 AC_SUBST(default_module_path)
 AC_SUBST(config_dir)
 AC_SUBST(buildopts_dir)
@@ -624,7 +629,6 @@ fi
 AC_ARG_WITH(pkgconfig_dir,--with-pkgconfig-dir pathname,,with_pkgconfig_dir=$prefix/share/pkgconfig)
 PKGCONFIG_DIR=${with_pkgconfig_dir}
 AC_DEFINE_UNQUOTED(KNO_PKGCONFIG_DIR,"$with_pkgconfig_dir")
-
 
 ### Checking the compiler
 
@@ -1358,15 +1362,13 @@ else
    default_buildopts_dir="$prefix/etc/beingmeta/opts";
 fi
 
-AC_ARG_WITH(config_dir,--with-config-dir location,,with_config_dir=$default_config_dir)
-config_dir=$with_config_dir
+AC_ARG_WITH(config_dir,--with-config-dir location,config_dir=$withval,config_dir=$default_config_dir)
 
-AC_ARG_WITH(local_config,--with-local-config location,,with_local_config=$config_dir/config)
-local_config=$with_local_config
-AC_ARG_WITH(shared_config,--with-shared-config location,,with_shared_config=$share_dir/config)
-shared_config=$with_shared_config
+AC_ARG_WITH(local_config,--with-local-config location,local_config=$withval,local_config=$config_dir/config)
 
-AC_DEFINE_UNQUOTED(KNO_CONFIG_FILE_PATH,"$with_local_config/%:$with_shared_config/%")
+AC_ARG_WITH(shared_config,--with-shared-config location,shared_config=$withval,shared_config=$share_dir/config)
+
+AC_DEFINE_UNQUOTED(KNO_CONFIG_FILE_PATH,"$local_config/%:$shared_config/%")
 
 AC_ARG_WITH(unpackage_dir,--with-unpackage-dir location,,with_unpackage_dir=$share_dir/packages)
 unpackage_dir=$with_unpackage_dir
@@ -1395,9 +1397,11 @@ fi;
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,installed_module_dir=$withval,installed_module_dir=$share_dir/modules/installed)
 
-AC_ARG_WITH(git_module_dir,--with-git-module-dir location,git_module_dir=$withval,git_module_dir=$share_dir/modules/gits)
+AC_ARG_WITH(source_module_dir,--with-source-module-dir location,source_module_dir=$withval,source_module_dir=$share_dir/modules/source)
 
 AC_ARG_WITH(local_modules,--with-local-modules location,local_module_dir=$withval,local_module_dir=$share_dir/modules/local)
+
+AC_ARG_WITH(config_modules,--with-config-modules location,conf_module_dir=$withval,conf_module_dir=$config_dir/modules)
 
 AC_ARG_WITH(loadpath,--with-loadpath location)
 
@@ -1440,9 +1444,10 @@ fi;
 
 stdlib_module_path=$stdlib_search_dir
 installed_module_path=$installed_module_dir/
-git_module_path=$git_module_dir/
+source_module_path=$source_module_dir/
 local_module_path=$local_module_dir/
-default_module_path="$local_module_path,$git_module_path,$installed_module_path,$stdlib_module_path"
+conf_module_path=$conf_module_dir/
+default_module_path="$conf_module_path,$local_module_path,$source_module_path,$installed_module_path,$stdlib_module_path"
 
 AC_ARG_WITH(module_path,--with-module-path location,module_path=$withval,module_path=$default_module_path)
 
@@ -1450,9 +1455,10 @@ if test ! -z ${with_loadpath}; then
    module_path="${with_loadpath},${module_path}";
 fi;
 
-AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
 AC_DEFINE_UNQUOTED(KNO_INSTALLED_MODULE_DIR,"$installed_module_dir")
-AC_DEFINE_UNQUOTED(KNO_GIT_MODULE_DIR,"$git_module_dir")
+AC_DEFINE_UNQUOTED(KNO_SOURCE_MODULE_DIR,"$source_module_dir")
+AC_DEFINE_UNQUOTED(KNO_LOCAL_MODULE_DIR,"$local_module_dir")
+AC_DEFINE_UNQUOTED(KNO_CONF_MODULE_DIR,"conf_module_dir")
 AC_DEFINE_UNQUOTED(KNO_STDLIB_INSTALL_DIR,"$stdlib_install_dir")
 AC_DEFINE_UNQUOTED(KNO_UNPACKAGE_DIR,"$unpackage_dir")
 
@@ -1882,6 +1888,25 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
+### Figure out extmods
+
+EXTMODS="mongodb nng ziptools sundown"
+
+if pkg-config libzmq --exists; then EXTMODS="zeromq ${EXTMODS}"; fi
+if pkg-config libpq --libarchive; then EXTMODS="postgres ${EXTMODS}"; fi
+if pkg-config odbc --exists; then EXTMODS="odbc ${EXTMODS}"; fi
+if pkg-config libmariadb --exists; then EXTMODS="mariadb ${EXTMODS}"; fi
+
+if pkg-config libqrencode --exists &&
+   pkg-config libexif --exists && 
+   pkg-config MagickWand --exists; then
+   EXTMODS="imagetools ${EXTMODS}";
+fi;
+
+AC_CHECK_LIB(rocksdb,rocksdb_open,EXTMODS="rocksdb ${EXTMODS}")
+AC_CHECK_LIB(leveldb,leveldb_open,EXTMODS="leveldb ${EXTMODS}")
+AC_CHECK_LIB(libhyphen,leveldb_open,EXTMODS="hyphenate ${EXTMODS}")
+
 ### Setup options
 
 AC_ARG_WITH(setup,--with-setup how to setup the system on installation,setup_target=setup-$withval,setup_target=setup-unix)
@@ -1928,6 +1953,8 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 tests/leaktest tests/knoxtest
 		 src/scripts/knopkg.scm
 		 src/extmods/knoconfig
+		 src/extmods/submake
+		 src/extmods/domake
 		 etc/logrotate
 		 etc/sysv/kno-rc.d
 		 etc/sysv/ex_servlet-init.d
@@ -1948,7 +1975,7 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 etc/getbuildopt
 		 dist/alpine/APKBUILD
 		 dist/kno.spec.base])
-AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig],[])
+AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig src/extmods/*make],[])
 AC_OUTPUT
 
 if test ! -z "$gperftools"; then
@@ -1978,8 +2005,9 @@ if test "$enable_ipeval" = "yes"; then
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
 fi
+echo "You should be able to build these KNO modules in src/extmods:";
+echo "      ${EXTMODS}";
 echo "+++ Thanks for using Kno!";
-echo "EXTMODS=${EXTMODS}";
 
 
 # Emacs local variables

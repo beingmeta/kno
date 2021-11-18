@@ -88,6 +88,17 @@ while [ $# -gt 0 ]; do
 	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --without-sudo --with-setup=none";
 	    INSTALL_ARGS="DOSETUP= install";
 	    ;;
+	bundle=*)
+	    bundle_arg=${arg##bundle=};
+	    if [ "${bundle_arg%VERSION}" != "${bundle_arg}" ]; then
+		bundle_arg="${bundle_arg%VERSION}$(u8_gitversion etc/base_version 2>/dev/null|| echo noversion)"; fi
+	    BUNDLE_NAME=$(basename ${bundle_arg});
+	    if [ "${BUNDLENAME}" == "${bundle_arg}" ]; then
+		use_prefix="/opt/${BUNDLE_NAME}";
+	    else use_prefix="${bundle_arg}"; fi;
+	    CONFIG_ARGS="--enable-relocation --with-rpath=../lib --with-sysroot=${use_prefix} --without-sudo --with-setup=none";
+	    INSTALL_ARGS="DOSETUP= install";
+	    ;;
 	install)
 	    DO_INSTALL=yes
 	    ;;

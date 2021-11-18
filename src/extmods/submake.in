@@ -1,5 +1,5 @@
 #!/bin/sh
-ALLDIRS="leveldb rocksdb imagetools mariadb odbc zeromq mongodb nng ziptools sundown"
+ALLDIRS="@EXTMODS@"
 DIRS=
 ROOT=$(pwd)
 ARGS=

@@ -34,6 +34,8 @@ extern u8_condition UnconfiguredSource;
 
 static lispval simple_symbol = KNO_NULL;
 
+DEF_KNOSYM(first); DEF_KNOSYM(last);
+
 /* Core functions */
 
 DEFC_PRIM("config",config_get,
@@ -60,31 +62,45 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
       return kno_type_error(_("string or symbol"),"config_get",var);}
     if (VOIDP(value)) {}
     else if (value==KNO_DEFAULT_VALUE) {}
-    else if (KNO_APPLICABLEP(valfn)) {
-      lispval converted = kno_apply(valfn,1,&value);
-      if (KNO_ABORTP(converted)) {
-	u8_log(LOG_WARN,"ConfigConversionError",
-	       "Error converting config value of %q=%q using %q",
-	       var,value,valfn);
-	kno_clear_errors(1);
-	kno_decref(value);}
-      else {
-	CHOICE_ADD(result,converted);
-	kno_decref(value);}}
-    else if ((KNO_STRINGP(value)) && (KNO_TRUEP(valfn))) {
-      u8_string valstring = KNO_CSTRING(value);
-      lispval parsed = kno_parse(valstring);
-      if (KNO_ABORTP(parsed)) {
-	u8_log(LOG_WARN,"ConfigParseError",
-	       "Error parsing config value of %q=%q",
-	       var,value);
-	kno_clear_errors(1);
-	kno_decref(value);}
-      else {
-	CHOICE_ADD(result,parsed);
-	kno_decref(value);}}
+    else if ( (KNO_VOIDP(valfn)) || (KNO_FALSEP(valfn)) || (KNO_DEFAULTP(valfn)) ) {
+      CHOICE_ADD(result,value);}
     else {
-      CHOICE_ADD(result,value);}}
+      if (PAIRP(value)) {
+	/* Select a value */
+	if (kno_overlapp(valfn,KNOSYM(first))) {
+	  lispval use_first = KNO_CAR(value); kno_incref(use_first);
+	  kno_decref(value); value=use_first;}
+	else if (kno_overlapp(valfn,KNOSYM(last))) {
+	  lispval scan = value, next = KNO_CDR(scan);
+	  while (KNO_PAIRP(next)) {
+	    scan=next; next = KNO_CDR(scan);}
+	  lispval use_last = KNO_CAR(scan); kno_incref(use_last);
+	  kno_decref(value); value=use_last;}
+	else {/* TODO: Add largest/smallest selectors which work on time values */}}
+      if (KNO_APPLICABLEP(valfn)) {
+	lispval converted = kno_apply(valfn,1,&value);
+	if (KNO_ABORTP(converted)) {
+	  u8_log(LOG_WARN,"ConfigConversionError",
+		 "Error converting config value of %q=%q using %q",
+		 var,value,valfn);
+	  kno_clear_errors(1);
+	  kno_decref(value);}
+	else {
+	  CHOICE_ADD(result,converted);
+	  kno_decref(value);}}
+      else if ( (KNO_STRINGP(value)) && (kno_overlapp(valfn,KNO_TRUE)) ) {
+	u8_string valstring = KNO_CSTRING(value);
+	lispval parsed = kno_parse(valstring);
+	if (KNO_ABORTP(parsed)) {
+	  u8_log(LOG_WARN,"ConfigParseError",
+		 "Error parsing config value of %q=%q",
+		 var,value);
+	  kno_clear_errors(1);
+	  kno_decref(value);}
+	else {
+	  CHOICE_ADD(result,parsed);
+	  kno_decref(value);}}
+      else {CHOICE_ADD(result,value);}}}
   if ( (VOIDP(result)) || (EMPTYP(result)) )
     if (VOIDP(dflt))
       return KNO_FALSE;
@@ -94,10 +110,18 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   else return result;
 }
 
-static lispval config_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+DEFC_EVALFN("#CONFIG",config_read_macro,KNO_EVALFN_DEFAULTS,
+	    "This handles the read macro expansion for `#:CONFIG...` "
+	    "by taking the first argument, without evaluation, as "
+	    "a config parameter and returning its value.\n"
+	    "The reader generates this form from strings like "
+	    "`#:CONFIG:PID`, `#:CONFIG\"USER\"`, or `#:CONFIG\"CWD\"`.")
+static lispval config_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval var = kno_get_arg(expr,1);
-  if ( (KNO_SYMBOLP(var)) || (KNO_STRINGP(var)) ) {
+  if (KNO_VOIDP(var))
+    return kno_err(kno_SyntaxError,"#:config","requires at least one argument",expr);
+  else if ( (KNO_SYMBOLP(var)) || (KNO_STRINGP(var)) ) {
     u8_string name = (KNO_SYMBOLP(var)) ? (KNO_SYMBOL_NAME(var)) :
       (KNO_CSTRING(var));
     lispval config_val = kno_config_get(name);
@@ -118,10 +142,23 @@ static lispval config_macro(lispval expr,kno_lexenv env,kno_stack ptr)
   else return KNO_FALSE;
 }
 
-static lispval string_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+DEFC_EVALFN("#STRING",string_read_macro,KNO_EVALFN_DEFAULTS,
+	    "This handles the read macro expansion for `#:STRING...` "
+	    "which converts all parsed representations into strings, so "
+	    "`#:string:3` evaluates to `\"3\"`. When given a list as "
+	    "input, this appends together the string representations of "
+	    "the lists elements, so #:string(\"a\" 3 \"b\" c) returns "
+	    "`\"a3bc\"`. Importanlty, this doesn't evaluate any "
+	    "arguments, but elements which are `config values` "
+	    "(e.g. #path, #config, #source #env, #now, and embedded #string "
+	    "expressions) are interpreted.\n"
+	    "For convenience. `#:GLOM` is an alias for `#STRING`.")
+static lispval string_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval arg = kno_get_arg(expr,1);
-  if (KNO_STRINGP(arg))
+  if (KNO_VOIDP(arg))
+    return kno_err(kno_SyntaxError,"#:string","requires at least one argument",expr);
+  else if (KNO_STRINGP(arg))
     return kno_incref(arg);
   else if (KNO_SYMBOLP(arg))
     return knostring(KNO_SYMBOL_NAME(arg));
@@ -141,14 +178,25 @@ static lispval string_macro(lispval expr,kno_lexenv env,kno_stack ptr)
     lispval result = kno_stream2string(stringout);
     u8_close_output(stringout);
     return result;}
-  else return kno_incref(arg);
+  else {
+    u8_string as_string = kno_lisp2string(arg);
+    return kno_init_string(NULL,-1,as_string);}
 }
 
-static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+DEFC_EVALFN("#NOW",now_read_macro,KNO_EVALFN_DEFAULTS,
+	    "This handles the read macro expansion for `#:NOW...` "
+	    "which returns the current time or some aspect of it. "
+	    "In it's raw form it simply returns a fine-grained timestamp "
+	    "in the current timezone. If given an argument, it takes it as a "
+	    "symbol and gets that aspect of the current time, so "
+	    "`#:now:seconds` returns the seconds component of the current time, "
+	    "or `#:now:dowid` might return `mon`. Also handy are "
+	    "`#:now:iso`, `#:now:rfc822`.")
+static lispval now_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
   lispval field = kno_get_arg(expr,1);
   lispval now = kno_make_timestamp(NULL);
-  lispval v = (FALSEP(field)) ? (kno_incref(now)) :
+  lispval v = ( (FALSEP(field)) || (VOIDP(field)) ) ? (kno_incref(now)) :
     (kno_get(now,field,KNO_VOID));
   kno_decref(now);
   if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) )
@@ -156,13 +204,33 @@ static lispval now_macro(lispval expr,kno_lexenv env,kno_stack ptr)
   else return v;
 }
 
-static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
+DEFC_EVALFN("#ENV",getenv_read_macro,KNO_EVALFN_DEFAULTS,
+	    "This handles the read macro expansion for `#:ENV...` "
+	    "which returns values from the current OS environment. "
+	    "For example,`#:ENV:HOME` returns the environment variable for "
+	    "home.")
+static lispval getenv_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 {
-  lispval var = kno_get_arg(expr,1);
-  if ( (KNO_STRINGP(var)) || (KNO_SYMBOLP(var)) ) {
-    u8_string enval = (KNO_SYMBOLP(var)) ?
-      (u8_getenv(KNO_SYMBOL_NAME(var))) :
-      (u8_getenv(CSTRING(var)));
+  lispval var_arg = kno_get_arg(expr,1);
+  if (KNO_VOIDP(var_arg))
+    return kno_err(kno_SyntaxError,"#:env","requires at least one argument",expr);
+  lispval var = (KNO_SYMBOLP(var_arg)) ? (var_arg) :
+    (STRINGP(var_arg)) ? (var_arg) : 
+    ( (PAIRP(var_arg)) && ( (STRINGP(CAR(var_arg))) || (SYMBOLP(CAR(var_arg))) ) ) ?
+    (CAR(var_arg)) :
+    (KNO_VOID);
+  if (KNO_VOIDP(var))
+    return kno_err(kno_TypeError,"getenv_read_macro","string or symbol",var_arg);
+  if (KNO_STRINGP(var)) {
+    u8_string enval = u8_getenv(CSTRING(var));
+    if (enval == NULL)
+      return KNO_FALSE;
+    else return kno_wrapstring(enval);}
+  else if (KNO_SYMBOLP(var)) {
+    u8_string pname = KNO_SYMBOL_NAME(var);
+    u8_string upper = u8_upcase(pname);
+    u8_string enval = u8_getenv(upper);
+    u8_free(upper);
     if (enval == NULL)
       return KNO_FALSE;
     else return kno_wrapstring(enval);}
@@ -179,7 +247,7 @@ static lispval getenv_macro(lispval expr,kno_lexenv env,kno_stack ptr)
 	return kno_incref(dflt);}
       else return KNO_FALSE;}
     else return kno_wrapstring(enval);}
-  else return kno_err(kno_TypeError,"getenv_macro","string or symbol",var);
+  else return kno_err(kno_TypeError,"getenv_read_macro","string or symbol",var_arg);
 }
 
 DEFC_PRIMN("config!",set_config,
@@ -404,21 +472,10 @@ KNO_EXPORT void kno_init_configops_c()
 
   link_local_cprims();
 
-  kno_def_evalfn(kno_scheme_module,"#CONFIG",config_macro,
-		 "#:CONFIG\"KNOVERSION\" or #:CONFIG:LOADPATH\n"
-		 "evaluates to a value from the current configuration "
-		 "environment");
-  kno_def_evalfn(kno_scheme_module,"#NOW",now_macro,
-		 "#:NOW:YEAR\n evaluates to a field of the current time");
-  kno_def_evalfn(kno_scheme_module,"#ENV",getenv_macro,
-		 "#:ENV\"HOME\" or #:ENV:HOME\n"
-		 "evaluates to an environment variable");
-  kno_def_evalfn(kno_scheme_module,"#STRING",string_macro,
-		 "#:STRING(FOO 3 #:envHOME)\n"
-		 "evaluates to string made up of components");
-  kno_def_evalfn(kno_scheme_module,"#GLOM",string_macro,
-		 "#:GLOM(FOO 3 #:envHOME)\n"
-		 "evaluates to string made up of components");
+  KNO_LINK_EVALFN(kno_scheme_module,config_read_macro);
+  KNO_LINK_EVALFN(kno_scheme_module,now_read_macro);
+  KNO_LINK_EVALFN(kno_scheme_module,getenv_read_macro);
+  KNO_LINK_EVALFN(kno_scheme_module,string_read_macro);
 }
 
 static void link_local_cprims()

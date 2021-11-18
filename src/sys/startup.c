@@ -1064,6 +1064,32 @@ static void remove_pidfile()
   else NO_ELSE;
 }
 
+static u8_string given_pidfile=NULL;
+
+static void delete_given_pidfile()
+{
+  if (given_pidfile) {
+    if (u8_file_existsp(given_pidfile))
+      u8_removefile(given_pidfile);
+    u8_free(given_pidfile);
+    given_pidfile=NULL;}
+}
+
+static void adopt_pidfile(u8_string pidfile)
+{
+  u8_string curval = u8_filestring(pidfile,NULL);
+  pid_t pid = getpid();
+  u8_byte buf[65]; u8_bprintf(buf,"%lld",(long long)pid);
+  if (strcmp(buf,curval)==0) {
+    given_pidfile=u8_strdup(pidfile);
+    atexit(delete_given_pidfile);}
+  else {
+    u8_log(LOGWARN,"InconsistentPIDFile",
+	   "PIDFILE isn't current %s != %s",
+	   curval,buf);}
+  u8_free(curval);
+}
+
 /* Full p */
 
 void kno_init_startup_c()
@@ -1076,6 +1102,11 @@ void kno_init_startup_c()
   atexit(remove_pidfile);
 
   boot_config();
+
+  u8_string given_pidfile = u8_getenv("U8RUNPIDFILE");
+  if (given_pidfile) {
+    adopt_pidfile(given_pidfile);
+    u8_free(given_pidfile);}
 
   kno_register_config("QUIET",_("Avoid unneccessary verbiage"),
                       kno_intconfig_get,kno_boolconfig_set,&kno_be_vewy_quiet);

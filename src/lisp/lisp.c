@@ -556,6 +556,7 @@ KNO_EXPORT void kno_log_status(u8_condition why)
 static void relocate_sysroot()
 {
   u8_string sysroot = u8_getenv("KNO_SYSROOT");
+  if (sysroot==NULL) sysroot=u8_getenv("KNOROOT");
 #if (HAVE_DLADDR)
   if (sysroot==NULL) {
     Dl_info info;
@@ -575,7 +576,8 @@ static void relocate_sysroot()
     kno_sysroot=u8_string_append(sysroot,"/",NULL);
     u8_free(sysroot);}
   if (strcmp(kno_sysroot,config_sysroot)==0) {
-    /* Don't bother translating paths */
+    /* Don't bother translating paths if the configured sysroot
+       and the kno_sysroot are the same. */
     u8_free(kno_sysroot);
     kno_sysroot=NULL;}
 }

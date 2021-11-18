@@ -1,1 +1,5 @@
-This is a relocatable KNO bundle
+This is a relocatable KNO bundle, which should be able to be moved around in the file system.
+You can use this bundle from your current shell by executing `eval $(BUNDLE/getinit)` where BUNDLE
+is the current location of the bundle's root.
+
+

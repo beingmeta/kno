@@ -756,6 +756,9 @@ $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suff
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
+$(LIBINSTALLDIR)/%@suffix@.@mmshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
+	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
+	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
 $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
@@ -764,6 +767,9 @@ ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
 	@$(SYSINSTALL) -d $(@D)
 	@$(SYSINSTALL) $< $@
+${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
+	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
+	@$(MSG)	 Linking $@ to $(*F).@vshared_suffix@
 ${CMODULES}/%@suffix@.@mshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F).@vshared_suffix@
@@ -791,7 +797,7 @@ $(DESTDIR)@config_dir@/boot/%.conf: etc/upstart/%.conf $(DESTDIR)@config_dir@/bo
 $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $@
 
-$(DESTDIR)@share_dir@/% $(DESTDIR)@share_dir@/modules/%:
+$(DESTDIR)@share_dir@/% $(DESTDIR)@share_dir@/modules/% $(DESTDIR)@share_dir@/%:
 	@$(SYSINSTALL) @install_dir_opts@ $@
 
 dist/%.changelog: dist/equivs.changelog
@@ -1158,6 +1164,8 @@ lib/python3/kno.dylib: src/python/parseltongue.o ${CMODULE_DEPENDS}
 parseltongue: lib/kno/parseltongue.@shared_suffix@
 
 install-parseltongue: ${CMODULES}/parseltongue.@shared_suffix@ \
+	${CMODULES}/parseltongue.@mshared_suffix@ \
+	${CMODULES}/parseltongue.@mmshared_suffix@ \
 	${CMODULES}/parseltongue.@vshared_suffix@
 
 # Parseltongue (v2)
@@ -1215,6 +1223,8 @@ i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
 extmods:
 	cd src/extmods; submake; make symlinks;
+install-extmods: extmods
+	cd src/extmods; submake install;
 
 # Documentation
 
@@ -1246,7 +1256,8 @@ install: install-status install-core		\
 		install-static-libs		\
 		install-cmodules		\
 		@install_libscm@ install-stdlib \
-		install-dev ${DOSETUP}
+		install-dev 			\
+		${DOSETUP}
 	@if [ ! -z "${SYSROOT}" ]; then make setup-bundle; fi;
 	@if test -f .malloc && test -f .buildmode; then \
 	  echo "Installed" $(shell cat .buildmode) "build linked with" $(shell cat .malloc); \
@@ -1258,7 +1269,7 @@ install-bin: install-shared-libs install-exe
 install-stripped:
 	make LIBSOURCE=lib/stripped EXECSOURCE=exe/stripped install-bin
 install-text: @install_libscm@ install-scripts install-support
-install-dirs: install-confdirs install-workdirs
+install-dirs: install-confdirs install-moddirs install-workdirs
 install-core: install-dirs install-bin @INSTALLI18N@ install-text install-data
 install-dev:  install-headers install-pkgconfig
 
@@ -1291,12 +1302,15 @@ install-static-libs: static-libs $(LIBINSTALLDIR)
 		$(LIBINSTALLDIR)/libknotexttools@suffix@.a
 install-shared-libs: install-status shared-libs $(LIBINSTALLDIR)	\
     $(LIBINSTALLDIR)/libkno@suffix@.@vshared_suffix@			\
+    $(LIBINSTALLDIR)/libkno@suffix@.@mmshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@mshared_suffix@			\
     $(LIBINSTALLDIR)/libkno@suffix@.@shared_suffix@			\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknowebtools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknowebtools@suffix@.@shared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@vshared_suffix@		\
+    $(LIBINSTALLDIR)/libknotexttools@suffix@.@mmshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@mshared_suffix@		\
     $(LIBINSTALLDIR)/libknotexttools@suffix@.@shared_suffix@
 
@@ -1335,6 +1349,7 @@ install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 setup-bundle:
 	@$(SYSINSTALL) docs/bundle.README $(DESTDIR)@SYSROOT@/README.md
 	@$(SYSINSTALL) src/shell/usebundle.sh $(DESTDIR)@SYSROOT@
+	@$(SYSINSTALL) src/shell/getbundleinit.sh $(DESTDIR)@SYSROOT@/getinit
 
 install-data: \
 	$(DESTDIR)@config_dir@/boot/ex_daemon.service	\
@@ -1355,9 +1370,13 @@ install-workdirs: $(DESTDIR)@kno_rundir@ $(DESTDIR)@kno_logdir@ \
 	$(DESTDIR)@servlet_rundir@ $(DESTDIR)@servlet_logdir@ \
 	$(DESTDIR)@bugjar@
 
+install-moddirs: $(DESTDIR)@installed_module_dir@ \
+	  $(DESTDIR)@source_module_dir@ $(DESTDIR)@local_module_dir@ \
+	  $(DESTDIR)@conf_module_dir@ $(DESTDIR)@unpackage_dir@
+
 install-confdirs: $(DESTDIR)@installed_module_dir@ \
-	  $(DESTDIR)@git_module_dir@ $(DESTDIR)@local_module_dir@ \
-	  $(DESTDIR)@unpackage_dir@ \
+	  $(DESTDIR)@source_module_dir@ $(DESTDIR)@local_module_dir@ \
+	  $(DESTDIR)@conf_module_dir@ $(DESTDIR)@unpackage_dir@ \
 	  $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@ \
 	  $(DESTDIR)@config_dir@  $(DESTDIR)@config_dir@/config_files \
 	  $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets \
@@ -1461,7 +1480,6 @@ install-libscm: src/libscm.zip \
 install-libscm.zip: src/libscm.zip $(DESTDIR)@share_dir@/libscm
 	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
 install-libscm.skip: src/libscm.zip
-	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
 	@echo "Skipping libscm install, using runtime specified ${LIBSCM}"
 
 install-stdlib: src/stdlib.zip $(DESTDIR)@share_dir@/stdlib
@@ -1498,7 +1516,7 @@ $(DESTDIR)@daemon_logdir@:  $(DESTDIR)@kno_logdir@
 $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALLDIR) $(DESTDIR)@servlet_logdir@
 
-$(DESTDIR)@config_dir@/boot:
+$(DESTDIR)@config_dir@/boot $(DESTDIR)@config_dir@/modules:
 	@$(SYSINSTALL) @install_dir_opts@ $@
 
 setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs

@@ -1,5 +1,5 @@
 #!/bin/sh
-ALLDIRS="hyphenate imagetools mongodb sundown tidy zeromq nng ziptools"
+ALLDIRS="leveldb rocksdb imagetools mariadb odbc zeromq mongodb nng ziptools sundown"
 DIRS=
 ARGS=
 if [ $# = 1 ]; then
@@ -27,8 +27,12 @@ make symlinks
 BRANCH=$(cat .branch || u8_gitbranch || echo main)
 for dir in ${DIRS}; do command cd ${dir}; git checkout ${BRANCH}; command cd ..; done;
 # Do all the targets on all the directories
+FAILED=
 for dir in ${DIRS}; do
     if [ ! -f ${dir}.skip ]; then
-	make -C ${dir} ${ARGS};
+	("cd" ${dir}; make -C ${dir} ${ARGS}) || FAILED="${dir} ${FAILED}";
     fi;
 done
+if [ ! -z "${FAILED}" ]; then
+    echo "Failed builds: ${FAILED}";
+fi;

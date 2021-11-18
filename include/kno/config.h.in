@@ -13,10 +13,10 @@
 /* Where we're originally installed */
 #undef KNO_INSTALL_ROOT
 
-/* Whether to handle sysroot */
+/* Whether to handle knoroot */
 #undef KNO_SYSROOT
 
-/* Whether to handle sysroot */
+/* Whether to handle knoroot */
 #undef KNO_RELOCATION_ENABLED
 
 /* Define if you don't have off_t */
@@ -608,9 +608,17 @@
 #undef KNO_INSTALL_GROUP
 
 /* Default module dirs */
-#undef KNO_LOCAL_MODULE_DIR
+
+/* Modules installed by the OS package system */
 #undef KNO_INSTALLED_MODULE_DIR
-#undef KNO_GIT_MODULE_DIR
+/* Modules being developed (usually in git, etc) */
+#undef KNO_SOURCE_MODULE_DIR
+/* Modules defined 'locally' in the share tree */
+#undef KNO_LOCAL_MODULE_DIR
+/* Modules just defined 'locally' but not in the config tree rather than the share tree */
+#undef KNO_CONF_MODULE_DIR
+
+/* Where the STDLIB modules live */
 #undef KNO_STDLIB_INSTALL_DIR
 
 /* Where packages are unpacked */

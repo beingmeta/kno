@@ -60,8 +60,8 @@ static lispval isodate_symbol, isobasic_symbol, isobasicdate_symbol;
 static lispval rfc822_symbol, rfc822date_symbol, rfc822x_symbol;
 static lispval localstring_symbol, utcstring_symbol;
 static lispval time_of_day_symbol, dowid_symbol, monthid_symbol;
-static lispval shortmonth_symbol, longmonth_symbol;
-static lispval  shortday_symbol, longday_symbol;
+static lispval monthstring_symbol, shortmonth_symbol, longmonth_symbol;
+static lispval weekday_symbol, shortday_symbol, longday_symbol;
 static lispval hms_symbol, dmy_symbol, dm_symbol, my_symbol;
 static lispval shortstring_symbol, short_symbol;
 static lispval string_symbol, fullstring_symbol;
@@ -709,7 +709,8 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),timestamp);
     else return EMPTY;
-  else if (KNO_EQ(slotid,longmonth_symbol))
+  else if ( (KNO_EQ(slotid,longmonth_symbol)) ||
+	    (KNO_EQ(slotid,monthstring_symbol)) )
     if (prec>=u8_month)
       return use_strftime("%B",xt);
     else if (reterr)
@@ -735,7 +736,8 @@ static lispval xtime_get(struct U8_XTIME *xt,lispval slotid,
       return kno_err(kno_ImpreciseTimestamp,"xtime_get",
 		     SYM_NAME(slotid),timestamp);
     else return EMPTY;
-  else if (KNO_EQ(slotid,longday_symbol))
+  else if ( (KNO_EQ(slotid,longday_symbol)) ||
+	    (KNO_EQ(slotid,weekday_symbol)) )
     if (prec>u8_month)
       return use_strftime("%A",xt);
     else if (reterr)
@@ -1662,10 +1664,14 @@ KNO_EXPORT void kno_init_timeprims_c()
   CHOICE_ADD(xtime_keys,shortmonth_symbol);
   longmonth_symbol = kno_intern("month-long");
   CHOICE_ADD(xtime_keys,longmonth_symbol);
+  monthstring_symbol = kno_intern("monthstring");
+  CHOICE_ADD(xtime_keys,monthstring_symbol);
   shortday_symbol = kno_intern("weekday-short");
   CHOICE_ADD(xtime_keys,shortday_symbol);
   longday_symbol = kno_intern("weekday-long");
   CHOICE_ADD(xtime_keys,longday_symbol);
+  weekday_symbol = kno_intern("weekday");
+  CHOICE_ADD(xtime_keys,weekday_symbol);
   hms_symbol = kno_intern("hms");
   CHOICE_ADD(xtime_keys,hms_symbol);
   dmy_symbol = kno_intern("dmy");

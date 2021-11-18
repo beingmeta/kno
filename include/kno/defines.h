@@ -591,6 +591,9 @@ typedef double kno_double;
 #define ADD_TO_CHOICE(x,y) KNO_ADD_TO_CHOICE(x,y)
 #define ADD_TO_CHOICE_INCREF(x,y) KNO_ADD_TO_CHOICE(x,y)
 #define CHOICE_SIZE(x) KNO_CHOICE_SIZE(x)
+#define CAR(x)             KNO_CAR(x)
+#define CDR(x)             KNO_CDR(x)
+#define CADR(x)            KNO_CADR(x)
 #define DOLIST             KNO_DOLIST
 #define CHOICE_ADD         KNO_ADD_TO_CHOICE
 #define CHOICE_ADD_INCREF  KNO_ADD_TO_CHOICE_INCREF
