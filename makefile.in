@@ -67,8 +67,9 @@ ECHO		  = @ECHO@
 GZIP		  = @GZIP@
 MSG		  = @MSG@
 SUINSTALL	  = @SUINSTALL@
-SYSINSTALL	  = ${SUINSTALL} @INSTALL@
+SYSINSTALL	  = ${SUINSTALL} @INSTALL@ @install_file_opts@
 SYSINSTALLDIR	  = ${SUINSTALL} @INSTALL@ -d
+SYSINSTALLEXE	  = ${SUINSTALL} @INSTALL@ @install_exe_opts@
 DOSETUP	          = @setup_target@
 SUDO		  = @SUDO@
 INSTALL		  = @INSTALL@
@@ -780,7 +781,7 @@ ${CMODULES}/%.@shared_suffix@: ${CMODULES}/%.@vshared_suffix@
 
 $(BININSTALLDIR)/%: src/scripts/%
 	@$(MSG) Installing script $@ from $<
-	@${SYSINSTALL} $@ $<
+	@${SYSINSTALLEXE} $@ $<
 
 $(BININSTALLDIR)/%: ${EXECSOURCE}/%
 	@$(MSG) Installing executable $@ from $<
@@ -1342,7 +1343,7 @@ install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	@$(SYSINSTALL) @install_exe_opts@ $(SHELL_SCRIPTS) $(BININSTALLDIR)
+	@$(SYSINSTALLEXE) $(SHELL_SCRIPTS) $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
