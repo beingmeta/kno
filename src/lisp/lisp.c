@@ -546,7 +546,7 @@ KNO_EXPORT void kno_log_status(u8_condition why)
       heapsize = floor(((double)heapbytes)/1000000); heapu="MB";}
     else {heapsize = floor(((double)heapbytes)/1000); heapu="KB";}
     u8_log(U8_LOG_MSG,why,
-           "%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
+           "kno-%s %s<%ld> elapsed %.3f%s (u=%.3f%s,s=%.3f%s), heap=%.0f%s\n",
            KNO_VERSION,u8_appid(),getpid(),
            elapsed,etu,usertime,utu,systime,stu,
            heapsize,heapu);}

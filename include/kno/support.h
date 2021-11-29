@@ -36,6 +36,9 @@ KNO_EXPORT int kno_exited;
 /* Whether to log command arguments */
 KNO_EXPORT int kno_logcmd;
 
+/* Track whether exit information has been logged */
+KNO_EXPORT int kno_exit_logged;
+
 /* Whether to 'fast exit' by skipping some memory release, etc when
    exiting */
 KNO_EXPORT int kno_fast_exit;

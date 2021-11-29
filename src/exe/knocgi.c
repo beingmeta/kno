@@ -1938,7 +1938,8 @@ static int run_servlet(u8_string socket_spec);
 static void exit_servlet()
 {
   if (!(kno_be_vewy_quiet))
-    kno_log_status("Exit(servlet)");
+    kno_log_status("Exit(knocgi)");
+  kno_exit_logged = 1;
 }
 
 int main(int argc,char **argv)

@@ -1,52 +1,55 @@
 EXTMODS=@EXTMODS@
+ALLEXTMODS=@ALLEXTMODS@
 shared_suffix=@shared_suffix@
-BRANCH=@KNO_BRANCH@
+KNO_BRANCH=@KNO_BRANCH@
+BRANCH=$(cat .branch 2>/dev/null||echo ${KNO_BRANCH})
 
 %/.git:
 	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
 	@cd $(@D); git checkout ${BRANCH} || git checkout main;
 	@if test -d ../../lib/kno; then 				\
-	   cd  ../../lib/kno; 						\
-	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\
-		  $(@D).${shared_suffix}; 				\
-	fi;
+	   ("cd"  ../../lib/kno; 						\
+	    ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\
+	 	   $(@D).${shared_suffix}); 				\
+	fi; 
 
-%.branch: ${EXTMODS}
-	@rm -f *.branch;
-	@for dir in *; do if [ -d $${dir}/.git ]; then \
-	  command cd $${dir}; git checkout $*; git pull; command cd ..; \
-	 fi; done;
-	@touch $@;
+hyphenate leveldb rocksdb mongodb postgres mariadb odbc nng zeromq archivetools imagetools mod_knocgi sundown tidy ziptools:
+	make $@/.git
+
+# Utility targets
 
 default: extmods
 
 extmods: ${EXTMODS}
+allmods: ${ALLEXTMODS}
 checkout update:
-	for dir in ${EXTMODS}; do \
-	  if test -f $${dir}.skip; then \
-	    echo > /dev/null; \
-	  elif test -d $${dir}/.git; then \
-	    command cd $${dir}; \
-	    git checkout ${BRANCH}; \
-	    git pull; \
-	    command cd ..; \
-	  else \
-	    echo "Making local .git repo"; \
-	    make "$${dir}/.git"; \
-	  fi; \
-	done
+	@for mod in ${EXTMODS}; do 						\
+	  if test -f $${mod}.skip; then 					\
+	    echo > /dev/null; 							\
+	  else 									\
+	    if [ ! -d $${mod}/.git ]; then 					\
+	      echo "Cloning $${mod} into a local .git repo"; 			\
+	      git clone git@github.com:beingmeta/kno-$${mod}.git $${mod};	\
+	    else 								\
+	     echo "# In $${mod}";						\
+	    fi; 								\
+	    ("cd" $${mod}; git pull &&						\
+	     (git checkout ${BRANCH} || git checkout main) &&			\
+	     git pull) 								\
+	  fi; 									\
+	done;
 
 commit:
 	if [ ! -z "${MSG}" ]; then \
 	  for dir in *; do if [ -d $${dir}/.git ]; then \
-	    command cd ${dir}; git commit --all -m "$${MSG}"; command cd ..; fi; \
+	    ("cd" ${dir}; git commit --all -m "$${MSG}"); fi; \
 	  done; \
 	else echo "No MSG specified"; fi
 
 status:
-	for dir in *; do if [ -d $${dir}/.git ]; then echo "In $${dir}"; cd $${dir}; git status; cd ..; fi; done;
+	mapgit status -suno
 diff:
-	for dir in *; do if [ -d $${dir}/.git ]; then echo "In $${dir}"; cd $${dir}; git diff; cd ..; fi; done;
+	mapgit diff
 
 build: extmods
 	domake ${EXTMODS}
@@ -58,49 +61,31 @@ clean: extmods
 	domake ${EXTMODS} clean
 install: extmods
 	domake ${EXTMODS} install
-alpine: extmods
-	domake ${EXTMODS} alpine
-debfresh: extmods
-	domake ${EXTMODS} GPGID=none debfresh
-rpms: extmods
-	domake ${EXTMODS} GPGID=none rpms
-freshrpms: extmods
-	domake ${EXTMODS} GPGID=none freshrpms
-
-STDMODS=hyphenate mongodb nng sundown tidy zeromq ziptools
-
-symlinks:
-	@for dir in ${STDMODS}; do make $${dir}/.git; done;
-	@cd ../../lib/kno;							\
-	  for modname in ${STDMODS}; do						\
-	    ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix}	\
-		   $${modname}.${shared_suffix};				\
-	  done; 								\
-	  for modname in qrcode exif imagick; do 				\
-	    ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} 	\
-		   $${modname}.${shared_suffix}; 				\
-	  done;
 
 push:
-	for dir in ${STDMODS}; do if [ -d $${dir}/.git ]; then \
-	  command cd $${dir}; git push; command cd ..; fi; done;
+	mapgit push
 
-rpms.zip:
-	for dir in ${STDMODS}; \
-	  do for rpm in $${dir}/dist/*.rpm $${dir}/dist/*/*.rpm; do \
-	   if [ -f $${rpm} ]; then \
-		zip $@ -uj $${rpm}; fi; done; done;
+.PHONY: extmods build fresh clean install testbuild
 
-debclean:
-	rm -f *.deb *.ddeb *.changes *.buildinfo
+# Making symlinks
 
-.PHONY: extmods build fresh clean install alpine debfresh testbuild
+symlinks: ${EXTMDOS}
+	@cd ../../lib/kno;								\
+	  for modname in ${EXTMODS}; do							\
+	    if [ "${modname}" = "imagetools" ]; then 					\
+	      for libname in qrcode exif imagick; do 					\
+	        ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix}	\
+		       $${modname}.${shared_suffix}; 					\
+	       done;									\
+	    else 									\
+	      ln -sf ../../src/extmods/$${modname}/$${modname}.${shared_suffix}		\
+	  	     $${modname}.${shared_suffix};					\
+	     fi;									\
+	  done; 									\
 
-hyphenate leveldb mongodb mariadb nng odbc sundown tidy zeromq ziptools rocksdb:
-	make $@/.git
+.PHONY: symlinks
 
-mod_knocgi mod_knocgi/.git:
-	git clone git@github.com:beingmeta/mod_knocgi.git mod_knocgi
+# Custom checkout/link rules
 
 imagetools: imagetools/.git
 imagetools/.git:
@@ -112,11 +97,3 @@ imagetools/.git:
 	     ln -sf ../../src/extmods/imagetools/$${modname}.${shared_suffix} $${modname}.${shared_suffix}; \
 	   done; \
 	 fi;
-mysql/.git:
-	@git clone git@github.com:beingmeta/kno-mariadb.git -b mysql $(@D)
-	@if test -d ../../lib/kno; then 				\
-	   cd  ../../lib/kno; 						\
-	   ln -sf ../../src/extmods/$(@D)/$(@D).${shared_suffix}	\
-		  $(@D).${shared_suffix}; 				\
-	fi;
-

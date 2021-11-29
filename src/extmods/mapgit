@@ -1,0 +1,11 @@
+#!/bin/sh
+EXTMODS=$(cat ./extmods 2>/dev/null)
+for dir in ${EXTMODS}; do
+    if [ -f ${dir}/.skip ]; then
+	:;
+    elif [ -d ${dir}/.git ]; then
+	("cd" ${dir};
+	 echo "# In ${dir}";
+	 git "$@");
+    fi;
+done

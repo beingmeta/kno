@@ -1,5 +1,6 @@
-#!/bin/sh
-ALLDIRS="@EXTMODS@"
+/#!/bin/sh
+ALLEXTMODS="@ALLEXTMODS@"
+EXTMODS="@EXTMODS@"
 DIRS=
 ARGS=
 if [ $# = 1 ]; then
@@ -7,7 +8,7 @@ if [ $# = 1 ]; then
 	DIRS=$1;
 	ARGS=;
     else
-	DIRS=${ALLDIRS};
+	DIRS=${EXTMODS};
 	ARGS=$*;
     fi;
 else while [ $# -gt 0 ]; do
@@ -19,18 +20,20 @@ else while [ $# -gt 0 ]; do
 	 shift; done;
 fi;
 if [ -z "$DIRS" ]; then
-    DIRS=${ALLDIRS};
+    DIRS=${EXTMODS};
 fi;
 # Just in case
 make symlinks
 # Switch branches
-BRANCH=$(cat .branch || u8_gitbranch || echo main)
-for dir in ${DIRS}; do command cd ${dir}; git checkout ${BRANCH}; command cd ..; done;
+BRANCH=$(cat .branch 2>/dev/null|| u8_gitbranch)
+if [ -n "${BRANCH}" ]; then
+    for dir in ${DIRS}; do ("cd" ${dir}; git checkout ${BRANCH}); done;
+fi;
 # Do all the targets on all the directories
 FAILED=
 for dir in ${DIRS}; do
     if [ ! -f ${dir}.skip ]; then
-	("cd" ${dir}; make -C ${dir} ${ARGS}) || FAILED="${dir} ${FAILED}";
+	("cd" ${dir}; echo "# Domake ${dir}"; make -C ${dir} ${ARGS}) || FAILED="${dir} ${FAILED}";
     fi;
 done
 if [ ! -z "${FAILED}" ]; then

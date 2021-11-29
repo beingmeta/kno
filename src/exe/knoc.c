@@ -536,6 +536,7 @@ static void exit_knoc()
       kno_log_status("Exit(knoc)");
     else {}}
   close_consoles();
+  kno_exit_logged = 1;
 #if USING_EDITLINE
   if (editconsole) el_end(editconsole);
   if (edithistory) history_end(edithistory);

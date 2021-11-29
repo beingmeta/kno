@@ -53,6 +53,7 @@ static char *configs[MAX_CONFIGS], *exe_arg = NULL;
 static int n_configs = 0, eval_stdin = 0;
 
 static int chain_fast_exit=1;
+static int is_knapp=0;
 
 static u8_condition FileWait=_("FILEWAIT");
 static u8_condition MissingSource=_("MissingSource");
@@ -64,7 +65,11 @@ static int exec_module = 0;
 
 static void exit_kno()
 {
-  if (!(kno_be_vewy_quiet)) kno_log_status("Exit(kno)");
+  if (!(kno_be_vewy_quiet)) {
+    if (is_knapp)
+      kno_log_status("Exit(knapp)");
+    else kno_log_status("Exit(knox)");}
+  kno_exit_logged=1;
   kno_decref(app_source);
   if (app_path) u8_free(app_path);
 }
@@ -246,7 +251,7 @@ static lispval *handle_args(int argc,char **argv,size_t *arglenp,
   /* Is it a knapp call (first arg is config, no source arg) */
   if ( (strcmp(exe_name,"knapp")==0) ||
        (u8_has_suffix(exe_name,".knapp",1)) )
-    knapp=1;
+    is_knapp=knapp=1;
 
   while (i<argc) {
     if (isconfig(argv[i])) {

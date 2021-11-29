@@ -65,6 +65,8 @@ int kno_logcmd    = 0;
 int kno_exiting   = 0;
 int kno_exited    = 0;
 
+int kno_exit_logged = -1;
+
 u8_string kno_exe_name = NULL;
 
 u8_string kno_logdir = NULL, kno_rundir = NULL;
@@ -366,7 +368,8 @@ KNO_EXPORT void kno_doexit(lispval arg)
   if ( (kno_logcmd) && (kno_argc > 1) )
     log_argv(kno_argc,kno_argv);
 
-  if (!(kno_be_vewy_quiet)) kno_log_status("EXIT");
+  if ( (!(kno_be_vewy_quiet)) && (!(kno_exit_logged>0)) )
+    kno_log_status("EXIT");
 
   if (kno_argv) {
     int i = 0, n = kno_argc; while (i<n) {

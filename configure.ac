@@ -72,6 +72,8 @@ if ${RELOCATABLE}; then
    AC_DEFINE(KNO_RELOCATION_ENABLED,1)
 fi
 
+ALLEXTMODS="hyphenate leveldb rocksdb mongodb postgres mariadb odbc nng zeromq archivetools imagetools mod_knocgi sundown tidy ziptools"
+
 # Override the default value for statedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,statedir=$withval,statedir="${default_statedir}")
 
@@ -402,6 +404,7 @@ AC_SUBST(SUINSTALL)
 AC_SUBST(ZIPCMD)
 AC_SUBST(WWWUSER)
 AC_SUBST(EXTMODS)
+AC_SUBST(ALLEXTMODS)
 AC_SUBST(CMODULES)
 AC_SUBST(TEST_CMODULES)
 AC_SUBST(INSTALL_CMODULES)
@@ -1890,10 +1893,20 @@ fi
 
 ### Figure out extmods
 
-EXTMODS="mongodb nng ziptools sundown"
+# These don't have additional dependencies
+EXTMODS="sundown tidy"
+# These include most of their dependencies
+EXTMODS="${EXTMODS} mongodb nng ziptools"
+
+AC_CHECK_PROGS(APXS2,"apxs2")
+if test ! -z "${APXS2}"; then
+   EXTMODS="mod_knocgi ${EXTMODS}";
+fi;
+
 
 if pkg-config libzmq --exists; then EXTMODS="zeromq ${EXTMODS}"; fi
-if pkg-config libpq --libarchive; then EXTMODS="postgres ${EXTMODS}"; fi
+if pkg-config libpq --exists; then EXTMODS="postgres ${EXTMODS}"; fi
+if pkg-config libarchive --exists; then EXTMODS="archivetools ${EXTMODS}"; fi
 if pkg-config odbc --exists; then EXTMODS="odbc ${EXTMODS}"; fi
 if pkg-config libmariadb --exists; then EXTMODS="mariadb ${EXTMODS}"; fi
 
@@ -1903,9 +1916,9 @@ if pkg-config libqrencode --exists &&
    EXTMODS="imagetools ${EXTMODS}";
 fi;
 
-AC_CHECK_LIB(rocksdb,rocksdb_open,EXTMODS="rocksdb ${EXTMODS}")
-AC_CHECK_LIB(leveldb,leveldb_open,EXTMODS="leveldb ${EXTMODS}")
-AC_CHECK_LIB(libhyphen,leveldb_open,EXTMODS="hyphenate ${EXTMODS}")
+AC_CHECK_LIB(rocksdb,rocksdb_open,EXTMODS="rocksdb ${EXTMODS}",auto_disabled="${auto_disabled} rocksdb")
+AC_CHECK_LIB(leveldb,leveldb_open,EXTMODS="leveldb ${EXTMODS}",auto_disabled="${auto_disabled} leveldb")
+AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,EXTMODS="hyphenate ${EXTMODS}",auto_disabled="${auto_disabled} hyphenate")
 
 ### Setup options
 
@@ -1953,6 +1966,7 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 tests/leaktest tests/knoxtest
 		 src/scripts/knopkg.scm
 		 src/extmods/knoconfig
+		 src/extmods/extmods
 		 src/extmods/submake
 		 src/extmods/domake
 		 etc/logrotate
