@@ -68,7 +68,7 @@ GZIP		  = @GZIP@
 MSG		  = @MSG@
 SUINSTALL	  = @SUINSTALL@
 SYSINSTALL	  = ${SUINSTALL} @INSTALL@ @install_file_opts@
-SYSINSTALLDIR	  = ${SUINSTALL} @INSTALL@ -d
+SYSINSTALLDIR	  = ${SUINSTALL} @INSTALL@ @install_exe_opts@ -d
 SYSINSTALLEXE	  = ${SUINSTALL} @INSTALL@ @install_exe_opts@
 DOSETUP	          = @setup_target@
 SUDO		  = @SUDO@
@@ -746,14 +746,14 @@ stripped: ${STRIPPED_LIBS}
 .PHONY: stripped
 
 $(LIBINSTALLDIR)/%.a: ${LIBSOURCE}/%.a
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALLDIR) $(LIBINSTALLDIR)
 	@$(SYSINSTALL) @install_file_opts@ $< $(LIBINSTALLDIR)
 	@$(MSG) INSTALL $@
 
 $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@: ${LIBSOURCE}/%@suffix@.@shared_suffix@
 	@echo Installing $@ from $<
-	@$(SYSINSTALL) -d $(@D)
-	@$(SYSINSTALL) $< $@
+	@$(SYSINSTALLDIR) $(@D)
+	@$(SYSINSTALLEXE) $< $@
 $(LIBINSTALLDIR)/%@suffix@.@mshared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_suffix@
 	@$(SUINSTALL) ln -sf $(*F)@suffix@.@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F)@suffix@.@vshared_suffix@
@@ -766,8 +766,8 @@ $(LIBINSTALLDIR)/%@suffix@.@shared_suffix@: $(LIBINSTALLDIR)/%@suffix@.@vshared_
 
 ${CMODULES}/%.@vshared_suffix@: ${LIBSOURCE}/kno/%@suffix@.@shared_suffix@
 	@echo Installing $@
-	@$(SYSINSTALL) -d $(@D)
-	@$(SYSINSTALL) $< $@
+	@$(SYSINSTALLDIR) $(@D)
+	@$(SYSINSTALLEXE) $< $@
 ${CMODULES}/%@suffix@.@mmshared_suffix@: ${CMODULES}/%@suffix@.@vshared_suffix@ 
 	@$(SUINSTALL) ln -sf $(*F).@vshared_suffix@ $@
 	@$(MSG)	 Linking $@ to $(*F).@vshared_suffix@
@@ -799,7 +799,7 @@ $(DESTDIR)@config_dir@/boot/%.d: etc/sysv/%.d $(DESTDIR)@config_dir@/boot
 	@$(SYSINSTALL) @install_file_opts@ $< $@
 
 $(DESTDIR)@share_dir@/% $(DESTDIR)@share_dir@/modules/% $(DESTDIR)@share_dir@/%:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 
 dist/%.changelog: dist/equivs.changelog
 	etc/make-equivs-changelog `basename $@ .changelog` dist/equivs.changelog > $@
@@ -1235,7 +1235,7 @@ docs/built: docs/ronn/knox.1.ronn docs/ronn/knoc.1.ronn docs/ronn/kno_config.8.r
 	cd docs; make && touch built
 
 $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html:
-	@$(SYSINSTALL) -d $@
+	@$(SYSINSTALLDIR) $@
 
 install-docs: $(MANDIR)/man1 $(MANDIR)/man8 $(DOCDIR)/html docs
 	for file in docs/man/*.1; do \
@@ -1277,23 +1277,23 @@ install-dev:  install-headers install-pkgconfig
 install-all install-full: install install-dev
 
 $(INCINSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(INCINSTALLDIR)
+	@$(SYSINSTALLDIR) $(INCINSTALLDIR)
 $(BININSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(BININSTALLDIR)
+	@$(SYSINSTALLDIR) $(BININSTALLDIR)
 $(LIBINSTALLDIR):
-	@$(SYSINSTALL) @install_dir_opts@ $(LIBINSTALLDIR)
+	@$(SYSINSTALLDIR) $(LIBINSTALLDIR)
 ${CMODULES}:
-	@$(SYSINSTALL) @install_dir_opts@ ${CMODULES}
+	@$(SYSINSTALLDIR) ${CMODULES}
 $(DESTDIR)@config_dir@ $(DESTDIR)@share_dir@ $(DATADIR):
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 $(DESTDIR)@local_config@ $(DESTDIR)@shared_config@:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 $(DESTDIR)@config_dir@/daemons \
 		$(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 	@$(SUINSTALL) ln -sf kno-@KNO_PATCHVERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
 	@$(SUINSTALL) ln -sf kno-@KNO_VERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_MAJOR@
 
@@ -1327,7 +1327,7 @@ install-pkgconfig: $(DESTDIR)@PKGCONFIG_DIR@
 	@echo "# (kno) Installing kno pkgconfig file in $(DESTDIR)@PKGCONFIG_DIR@"
 	@$(SYSINSTALL) etc/kno.pc $(DESTDIR)@PKGCONFIG_DIR@
 $(DESTDIR)@PKGCONFIG_DIR@:
-	$(SYSINSTALL) -d $(DESTDIR)@PKGCONFIG_DIR@
+	$(SYSINSTALLDIR) $(DESTDIR)@PKGCONFIG_DIR@
 
 install-data: $(DATADIR)
 	@$(SYSINSTALL) @install_file_opts@ docs/misc/data.README \
@@ -1388,7 +1388,7 @@ install-confdirs: $(DESTDIR)@installed_module_dir@ \
 			$(DESTDIR)@config_dir@/servers; fi
 
 $(DESTDIR)@unpackage_dir@:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 
 $(BININSTALLDIR)/knocgi@suffix@:
 	@$(SYSINSTALL) -p @install_exe_opts@ knocgi@suffix@ $(BININSTALLDIR)
@@ -1518,7 +1518,7 @@ $(DESTDIR)@servlet_logdir@: $(DESTDIR)@kno_logdir@
 	@$(SYSINSTALLDIR) $(DESTDIR)@servlet_logdir@
 
 $(DESTDIR)@config_dir@/boot $(DESTDIR)@config_dir@/modules:
-	@$(SYSINSTALL) @install_dir_opts@ $@
+	@$(SYSINSTALLDIR) $@
 
 setup-sysv: $(DESTDIR)/etc/init.d/kno statedirs
 enable-sysv: setup-sysv
@@ -1536,13 +1536,13 @@ startupdirs: $(DESTDIR)@config_dir@/daemons $(DESTDIR)@config_dir@/servlets
 setup-upstart: $(DESTDIR)/etc/init/kno.conf startupdirs
 
 $(DESTDIR)/etc/init:
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)/etc/init
+	@$(SYSINSTALLDIR) $(DESTDIR)/etc/init
 $(DESTDIR)/etc/init/kno.conf: etc/upstart/kno.conf $(DESTDIR)/etc/init
 	@$(MSG) Installing kno Upstart config to $(DESTDIR)/etc/init/kno.conf
 	@$(SYSINSTALL) etc/upstart/kno.conf $(DESTDIR)/etc/init/kno.conf
 
 $(DESTDIR)@systemd_loc@:
-	@$(SYSINSTALL) @install_dir_opts@ $(DESTDIR)@systemd_loc@
+	@$(SYSINSTALLDIR) $(DESTDIR)@systemd_loc@
 setup-systemd: $(DESTDIR)@systemd_loc@/kno.target \
 		$(DESTDIR)@systemd_loc@/kno-daemons.service \
 		$(DESTDIR)@systemd_loc@/kno-servlets.service \
