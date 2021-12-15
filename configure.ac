@@ -1282,11 +1282,11 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    auto_disabled="${auto_disabled} ffi";
 fi
 
-VSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${vshared_suffix};${prefix}/lib/%.${vshared_suffix};${prefix}/lib/libkno%.${vshared_suffix}"
-MMSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mmshared_suffix};${prefix}/lib/%.${mmshared_suffix};${prefix}/lib/libkno%.${mmshared_suffix}"
-MSHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${mshared_suffix};${prefix}/lib/%.${mshared_suffix};${prefix}/lib/libkno%.${mshared_suffix}"
-SHARED_LOADPATH="${prefix}/lib/kno${suffix}/%.${shared_suffix};${prefix}/lib/%.${shared_suffix};${prefix}/lib/libkno%.${shared_suffix}"
-LSHARED_LOADPATH="${prefix}/lib/lib%.${vshared_suffix};${prefix}/lib/lib%.${mmshared_suffix};${prefix}/lib/lib%.${mshared_suffix};${prefix}/lib/lib%.${shared_suffix}"
+VSHARED_LOADPATH="${libdir}/kno${suffix}/%.${vshared_suffix};${libdir}/%.${vshared_suffix};${libdir}/libkno%.${vshared_suffix}"
+MMSHARED_LOADPATH="${libdir}/kno${suffix}/%.${mmshared_suffix};${libdir}/%.${mmshared_suffix};${libdir}/libkno%.${mmshared_suffix}"
+MSHARED_LOADPATH="${libdir}/kno${suffix}/%.${mshared_suffix};${libdir}/%.${mshared_suffix};${libdir}/libkno%.${mshared_suffix}"
+SHARED_LOADPATH="${libdir}/kno${suffix}/%.${shared_suffix};${libdir}/%.${shared_suffix};${libdir}/libkno%.${shared_suffix}"
+LSHARED_LOADPATH="${libdir}/lib%.${vshared_suffix};${libdir}/lib%.${mmshared_suffix};${libdir}/lib%.${mshared_suffix};${libdir}/lib%.${shared_suffix}"
 DEFAULT_DLOADPATH="${VSHARED_LOADPATH};${MMSHARED_LOADPATH};${MSHARED_LOADPATH};${SHARED_LOADPATH}"
 
 dnl For specifying default -arch flags for OSX
