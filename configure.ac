@@ -4,6 +4,13 @@ AC_CONFIG_SRCDIR([include/kno/lisp.h])
 AC_PREFIX_PROGRAM(autoconf)
 AC_USE_SYSTEM_EXTENSIONS
 
+xprefix=${prefix}
+if test $exec_prefix = "NONE"; then
+   xprefix=$prefix
+else
+   xprefix=$exec_prefix
+fi
+
 AC_DEFUN([AC_CHECK_USER],[
 AC_MSG_CHECKING([for user $1])
   found_user="none";
@@ -1282,11 +1289,15 @@ elif test "${ac_cv_lib_ffi_ffi_prep_cif}" != "yes"; then
    auto_disabled="${auto_disabled} ffi";
 fi
 
-VSHARED_LOADPATH="${libdir}/kno${suffix}/%.${vshared_suffix};${libdir}/%.${vshared_suffix};${libdir}/libkno%.${vshared_suffix}"
-MMSHARED_LOADPATH="${libdir}/kno${suffix}/%.${mmshared_suffix};${libdir}/%.${mmshared_suffix};${libdir}/libkno%.${mmshared_suffix}"
-MSHARED_LOADPATH="${libdir}/kno${suffix}/%.${mshared_suffix};${libdir}/%.${mshared_suffix};${libdir}/libkno%.${mshared_suffix}"
-SHARED_LOADPATH="${libdir}/kno${suffix}/%.${shared_suffix};${libdir}/%.${shared_suffix};${libdir}/libkno%.${shared_suffix}"
-LSHARED_LOADPATH="${libdir}/lib%.${vshared_suffix};${libdir}/lib%.${mmshared_suffix};${libdir}/lib%.${mshared_suffix};${libdir}/lib%.${shared_suffix}"
+xlibdir=$(echo ${libdir} | sed -e "s|\${exec_prefix}|${xprefix}|g");
+echo xprefix=${xprefix}
+echo xlibdir=${xlibdir}
+
+VSHARED_LOADPATH="${xlibdir}/kno${suffix}/%.${vshared_suffix};${xlibdir}/%.${vshared_suffix};${xlibdir}/libkno%.${vshared_suffix}"
+MMSHARED_LOADPATH="${xlibdir}/kno${suffix}/%.${mmshared_suffix};${xlibdir}/%.${mmshared_suffix};${xlibdir}/libkno%.${mmshared_suffix}"
+MSHARED_LOADPATH="${xlibdir}/kno${suffix}/%.${mshared_suffix};${xlibdir}/%.${mshared_suffix};${xlibdir}/libkno%.${mshared_suffix}"
+SHARED_LOADPATH="${xlibdir}/kno${suffix}/%.${shared_suffix};${xlibdir}/%.${shared_suffix};${xlibdir}/libkno%.${shared_suffix}"
+LSHARED_LOADPATH="${xlibdir}/lib%.${vshared_suffix};${xlibdir}/lib%.${mmshared_suffix};${xlibdir}/lib%.${mshared_suffix};${xlibdir}/lib%.${shared_suffix}"
 DEFAULT_DLOADPATH="${VSHARED_LOADPATH};${MMSHARED_LOADPATH};${MSHARED_LOADPATH};${SHARED_LOADPATH}"
 
 dnl For specifying default -arch flags for OSX
