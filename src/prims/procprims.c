@@ -67,6 +67,11 @@
 
 #endif
 
+#if U8_DARWIN_TARGET
+#include <crt_externs.h>
+#define environ (*_NSGetEnviron())
+#endif
+
 #define SUBPROCP(obj)   (KNO_TYPEP((obj),kno_subproc_type))
 #define SUBPROC_PID(sp) (KNO_INT((sp->proc_pid)))
 
@@ -118,15 +123,6 @@ static int default_subproc_loglevel = LOG_WARN;
 
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
-
-#if ! HAVE_EXECVPE
-extern char *const *environ;
-static int execvpe(char *prog,char *const argv[],char *const envp[])
-{
-  environ = envp;
-  return execvp(prog,(char **)argv);
-}
-#endif
 
 DEF_KNOSYM(exited); DEF_KNOSYM(terminated); DEF_KNOSYM(stopped);
 DEF_KNOSYM(outdir); DEF_KNOSYM(chdir);
@@ -455,7 +451,7 @@ static int handle_procopts(lispval opts);
 
 static pid_t doexec(int flags,char *progname,char *cwd,
 		    int *in,int *out,int *err,
-		    char *const argv[],char *const envp[],
+		    char *const argv[],char *envp[],
 		    lispval procopts)
 {
   int dolookup = flags&(KNO_DO_LOOKUP);
