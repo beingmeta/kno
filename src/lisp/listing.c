@@ -178,6 +178,7 @@ static void list_table(u8_output out,lispval table,
                       val_indent,tmp.u8_outbuf);
           else u8_printf(out,"\n%s  %s #> ;;\n%s%s",
                          indent,keystring,val_indent,tmp.u8_outbuf);}
+	if (U8_TAINTEDP(tmpout)) U8_SET_TAINTED(out);
         u8_close_output(tmpout);}
       u8_flush(out);}
     kno_decref(val);
@@ -219,6 +220,7 @@ static void list_element(u8_output out,lispval elt,
 {
   U8_SUB_STREAM(tmp,1000,out);
   list_item(tmpout,elt,eltfn);
+  if (U8_TAINTEDP(tmpout)) U8_SET_TAINTED(out);
   if ((tmp.u8_write-tmp.u8_outbuf)<width) {
     if ((pathref) && (path>=0))
       u8_printf(out,"\n%s%s \t;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
@@ -394,6 +396,7 @@ KNO_EXPORT int kno_list_object(u8_output out,
     else {
       U8_SUB_STREAM(tmp,1000,out);
       kno_pprint(tmpout,result,indent,4,4,width);
+      if (U8_TAINTEDP(tmpout)) U8_SET_TAINTED(out);
       if (pathref) {
         if (strchr(tmp.u8_outbuf,'\n'))
           u8_printf(out,"%s\n%s%s",pathref,indent,tmp.u8_outbuf);

@@ -427,11 +427,14 @@ struct KNO_FREE_CONS {
 typedef struct KNO_STRING {
   KNO_CONS_HEADER;
   unsigned int str_freebytes:1;
-  unsigned int str_bytelen:31;
+  unsigned int str_tainted:1;
+  unsigned int str_bytelen:30;
   u8_string str_bytes;} KNO_STRING;
 typedef struct KNO_STRING *kno_string;
 
 #define KNO_STRING_LEN (sizeof(struct KNO_STRING))
+#define KNO_STRING_TAINTEDP(s) (((kno_string)s)->str_tainted)
+#define KNO_TAINT_STRING(s) (((kno_string)s)->str_tainted)=1
 
 KNO_EXPORT ssize_t kno_max_strlen;
 KNO_EXPORT int kno_check_utf8;

@@ -564,13 +564,14 @@ int kno_pprint_table(u8_output out,lispval x,
       U8_SUB_STREAM(tmp,512,out);
       tmp.u8_streaminfo|=U8_STREAM_HUMANE;
       unparse(&tmp,key,ppcxt);
-      u8_puts(out,tmp.u8_outbuf);
-      col=col+(tmp.u8_write-tmp.u8_outbuf);
+      u8_merge_substream(out,tmpout);
+      col += u8_outlen(tmpout);
       u8_close_output(&tmp);}
     /* Output value */
     U8_SUB_STREAM(tmp,512,out);
     tmp.u8_streaminfo|=U8_STREAM_HUMANE;
     unparse(&tmp,val,ppcxt);
+    if (U8_TAINTEDP(tmpout)) U8_SET_TAINTED(out);
     size_t len=tmp.u8_write-tmp.u8_outbuf;
     /* Output the margin, indent, etc */
     int value_indent = indent+2, i=0;
@@ -624,7 +625,7 @@ static int output_keyval(u8_output out,
   len=kv.u8_write-kv.u8_outbuf;
   if ((kv.u8_streaminfo&U8_STREAM_OVERFLOW)||((col+(len))>maxcol))
     len=-1;
-  else u8_putn(out,kv.u8_outbuf,len);
+  else u8_merge_substream(out,kvout);
   u8_close_output(kvout);
   if (len>=0)
     return col+len;
@@ -670,7 +671,7 @@ static u8_string lisp_pprintf_handler
     (out->u8_streaminfo&(U8_SUB_STREAM_MASK)) |
     U8_HUMAN_OUTPUT;
   kno_pprint(&tmpout,value,NULL,0,0,width);
-  u8_puts(out,tmpout.u8_outbuf);
+  u8_merge_substream(out,&tmpout);
   u8_close_output(&tmpout);
   if (strchr(cmd,'-')) kno_decref(value);
   return NULL;

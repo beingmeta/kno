@@ -1729,7 +1729,8 @@ DEFC_PRIMN("glom",glom_lexpr,
 static lispval glom_lexpr(int n,kno_argvec args)
 {
   unsigned char *result_data, *write;
-  int i = 0, sumlen = 0; kno_lisp_type result_type = 0;
+  int i = 0, sumlen = 0, tainted = 0;
+  kno_lisp_type result_type = 0;
   const unsigned char **strings, *stringsbuf[16];
   int *lengths, lengthsbuf[16];
   unsigned char *consed, consedbuf[16];
@@ -1744,34 +1745,36 @@ static lispval glom_lexpr(int n,kno_argvec args)
   memset(strings,0,sizeof(unsigned char *)*n);
   memset(lengths,0,sizeof(int)*n);
   memset(consed,0,sizeof(unsigned char)*n);
-  while (i<n)
-    if (STRINGP(args[i])) {
-      sumlen = sumlen+STRLEN(args[i]);
-      strings[i]=CSTRING(args[i]);
-      lengths[i]=STRLEN(args[i]);
+  while (i<n) {
+    lispval arg = args[i];
+    if (STRINGP(arg)) {
+      sumlen = sumlen+STRLEN(arg);
+      strings[i]=CSTRING(arg);
+      lengths[i]=STRLEN(arg);
+      if (KNO_STRING_TAINTEDP(arg)) tainted=1;
       if (result_type==0) result_type = kno_string_type;
       consed[i++]=0;}
-    else if (PACKETP(args[i])) {
-      sumlen = sumlen+KNO_PACKET_LENGTH(args[i]);
-      strings[i]=KNO_PACKET_DATA(args[i]);
-      lengths[i]=KNO_PACKET_LENGTH(args[i]);
+    else if (PACKETP(arg)) {
+      sumlen = sumlen+KNO_PACKET_LENGTH(arg);
+      strings[i]=KNO_PACKET_DATA(arg);
+      lengths[i]=KNO_PACKET_LENGTH(arg);
       if (TYPEP(args[i],kno_secret_type))
 	result_type = kno_secret_type;
       else if (result_type!=kno_secret_type)
 	result_type = kno_packet_type;
       consed[i++]=0;}
-    else if ((FALSEP(args[i]))||(EMPTYP(args[i]))||
-	     (VOIDP(args[i]))) {
+    else if ((FALSEP(arg))||(EMPTYP(arg))||(VOIDP(arg))) {
       if (result_type==0) result_type = kno_string_type;
       strings[i]=NULL; lengths[i]=0; consed[i++]=0;}
     else {
       struct U8_OUTPUT out; U8_INIT_OUTPUT(&out,64);
       if (result_type==0) result_type = kno_string_type;
       kno_unparse(&out,args[i]);
+      if (U8_TAINTEDP(&out)) tainted=1;
       sumlen = sumlen+(out.u8_write-out.u8_outbuf);
       strings[i]=out.u8_outbuf;
       lengths[i]=out.u8_write-out.u8_outbuf;
-      consed[i++]=1;}
+      consed[i++]=1;}}
   write = result_data = u8_malloc(sumlen+1);
   i = 0; while (i<n) {
     if (!(strings[i])) {i++; continue;}
@@ -1783,14 +1786,16 @@ static lispval glom_lexpr(int n,kno_argvec args)
     if (consed[i]) u8_free(strings[i]); i++;}
   if (n>16) {
     u8_free(strings); u8_free(lengths); u8_free(consed);}
+  lispval result = KNO_VOID;
   if (result_type == kno_string_type)
-    return kno_init_string(NULL,sumlen,result_data);
+    result = kno_init_string(NULL,sumlen,result_data);
   else if (result_type == kno_packet_type)
-    return kno_init_packet(NULL,sumlen,result_data);
+    result = kno_init_packet(NULL,sumlen,result_data);
   else {
-    lispval result = kno_init_packet(NULL,sumlen,result_data);
-    KNO_SET_CONS_TYPE(result,kno_secret_type);
-    return result;}
+    result = kno_init_packet(NULL,sumlen,result_data);
+    KNO_SET_CONS_TYPE(result,kno_secret_type);}
+  if (tainted) KNO_TAINT_STRING(result);
+  return result;
 }
 
 /* Text if */

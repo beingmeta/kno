@@ -563,8 +563,9 @@ static int printout_helper(U8_OUTPUT *out,lispval x)
   else if (VOIDP(x))
     return 1;
   if (out == NULL) out = u8_current_output;
-  if (STRINGP(x))
+  if (STRINGP(x)) {
     u8_puts(out,CSTRING(x));
+    if (KNO_STRING_TAINTEDP(x)) U8_SET_TAINTED(out);}
   else if ( (HISTORICP(x)) &&
 	    ( (out->u8_streaminfo) & (KNO_U8STREAM_HISTORIC) ) ) {
     lispval history = kno_thread_get(KNOSYM_HISTORY_TAG);
@@ -586,7 +587,8 @@ lispval kno_printout(lispval body,kno_lexenv env)
   kno_stack _stack=kno_stackptr;
   U8_OUTPUT *out = u8_current_output;
   while (PAIRP(body)) {
-    lispval value = kno_eval(KNO_CAR(body),env,_stack);
+    lispval expr = KNO_CAR(body);
+    lispval value = kno_eval(expr,env,_stack);
     if (KNO_ABORTED(value)) {
       u8_flush(out);
       return value;}
@@ -752,7 +754,8 @@ static lispval stringout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (!(KNO_ABORTP(result))) {
     kno_decref(result);
     result = kno_make_string
-      (NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);}
+      (NULL,out.u8_write-out.u8_outbuf,out.u8_outbuf);
+    if (U8_TAINTEDP(&out)) KNO_TAINT_STRING(result);}
   u8_close_output(&out);
   return result;
 }
