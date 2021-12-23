@@ -1728,6 +1728,7 @@ DEFC_PRIMN("glom",glom_lexpr,
 	   "returns a choice of object combinations.")
 static lispval glom_lexpr(int n,kno_argvec args)
 {
+  if (n == 0) return kno_make_string(NULL,0,NULL);
   unsigned char *result_data, *write;
   int i = 0, sumlen = 0; kno_lisp_type result_type = 0;
   const unsigned char **strings, *stringsbuf[16];

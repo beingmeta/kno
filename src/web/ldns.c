@@ -70,7 +70,7 @@ static lispval rdf2lisp ( ldns_rdf *field )
       rv = ldns_rdf2buffer_str_long_str( tmp, field );
     else {}
     if (rv != LDNS_STATUS_OK)
-      result = kno_err("Unexpected LDNS condition","rdf2lisp",NULL,VOID);
+      result = kno_err("Unexpected LDNS condition","rdf2lisp(ldns)",NULL,VOID);
     else result = kno_make_string(NULL,tmp->_position,tmp->_data);
     ldns_buffer_free( tmp );
     return result;}
@@ -81,15 +81,15 @@ static lispval rdf2lisp ( ldns_rdf *field )
 
 DEFC_PRIM("dns/get",dns_query,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"domain_arg",kno_string_type,KNO_VOID},
-	  {"type_arg",kno_symbol_type,KNO_VOID})
-static lispval dns_query(lispval domain_arg,lispval type_arg)
+	  "Gets DNS entries of *entry_type* for *domain_name*",
+	  {"domain_name",kno_string_type,KNO_VOID},
+	  {"entry_type",kno_symbol_type,KNO_VOID})
+static lispval dns_query(lispval domain_name,lispval entry_type)
 {
   lispval results = EMPTY;
   ldns_resolver *res;
-  ldns_rr_type rr_type = ldns_get_rr_type_by_name( SYM_NAME( type_arg ) );
-  ldns_rdf *domain = ldns_dname_new_frm_str( CSTRING(domain_arg) );
+  ldns_rr_type rr_type = ldns_get_rr_type_by_name( SYM_NAME( entry_type ) );
+  ldns_rdf *domain = ldns_dname_new_frm_str( CSTRING(domain_name) );
   ldns_status s = ldns_resolver_new_frm_file( &res, NULL );
   ldns_pkt *p =
     (s == LDNS_STATUS_OK) ?

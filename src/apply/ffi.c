@@ -23,22 +23,28 @@
 #include <math.h>
 #include <dlfcn.h>
 
+#define FFI_MAX_ARGS 17
+
 u8_condition kno_ffi_BadTypeinfo=_("Bad FFI type info");
 u8_condition kno_ffi_BadABI=_("Bad FFI ABI value");
 u8_condition kno_ffi_FFIError=_("Unknown libffi error");
 u8_condition kno_ffi_NoFunction=_("Unknown foreign function");
 u8_condition kno_FFI_TypeError=(_("FFI type error"));
 
+static lispval ffi_lispifier_type, ffi_cifier_type;
 
 static lispval uint_symbol, int_symbol, ushort_symbol, short_symbol;
 static lispval ulong_symbol, long_symbol, uchar_symbol, char_symbol;
-static lispval string_symbol, packet_symbol, ptr_symbol, cons_symbol;
+static lispval string_symbol, stringptr_symbol, packet_symbol, ptr_symbol, cons_symbol;
 static lispval float_symbol, double_symbol, size_t_symbol, lisp_symbol;
 static lispval lispref_symbol, strcpy_symbol, void_symbol, mallocd_symbol;
 static lispval byte_symbol, basetype_symbol, typetag_symbol;
 static lispval ffi_result_symbol, time_t_symbol, null_symbol;
 static lispval strlen_symbol, packetlen_symbol, ptrloc_symbol, loclen_symbol;
-static lispval nullable_symbol;
+static lispval nullable_symbol, ffitype_symbol, intptr_symbol, resultptr_symbol;
+static lispval stringlist_symbol;
+
+static lispval ffi_types = KNO_EMPTY;
 
 static void init_symbols(void);
 
@@ -71,54 +77,69 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args);
 #define UNSIGNED_SIZE (&ffi_type_uint64)
 #endif
 
-static ffi_type *get_ffi_type(lispval arg)
+static ffi_type *get_ffi_type(lispval typespec)
 {
-  if (TABLEP(arg)) {
-    lispval typename = kno_getopt(arg,basetype_symbol,VOID);
+  if (KNO_TYPEINFOP(typespec)) {
+    struct KNO_TYPEINFO *info = (kno_typeinfo) typespec;
+    lispval ffi_typetag = kno_get(info->type_props,ffitype_symbol,KNO_VOID);
+    if (KNO_VOIDP(ffi_typetag))
+      return KNO_ERR(NULL,"NotAnFFIType","get_ffi_type",NULL,typespec);
+    else return get_ffi_type(ffi_typetag);}
+  else if (TABLEP(typespec)) {
+    lispval typename = kno_getopt(typespec,ffitype_symbol,VOID);
     if (VOIDP(typename))
-      return KNO_ERR(NULL,"NoFFItype","get_ffi_type",NULL,arg);
+      return KNO_ERR(NULL,"NoFFItype","get_ffi_type",NULL,typespec);
     else if (!(SYMBOLP(typename)))
       return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,typename);
     else return get_ffi_type(typename);}
-  else if (!(SYMBOLP(arg)))
-    return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,arg);
-  else if (arg == lisp_symbol)
+  else if (!(SYMBOLP(typespec)))
+    return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,typespec);
+  else if (typespec == lisp_symbol)
     return &ffi_type_uint64;
-  else if (arg == ulong_symbol)
+  else if (typespec == ulong_symbol)
     return (UNSIGNED_LONG);
-  else if (arg == long_symbol)
+  else if (typespec == long_symbol)
     return (SIGNED_LONG);
-  else if ( (arg == size_t_symbol) ||
-	    (arg == packetlen_symbol) || (arg == strlen_symbol) ||
-	    (arg == loclen_symbol) )
+  else if ( (typespec == size_t_symbol) ||
+	    (typespec == packetlen_symbol) || (typespec == strlen_symbol) ||
+	    (typespec == loclen_symbol) )
     return (SIGNED_SIZE);
-  else if (arg == uint_symbol)
+  else if (typespec == uint_symbol)
     return &ffi_type_uint32;
-  else if (arg == int_symbol)
+  else if (typespec == int_symbol)
     return &ffi_type_sint32;
-  else if (arg == ushort_symbol)
+  else if (typespec == ushort_symbol)
     return &ffi_type_uint16;
-  else if (arg == short_symbol)
+  else if (typespec == short_symbol)
     return &ffi_type_sint16;
-  else if ( (arg == uchar_symbol) || (arg == byte_symbol) )
+  else if ( (typespec == uchar_symbol) || (typespec == byte_symbol) )
     return &ffi_type_uint8;
-  else if (arg == char_symbol)
+  else if (typespec == char_symbol)
     return &ffi_type_sint8;
-  else if (arg == float_symbol)
+  else if (typespec == float_symbol)
     return &ffi_type_float;
-  else if (arg == double_symbol)
+  else if (typespec == double_symbol)
     return &ffi_type_double;
-  else if (arg == void_symbol)
+  else if (typespec == void_symbol)
     return &ffi_type_void;
-  else if ( (arg == ptr_symbol) || (arg == cons_symbol) ||
-	    (arg == string_symbol) || (arg == packet_symbol) ||
-	    (arg == null_symbol) || (arg == ptrloc_symbol) )
+  else if ( (typespec == ptr_symbol) || (typespec == cons_symbol) ||
+	    (typespec == string_symbol) || (typespec == stringptr_symbol) || 
+	    (typespec == packet_symbol) ||
+	    (typespec == null_symbol) || (typespec == ptrloc_symbol) ||
+	    (typespec == intptr_symbol) || (typespec == resultptr_symbol) ||
+	    (typespec == stringlist_symbol))
     return &ffi_type_pointer;
-  else if ( (arg == time_t_symbol) && (sizeof(time_t) == 8) )
+  else if ( (typespec == time_t_symbol) && (sizeof(time_t) == 8) )
     return &ffi_type_sint64;
-  else if ( (arg == time_t_symbol) && (sizeof(time_t) == 4) )
+  else if ( (typespec == time_t_symbol) && (sizeof(time_t) == 4) )
     return &ffi_type_sint32;
-  else return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,arg);
+  else {
+    struct KNO_TYPEINFO *info = kno_probe_typeinfo(typespec);
+    if (info == NULL) return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,typespec);
+    lispval ffi_typetag = info->typetag;
+    if (KNO_VOIDP(ffi_typetag))
+      return KNO_ERR(NULL,"NotAnFFIType","get_ffi_type",NULL,typespec);
+    else return KNO_ERR(NULL,"BadFFItype","get_ffi_type",NULL,typespec);}
 }
 
 /** Change notes:
@@ -134,8 +155,7 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
   if (name==NULL) {
     u8_seterr("NullArg","kno_make_ffi_proc/name",NULL);
     return NULL;}
-  void *mod_arg = (filename == NULL) ? ((void *)NULL) :
-    (u8_dynamic_load(filename));
+  void *mod_arg = (filename == NULL) ? ((void *)NULL) : (u8_dynamic_load(filename));
   if ((filename) && (mod_arg == NULL))
     return NULL;
   void *symbol=u8_dynamic_symbol(name,mod_arg);
@@ -149,6 +169,8 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
   ffi_type **ffi_argtypes = u8_alloc_n(arity,ffi_type *);
   int i = 0; while (i<arity) {
     lispval argspec = argspecs[i];
+    /* A false argspec indicates that there is a C arg which is actually provided by
+       the previous spec */
     ffi_type *ffi_argtype = get_ffi_type(argspec);
     if (ffi_argtype == NULL) {
       u8_free(ffi_argtypes);
@@ -180,12 +202,14 @@ KNO_EXPORT struct KNO_FFI_PROC *kno_make_ffi_proc
     proc->fcn_handler.xcalln = NULL;
     proc->ffi_dlsym = symbol;
     return proc;}
-  else {
+  else { 
+    u8_byte _details[512]; 
+    u8_string details = u8_bprintf(_details,"%s[%d](%s)",name,arity,filename);
     if (rv == FFI_BAD_TYPEDEF)
-      u8_seterr(kno_ffi_BadTypeinfo,"kno_make_ffi_proc",NULL);
+      kno_seterr(kno_ffi_BadTypeinfo,"kno_make_ffi_proc",details,KNO_VOID);
     else if (rv == FFI_BAD_ABI)
-      u8_seterr(kno_ffi_BadABI,"kno_make_ffi_proc",NULL);
-    else u8_seterr(kno_ffi_FFIError,"kno_make_ffi_proc",NULL);
+      kno_seterr(kno_ffi_BadABI,"kno_make_ffi_proc",details,KNO_VOID);
+    else kno_seterr(kno_ffi_FFIError,"kno_make_ffi_proc",details,KNO_VOID);
     u8_free(savespecs);
     u8_free(ffi_argtypes);
     return NULL;}
@@ -196,63 +220,141 @@ static int ffi_type_error(u8_context expecting,lispval arg)
   return KNO_ERR(-1,kno_FFI_TypeError,expecting,NULL,arg);
 }
 
-typedef void (*ffi_arg_freefn)(void *);
+typedef void (*ffi_arg_releasefn)
+(lispval *result,int i,lispval *specs,void **argptr,void **cell,void **scratch);
 
-static int handle_ffi_arg(lispval arg,lispval spec,
-			  ffi_arg_freefn *freefn,
-                          void **valptr,
-			  void **argptr)
+static void handle_resultptr(lispval *resultp,int i,
+			     lispval *specs,void **argptrs,void **cells,void **scratch)
 {
-  lispval basetype = (SYMBOLP(spec)) ? (spec) :
-    (TABLEP(spec)) ? (kno_getopt(spec,basetype_symbol,VOID)) :
+  lispval result = *resultp;
+  if (KNO_ABORTED(result)) return;
+  lispval spec = specs[i];
+  if (scratch[i]) {
+    lispval result_tag = kno_getopt(spec,typetag_symbol,KNO_VOID);
+    ssize_t len = kno_getfixopt(spec,"length",-1);
+    lispval wrapped = kno_wrap_pointer(scratch[i],len,NULL,result_tag,NULL);
+    *resultp=wrapped;}
+  else *resultp=KNO_FALSE;
+}
+
+static void free_mallocd_arg(lispval *resultp,int i,
+			     lispval *specs,void **argptrs,
+			     void **cells,void **scratch)
+{
+  if (scratch[i]) u8_free(scratch[i]);
+}
+
+static int handle_ffi_arg(lispval arg,lispval spec,int i,
+			  ffi_arg_releasefn *releasefns,
+			  void **argptrs,
+			  void **cells,
+			  void **scratch)
+{
+  void **valptr=&(cells[i]);
+  lispval ffitype = (SYMBOLP(spec)) ? (spec) :
+    (TABLEP(spec)) ? (kno_getopt(spec,ffitype_symbol,VOID)) :
     (VOID);
   lispval typetag = (TABLEP(spec)) ?
     (kno_getopt(spec,typetag_symbol,VOID)) :
     (KNO_VOID);
   int nullable = (TABLEP(spec)) && (kno_testopt(spec,nullable_symbol,VOID));
   int defaultp = (TABLEP(spec)) && (kno_testopt(spec,KNOSYM_DEFAULT,VOID));
-  if (VOIDP(basetype)) {
+  if (ffitype==stringptr_symbol) {
+    ffitype=string_symbol;
+    nullable=1;}
+  if (VOIDP(ffitype)) {
     u8_byte buf[256];
     kno_seterr("BadTypeSpec","handle_ffi_arg",
                u8_bprintf(buf,"%q",arg),spec);}
   if ( (defaultp) && ( (VOIDP(arg)) || (KNO_DEFAULTP(arg)) ) ) {
     if (!(VOIDP(arg))) {
       lispval dflt = kno_getopt(spec,KNOSYM_DEFAULT,KNO_VOID);
-      lispval inner = handle_ffi_arg(dflt,spec,freefn,valptr,argptr);
+      int next = handle_ffi_arg(dflt,spec,i,releasefns,argptrs,cells,scratch);
       kno_decref(dflt);
-      return inner;}}
-  if (basetype == lisp_symbol)
-    *valptr = (void *) arg;
-  else if (basetype == lispref_symbol) {
-    *valptr = (void *) arg;
+      return next;}}
+  if (ffitype == lisp_symbol)
+    *(valptr++) = (void *) arg;
+  else if (ffitype == lispref_symbol) {
+    *(valptr++) = (void *) arg;
     kno_incref(arg);}
-  else if (basetype == cons_symbol) {
+  else if (ffitype == cons_symbol) {
     if (CONSP(arg))
-      *valptr = (void *)arg;
+      *(valptr++) = (void *)arg;
     else return ffi_type_error("CONS",arg);}
-  else if (basetype == ptrloc_symbol) {
+  else if (ffitype == ptrloc_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
       if (raw->typetag != typetag)
 	return ffi_type_error("rawpointer",arg);
-      *valptr=&(raw->ptrval);}
+      *(valptr++) = &(raw->ptrval);}
     else return ffi_type_error("rawpointer",arg);}
+  else if (ffitype == stringlist_symbol) {
+    int n = ( (KNO_EMPTYP(arg)) || (KNO_EMPTY_LISTP(arg)) ) ? (0) :
+      (KNO_STRINGP(arg)) ? (1) : (KNO_SYMBOLP(arg)) ? (1) :
+      (KNO_CHOICEP(arg)) ? (KNO_CHOICE_SIZE(arg)) :
+      (KNO_VECTORP(arg)) ? (KNO_VECTOR_LENGTH(arg)) :
+      (-1);
+    if (n<0) return ffi_type_error("stringlist",arg);
+    else if (n==0)
+      *(valptr++) = NULL;
+    else {
+      u8_string *list = u8_alloc_n(n+1,u8_string), *write=list;
+      if (KNO_STRINGP(arg))
+	list[0]=KNO_CSTRING(arg);
+      else if (KNO_SYMBOLP(arg))
+	list[0]=KNO_SYMBOL_NAME(arg);
+      else if (KNO_CHOICEP(arg)) {
+	KNO_DO_CHOICES(elt,arg) {
+	  if (KNO_STRINGP(elt))
+	    *write++=KNO_CSTRING(elt);
+	  else if (KNO_SYMBOLP(elt))
+	    *write++=KNO_SYMBOL_NAME(elt);
+	  /* Error ? */
+	  else NO_ELSE;}}
+      else if (KNO_CHOICEP(arg)) {
+	KNO_DO_CHOICES(elt,arg) {
+	  if (KNO_STRINGP(elt))
+	    *write++=KNO_CSTRING(elt);
+	  else if (KNO_SYMBOLP(elt))
+	    *write++=KNO_SYMBOL_NAME(elt);
+	  /* Error ? */
+	  else NO_ELSE;}}
+      else if (KNO_VECTORP(arg)) {
+	int i = 0, len = KNO_VECTOR_LENGTH(arg);
+	lispval *elts = KNO_VECTOR_ELTS(arg);
+	while (i<len) {
+	  lispval elt = elts[i++];
+	  if (KNO_STRINGP(elt))
+	    *write++=KNO_CSTRING(elt);
+	  else if (KNO_SYMBOLP(elt))
+	    *write++=KNO_SYMBOL_NAME(elt);
+	  /* Error ? */
+	  else NO_ELSE;}}
+      else NO_ELSE;
+      *write++=NULL;
+      scratch[i]=list;
+      releasefns[i]=free_mallocd_arg;
+      *(valptr++)=list;}}
+  else if (ffitype == resultptr_symbol) {
+    scratch[i]=NULL;
+    *(valptr++)=&(scratch[i]);
+    releasefns[i]=handle_resultptr;}
   else if (spec == ptr_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
-      *valptr=raw->ptrval;}
+      *(valptr++) = raw->ptrval;}
     else if ( (nullable) &&
               ( (FALSEP(arg)) || (KNO_DEFAULTP(arg)) ||
                 (EMPTYP(arg)) || (NILP(arg) ) ||
                 (VOIDP(arg) ) ) )
-      *valptr = (void *)NULL;
+      *(valptr++) = (void *)NULL;
     else return ffi_type_error("rawpointer",arg);}
-  else if ( basetype == ptr_symbol) {
+  else if ( ffitype == ptr_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
       struct KNO_RAWPTR *raw=(kno_rawptr)arg;
       lispval typetag = kno_get(spec,typetag_symbol,KNO_VOID);
       if ( KNO_EQUALP(typetag,raw->typetag) )
-        *valptr=raw->ptrval;
+        *(valptr++) = raw->ptrval;
       else if (KNO_SYMBOLP(typetag))
         return ffi_type_error(KNO_SYMBOL_NAME(typetag),arg);
       else {
@@ -261,7 +363,7 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     else if ( (nullable) &&
               ( (FALSEP(arg)) || (DEFAULTP(arg)) ||
                 (EMPTYP(arg)) || (NILP(arg) ) ) )
-      *valptr = (void *)NULL;
+      *(valptr++) = (void *)NULL;
     else {
       u8_byte buf[256];
       return KNO_ERR(-1,kno_FFI_TypeError,"handle_ffi_arg",
@@ -271,127 +373,172 @@ static int handle_ffi_arg(lispval arg,lispval spec,
     long long ival = FIX2INT(arg);
     if (spec == int_symbol) {
       if ((ival <= INT_MAX) && (ival >= INT_MIN))
-        *((int *)valptr) = ival;
+        *((int *)(valptr++)) = ival;
       else return ffi_type_error("int(C)",arg);}
     else if (spec == uint_symbol) {
       if ((ival <= UINT_MAX) && (ival >= 0 ))
-        *((unsigned int *)valptr) = ival;
+        *((unsigned int *)(valptr++)) = ival;
       else return ffi_type_error("uint(C)",arg);}
     else if (spec == long_symbol) {
       if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
-        *((long *)valptr) = ival;
+        *((long *)(valptr++)) = ival;
       else return ffi_type_error("long(C)",arg);}
     else if (spec == ulong_symbol) {
       if ((ival <= ULONG_MAX) && (ival >= 0 ))
-        *((unsigned long *)valptr) = ival;
+        *((unsigned long *)(valptr++)) = ival;
       else return ffi_type_error("ulong(C)",arg);}
     else if (spec == short_symbol) {
       if ((ival <= SHRT_MAX) && (ival >= SHRT_MIN ))
-        *((short *)valptr) = ival;
+        *((short *)(valptr++)) = ival;
       else return ffi_type_error("short(C)",arg);}
     else if (spec == ushort_symbol) {
       if ((ival <= USHRT_MAX) && (ival >= 0 ))
-        *((unsigned short *)valptr) = ival;
+        *((unsigned short *)(valptr++)) = ival;
       else return ffi_type_error("ushort(C)",arg);}
     else if (spec == char_symbol) {
       if ((ival <= CHAR_MAX) && (ival >= CHAR_MIN ))
-        *((char *)valptr) = ival;
+        *((char *)(valptr++)) = ival;
       else return ffi_type_error("char(C)",arg);}
     else if (spec == uchar_symbol) {
       if ((ival <= UCHAR_MAX) && (ival >= 0 ))
-        *((unsigned char *)valptr) = ival;
+        *((unsigned char *)(valptr++)) = ival;
       else return ffi_type_error("uchar(C)",arg);}
     else if (spec == byte_symbol) {
       if ((ival <= UCHAR_MAX) && (ival >= 0 ))
-        *((unsigned char *)valptr) = ival;
+        *((unsigned char *)(valptr++)) = ival;
       else return ffi_type_error("byte/uchar(C)",arg);}
     else if (spec == size_t_symbol) {
       if ((ival <= LONG_MAX) && (ival >= LONG_MIN ))
-        *((ssize_t *)valptr) = ival;
+        *((ssize_t *)(valptr++)) = ival;
       else return ffi_type_error("ssize_t(C)",arg);}
     else if (spec == float_symbol) {
       float f=(float)ival;
-      *((float *)valptr) = f;}
+      *((float *)(valptr++)) = f;}
     else if (spec == float_symbol) {
       double f=(double)ival;
-      *((double *)valptr) = f;}
+      *((double *)(valptr++)) = f;}
     else if (spec == time_t_symbol) {
       time_t tval = (time_t)ival;
-      *((time_t *)valptr) = tval;}
-    else return KNO_ERR(-1,"BadIntType","handle_ffi_arg",NULL,spec);
-    *argptr = valptr;
-    return 1;}
+      *((time_t *)(valptr++)) = tval;}
+    else if (spec == intptr_symbol) {
+      if ((ival <= INT_MAX) && (ival >= INT_MIN)) {
+	*((int *)&(scratch[i]))=ival;
+        *((int **)(valptr++)) = ((int *)&(scratch[i]));}
+      else return ffi_type_error("int(C)",arg);}
+    else return KNO_ERR(-1,"BadIntType","handle_ffi_arg",NULL,spec);}
   else if (KNO_FLONUMP(arg)) {
-    if (basetype == float_symbol) {
+    if (ffitype == float_symbol) {
       float f=(float)KNO_FLONUM(arg);
-      *((float *)valptr)=f;}
-    else if (basetype == double_symbol) {
+      *((float *)(valptr++))=f;}
+    else if (ffitype == double_symbol) {
       double f=(float)KNO_FLONUM(arg);
-      *((double *)valptr)=f;}
-    else if (SYMBOLP(basetype)) {
-      kno_type_error(SYM_NAME(basetype),"handle_ffi_arg",spec);
+      *((double *)(valptr++))=f;}
+    else if (SYMBOLP(ffitype)) {
+      kno_type_error(SYM_NAME(ffitype),"handle_ffi_arg",spec);
       return -1;}
     else {
       kno_type_error("ctype","handle_ffi_arg",spec);
-      return -1;}
-    *argptr = valptr;
-    return 1;}
+      return -1;}}
   else if (STRINGP(arg)) {
-    if (basetype == string_symbol) {
-      *valptr = (void *)CSTRING(arg);
-      *argptr = valptr;
-      return 1;}
-    else if (basetype == strlen_symbol) {
+    if (ffitype == string_symbol) {
+      *(valptr++) = (void *)CSTRING(arg);}
+    else if (ffitype == strlen_symbol) {
       size_t len = KNO_STRLEN(arg);
-      *valptr = (void *)len;
-      *argptr = valptr;
-      return 1;}
+      *(valptr++) = (void *)len;}
     else if (SYMBOLP(spec))
       return ffi_type_error(SYM_NAME(spec),arg);
     else return ffi_type_error("ctype",arg);}
   else if (PACKETP(arg)) {
-    if (basetype == packet_symbol) {
-      *valptr = (void *)CSTRING(arg);
-      *argptr = valptr;
-      return 1;}
-    else if (basetype == packetlen_symbol) {
+    if (ffitype == packet_symbol) {
+      *(valptr++) = (void *)CSTRING(arg);}
+    else if (ffitype == packetlen_symbol) {
       size_t len = KNO_PACKET_LENGTH(arg);
-      *valptr = (void *)len;
-      *argptr = valptr;
-      return 1;}
+      *(valptr++) = (void *)len;}
     else if (SYMBOLP(spec))
       return ffi_type_error(SYM_NAME(spec),arg);
     else return ffi_type_error("ctype",arg);}
-  else if ( (basetype == time_t_symbol) &&
+  else if ( (ffitype == time_t_symbol) &&
             (KNO_TYPEP(arg,kno_timestamp_type))  ) {
     struct KNO_TIMESTAMP *tstamp = (kno_timestamp) arg;
     time_t tval = tstamp->u8xtimeval.u8_tick;
-    *((time_t *)valptr) = tval;
-    return 1;}
+    *((time_t *)(valptr++)) = tval;}
   else if ( (nullable) &&
-            ( (basetype == string_symbol) ||
-              (basetype == packet_symbol) ) ) {
-    *valptr = (void *)CSTRING(arg);
-    *argptr = valptr;
-    return 1;}
+            ( (ffitype == string_symbol) ||
+              (ffitype == packet_symbol) ) ) {
+    *(valptr++) = (void *)NULL;}
   else {
     u8_byte buf[256];
     return KNO_ERR(-1,kno_FFI_TypeError,"handle_ffi_arg",
                    u8_bprintf(buf,"%q",spec),
                    arg);}
-  *argptr=valptr;
-  return 1;
+  int width = (valptr-cells)-i;
+  int limit = i+width;
+  while (i<limit) {
+    argptrs[i] = &(cells[i]);
+    i++;}
+  return valptr-cells;
 }
 
-static void free_ffi_args(int n,ffi_arg_freefn *freefns,void **vals)
+static void release_ffi_args(lispval *result,int n,
+			     ffi_arg_releasefn *releasefns,
+			     lispval *typespecs,
+			     void **argptrs,
+			     void **cells,
+			     void **scratch)
 {
   int i = 0; while (i<n) {
-    if ( (freefns[i]) && (vals[i]) ) {
-      freefns[i](vals[i]);
-      vals[i]=NULL;
-      freefns[i]=NULL;}
+    if (releasefns[i]) {
+      releasefns[i](result,i,typespecs,argptrs,cells,scratch);
+      releasefns[i]=NULL;
+      argptrs[i]=NULL;
+      cells[i]=NULL;
+      scratch[i]=NULL;}
     i++;}
 }
+
+static lispval get_result_type(lispval spec)
+{
+  if (PAIRP(spec)) return kno_incref(CAR(spec));
+  else if (TYPEINFOP(spec)) {
+    struct KNO_TYPEINFO *info = (kno_typeinfo) spec;
+    lispval ffi_typetag = kno_get(info->type_props,ffitype_symbol,KNO_VOID);
+    if (KNO_VOIDP(ffi_typetag))
+      return kno_err("NotAnFFIType","get_ffi_type",NULL,spec);
+    else return ffi_typetag;}
+  else if (TABLEP(spec)) 
+    return kno_getopt(spec,ffitype_symbol,VOID);
+  else if (SYMBOLP(spec)) {
+    if (kno_containsp(spec,ffi_types)) return spec;
+    struct KNO_TYPEINFO *info = kno_probe_typeinfo(spec);
+    if (info==NULL) return kno_err("UnknownFFIType","get_result_type",NULL,spec);
+    lispval ffi_typetag = kno_get(info->type_props,ffitype_symbol,KNO_VOID);
+    if (KNO_VOIDP(ffi_typetag))
+      return kno_err("NotAnFFIType","get_ffi_type",NULL,spec);
+    else return ffi_typetag;}
+  else return kno_err("BadFFIResultType","get_result_type",NULL,spec);
+}
+
+static lispval get_result_tag(lispval spec)
+{
+ if (PAIRP(spec)) return kno_incref(CDR(spec));
+ else if (TYPEINFOP(spec)) {
+   struct KNO_TYPEINFO *info = (kno_typeinfo) spec;
+   return info->typetag;}
+ else if (TABLEP(spec)) 
+   return kno_getopt(spec,typetag_symbol,VOID);
+ else if (SYMBOLP(spec)) {
+   if (kno_containsp(spec,ffi_types)) return KNO_VOID;
+    struct KNO_TYPEINFO *info = kno_probe_typeinfo(spec);
+    if (info==NULL) return kno_err("UnknownFFIType","get_result_type",NULL,spec);
+    lispval tag = info->typetag;
+    if (KNO_VOIDP(tag))
+      return kno_err("NotAnFFIType","get_ffi_type",NULL,spec);
+    else return tag;}
+ else return KNO_VOID;
+}
+
+#define LISPIFIERP(x) (KNO_RAW_TYPEP(x,ffi_lispifier_type))
+#define CIFIERP(x) (KNO_RAW_TYPEP(x,ffi_cifier_type))
 
 KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
 {
@@ -399,144 +546,133 @@ KNO_EXPORT lispval kno_ffi_call(struct KNO_FUNCTION *fn,int n,lispval *args)
     struct KNO_FFI_PROC *proc = (struct KNO_FFI_PROC *) fn;
     lispval *argspecs = proc->ffi_argspecs;
     lispval return_spec = proc->ffi_return_spec;
-    lispval return_type = (SYMBOLP(return_spec)) ? (return_spec) :
-      (TABLEP(return_spec)) ?
-      (kno_getopt(return_spec,basetype_symbol,VOID)) :
-      (VOID);
-    int mallocdp = (TABLEP(return_spec)) &&
-      kno_testopt(return_spec,mallocd_symbol,KNO_VOID);
-    if (VOIDP(return_type))
+    lispval result_type = get_result_type(return_spec);
+    lispval result_tag = (PAIRP(return_spec)) ? (CDR(return_spec)) :
+      (get_result_tag(return_spec));
+    int mallocdp = (TABLEP(return_spec)) && kno_testopt(return_spec,mallocd_symbol,KNO_VOID);
+    if (VOIDP(result_type))
       return kno_err("BadFFIReturnSpec","kno_ffi_call",fn->fcn_name,return_spec);
-    void *vals[17] = { NULL }, *argptrs[17] = { NULL };
-    ffi_arg_freefn freefns[17] = { NULL };
+    else if (!(SYMBOLP(result_type)))
+      return kno_err("BadFFIReturnSpec","kno_ffi_call",fn->fcn_name,return_spec);
+    else NO_ELSE;
+    ffi_arg_releasefn releasefns[FFI_MAX_ARGS] = { NULL };
+    lispval typespecs[FFI_MAX_ARGS] = { KNO_FALSE };
+    void *argptrs[FFI_MAX_ARGS] = { NULL }, *cells[FFI_MAX_ARGS] = { NULL };
+    void *scratch[FFI_MAX_ARGS] = { NULL };
     int arity = proc->fcn_arity;
-    int i = 0;
-    i = 0; while (i<arity) {
-      int rv = handle_ffi_arg(args[i],argspecs[i],&(freefns[i]),&(vals[i]),&(argptrs[i]));
+    int arg_i = 0, call_i = 0; while (arg_i<arity) {
+      typespecs[call_i]=argspecs[arg_i];
+      int rv = handle_ffi_arg(args[arg_i],argspecs[arg_i],call_i,
+			      releasefns,argptrs,cells,scratch);
       if (rv<0) {
-	free_ffi_args(i,freefns,vals);
+	release_ffi_args(NULL,call_i,releasefns,typespecs,argptrs,cells,scratch);
 	return KNO_ERROR;}
-      else i++;}
-    if ( (return_type == lisp_symbol) || (return_type == lispref_symbol) ) {
-      lispval result = KNO_NULL;
+      call_i=rv;
+      arg_i++;}
+    lispval result = KNO_NULL;
+    if ( (result_type == lisp_symbol) || (result_type == lispref_symbol) ) {
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&result,argptrs);
-      free_ffi_args(arity,freefns,vals);
       if (result == KNO_NULL)
-        return kno_err(kno_NullPtr,"kno_ffi_call",NULL,VOID);
-      else if (return_type == lispref_symbol)
-        return kno_incref(result);
-      else return result;}
-    else if ( (KNO_TABLEP(return_spec)) &&
-              (kno_test(return_spec,typetag_symbol,KNO_VOID )) ) {
-      lispval return_type = kno_get(return_spec,typetag_symbol,KNO_VOID);
-      if ( ! (VOIDP(return_type)) ) {}
-      else if (fn->fcn_name)
-        return_type = kno_intern(fn->fcn_name);
-      else return_type = ffi_result_symbol;
-      void *value = NULL;
-      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&value,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      kno_raw_recyclefn recycler = (mallocdp) ? (_u8_free) : (NULL);
-      ssize_t len = kno_getfixopt(return_spec,"length",-1);
-      lispval wv = kno_wrap_pointer(value,len,recycler,return_type,NULL);
-      kno_decref(return_type);
-      return wv;}
-    else if (return_type == string_symbol) {
+	return kno_err(kno_NullPtr,"kno_ffi_call",NULL,VOID);
+      else if (result_type == lispref_symbol)
+	kno_incref(result);
+      else NO_ELSE;}
+    else if (result_type == string_symbol) {
       u8_string stringval = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
-      free_ffi_args(arity,freefns,vals);
       if (stringval)
-        if (mallocdp)
-          return kno_init_string(NULL,-1,stringval);
-        else return kno_make_string(NULL,-1,stringval);
-      else return KNO_FALSE;}
-    else if (return_type == strcpy_symbol) {
+	if (mallocdp)
+	  result=kno_init_string(NULL,-1,stringval);
+	else result=kno_make_string(NULL,-1,stringval);
+      else result=KNO_FALSE;}
+    else if (result_type == strcpy_symbol) {
       u8_string stringval = NULL;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&stringval,argptrs);
-      free_ffi_args(arity,freefns,vals);
       if (stringval) {
-        lispval v = kno_make_string(NULL,-1,stringval);
-        if (mallocdp) u8_free(stringval);
-        return v;}
-      else return KNO_FALSE;}
-    else if (return_type == int_symbol) {
+	result = kno_make_string(NULL,-1,stringval);
+	if (mallocdp) u8_free(stringval);}
+      else result=KNO_FALSE;}
+    else if (result_type == int_symbol) {
       int intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == uint_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == uint_symbol) {
       unsigned int intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == short_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == short_symbol) {
       short intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == ushort_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == ushort_symbol) {
       unsigned short intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == char_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == char_symbol) {
       char intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == uchar_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == uchar_symbol) {
       unsigned char intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == byte_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == byte_symbol) {
       unsigned char intval = 0;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
+      result=KNO_INT(intval);}
 #if (SIZEOF_SIZE_T == 4)
-    else if (return_type == size_t_symbol) {
+    else if (result_type == size_t_symbol) {
       long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
+      result=KNO_INT(intval);}
 #else
-    else if (return_type == size_t_symbol) {
+    else if (result_type == size_t_symbol) {
       long long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
+      result=KNO_INT(intval);}
 #endif
-	else if (return_type == long_symbol) {
+    else if (result_type == long_symbol) {
       long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == ulong_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == ulong_symbol) {
       unsigned long intval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&intval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return KNO_INT(intval);}
-    else if (return_type == double_symbol) {
+      result=KNO_INT(intval);}
+    else if (result_type == double_symbol) {
       double dval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&dval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return kno_make_flonum(dval);}
-    else if (return_type == float_symbol) {
+      result=kno_make_flonum(dval);}
+    else if (result_type == float_symbol) {
       float fval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&fval,argptrs);
-      free_ffi_args(arity,freefns,vals);
-      return kno_make_flonum(fval);}
-    else if (return_type == time_t_symbol) {
+      result=kno_make_flonum(fval);}
+    else if (result_type == time_t_symbol) {
       time_t tval = -1;
       ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&tval,argptrs);
-      free_ffi_args(arity,freefns,vals);
       if (tval < 0)
-        return KNO_FALSE;
-      else return kno_time2timestamp(tval);}
-    else return VOID;}
-  else return kno_err(_("Not an foreign function interface"),
-                      "ffi_caller",u8_strdup(fn->fcn_name),VOID);
+	result=KNO_FALSE;
+      else result=kno_time2timestamp(tval);}
+    else {
+      /* Assume it's a raw pointer */
+      void *value = NULL;
+      if (KNO_VOIDP(result_tag)) {
+	if (fn->fcn_name)
+	  result_tag = kno_intern(fn->fcn_name);
+	else result_tag = ffi_result_symbol;}
+      ffi_call(&(proc->ffi_interface),proc->ffi_dlsym,&value,argptrs);
+      if ( value == NULL ) {
+	result=KNO_FALSE;
+	result_tag=KNO_VOID;}
+      else {
+	kno_raw_recyclefn recycler = (mallocdp) ? (_u8_free) : (NULL);
+	ssize_t len = kno_getfixopt(return_spec,"length",-1);
+	result = kno_wrap_pointer(value,len,recycler,result_tag,NULL);
+	result_tag=KNO_VOID;}}
+    if (!(VOIDP(result_tag))) result = kno_init_compound(NULL,result_tag,0,1,result);
+    release_ffi_args(&result,call_i,releasefns,typespecs,argptrs,cells,scratch);
+    return result;}
+  else return kno_err(_("Not an foreign function"),"ffi_caller",u8_strdup(fn->fcn_name),VOID);
 }
 
 /* Generic object methods */
@@ -661,38 +797,46 @@ KNO_EXPORT void kno_init_ffi_c()
 
 static void init_symbols()
 {
-  void_symbol = kno_intern("void");
-  double_symbol = kno_intern("double");
-  float_symbol = kno_intern("float");
-  uint_symbol = kno_intern("uint");
-  int_symbol = kno_intern("int");
-  ushort_symbol = kno_intern("ushort");
-  short_symbol = kno_intern("short");
-  ulong_symbol = kno_intern("ulong");
-  long_symbol = kno_intern("long");
-  uchar_symbol = kno_intern("uchar");
-  byte_symbol = kno_intern("byte");
-  size_t_symbol = kno_intern("size_t");
-  char_symbol = kno_intern("char");
-  string_symbol = kno_intern("string");
-  strcpy_symbol = kno_intern("strcpy");
-  packet_symbol = kno_intern("packet");
-  strlen_symbol = kno_intern("strlen");
-  packetlen_symbol = kno_intern("packetlen");
-  ptr_symbol = kno_intern("ptr");
-  cons_symbol = kno_intern("cons");
-  lisp_symbol = kno_intern("lisp");
-  lispref_symbol = kno_intern("lispref");
-  time_t_symbol = kno_intern("time_t");
-  null_symbol = kno_intern("null");
+  void_symbol = kno_intern("void"); KNO_ADD_TO_CHOICE(ffi_types,void_symbol);
+  double_symbol = kno_intern("double"); KNO_ADD_TO_CHOICE(ffi_types,double_symbol);
+  float_symbol = kno_intern("float"); KNO_ADD_TO_CHOICE(ffi_types,float_symbol);
+  uint_symbol = kno_intern("uint"); KNO_ADD_TO_CHOICE(ffi_types,uint_symbol);
+  int_symbol = kno_intern("int"); KNO_ADD_TO_CHOICE(ffi_types,int_symbol);
+  ushort_symbol = kno_intern("ushort"); KNO_ADD_TO_CHOICE(ffi_types,ushort_symbol);
+  short_symbol = kno_intern("short"); KNO_ADD_TO_CHOICE(ffi_types,short_symbol);
+  ulong_symbol = kno_intern("ulong"); KNO_ADD_TO_CHOICE(ffi_types,ulong_symbol);
+  long_symbol = kno_intern("long"); KNO_ADD_TO_CHOICE(ffi_types,long_symbol);
+  uchar_symbol = kno_intern("uchar"); KNO_ADD_TO_CHOICE(ffi_types,uchar_symbol);
+  byte_symbol = kno_intern("byte"); KNO_ADD_TO_CHOICE(ffi_types,byte_symbol);
+  size_t_symbol = kno_intern("size_t"); KNO_ADD_TO_CHOICE(ffi_types,size_t_symbol);
+  char_symbol = kno_intern("char"); KNO_ADD_TO_CHOICE(ffi_types,char_symbol);
+  string_symbol = kno_intern("string"); KNO_ADD_TO_CHOICE(ffi_types,string_symbol);
+  stringptr_symbol = kno_intern("stringptr"); KNO_ADD_TO_CHOICE(ffi_types,stringptr_symbol);
+  strcpy_symbol = kno_intern("strcpy"); KNO_ADD_TO_CHOICE(ffi_types,strcpy_symbol);
+  packet_symbol = kno_intern("packet"); KNO_ADD_TO_CHOICE(ffi_types,packet_symbol);
+  strlen_symbol = kno_intern("strlen"); KNO_ADD_TO_CHOICE(ffi_types,strlen_symbol);
+  packetlen_symbol = kno_intern("packetlen"); KNO_ADD_TO_CHOICE(ffi_types,packetlen_symbol);
+  ptr_symbol = kno_intern("ptr"); KNO_ADD_TO_CHOICE(ffi_types,ptr_symbol);
+  cons_symbol = kno_intern("cons"); KNO_ADD_TO_CHOICE(ffi_types,cons_symbol);
+  lisp_symbol = kno_intern("lisp"); KNO_ADD_TO_CHOICE(ffi_types,lisp_symbol);
+  lispref_symbol = kno_intern("lispref"); KNO_ADD_TO_CHOICE(ffi_types,lispref_symbol);
+  time_t_symbol = kno_intern("time_t"); KNO_ADD_TO_CHOICE(ffi_types,time_t_symbol);
+  null_symbol = kno_intern("null"); KNO_ADD_TO_CHOICE(ffi_types,null_symbol);
+  ptrloc_symbol = kno_intern("ptrloc"); KNO_ADD_TO_CHOICE(ffi_types,ptrloc_symbol);
+  loclen_symbol = kno_intern("loclen"); KNO_ADD_TO_CHOICE(ffi_types,loclen_symbol);
+  intptr_symbol = kno_intern("intptr"); KNO_ADD_TO_CHOICE(ffi_types,intptr_symbol);
+  resultptr_symbol = kno_intern("resultptr"); KNO_ADD_TO_CHOICE(ffi_types,resultptr_symbol);
+  stringlist_symbol = kno_intern("stringlist"); KNO_ADD_TO_CHOICE(ffi_types,stringlist_symbol);
+
+  ffi_types = kno_simplify_choice(ffi_types);
+
   nullable_symbol = kno_intern("nullable");
+  ffitype_symbol = kno_intern("ffitype");
   mallocd_symbol = kno_intern("mallocd");
 
   basetype_symbol = kno_intern("basetype");
   typetag_symbol = kno_intern("typetag");
 
-  ptrloc_symbol = kno_intern("ptrloc");
-  loclen_symbol = kno_intern("loclen");
 
   ffi_result_symbol = kno_intern("result");
 }

@@ -1052,8 +1052,10 @@ static lispval match_and
   lispval pat2 = kno_get_arg(pat,2);
   /* Find where there is a pat_arg starting */
   lispval matches[2];
+  int greedy = (flags & KNO_MATCH_BE_GREEDY);
   KNO_PAT_ARG(pat1,"match_and",pat);
-  KNO_PAT_ARG(pat2,"match_and",pat);  
+  KNO_PAT_ARG(pat2,"match_and",pat);
+  if (greedy) flags &= ~(KNO_MATCH_BE_GREEDY);
   matches[0]=kno_text_domatch(pat1,next,env,string,off,lim,flags);
   if (EMPTYP(matches[0])) return EMPTY;
   else {
@@ -1062,7 +1064,14 @@ static lispval match_and
     if (EMPTYP(matches[1])) combined = EMPTY;
     else combined = kno_intersection(matches,2);
     kno_decref(matches[0]); kno_decref(matches[1]);
-    return combined;}
+    if (greedy) {
+      u8_byteoff largest = off;
+      DO_CHOICES(m,combined) {
+	u8_byteoff mi = kno_getint(m);
+	if (mi > largest) largest = mi;}
+      kno_decref(combined);
+      return KNO_MAKEINT(largest);}
+    else return combined;}
 }
 
 static u8_byteoff search_and
@@ -1073,13 +1082,13 @@ static u8_byteoff search_and
   lispval pat1 = kno_get_arg(pat,1);
   lispval pat2 = kno_get_arg(pat,2);
   KNO_PAT_ARG(pat1,"search_and",pat);
-  KNO_PAT_ARG(pat2,"search_and",pat);  
+  KNO_PAT_ARG(pat2,"search_and",pat);
   result = kno_text_search(pat1,env,string,off,lim,flags);
   while (result>=0) {
     lispval match_result = match_and(pat,VOID,env,string,result,lim,flags);
     if (EMPTYP(match_result))
-      result = kno_text_search(pat,env,string,
-                            forward_char(string,result),lim,flags);
+      result = kno_text_search
+	(pat,env,string,forward_char(string,result),lim,flags);
     else {kno_decref(match_result); return result;}}
   return result;
 }
@@ -2140,14 +2149,14 @@ static lispval match_char_not_core
     if (flags&(KNO_MATCH_IGNORE_CASE)) ch = u8_tolower(ch);
     while (i < n_break_chars)
       if (break_chars[i] == ch) {hit = 1; break;} else i++;
-    if (hit)
+    if (hit) {
       if (last_scan == string+off) {
         u8_free(break_chars);
         if (match_null_string) return KNO_INT(last_scan-string);
         else return EMPTY;}
       else {
         u8_free(break_chars);
-        return KNO_INT(last_scan-string);}
+	return KNO_INT(last_scan-string);}}
     else last_scan = scan;}
   u8_free(break_chars);
   return KNO_INT(lim);
@@ -2170,6 +2179,65 @@ static lispval match_char_not_star
   if (VOIDP(pat_arg))
     return kno_err(kno_MatchSyntaxError,"match_char_not_star",NULL,pat);
   else return match_char_not_core(pat,next,env,string,off,lim,flags,1);
+}
+
+static lispval match_char_core
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string, u8_byteoff off,u8_byteoff lim,
+   int flags,int match_null_string)
+{
+  lispval arg1 = kno_get_arg(pat,1);
+  const u8_byte *scan = string+off, *last_scan = scan, *end = string+lim;
+  int *match_chars, n_match_chars = 0;
+  if (VOIDP(arg1))
+    return kno_err(kno_MatchSyntaxError,"match_char_core",NULL,pat);
+  else if (!(STRINGP(arg1)))
+    return kno_type_error("string","match_char_core",arg1);
+  else {
+    const u8_byte *scan = CSTRING(arg1); int c = u8_sgetc(&scan);
+    match_chars = u8_alloc_n(STRLEN(arg1),unsigned int);
+    while (!(c<0)) {
+      if (flags&(KNO_MATCH_IGNORE_CASE))
+        match_chars[n_match_chars++]=u8_tolower(c);
+      else match_chars[n_match_chars++]=c;
+      c = u8_sgetc(&scan);}}
+  while (scan<end) {
+    int i = 0, hit = 0; u8_unichar ch = u8_sgetc(&scan);
+    if (ch == -1) ch = 0;
+    if (flags&(KNO_MATCH_IGNORE_CASE)) ch = u8_tolower(ch);
+    while (i < n_match_chars)
+      if (match_chars[i] == ch) {hit = 1; break;} else i++;
+    if (hit)
+      last_scan = scan;
+    else {
+      if (last_scan == string+off) {
+        u8_free(match_chars);
+        if (match_null_string) return KNO_INT(last_scan-string);
+        else return EMPTY;}
+      else {
+        u8_free(match_chars);
+	return KNO_INT(last_scan-string);}}}
+  u8_free(match_chars);
+  return KNO_INT(lim);
+}
+
+static lispval match_char
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  lispval pat_arg = kno_get_arg(pat,1);
+  if (VOIDP(pat_arg))
+    return kno_err(kno_MatchSyntaxError,"match_char",NULL,pat);
+  else return match_char_core(pat,next,env,string,off,lim,flags,0);
+}
+static lispval match_char_star
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  lispval pat_arg = kno_get_arg(pat,1);
+  if (VOIDP(pat_arg))
+    return kno_err(kno_MatchSyntaxError,"match_char_star",NULL,pat);
+  else return match_char_core(pat,next,env,string,off,lim,flags,1);
 }
 
 static lispval isvowel_match
@@ -2438,6 +2506,88 @@ static u8_byteoff isalnum_search
   while (s < sl) {
     u8_unichar ch = string_ref(s);
     if (u8_isalnum(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s = u8_substring(s,1);}
+  return -1;
+}
+
+#define u8_isascii(c) ( (c>0) && (c<128) )
+
+static lispval isascii_match
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch = string_ref(string+off);
+  if (u8_isascii(ch)) return KNO_INT(forward_char(string,off));
+  else return EMPTY;
+}
+static lispval isascii_plus_match
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  lispval match_points = EMPTY;
+  u8_unichar ch = string_ref(string+off);
+  if (u8_isascii(ch)) {
+    while (u8_isascii(ch)) {
+      off = forward_char(string,off);
+      if (flags&KNO_MATCH_BE_GREEDY)
+        match_points = KNO_INT(off);
+      else {CHOICE_ADD(match_points,KNO_INT(off));}
+      ch = string_ref(string+off);}
+    if ((flags)&(KNO_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return kno_simplify_choice(match_points);}
+  else return EMPTY;
+}
+static u8_byteoff isascii_search
+  (lispval pat,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  const u8_byte *s = string+off, *sl = string+lim;
+  while (s < sl) {
+    u8_unichar ch = string_ref(s);
+    if (u8_isascii(ch)) return s-string;
+    else if (*s < 0x80) s++;
+    else s = u8_substring(s,1);}
+  return -1;
+}
+
+#define u8_isnotascii(c) ( (c>0) && (c<128) )
+
+static lispval isnotascii_match
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  u8_unichar ch = string_ref(string+off);
+  if (u8_isnotascii(ch)) return KNO_INT(forward_char(string,off));
+  else return EMPTY;
+}
+static lispval isnotascii_plus_match
+  (lispval pat,lispval next,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  lispval match_points = EMPTY;
+  u8_unichar ch = string_ref(string+off);
+  if (u8_isnotascii(ch)) {
+    while (u8_isnotascii(ch)) {
+      off = forward_char(string,off);
+      if (flags&KNO_MATCH_BE_GREEDY)
+        match_points = KNO_INT(off);
+      else {CHOICE_ADD(match_points,KNO_INT(off));}
+      ch = string_ref(string+off);}
+    if ((flags)&(KNO_MATCH_BE_GREEDY))
+      return get_longest_match(match_points);
+    else return kno_simplify_choice(match_points);}
+  else return EMPTY;
+}
+static u8_byteoff isnotascii_search
+  (lispval pat,kno_lexenv env,
+   u8_string string,u8_byteoff off,u8_byteoff lim,int flags)
+{
+  const u8_byte *s = string+off, *sl = string+lim;
+  while (s < sl) {
+    u8_unichar ch = string_ref(s);
+    if (u8_isnotascii(ch)) return s-string;
     else if (*s < 0x80) s++;
     else s = u8_substring(s,1);}
   return -1;
@@ -3997,6 +4147,8 @@ void kno_init_match_c()
   kno_add_match_operator("BOW",match_bow,search_bow,NULL);
   kno_add_match_operator("EOW",match_eow,search_eow,NULL);
   kno_add_match_operator("CHAR-RANGE",match_char_range,NULL,NULL);
+  kno_add_match_operator("CHARS",match_char,NULL,NULL);
+  kno_add_match_operator("CHARS*",match_char_star,NULL,NULL);
   kno_add_match_operator("CHAR-NOT",match_char_not,NULL,NULL);
   kno_add_match_operator("CHAR-NOT*",match_char_not_star,NULL,NULL);
   kno_add_match_operator("ISVOWEL",isvowel_match,NULL,NULL);
@@ -4010,6 +4162,10 @@ void kno_init_match_c()
   kno_add_match_operator("VSPACE",vspace_match,vspace_search,NULL);
   kno_add_match_operator("VSPACE+",vspace_plus_match,vspace_search,NULL);
   kno_add_match_operator("VBREAK",vbreak_match,vbreak_search,NULL);
+  kno_add_match_operator("ISASCII",isascii_match,isascii_search,NULL);
+  kno_add_match_operator("ISASCII+",isascii_plus_match,isascii_search,NULL);
+  kno_add_match_operator("NOTASCII",isnotascii_match,isnotascii_search,NULL);
+  kno_add_match_operator("NOTASCII+",isnotascii_plus_match,isnotascii_search,NULL);
   kno_add_match_operator("ISALNUM",isalnum_match,isalnum_search,NULL);
   kno_add_match_operator("ISALNUM+",isalnum_plus_match,isalnum_search,NULL);
   kno_add_match_operator("ISWORD",isword_match,isword_search,NULL);

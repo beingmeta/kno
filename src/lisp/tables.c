@@ -4542,6 +4542,14 @@ static lispval init_annotations(struct KNO_ANNOTATED *astruct)
     return consed;}
 }
 
+KNO_EXPORT lispval kno_init_annotations(struct KNO_ANNOTATED *aptr)
+{
+  lispval lptr = (lispval) aptr;
+  if (KNO_CONSP(lptr))
+    return init_annotations(aptr);
+  else return KNO_FALSE;
+}
+
 static lispval annotated_get(lispval x,lispval key,lispval dflt)
 {
   struct KNO_ANNOTATED *a = (kno_annotated) x;

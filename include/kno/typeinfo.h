@@ -25,6 +25,8 @@ typedef lispval (*kno_type_dispatchfn)(lispval,lispval,int,
 				       const lispval *,
 				       kno_typeinfo);
 
+#define KNO_TYPEINFOP(x) (KNO_TYPEP((x),kno_typeinfo_type))
+
 typedef struct KNO_SCHEMA_ENTRY {
   lispval name;
   lispval type;

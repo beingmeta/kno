@@ -877,6 +877,7 @@ typedef struct KNO_ANNOTATED {
   KNO_ANNOTATED_HEADER;} *kno_annotated;
 
 KNO_EXPORT struct KNO_TABLEFNS *kno_annotated_tablefns;
+KNO_EXPORT lispval kno_init_annotations(struct KNO_ANNOTATED *);
 
 /* Compound types */
 

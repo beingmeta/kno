@@ -560,6 +560,7 @@ typedef double kno_double;
 #define PACKETP(x) (KNO_PACKETP(x))
 #define FALSEP(x)  (KNO_FALSEP(x))
 #define OIDP(x)    (KNO_OIDP(x))
+#define TYPEINFOP(x) (KNO_TYPEINFOP(x))
 #define FIX2INT(x) (KNO_FIX2INT(x))
 #define ABORTP(x)  (KNO_ABORTP(x))
 #define ABORTED(x) (KNO_ABORTED(x))

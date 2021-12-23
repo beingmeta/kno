@@ -26,14 +26,14 @@
 (errtest (ipi 3 3.14))
 (errtest (ipi 3 (1+ (* 4 1024 1024 1024))))
 
-(define ffi_time (ffi/proc "time" #f 'time_t #[basetype ptr nullable #t]))
+(define ffi_time (ffi/proc "time" #f 'time_t #[ffitype ptr nullable #t]))
 (applytest #t timestamp? (ffi_time #f))
 
 (define ffi_elapsed (ffi/proc "u8_elapsed_time" #f 'double))
 (applytest flonum? ffi_elapsed)
 
-(define ffi_getenv (ffi/proc "getenv" #f #[basetype ptr typetag envstring] 'string))
-(define ffi_strdup (ffi/proc "_u8_strdup" #f #[basetype string mallocd #t] #[basetype ptr typetag envstring]))
+(define ffi_getenv (ffi/proc "getenv" #f #[ffitype ptr typetag envstring] 'string))
+(define ffi_strdup (ffi/proc "_u8_strdup" #f #[ffitype string mallocd #t] #[ffitype ptr typetag envstring]))
 
 (applytest "getenv" procedure-cname ffi_getenv)
 
@@ -42,6 +42,7 @@
 (when (getenv "USER")
   (applytest (getenv "USER") ffi_strdup (ffi_getenv "USER"))
   (applytest tagged? 'envstring ffi_getenv "USER")
+  (applytest istagged? ffi_getenv "USER")
   (applytest istagged? ffi_getenv "USER")
   (applytest string? lisp->string (ffi_getenv "USER")))
 

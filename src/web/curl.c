@@ -51,7 +51,7 @@ static int curl_loglevel = LOG_NOTIFY;
 
 static u8_string default_user_agent="Kno/CURL";
 
-static lispval curl_defaults, url_symbol;
+static lispval curl_defaults, url_symbol, istext_symbol;
 static lispval content_type_symbol, charset_symbol, pcontent_symbol;
 static lispval content_length_symbol, etag_symbol, content_encoding_symbol;
 static lispval verbose_symbol, header_symbol, bearer_symbol;
@@ -64,7 +64,7 @@ static lispval eurl_slotid, filetime_slotid, response_code_slotid;
 static lispval timeout_symbol, connect_timeout_symbol, accept_timeout_symbol;
 static lispval dns_symbol, dnsip_symbol, dns_cachelife_symbol;
 static lispval fresh_connect_symbol, forbid_reuse_symbol, filetime_symbol;
-static lispval follow_symbol;
+static lispval follow_symbol, notes_symbol;
 
 static lispval text_types = EMPTY;
 
@@ -75,8 +75,7 @@ static u8_condition CurlError=_("Internal libcurl error");
 static int max_redirects = -1;
 
 typedef struct KNO_CURL_HANDLE {
-  KNO_CONS_HEADER;
-  lispval opts;
+  KNO_ANNOTATED_HEADER;
   CURL *handle;
   struct curl_slist *headers;
   /* char curl_errbuf[CURL_ERROR_SIZE]; */
@@ -156,16 +155,19 @@ kno_lisp_type kno_curl_type;
 
 void handle_content_type(char *value,lispval table)
 {
+  int istext = 0;
   char *chset, *chset_end; int endbyte;
   char *end = value, *slash = strchr(value,'/');
   lispval major_type, full_type;
   while ((*end) && (!((*end==';') || (isspace(*end))))) end++;
   if (slash) *slash='\0';
   endbyte = *end; *end='\0';
+  if (strcmp(value,"text")==0) istext=1;
   major_type = kno_parse(value);
   kno_store(table,KNOSYM_TYPE,major_type);
   if (slash) *slash='/';
   full_type = kno_mkstring(value);
+  if ( (istext==0) & (kno_overlapp(full_type,text_types)) ) istext=1;
   kno_add(table,KNOSYM_TYPE,full_type); *end = endbyte;
   kno_decref(major_type); kno_decref(full_type);
   if ((chset = (strstr(value,"charset=")))) {
@@ -176,7 +178,9 @@ void handle_content_type(char *value,lispval table)
     if (chset_end) *chset_end='\0';
     chset_val = kno_mkstring(chset);
     kno_store(table,charset_symbol,chset_val);
-    kno_decref(chset_val);}
+    kno_decref(chset_val);
+    istext=1;}
+  if (istext) kno_store(table,istext_symbol,KNO_TRUE);
 }
 
 static size_t handle_header(void *ptr,size_t size,size_t n,void *data)
@@ -384,6 +388,7 @@ struct KNO_CURL_HANDLE *kno_open_curl_handle()
   h->handle = curl_easy_init();
   h->headers = NULL;
   h->initdata = EMPTY;
+  h->annotations = KNO_EMPTY;
   if (h->handle == NULL) {
     u8_free(h);
     kno_seterr(CurlError,"kno_open_curl_handle","curl_easy_init failed",VOID);
@@ -702,6 +707,22 @@ static lispval set_curlopt
       curl_add_headers(ch,hval);
       kno_decref(hval);}
     else return kno_type_error(_("string"),"set_curl_handle/content-type",val);
+  else if (KNO_EQ(opt,notes_symbol)) {
+    lispval annotations = ch->annotations;
+    if ( (KNO_NULLP(annotations)) || (KNO_EMPTYP(annotations)) )
+      annotations=kno_init_annotations((kno_annotated)ch);
+    if ( (annotations == KNO_NULL) && (!(KNO_CONSP(annotations))) )
+      return KNO_TRUE;
+    DO_CHOICES(note,val) {
+      if (KNO_TABLEP(note)) {
+	lispval keys = kno_getkeys(note);
+	DO_CHOICES(key,keys) {
+	  lispval vals = kno_get(note,key,KNO_EMPTY);
+	  kno_add(annotations,key,vals);
+	  kno_decref(vals);}
+	kno_decref(keys);}
+      else kno_add(annotations,notes_symbol,val);}
+    return KNO_TRUE;}
   else return kno_err(_("Unknown CURL option"),"set_curl_handle",
 		      NULL,opt);
   if (CONSP(val)) {
@@ -833,13 +854,20 @@ static lispval fetchurlhead(struct KNO_CURL_HANDLE *h,u8_string urltext)
   return result;
 }
 
-static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
+static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,
+				 lispval result,
 				 INBUF *data)
 {
   lispval cval; long http_response = 0;
   int retval = curl_easy_getinfo(h->handle,CURLINFO_RESPONSE_CODE,&http_response);
   if (retval==0)
     kno_add(result,response_code_slotid,KNO_INT(http_response));
+  int istext = kno_test(result,istext_symbol,KNO_VOID);
+  if (!istext) {
+    lispval annotations = h->annotations;
+    if ( (kno_test(annotations,notes_symbol,KNOSYM_TEXT)) &&
+	 (!(kno_test(annotations,KNOSYM_TYPE,KNO_VOID))) )
+      istext=1;}
   /* Add a trailing NUL, just in case we need it */
   if (data->size<data->limit) {
     unsigned char *buf = (unsigned char *)(data->bytes);
@@ -851,8 +879,10 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
     data->bytes = buf;
     buf[data->size]='\0';}
   if (data->size<0) cval = EMPTY;
-  else if ((kno_test(result,KNOSYM_TYPE,text_types))&&
-	   (!(kno_test(result,content_encoding_symbol,VOID))))
+  else if (kno_test(result,content_encoding_symbol,VOID)) {
+    cval = kno_make_packet(NULL,data->size,data->bytes);
+    u8_free(data->bytes);}
+  else if (istext) {
     if (data->size==0)
       cval = kno_block_string(data->size,data->bytes);
     else {
@@ -872,7 +902,7 @@ static lispval handlefetchresult(struct KNO_CURL_HANDLE *h,lispval result,
 	cval = kno_wrapstring(u8_convert_crlfs(data->bytes));
       else cval = kno_wrapstring(u8_valid_copy(data->bytes));
       u8_free(data->bytes);
-      kno_decref(chset);}
+      kno_decref(chset);}}
   else {
     cval = kno_make_packet(NULL,data->size,data->bytes);
     u8_free(data->bytes);}
@@ -1843,6 +1873,7 @@ KNO_EXPORT void kno_init_curl_c()
   kno_curl_type = kno_register_cons_type("CURLHANDLE",KNO_CURL_TYPE);
   kno_recyclers[kno_curl_type]=recycle_curl_handle;
   kno_unparsers[kno_curl_type]=unparse_curl_handle;
+  kno_tablefns[kno_curl_type]=kno_annotated_tablefns;
 
   curl_global_init(CURL_GLOBAL_ALL|CURL_GLOBAL_SSL);
   init_ssl_locks();
@@ -1888,6 +1919,8 @@ KNO_EXPORT void kno_init_curl_c()
   forbid_reuse_symbol = kno_intern("noreuse");
   filetime_symbol = kno_intern("filetime");
   follow_symbol = kno_intern("follow");
+  istext_symbol = kno_intern("%istext");
+  notes_symbol = kno_intern("notes");
 
   CHOICE_ADD(text_types,KNOSYM_TEXT);
   decl_text_type("application/xml");
