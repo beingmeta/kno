@@ -5,25 +5,20 @@
 	path = src/tests
 	url = ../kno-tests.git
 	update = merge
-	branch = edge
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = ../stdmods.git
 	update = merge
-	branch = edge
 [submodule "src/brico"]
 	path = src/brico
 	url = ../brico.git
 	update = merge
-	branch = edge
 [submodule "src/textmods"]
 	path = src/textmods
 	url = ../textmods
 	update = merge
-	branch = edge
 [submodule "src/webmods"]
 	path = src/webmods
 	url = ../webmods
 	update = merge
-	branch = edge
 
