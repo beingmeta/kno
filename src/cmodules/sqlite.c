@@ -3,7 +3,7 @@
 /* sqlite.c
    This implements Kno bindings to sqlite3.
    Copyright (C) 2007-2020 beingmeta, inc.
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO

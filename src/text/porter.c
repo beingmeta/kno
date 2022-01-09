@@ -9,7 +9,7 @@
 
    Copyright (C) 1998, 1999 Massachusetts Institute of Technology
    Copyright (C) 2000-2020 beingmeta, inc.
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu)
 
     Use, modification, and redistribution of this program is permitted
     under the terms of either (at the developer's discretion) the GNU

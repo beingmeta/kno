@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme; Character-encoding: utf-8; -*-
 ;;; Copyright (C) 2005-2020 beingmeta, inc. All rights reserved
-;;; Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu). All rights reserved.
+;;; Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu). All rights reserved.
 
 ;;; The reference version of this module now in the src/libscm
 ;;; directory of the Kno/KNO source tree. Please edit the file in

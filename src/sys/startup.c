@@ -1,7 +1,7 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
@@ -880,7 +880,7 @@ static int boot_config()
 
 #define NO_COPYRIGHT_MESSAGE ""
 #define COPYRIGHT_MESSAGE                                       \
-  "\nCopyright (C) beingmeta 2004-2020, Kenneth Haase 2020-2021"
+  "\nCopyright (C) beingmeta 2004-2020, Kenneth Haase 2020-2022"
 
 KNO_EXPORT int kno_boot_message()
 {

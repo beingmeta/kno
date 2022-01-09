@@ -1,8 +1,8 @@
 /* -*- Mode: C; Character-encoding: utf-8; -*- */
 
 /* Copyright (C) 2004-2020 beingmeta, inc.
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu) (ken.haase@alum.mit.edu)
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu) (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu) (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu) (ken.haase@alum.mit.edu)
 */
 
 /* File Pools */

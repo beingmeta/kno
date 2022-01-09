@@ -3,7 +3,7 @@
 /* texttools.c
    This is the core texttools file for the Kno library
    Copyright (C) 2005-2020 beingmeta, inc.
-   Copyright (C) 2020-2021 Kenneth Haase (ken.haase@alum.mit.edu)
+   Copyright (C) 2020-2022 Kenneth Haase (ken.haase@alum.mit.edu)
 */
 
 #ifndef _FILEINFO
