@@ -1,6 +1,6 @@
 ;;; -*- Mode: Scheme -*-
 
-(use-module '{varconfig text/stringfmts optimize logger})
+(use-module '{varconfig text/stringfmts optimize logger reflection logctl})
 
 (define %loglevel (config 'loglevel %notice%))
 
@@ -22,11 +22,17 @@
   (when (not op) (usage) (exit))
   (config! 'appid op)
   (let* ((modname (string->symbol (glom "knodb/actions/" op)))
-	 (module (get-module modname)))
+	 (module (get-module modname))
+	 (usemain (and module (try (get module 'main) #f))))
     (cond ((not module)
 	   (logerr |UnknownCommand| op ", the module " modname " doesn't exist"))
-	  (else (optimize*! module)
-		(apply (get module 'main) args)))))
+	  ((not usemain)
+	   (logerr |UnknownCommand| op ", the module " modname " doesn't define (main)"))
+	  (else (loginfo |UsingModule| usemain " in " module " from " (get-source module))
+		;; Pass loglevel to module
+		(logctl! module %loglevel)
+		(optimize*! module)
+		(apply usemain args)))))
 
 (define (usage)
   (lineout "Usage: knodb <op> <args...>")

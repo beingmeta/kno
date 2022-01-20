@@ -70,6 +70,9 @@
 			  (mkpath rootdir (glom prefix "_tail.flexindex")))
 			 (else tailfile)))
 	 (keyslot (get flex-opts 'keyslot)))
+    (info%watch "do-flexpack"
+      flexindex headfile tailfile tailcount
+      "\nopts" flex-opts)
     (let* ((pattern `#(,rootdir ,prefix "." (isdigit+) ".index"))
 	   (partitions (sorted (pick (getfiles rootdir) string-matches? pattern)))
 	   (sizes (map get-index-keycount partitions))
@@ -140,13 +143,14 @@
 
 (define (get-index-keycount file)
   (let ((index (open-index file #[register #f cachelevel 1])))
-    (indexctl index 'metadata 'keycount)))`
+    (indexctl index 'metadata 'keycount)))
 
 (define (main (in #f) (head #f)
 	      (tail (config 'tailfile #f)))
   (default! head in)
   (when (overlaps? head '{"inplace" "-"}) (set! head in))
   (default-configs)
+  (debug%watch "main" in head tail)
   (if (and (string? in) (file-exists? in))
       (do-flexpack in head tail (config 'TAILCOUNT 1))
       (usage)))
