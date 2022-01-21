@@ -2637,6 +2637,7 @@ KNO_EXPORT void kno_hash_quality
 
 #define TESTOP(x) ( ((x) == kno_table_test) || ((x) == kno_table_haskey) )
 
+/* TODO: Handle EMPTYP value */
 static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
                            lispval key,lispval value)
 {
@@ -2653,6 +2654,17 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
   if ( (KNO_XTABLE_READONLYP(ht)) && ( ! (TESTOP(op) ) ) )
     return KNO_ERR2(-1,kno_ReadOnlyHashtable,"do_hashtable_op");
  int eq_cmp = (ht->table_bits)&(KNO_HASHTABLE_COMPARE_EQ);
+ if (KNO_EMPTYP(value)) {
+   switch (op) {
+   case kno_table_add: case kno_table_add_if_present: case kno_table_add_noref:
+   case kno_table_increment: case kno_table_increment_if_present:
+   case kno_table_multiply: case kno_table_multiply_if_present:
+   case kno_table_maximize: case kno_table_maximize_if_present:
+   case kno_table_minimize: case kno_table_minimize_if_present: 
+   case kno_table_test: case kno_table_drop: 
+     return 0;
+   default:
+     break;}}
  switch (op) {
   case kno_table_replace: case kno_table_replace_novoid: case kno_table_drop:
   case kno_table_add_if_present: case kno_table_test: case kno_table_haskey:
@@ -2740,6 +2752,20 @@ static int do_hashtable_op(struct KNO_HASHTABLE *ht,kno_tableop op,
     else if (KNO_EMPTYP(curval)) {
       drop_key = 1;
       newval=EMPTY;}
+    else if ( (value==curval) ||
+	      (LISP_EQUAL(value,curval)) ) {
+      newval=KNO_EMPTY;
+      drop_key=1;}
+#if 0
+    else if ( (KNO_PRECHOICEP(curval)) &&
+	      (KNO_REFCOUNT(curval) == 1) ) {
+      struct KNO_PRECHOICE *pch = (kno_prechoice) value;
+      if (0) { /* ( (pch->prechoice_uselock == 0) && (pch->prechoice_data[0] == remove) ) */
+	memmove();}
+      else {
+	newval=kno_difference(curval,value);
+	if (EMPTYP(newval)) drop_key=1;}}
+#endif
     else {
       newval=kno_difference(curval,value);
       if (EMPTYP(newval)) drop_key=1;}

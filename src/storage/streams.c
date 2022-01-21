@@ -1138,7 +1138,7 @@ KNO_EXPORT kno_inbuf kno_open_block(kno_stream s,kno_inbuf in,
     in->bufread=in->buffer+offset;
     in->buflim=in->buffer+offset+len;
     return in;}
-#if KNO_USE_MMAP
+#if ((!(HAVE_PREAD)) && KNO_USE_MMAP)
   /* If the input stream doesn't have a buffer or it already has an
      MMAPPed buffer, use MMAP */
   if ( (in->buffer == NULL) || (BUFIO_ALLOC(in) == KNO_MMAP_BUFFER) ) {

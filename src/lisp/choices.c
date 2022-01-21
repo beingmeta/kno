@@ -1190,7 +1190,17 @@ lispval kno_difference(lispval value,lispval remove)
 {
   if (EMPTYP(value)) return value;
   else if (EMPTYP(remove)) return kno_incref(value);
-  else if ((PRECHOICEP(value)) || (PRECHOICEP(remove))) {
+  else if (value == remove) return KNO_EMPTY;
+  else if ( (PRECHOICEP(value)) || (PRECHOICEP(remove)) ) {
+    if (PRECHOICEP(value)) {
+      struct KNO_PRECHOICE *pch = (kno_prechoice) value;
+      if ( (pch->prechoice_data[0] == remove) &&
+	   ( (pch->prechoice_write) == (pch->prechoice_data+1) ) )
+	/* This is the case where we're removing the normalized values from
+	   an un-normalized pre-choice. */
+	return KNO_EMPTY;
+      /* We could have other optimizations here if they were warranted, but many of 
+	 the most common cases are in tables, handled in tables.c */}
     lispval svalue = kno_make_simple_choice(value);
     lispval sremove = kno_make_simple_choice(remove);
     lispval result = kno_difference(svalue,sremove);

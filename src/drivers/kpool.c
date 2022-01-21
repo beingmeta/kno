@@ -929,9 +929,9 @@ static lispval *kpool_fetchn(kno_pool p,int n,lispval *oids)
 	  ( schedule[i].location.size < FETCHBUF_SIZE ) ? (&sbuf) :
 	  (KNO_USE_MMAP) ? (&mbuf) : (&sbuf);
 	kno_inbuf in = kno_open_block(stream,usebuf,
-				    schedule[i].location.off,
-				    schedule[i].location.size,
-				    0);
+				      schedule[i].location.off,
+				      schedule[i].location.size,
+				      0);
 	if (in == NULL) {
 	  if (kp->pool_flags & KNO_STORAGE_REPAIR) {
 	    int value_at = schedule[i].value_at;

@@ -220,7 +220,7 @@ archflags=""
 with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
-BOOTSETUP="none"
+BOOTSETUP=
 CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
@@ -1880,9 +1880,7 @@ fi
 
 AC_ARG_WITH(bootsystem,--with-bootsystem Setup boot method,,with_bootsystem=$default_bootsystem)
 
-if test "$with_bootsystem" != "none"; then
-  BOOTSETUP="setup-$with_bootsystem"
-fi
+BOOTSETUP="setup-$with_bootsystem"
 
 if test -d /lib/systemd/system;
   then default_systemd_loc=/lib/systemd/system;

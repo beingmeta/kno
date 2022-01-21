@@ -185,11 +185,11 @@ KNO_EXPORT kno_off_t _kno_endpos(kno_stream s);
 KNO_EXPORT kno_off_t _kno_getpos(kno_stream s);
 
 KNO_EXPORT ssize_t kno_read_block(kno_stream s,unsigned char *buf,
-                                size_t count,kno_off_t offset,
-                                int stream_locked);
+				  size_t count,kno_off_t offset,
+				  int stream_locked);
 KNO_EXPORT kno_inbuf kno_open_block(kno_stream s,kno_inbuf in,
-                                 kno_off_t offset,ssize_t count,
-                                 int stream_locked);
+				    kno_off_t offset,ssize_t count,
+				    int stream_locked);
 
 #if ( (KNO_INLINE_BUFIO) && (!(KNO_EXTREME_PROFILING)) )
 

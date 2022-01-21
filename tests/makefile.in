@@ -109,8 +109,7 @@ justcode run runtime: cleanlogs
           malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
 	  branch=$$(git branch --show-current || echo none); \
 	  echo "Running runtime (non-db) tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
-	make libtests tables
-	make cmodules
+	make libtests tables cmodules
 	make optimize_modules
 	make zipmods
 	make cmdtests
@@ -122,7 +121,7 @@ justlang knolang lang: cleanlogs
           malloc=`cat ../.malloc`; build=`cat ../.buildmode`; 	\
 	  branch=$$(git branch --show-current || echo none);	\
 	  echo "Running KNO language tests with branch=$${branch}, malloc=$${malloc}, build=$${build}"; fi;
-	make libtests tables
+	make libtests tables cmodules
 	make optimize_modules
 	make cmdtests
 	${header} "■■■■■■■■ Done with knolang tests";
@@ -155,7 +154,7 @@ schemetests: r4rs choices sequences numbers types regex xtypes compounds binio r
 	exceptions breaks errfns lambda tail conditionals iterators binders defines \
 	reflect hashsets eval loading modulefns quasiquote promises ffi configs opts appenv \
 	picktest cachecall texttools webtools timeprims sysprims startup subprocs stringprims \
-	i18n misc gctests gcoverflow profiler sqlite tail compress crypto \
+	i18n misc gctests gcoverflow profiler tail compress crypto \
 	fileprims xml
 optscheme optschemetests:
 	@${header} "■■■■■■■■ Running optimized scheme tests ${RUNCONF}"
