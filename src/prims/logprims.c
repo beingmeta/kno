@@ -135,6 +135,11 @@ static lispval log_helper_evalfn(int loglevel,u8_condition condition,
       u8_close_output(out);
       return value;}
     body = KNO_CDR(body);}
+  u8_string sourcebase = kno_sourcebase();
+  if (sourcebase) {
+    if ( (u8_outlen(out)>40) || (strchr(u8_outstring(out),'\n')) )
+      u8_puts(out,"\n    ... ");
+    u8_puts(out," (sourcebase="); u8_puts(out,sourcebase); u8_putc(out,')');}
   u8_string temp_condition = (condition)?(NULL):(get_log_context(stack));
   u8_set_default_output(stream);
   if (condition)
@@ -195,7 +200,7 @@ DEFC_EVALFN("logmsg",log_evalfn,KNO_EVALFN_DEFAULTS,
 static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
   lispval level_arg = kno_eval(kno_get_arg(expr,1),env,_stack);
-  lispval body = kno_get_body(expr,2);
+  lispval body = kno_get_body(expr,2), decref = KNO_VOID;
   int level = get_loglevel(level_arg);
   U8_OUTPUT *stream = u8_current_output;
   U8_OUTPUT *out = open_helper_stream(1024,stream);
@@ -221,6 +226,9 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
         kno_unparse(out,condition_name);
       else {}
       kno_decref(condition_name);}
+    else if (KNO_STRINGP(cond_expr)) {
+      decref=cond_expr; kno_incref(decref);
+      condition=KNO_CSTRING(cond_expr);}
     else NO_ELSE;
     body = KNO_CDR(body);}
   while (PAIRP(body)) {
@@ -234,6 +242,7 @@ static lispval log_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   u8_set_default_output(stream);
   u8_logger(level,condition,out->u8_outbuf);
   u8_close_output(out);
+  kno_decref(decref);
   return VOID;
 }
 

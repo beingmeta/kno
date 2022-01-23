@@ -146,6 +146,8 @@
 	    (thread/join threads))
 	  (dotimes (i (* testcount 4))
 	    (make-random-frame pool))))
+    ;; Test for an unsupported method
+    (applytest {} poolctl pool 'flibbergibbit)
     (when (exists? (poolctl pool 'metadata 'status))
       (comment
        (if init

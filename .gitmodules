@@ -5,18 +5,12 @@
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = ../stdmods.git
-	branch = main
 [submodule "src/brico"]
 	path = src/brico
 	url = ../brico.git
-	branch = main
 [submodule "src/textmods"]
 	path = src/textmods
 	url = ../textmods
-	branch = main
 [submodule "src/webmods"]
 	path = src/webmods
 	url = ../webmods
-	branch = main
-
-

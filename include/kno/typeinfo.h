@@ -56,6 +56,11 @@ KNO_EXPORT kno_type_freefn kno_default_freefn;
 KNO_EXPORT kno_type_dumpfn kno_default_dumpfn;
 KNO_EXPORT kno_type_restorefn kno_default_restorefn;
 
+KNO_EXPORT struct KNO_TYPEINFO *kno_alias_typeinfo(lispval alias_tag,lispval base_tag);
+struct KNO_TYPEINFO *kno_probe_typeinfo(lispval type);
+struct KNO_TYPEINFO *kno_use_typeinfo(lispval type);
+struct KNO_TYPEINFO *_kno_objtype(lispval obj);
+
 KNO_EXPORT int kno_set_unparsefn(lispval tag,kno_type_unparsefn fn);
 KNO_EXPORT int kno_set_consfn(lispval tag,kno_type_consfn fn);
 KNO_EXPORT int kno_set_testfn(lispval tag,kno_type_testfn fn);

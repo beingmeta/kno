@@ -258,7 +258,7 @@ static kno_index open_hashindex(u8_string fname,kno_storage_flags open_flags,
   struct KNO_HASHINDEX *index = u8_alloc(struct KNO_HASHINDEX);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
 
-  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+  if ( (read_only == 0) && (kno_check_rollbacks) && (u8_file_writablep(fname)) ) {
     if (kno_check_rollback("open_hashindex",fname)<0) {
       /* If we can't apply the rollback, open the file read-only */
       u8_log(LOG_WARN,"RollbackFailed",
@@ -3566,7 +3566,8 @@ static lispval hashbucket_info(struct KNO_HASHINDEX *hx,lispval bucket_nums)
           if (ref.size>0) {
             bucket_no[n_refs]=bucket_val;
             buckets[n_refs]=ref;
-            n_refs++;}}}}}
+            n_refs++;}}}}
+    kno_unlock_stream(s);}
   qsort(buckets,n_refs,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
   struct KNO_INBUF keyblkstrm={0};
   i = 0; while (i<n_refs) {
@@ -3638,14 +3639,14 @@ static lispval hashrange_info(struct KNO_HASHINDEX *hx,
       i++;}}
   else {
     /* If we have chunk offsets in memory, we just read them off. */
-    kno_unlock_stream(s);
     int i=start; while (i<end) {
       KNO_CHUNK_REF ref =kno_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
         bucket_no[n_refs]=i;
         buckets[n_refs]=ref;
         n_refs++;}
-      i++;}}
+      i++;}
+    kno_unlock_stream(s);}
   qsort(buckets,n_refs,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
   struct KNO_INBUF keyblkstrm={0};
   int i = 0; while (i<n_refs) {
@@ -3929,8 +3930,8 @@ static lispval hashindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     return KNO_INT(hx->index_n_buckets);
   else if (op == kno_load_op)
     return KNO_INT(hx->table_n_keys);
-  else if (op == kno_keycount_op)
-    return KNO_INT(hx->table_n_keys);
+  else if (op == kno_keycount_op) {
+    return KNO_INT(hx->table_n_keys);}
   else if (op == keycounts_symbol) {
     int n_keys=0;
     kno_choice filter;

@@ -14,6 +14,7 @@
 		  flexpool/zero flexpool/front flexpool/last
 		  flexpool/info flexpool/partition
 		  flexpool/partitions flexpool/partcount
+		  flexpool/partfiles
 		  flexpool/delete!})
 
 (module-export! '{flexpool-def flexpool-opts flexpool-partitions 
@@ -231,7 +232,9 @@
 (define (flexpool/ref filename opts)
   (unless (has-prefix filename "/")
     (set! filename (abspath filename)))
-  (try (flexpool/open filename opts)
+  (try (tryif (and (file-exists? filename) (not (testopt opts 'shared #f)))
+	 (or (source->pool filename) {}))
+       (flexpool/open filename opts)
        (make-flexpool filename
 		      (if (getopt opts 'make #f) opts (cons #[make #t] opts)))))
 
@@ -299,7 +302,7 @@
 		   prefix flexbase flexcap (cons flex-opts open-opts) state
 		   (getopt open-opts 'load 0))))
 	(lognotice |Flexpool|
-	  "Using " ($count (choice-size pools) "partition" "partitions") 
+	  "Using " ($count (choice-size pools) "partitions") 
 	  " of " ($num partsize) " OIDs"
 	  " for" (if (getopt open-opts 'adjunct) " adjunct" )" flexpool " (write (pool-id pool)) 
 	  "\n    " pool)
@@ -356,7 +359,7 @@
 		    made)))))))
 
 (define (flexpool/partition fp serial (opts #f) (action))
-  (default! action (if (eq? opts #t) 'create (getopt opts 'action)))
+  (default! action (if (eq? opts #t) 'create (getopt opts 'action (if (testopt opts 'create) 'create))))
   (if (eq? opts #t) (set! opts #f))
   (cond ((isflexpool? fp) (flexpool-partition fp serial opts action))
 	((test flexdata fp) (flexpool-partition (get flexdata fp) serial opts action))
@@ -373,6 +376,16 @@
     next))
 (define-init flexpool-next
   (slambda (fp) (flexpool-next-inner fp)))
+
+;;; Flexpool partfiles
+
+(define (flexpool/partfiles flexpool)
+  (let* ((spec (read-xtype flexpool))
+	 (prefix (get spec 'prefix))
+	 (absprefix (abspath (mkpath (dirname flexpool) prefix)))
+	 (partition-pattern `#(,absprefix "." (isdigit+) ".pool"))
+	 (prefixdir (dirname absprefix)))
+    (pick (getfiles prefixdir) string-matches? partition-pattern)))
 
 ;;; Creating flexpool adjuncts
 
@@ -691,6 +704,17 @@
 (define (flexpool-ctl pool flexpool op . args)
   (cond ((and (eq? op 'partitions) (null? args))
 	 (flexpool-partitions flexpool))
+	((and (eq? op 'metadata) (> (length args) 1))
+	 (let ((file (dbctl pool 'source)))
+	   (unless (file-writable? file) (irritant file |ReadOnlyFile|))
+	   (apply poolctl/default pool op args)
+	   (let ((spec (read-xtype file))
+		 (new-metadata (dbctl pool '%metadata)))
+	     (store! spec 'metadata new-metadata)
+	     (write-xtype spec (glom file ".part"))
+	     (knodb/install! (glom file ".part") file)
+	     new-metadata)))
+	((eq? op 'adjuncts) {})
 	(else (apply poolctl/default pool op args))))
 
 (defpooltype 'flexpool

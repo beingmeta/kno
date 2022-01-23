@@ -140,11 +140,15 @@ KNO_EXPORT int kno_testopt(lispval opts,lispval key,lispval val)
   else while (!(VOIDP(opts))) {
       if (PAIRP(opts)) {
         lispval car = KNO_CAR(opts);
-        if (SYMBOLP(car)) {
-          if ((KNO_EQ(key,car)) && (KNO_TRUEP(val)))
-            return 1;}
-        else if (PAIRP(car)) {
-          if (KNO_EQ(KNO_CAR(car),key)) {
+	if (SYMBOLP(car)) {
+	  if (SYMBOLP(key)) {
+	    if ((KNO_EQ(key,car)) && (KNO_TRUEP(val)))
+	      return 1;}
+	  else if ( (kno_overlapp(car,key)) && (KNO_TRUEP(val)) )
+	    return 1;
+	  else {}}
+	else if (PAIRP(car)) {
+          if (kno_overlapp(KNO_CAR(car),key)) {
             if (KNO_EQUAL(val,KNO_CDR(car)))
               return 1;
             else return 0;}}

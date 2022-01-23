@@ -28,7 +28,7 @@
 
 (define (check-poolfile poolfile)
   (let* ((opts (frame-create #f
-		 'adjunct #t 'register #f
+		 'adjunct #t 'register #f shared #f
 		 'type (config 'pooltype (or (config 'type) {}))
 		 'module (or (config 'dbmodule) {}))))
     (onerror (begin (open-pool poolfile opts) #t)

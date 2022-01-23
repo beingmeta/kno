@@ -195,7 +195,7 @@ KNO_EXPORT kno_aggregate_index kno_make_aggregate_index
   struct KNO_AGGREGATE_INDEX *aix = u8_alloc(struct KNO_AGGREGATE_INDEX);
   lispval metadata = kno_getopt(opts,KNOSYM_METADATA,KNO_VOID);
   kno_storage_flags flags =
-    kno_get_dbflags(opts,KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY);
+    kno_get_dbflags(opts,KNO_STORAGE_ISINDEX|KNO_STORAGE_READ_ONLY); /* KNO_STORAGE_VIRTUAL */
   lispval idval = kno_getopt(opts,KNOSYM_LABEL,KNO_VOID);
   u8_string id = (KNO_STRINGP(idval)) ? (KNO_CSTRING(idval)) :
     (U8S("aggregate+0"));

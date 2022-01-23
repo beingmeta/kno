@@ -954,6 +954,7 @@ int main(int argc,char **argv)
 
   /* Load some standard console modules */
   kno_set_config("APPMODS",kno_intern("kno/sessions"));
+  kno_set_config("APPMODS",kno_intern("kno/help"));
   kno_set_config("APPMODS",kno_intern("kno/debug"));
 
   kno_autoload_config("LOADMOD","LOADFILE","INITS");
@@ -1120,26 +1121,9 @@ int main(int argc,char **argv)
     finish_time = u8_elapsed_time();
     finish_ocache = kno_object_cache_load();
     finish_icache = kno_index_cache_load();
-    if (((PAIRP(expr))&&
-         (!((KNO_CHECK_PTR(result)==0) ||
-            (VOIDP(result)) || (EMPTYP(result)) ||
-            (KNO_TRUEP(result)) || (FALSEP(result)) ||
-            (KNO_ABORTP(result)) || (FIXNUMP(result))))) ||
-        (KNO_OIDP(expr)) || (KNO_CHOICEP(expr)) ||
-        (KNO_VECTORP(expr)) || (KNO_COMPOUNDP(expr)) ||
-        (KNO_SLOTMAPP(expr)) || (KNO_SCHEMAPP(expr))) {
-      int ref = kno_history_push(history,result);
-      if (ref>=0) {
-        histref = ref;
-        u8_sprintf(histref_buf,100,"#%d",ref);
-        histref_string = histref_buf;}}
-    else if ((SYMBOLP(expr)) && (KNO_CONSP(result))) {
-      int ref = kno_history_push(history,result);
-      if (ref>=0) {
-        histref = ref;
-        u8_sprintf(histref_buf,100,"#%d",ref);
-        histref_string = histref_buf;}}
-    else if ( (KNO_EQUALP(expr,result)) && (KNO_CONSP(expr)) ) {
+    if (!((KNO_CHECK_PTR(result)==0) ||
+	  (VOIDP(result)) || (KNO_CONSTANTP(result)) ||
+	  (KNO_ABORTP(result)))) {
       int ref = kno_history_push(history,result);
       if (ref>=0) {
         histref = ref;

@@ -103,7 +103,7 @@ static void list_table(u8_output out,lispval table,
   u8_byte indentbuf[64] = { 0 }, pathbuf[64] = { 0 };
   u8_string val_indent = u8_sprintf(indentbuf,64,"%s    ",indent);
   u8_string full_pathref = ( path < 0) ? (pathref) :
-    (pathref) ? (u8_sprintf(pathbuf,64,"%s.%d",pathref,path)) :
+    (pathref) ? (u8_sprintf(pathbuf,64,"%s,%d",pathref,path)) :
     (NULL);
   int val_detail = (detail == 0) ? (detail) :
     (detail > 0) ? ((detail/2)+1) :
@@ -126,11 +126,12 @@ static void list_table(u8_output out,lispval table,
     u8_string keystring =
       ( (KNO_OIDP(key)) ? (kno_oid2string(key,key_buf,64)) :
         (u8_bprintf(key_buf,"%q",key)) );
-    u8_string val_pathref = (full_pathref) ?
-      (u8_bprintf(val_pathbuf,"%s.%s",full_pathref,keystring)) :
+    int make_histref = (KNO_OIDP(key)) || (KNO_SYMBOLP(key));
+    u8_string val_pathref = ( (full_pathref) && (make_histref) ) ?
+      (u8_bprintf(val_pathbuf,"%s,%s",full_pathref,keystring)) :
       (NULL);
-    u8_string val_label = (full_pathref) ?
-      (u8_bprintf(label_buf,"%s.%s",full_pathref,keystring)) :
+    u8_string val_label = ( (full_pathref) && (make_histref) ) ?
+      (u8_bprintf(label_buf,"%s,%s",full_pathref,keystring)) :
       (NULL);
     lispval val = kno_get(table,key,KNO_EMPTY_CHOICE);
     if (EMPTYP(val)) {
@@ -164,7 +165,7 @@ static void list_table(u8_output out,lispval table,
         list_item(tmpout,val,eltfn);
         if ((tmp.u8_write-tmp.u8_outbuf)<width) {
           if (full_pathref)
-            u8_printf(out,"\n%s  %s \t;;=%s.%s",
+            u8_printf(out,"\n%s  %s \t;;=%s,%s",
                       indent,tmp.u8_outbuf,full_pathref,keystring);
           else u8_printf(out,"\n%s  %s \t;; (%s)",
                          indent,tmp.u8_outbuf,keystring);}
@@ -173,7 +174,7 @@ static void list_table(u8_output out,lispval table,
           tmp.u8_write=tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
           kno_pprint(tmpout,val,val_indent,3,3,width);
           if (full_pathref)
-            u8_printf(out,"\n%s  %s #> ;;=%s.%s\n%s%s",
+            u8_printf(out,"\n%s  %s #> ;;=%s,%s\n%s%s",
                       indent,keystring,full_pathref,keystring,
                       val_indent,tmp.u8_outbuf);
           else u8_printf(out,"\n%s  %s #> ;;\n%s%s",
@@ -221,7 +222,7 @@ static void list_element(u8_output out,lispval elt,
   list_item(tmpout,elt,eltfn);
   if ((tmp.u8_write-tmp.u8_outbuf)<width) {
     if ((pathref) && (path>=0))
-      u8_printf(out,"\n%s%s \t;;=%s.%d",indent,tmp.u8_outbuf,pathref,path);
+      u8_printf(out,"\n%s%s \t;;=%s,%d",indent,tmp.u8_outbuf,pathref,path);
     else if (pathref)
       u8_printf(out,"\n%s%s \t;;=%s",indent,tmp.u8_outbuf,pathref);
     else u8_printf(out,"\n%s%s",indent,tmp.u8_outbuf);
@@ -229,18 +230,20 @@ static void list_element(u8_output out,lispval elt,
     return;}
   tmp.u8_write = tmp.u8_outbuf; tmp.u8_outbuf[0]='\0';
   u8_byte pathbuf[64];
-  u8_string sub_path = u8_bprintf(pathbuf,"%s.%d",pathref,path);
+  u8_string sub_path = u8_bprintf(pathbuf,"%s,%d",pathref,path);
   /* Output the element preamble, since we're putting it on a new line */
   if (UNLISTABLEP(elt)) {
     if ((pathref) && (path>=0))
-      u8_printf(out,"\n%s;; %s.%d=\n%s",indent,pathref,path,indent);
+      u8_printf(out,"\n%s;; %s,%d=\n%s",indent,pathref,path,indent);
     else if (pathref)
       u8_printf(out,"\n%s;; %s=\n%s",indent,pathref,indent);
     else u8_printf(out,"\n%s",indent);
     kno_pprint(out,elt,indent,3,3,width);}
   else if ( (KNO_SLOTMAPP(elt)) || (KNO_SCHEMAPP(elt)) ) {
     u8_printf(out,"\n%s",indent);
-    list_table(out,elt,NULL,pathref,path,indent,eltfn,width,3,depth);}
+    list_table(out,elt,NULL,pathref,path,indent,eltfn,width,
+	       (detail<=0) ? (detail) : (detail<3) ? (3) : (detail),
+	       depth);}
   else {
     u8_printf(out,"\n%s",indent);
     list_elements(out,elt,sub_path,sub_path,indent,
@@ -262,6 +265,9 @@ static int list_elements(u8_output out,
   int count = 0, show_elts, n_elts = 0;
   u8_byte indentbuf[64] = { 0 }, startbuf[128] = { 0 };
   u8_string start = "", end = "", elt_indent = "";
+  int elt_detail = (detail == 0) ? (detail) :
+    (detail > 0) ? ((detail/2)+1) :
+    (((-detail)/2)+1);
 
   if (KNO_CHOICEP(result)) {
     n_elts = KNO_CHOICE_SIZE(result);
@@ -298,33 +304,33 @@ static int list_elements(u8_output out,
     KNO_DO_CHOICES(elt,result) {
       if ((show_elts>0) && (count<show_elts)) {
         list_element(out,elt,pathref,count,elt_indent,
-                     eltfn,width,detail,depth+1);
+                     eltfn,width,elt_detail,depth+1);
         count++;}
       else {KNO_STOP_DO_CHOICES; break;}}}
   else if (VECTORP(result)) {
     lispval *elts = VEC_DATA(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
-                   eltfn,width,detail,depth+1);
+                   eltfn,width,elt_detail,depth+1);
       count++;}}
   else if (KNO_COMPOUND_VECTORP(result)) {
     lispval *elts = KNO_COMPOUND_ELTS(result);
     while (count<show_elts) {
       list_element(out,elts[count],pathref,count,elt_indent,
-                   eltfn,width,detail,depth+1);
+                   eltfn,width,elt_detail,depth+1);
       count++;}}
   else if (PAIRP(result)) {
     lispval scan = result;
     while (count<show_elts)
       if (PAIRP(scan)) {
         list_element(out,KNO_CAR(scan),pathref,count,elt_indent,
-                     eltfn,width,detail,depth+1);
+                     eltfn,width,elt_detail,depth+1);
         scan = KNO_CDR(scan);
         count++;}
       else {
         u8_printf(out,"\n%s. ;; improper list",elt_indent);
         list_element(out,scan,pathref,count,elt_indent,
-                     eltfn,width,detail,depth+1);
+                     eltfn,width,elt_detail,depth+1);
         scan = VOID;
         count++;
         break;}}

@@ -1,0 +1,17 @@
+#!/bin/sh
+#set -eo pipefail
+
+check_watchpoints() {
+    local file=$1;
+    if grep -n "(%wc" ${file}; then
+	echo "Can't commit with leftover %wc watchpoint in ${file}";
+	exit 1;
+    fi;
+    if grep -n "(%watch" ${file}; then
+	echo "Can't commit with leftover %watch watchpoint in ${file}";
+	exit 1;
+    fi;
+}
+
+SCHEME_CHANGED=$(git diff --name-only --cached --diff-filter=ACMR | grep '.scm$')
+for file in ${SCHEME_CHANGED}; do check_watchpoints "${file}"; done;

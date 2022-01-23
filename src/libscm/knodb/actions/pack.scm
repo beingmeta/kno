@@ -6,7 +6,8 @@
 
 (use-module '{logger text/stringfmts optimize})
 (define %optmods
-  '{knodb/actions/packpool knodb/actions/packindex})
+  '{knodb/actions/packpool knodb/actions/packindex
+    knodb/actions/flexpack})
 
 ;;(use-module '{knodb/actions/packpool knodb/actions/packindex})
 
@@ -14,6 +15,7 @@
 
 (defimport packpool 'knodb/actions/packpool)
 (defimport packindex 'knodb/actions/packindex)
+(defimport flexpack 'knodb/actions/flexpack)
 
 (define (usage)
   (lineout "Usage: pack <source> [target]\n"
@@ -36,15 +38,18 @@
 			  "OVERWRITE=no|yes\n")
 	       "If specified, [to] must not exist unless OVERWRITE=yes")))
 
-(define (pack (from #f) (to) (type (config 'type #f)))
+(define (pack (from #f) (to) . args)
   (default! to from)
   (when (overlaps? to {"inplace" "-"}) (set! to from))
   (cond ((and (string? from) (file-exists? from))
-	 (if (if type (pool-type? type) (has-suffix from ".pool"))
-	     (packpool from to)
-	     (if (if type (index-type? type) (has-suffix from ".index"))
-		 (packindex from to)
-		 (usage))))
+	 (cond ((has-suffix from ".pool")
+		(packpool from to))
+	       ((has-suffix from ".index")
+		(packindex from to))
+	       ((has-suffix from ".flexindex")
+		(apply flexpack from (basename to #t) args))
+	       ((file-directory? from))
+	       (else (usage))))
 	(else (usage))))
 
 (define main pack)

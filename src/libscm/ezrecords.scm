@@ -19,8 +19,7 @@
        (,compound-ref ,name ,(position field fields) ,tag-expr))))
 (define (make-setter-def name field tag-expr prefix fields)
   (let* ((field-name (if (pair? field) (car field) field))
-	 (set-method-name
-	  (string->symbol (stringout "set-" prefix "-" field-name "!"))))
+	 (set-method-name (string->symbol (stringout "set-" prefix "-" field-name "!"))))
     `(defambda (,set-method-name ,name _value)
        (,compound-set! ,name ,(position field fields) _value ,tag-expr))))
 (define (make-modifier-def name field tag-expr prefix fields)

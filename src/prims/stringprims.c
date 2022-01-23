@@ -8,6 +8,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define U8_INLINE_IO 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"
@@ -451,46 +453,139 @@ DEFC_PRIM("stdcap",string_stdcap,
 	  {"string",kno_string_type,KNO_VOID})
 static lispval string_stdcap(lispval string)
 {
-  if (STRINGP(string)) {
-    u8_string str = CSTRING(string), scan = str;
-    int fc = u8_sgetc(&scan), c = fc, n_caps = 0, nospace = 1, at_break = 1;
-    while (c>=0) {
-      if ((at_break)&&(u8_isupper(c))) {
-	c = u8_sgetc(&scan);
-	if (!(u8_isupper(c))) n_caps++;}
-      if (u8_isspace(c)) {nospace = 0; at_break = 1;}
-      else if (u8_ispunct(c)) at_break = 1;
-      else at_break = 0;
-      c = u8_sgetc(&scan);}
-    if (nospace) return kno_incref(string);
-    else if (n_caps==0) return kno_incref(string);
-    else {
-      struct U8_OUTPUT out;
-      u8_string scan = str, prev = str;
-      U8_INIT_OUTPUT(&out,STRLEN(string));
+  u8_string str = CSTRING(string), scan = str;
+  int fc = u8_sgetc(&scan), c = fc, n_caps = 0, nospace = 1, at_break = 1;
+  while (c>=0) {
+    if ((at_break)&&(u8_isupper(c))) {
       c = u8_sgetc(&scan);
-      while (c>=0) {
-	if (u8_ispunct(c)) {
-	  u8_putc(&out,c); prev = scan; c = u8_sgetc(&scan);}
-	else if (u8_isspace(c)) {
-	  while (u8_isspace(c)) {
-	    prev = scan; c = u8_sgetc(&scan);}
-	  if ((*scan)&&(out.u8_write>out.u8_outbuf))
-	    u8_putc(&out,' ');}
+      if (!(u8_isupper(c))) n_caps++;}
+    if (u8_isspace(c)) {nospace = 0; at_break = 1;}
+    else if (u8_ispunct(c)) at_break = 1;
+    else at_break = 0;
+    c = u8_sgetc(&scan);}
+  if (nospace) return kno_incref(string);
+  else if (n_caps==0) return kno_incref(string);
+  else {
+    struct U8_OUTPUT out;
+    u8_string scan = str, prev = str;
+    U8_INIT_OUTPUT(&out,STRLEN(string));
+    c = u8_sgetc(&scan);
+    while (c>=0) {
+      if (u8_ispunct(c)) {
+	u8_putc(&out,c); prev = scan; c = u8_sgetc(&scan);}
+      else if (u8_isspace(c)) {
+	while (u8_isspace(c)) {
+	  prev = scan; c = u8_sgetc(&scan);}
+	if ((*scan)&&(out.u8_write>out.u8_outbuf))
+	  u8_putc(&out,' ');}
+      else {
+	u8_string w_start = prev, w1 = scan;
+	int fc = c, weird_caps = 0;
+	prev = scan; c = u8_sgetc(&scan);
+	while (!((c<0)||(u8_isspace(c))||(u8_ispunct(c)))) {
+	  if (u8_isupper(c)) weird_caps = 1;
+	  prev = scan; c = u8_sgetc(&scan);}
+	if ((weird_caps)||(u8_isupper(fc)))
+	  u8_putn(&out,w_start,prev-w_start);
 	else {
-	  u8_string w_start = prev, w1 = scan;
-	  int fc = c, weird_caps = 0;
-	  prev = scan; c = u8_sgetc(&scan);
-	  while (!((c<0)||(u8_isspace(c))||(u8_ispunct(c)))) {
-	    if (u8_isupper(c)) weird_caps = 1;
-	    prev = scan; c = u8_sgetc(&scan);}
-	  if ((weird_caps)||(u8_isupper(fc)))
-	    u8_putn(&out,w_start,prev-w_start);
+	  u8_putc(&out,u8_toupper(fc));
+	  u8_putn(&out,w1,prev-w1);}}}
+    return kno_stream2string(&out);}
+}
+
+static lispval probe_punct(lispval table,size_t len,u8_string bytes)
+{
+  struct KNO_STRING _probe;
+  KNO_INIT_STATIC_CONS(&_probe,kno_string_type);
+  _probe.str_freebytes=0;
+  _probe.str_bytelen=len;
+  _probe.str_bytes=bytes;
+  lispval probe_key = (lispval) &(_probe);
+  return kno_get(table,probe_key,KNO_VOID);
+}
+
+/* TODO: Use a table for the default replacements, and handle the custom arg.
+ */
+static u8_string replace_punct(int ch,u8_string *scanloc,lispval custom,
+			       lispval *to_decref)
+{
+  u8_string scan = *scanloc;
+  if ( (KNO_TABLEP(custom)) ) {
+    U8_STATIC_OUTPUT(tmp,40); u8_putc(tmpout,ch);
+    u8_string subscan = scan, tail = scan;
+    int nextc = u8_sgetc(&subscan);
+    while ( (nextc>0) && (u8_ispunct(nextc)) ) {
+      u8_putc(tmpout,nextc);
+      tail=subscan;
+      nextc=u8_sgetc(&subscan);}
+    lispval probe = probe_punct
+      (custom,u8_outbuf_len(tmpout),u8_outbuf_bytes(tmpout));
+    u8_close_output(tmpout);
+    if (KNO_STRINGP(probe)) {
+      *to_decref=probe;
+      *scanloc=tail;
+      return KNO_CSTRING(probe);}
+    kno_decref(probe);}
+  if ( (ch == 0x2012) || /* Figure dash */
+       (ch == 0x2013) ) /* en dash */
+    return "-";
+  else if (ch == 0x2014) /* em dash */
+    return "--";
+  else if ( (ch == 0x2010) || /* hyphen */
+	    (ch == 0x2011) ) /* Non-breaking hyphen */
+    return "-";
+  else if ( (ch == 0x2018) || /* LEFT SINGLE QUOTATION MARK*/
+	    (ch == 0x2019) ) /* RIGHT SINGLE QUOTATION MARK */
+    return "'";
+  else if ( (ch == 0x201C) || /* LEFT DOUBLE QUOTATION MARK*/
+	    (ch == 0x201D) ) /* RIGHT DOUBLE QUOTATION MARK */
+    return "\"";
+  else return NULL;
+}
+
+DEFC_PRIM("stdpunct",string_stdpunct,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "normalizes the punctuation of *string*, especially moving "
+	  "characters into ASCII when appropriate. Note that this may "
+	  "lose some useful distinctions (e.g. open quote vs. close quote) "
+	  "in the process",
+	  {"string",kno_string_type,KNO_VOID},
+	  {"custom",kno_any_type,KNO_VOID})
+static lispval string_stdpunct(lispval string,lispval custom)
+{
+  size_t len = KNO_STRLEN(string);
+  u8_string str = CSTRING(string), scan = str, last = str, prev = str;
+  int ch = u8_sgetc(&scan);
+  while (ch > 0) {
+    if (u8_ispunct(ch)) {
+      lispval to_decref = KNO_VOID;
+      u8_string replace = replace_punct(ch,&scan,custom,&to_decref);
+      if (replace) {
+	struct U8_OUTPUT std;
+	U8_INIT_STATIC_OUTPUT(std,len);
+	while (ch>0) {
+	  if (u8_ispunct(ch)) {
+	    if (prev > last) u8_putn(&std,last,prev-last);
+	    if (replace==NULL)
+	      replace=replace_punct(ch,&scan,custom,&to_decref);
+	    if (replace) u8_puts(&std,replace);
+	    else u8_putc(&std,ch);
+	    replace=NULL;
+	    kno_decref(to_decref);
+	    to_decref=KNO_VOID;
+	    last=prev=scan;
+	    ch=u8_sgetc(&scan);}
 	  else {
-	    u8_putc(&out,u8_toupper(fc));
-	    u8_putn(&out,w1,prev-w1);}}}
-      return kno_stream2string(&out);}}
-  else return kno_type_error(_("string"),"string_stdcap",string);
+	    prev=scan;
+	    ch=u8_sgetc(&scan);}}
+	if (prev>last) u8_putn(&std,last,prev-last);
+	lispval result = kno_stream_string(&std);
+	u8_close_output(&std);
+	return result;}}
+    prev = scan;
+    ch = u8_sgetc(&scan);}
+  /* No change if we get here */
+  return kno_incref(string);
 }
 
 DEFC_PRIM("stdspace",string_stdspace,
@@ -1781,7 +1876,8 @@ static lispval glom_lexpr(int n,kno_argvec args)
     i++;}
   *write='\0';
   i = 0; while (i<n) {
-    if (consed[i]) u8_free(strings[i]); i++;}
+    if (consed[i]) u8_free(strings[i]);
+    i++;}
   if (n>16) {
     u8_free(strings); u8_free(lengths); u8_free(consed);}
   if (result_type == kno_string_type)
@@ -1916,6 +2012,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("stdobj",stdobj,1,kno_scheme_module);
   KNO_LINK_CPRIM("stdstring",string_stdstring,1,kno_scheme_module);
   KNO_LINK_CPRIM("stdspace",string_stdspace,2,kno_scheme_module);
+  KNO_LINK_CPRIM("stdpunct",string_stdpunct,2,kno_scheme_module);
   KNO_LINK_CPRIM("stdcap",string_stdcap,1,kno_scheme_module);
   KNO_LINK_CPRIM("capitalize1",capitalize1,1,kno_scheme_module);
   KNO_LINK_CPRIM("capitalize",capitalize,1,kno_scheme_module);

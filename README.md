@@ -1,10 +1,10 @@
 # This is KNO
 
-**Kno** is a platform for high-performance symbolic computing at
-scale, especially suited for development and deployment of symbolic AI
-services and solutions. The core platform is implemented in C for Unix
-platforms (including MacOS) and released under the open-source AGPL
-license.
+**Kno** is a platform for high-performance symbolic computing and
+qualitative data processing at scale, especially suited for
+development and deployment of symbolic AI services and solutions. The
+core platform is implemented in C for Unix platforms (including MacOS)
+and released under the open-source GPL license.
 
 *Kno* is based on the general architecture and data model of
 [http://www.framerd.org/](FramerD) which has been used extensively in
@@ -60,25 +60,25 @@ The *Kno* runtime and language kernel provides:
 
 ## Background
 
-The [first version](https://www.beingmeta.com/pubs/FramerD.pdf) of
-KNO, called FramerD, was developed at
-[MIT's Media Laboratory](www.media.mit.edu) by Kenneth Haase. The
+KNO was originally implemented as
+[FramerD](https://www.beingmeta.com/pubs/FramerD.pdf) in the late
+1990s at MIT's Media Laboratory. FramerD was designed to support large
+knowledge bases and practical semantic information systems. The
 laboratory's support, especially from its *News In the Future*
 program, is gratefully acknowledged. This version can be downloaded
 from [SourceForge](https://sourceforge.net/projects/framerd/).
 
 Starting in 2005, [beingmeta](https://www.beingmeta.com/) began
-developing a new version of this platform with a focus on scalability
-both down (to low-powered devices) and up (to multi-core high
-performance servers and workstations). This included optimizing the
+developing a new version of FramerD with a focus on scalability in two
+directions: down to low-powered devices and up to multi-core high
+performance servers and workstations. This included optimizing the
 underlying C code for modern cache and pipeline-focused CPU
-architectures, the introduction of finer-grained thread locking,
+architectures and the introduction of finer-grained thread locking,
 implementation of a lock-free garbage collector, and a compiler to a
 SCHEME-like VM.
 
-Originally called `Enterprise FramerD` or sometimes (confusingly) just
-`FramerD`, this was renamed **KNO** in May 2019 and released under an
-open source license (the AGPLV2).
+FramerD was renamed **KNO** in May 2019 and released under an open
+source license (the AGPLV2).
 
 **beingmeta**'s implementation of KNO provides a novel query
   optimization technique called *iterated partial evaluation*

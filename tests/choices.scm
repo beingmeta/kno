@@ -91,6 +91,12 @@
 (evaltester 500 (choice-size (difference (nrange 200 800) (nrange 0 300))))
 (applytester (choice 0 1 4 5 6 7 8 9) difference (nrange 0 10) (nrange 2 4))
 
+(applytester {} difference {"abcd" "efgh" "ijk"} {"abcd" "efgh" "ijk"})
+(applytester {} difference {"abcd" "efgh" "ijk"} {"abcd" "efgh" "ijk" "lmno"})
+(applytester "ijk" difference {"abcd" "efgh" "ijk"} {"abcd" "efgh"})
+(applytester "ijk" difference "ijk" {"abcd" "efgh"})
+(applytester {} difference "ijk" {"abcd" "efgh" "ijk"})
+
 (define (pairup x) (cons x x))
 
 (evaltester 10 (choice-size (pairup (nrange 0 10))))

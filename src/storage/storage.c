@@ -57,6 +57,7 @@ static lispval id_symbol, flags_symbol, background_symbol,
   readonly_symbol, repair_symbol, fixsyms_symbol,
   sparse_symbol, register_symbol, virtual_symbol, phased_symbol,
   oidcodes_symbol, slotcodes_symbol, prealloc_symbol;
+DEF_KNOSYM(shared);
 
 static lispval lookupfns = KNO_NIL;
 
@@ -97,7 +98,8 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
       flags |= KNO_STORAGE_READ_ONLY;
     if (testopt(opts,phased_symbol,0))
       flags |= KNO_STORAGE_PHASED;
-    if (!(testopt(opts,register_symbol,1)))
+    if ( (!(testopt(opts,register_symbol,1))) ||
+	 (kno_testopt(opts,KNOSYM(shared),KNO_FALSE)) )
       flags |= KNO_STORAGE_UNREGISTERED;
     if (!(testopt(opts,virtual_symbol,1)))
       flags |= KNO_STORAGE_VIRTUAL;

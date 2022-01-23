@@ -36,6 +36,9 @@
 #define KNO_KPOOL_SYMREFS     0x400
 #define KNO_KPOOL_OIDREFS     0x800
 
+/* Write-all-together, so don't bother writing rollbacks */
+#define KNO_KPOOL_NO_ROLLBACK 0x00100000
+
 typedef struct KNO_KPOOL {
   KNO_POOL_FIELDS;
   unsigned int pool_load;

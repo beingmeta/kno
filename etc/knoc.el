@@ -111,6 +111,8 @@
 
 ;;; KNO stuff
 (put 'when 'scheme-indent-function 1)
+(put 'config 'scheme-indent-function 1)
+(put 'config! 'scheme-indent-function 1)
 (put 'unless 'scheme-indent-function 1)
 (put 'tryif 'scheme-indent-function 1)
 (put 'withenv 'scheme-indent-function 1)
@@ -124,6 +126,7 @@
 
 (put 'opts+ 'scheme-indent-function 2)
 (put 'opt+ 'scheme-indent-function 2)
+(put 'getopt 'scheme-indent-function 2)
 
 (put '$indented 'scheme-indent-function 1)
 (put '$lines 'scheme-indent-function 1)
@@ -310,15 +313,15 @@
 (put 'frame-create 'scheme-indent-function 1)
 (put 'index-frame 'scheme-indent-function 2)
 
-(put '%watch 'scheme-indent-function 1)
+(put '%watch 'scheme-indent-function 'defun)
 (put '%watchrefs 'scheme-indent-function 2)
-(put 'deluge%watch 'scheme-indent-function 1)
-(put 'detail%watch 'scheme-indent-function 1)
-(put 'debug%watch 'scheme-indent-function 1)
-(put 'info%watch 'scheme-indent-function 1)
-(put 'notice%watch 'scheme-indent-function 1)
-(put 'warn%watch 'scheme-indent-function 1)
-(put 'always%watch 'scheme-indent-function 1)
+(put 'deluge%watch 'scheme-indent-function 'defun)
+(put 'detail%watch 'scheme-indent-function 'defun)
+(put 'debug%watch 'scheme-indent-function 'defun)
+(put 'info%watch 'scheme-indent-function 'defun)
+(put 'notice%watch 'scheme-indent-function 'defun)
+(put 'warn%watch 'scheme-indent-function 'defun)
+(put 'always%watch 'scheme-indent-function 'defun)
 (put 'saveoutput 'scheme-indent-function 1)
 
 (put 'extdb/proc 'scheme-indent-function 1)

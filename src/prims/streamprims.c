@@ -438,7 +438,7 @@ static lispval open_byte_input_file(lispval fname,lispval opts,lispval pos)
     kno_seterr(kno_FileNotFound,"open_byte_input_file",filename,VOID);
     return KNO_ERROR;}
   else {
-    struct KNO_STREAM *stream = kno_open_file(filename,KNO_STREAM_READ_ONLY);
+    struct KNO_STREAM *stream = kno_open_file(filename,KNO_FILE_READ);
     if (stream) {
       kno_off_t rv = handle_setpos("open-byte-input",filename,stream,pos);
       if (rv<0) return KNO_ERROR;

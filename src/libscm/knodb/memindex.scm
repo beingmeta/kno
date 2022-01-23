@@ -28,7 +28,7 @@
 (define (memindex->string ix)
   (stringout "#<MEMINDEX '" (memindex-path ix)  "' "
     (if (memindex-table ix)
-	(printout ($count (table-size (memindex-table ix)) "key"))
+	(printout ($count (table-size (memindex-table ix)) "keys"))
 	"unloaded")
     ">"))
 

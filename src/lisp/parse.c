@@ -53,6 +53,7 @@ kno_type_consfn kno_default_consfn = NULL;
   ((c<=0) || ((c<128) && ((isspace(c)) || (strchr("{}()[]#\"',`",c)))))
 
 u8_condition kno_BadEscapeSequence=_("Invalid escape sequence");
+u8_condition kno_BadHistref=_("Invalid histref expression");
 u8_condition kno_InvalidConstant=_("Invalid constant reference");
 u8_condition kno_InvalidCharacterConstant=_("Invalid character constant");
 u8_condition kno_BadAtom=_("Bad atomic expression");
@@ -1421,12 +1422,7 @@ static lispval parse_histref(u8_input in)
      really constants followed by '.' or '=' by checking *after* we've
      parsed the histref. We should really do it here, when we've
      reached the first histref element. */
-  while ( (c >= 0) &&
-	  ( (u8_isalnum(c)) ||
-	    (c=='-') || (c=='_') ||
-	    (c=='/') || (c=='+') ||
-	    (c=='%') || (c=='$') ||
-	    (c=='&') || (c=='!') ) ) {
+  while (!(atombreakp(c))) {
     u8_putc(&tmpbuf,c);
     c = u8_getc(in);}
   lispval constval = lookup_constname(tmpbuf.u8_outbuf,1);
@@ -1435,33 +1431,28 @@ static lispval parse_histref(u8_input in)
     if (c >= 0) u8_ungetc(in,c);
     return constval;}
   else while (c >= 0) {
-      if ( (u8_isalnum(c)) ||
-	   (c=='-') || (c=='_') ||
-	   (c=='/') || (c=='+') ||
-	   (c=='%') || (c=='$') ||
-	   (c=='&') || (c=='!') ||
-	   (c=='@') || (c=='?') ) {
-	u8_putc(&tmpbuf,c); }
-      else if (c == '.') {
+      if (atombreakp(c)) {
+	if ( ! ( (c == '#') || (c == ',') ) ) break;
+	if (tmpbuf.u8_outbuf[0] == '\0') break;
 	lispval elt = kno_parse(tmpbuf.u8_outbuf);
-	if (elt == KNO_EOX) elt = KNO_FALSE;
+	if ( (n_elts==0) && (!(KNO_FIXNUMP(elt))) ) {
+	  kno_decref(elts);
+	  return kno_err(kno_BadHistref,"parse_histref","Invalid histref root",elt);}
+	else if ( ! ( (KNO_FIXNUMP(elt)) || (KNO_OIDP(elt)) || (KNO_SYMBOLP(elt)) ) ) {
+	  kno_decref(elts);
+	  return kno_err(kno_BadHistref,"parse_histref","Invalid histref element",elt);}
+	else NO_ELSE;
 	lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);
 	*tail = new_tail;
 	tail = &(KNO_CDR(new_tail));
+	/* Reset tmpbuf */
 	tmpbuf.u8_write = tmpbuf.u8_outbuf;
 	tmpbuf.u8_outbuf[0] = '\0';
+	c = u8_getc(in);
 	n_elts++;}
-      else if (c == '=') {
-	lispval elt = kno_parse(tmpbuf.u8_outbuf);
-	lispval new_tail = kno_make_list(2,elt,KNOSYM_EQUALS);
-	lispval new_cdr = KNO_CDR(new_tail);
-	*tail = new_tail;
-	tail = &(KNO_CDR(new_cdr));
-	tmpbuf.u8_write = tmpbuf.u8_outbuf;
-	tmpbuf.u8_outbuf[0] = '\0';
-	n_elts++;}
-      else break;
-      c = u8_getc(in);}
+      else {
+	u8_putc(&tmpbuf,c);
+	c = u8_getc(in);}}
   if (tmpbuf.u8_write>tmpbuf.u8_outbuf) {
     lispval elt = kno_parse(tmpbuf.u8_outbuf);
     lispval new_tail = kno_init_pair(NULL,elt,KNO_EMPTY_LIST);

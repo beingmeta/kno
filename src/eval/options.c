@@ -123,11 +123,11 @@ static lispval getopt_prim(lispval opts,lispval keys,lispval dflt)
 }
 
 DEFC_PRIM("testopt",testopt_prim,
-	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2),
+	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(2)|KNO_NDCALL,
 	  "returns true if the option *name* is specified in "
 	  "*opts* and it includes *value* (if provided).",
 	  {"opts",kno_any_type,KNO_VOID},
-	  {"key",kno_symbol_type,KNO_VOID},
+	  {"key",kno_any_type,KNO_VOID},
 	  {"val",kno_any_type,KNO_VOID})
 static lispval testopt_prim(lispval opts,lispval key,lispval val)
 {

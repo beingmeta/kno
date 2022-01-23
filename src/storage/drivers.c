@@ -32,12 +32,16 @@ static lispval rev_symbol, gentime_symbol, packtime_symbol, modtime_symbol;
 static lispval adjuncts_symbol, wadjuncts_symbol;
 static lispval pooltype_symbol, indextype_symbol;
 
+DEF_KNOSYM(shared);
+
 lispval kno_cachelevel_op, kno_bufsize_op, kno_mmap_op, kno_preload_op;
 lispval kno_metadata_op, kno_raw_metadata_op, kno_reload_op;
-lispval kno_stats_op, kno_label_op, kno_source_op, kno_populate_op, kno_swapout_op;
-lispval kno_getmap_op, kno_xrefs_op, kno_slotids_op, kno_baseoids_op;
-lispval kno_load_op, kno_capacity_op, kno_keycount_op;
-lispval kno_keys_op, kno_keycount_op, kno_partitions_op;
+lispval kno_label_op, kno_source_op, kno_swapout_op;
+lispval kno_xrefs_op, kno_slotids_op, kno_baseoids_op;
+lispval kno_load_op, kno_capacity_op, kno_keycount_op, kno_stats_op;
+lispval kno_keys_op, kno_livecount_op, kno_partitions_op;
+
+lispval KNOSYM_ROLLBACK;
 
 u8_condition kno_MMAPError=_("MMAP Error");
 u8_condition kno_MUNMAPError=_("MUNMAP Error");
@@ -61,6 +65,7 @@ u8_condition kno_PoolFileSizeOverflow=_("file pool overflowed file size");
 u8_condition kno_FileIndexSizeOverflow=_("file index overflowed file size");
 
 int kno_acid_files = 1;
+int kno_check_rollbacks = 1;
 size_t kno_driver_bufsize = KNO_STORAGE_DRIVER_BUFSIZE;
 size_t kno_driver_writesize = KNO_STORAGE_DRIVER_BUFSIZE;
 
@@ -303,12 +308,13 @@ kno_pool kno_open_pool(u8_string spec,kno_storage_flags flags,lispval opts)
 {
   CHECK_ERRNO();
   if (flags<0) flags = kno_get_dbflags(opts,KNO_STORAGE_ISPOOL);
+  int shared = (!(flags&KNO_STORAGE_UNREGISTERED)) ||
+    (!(kno_testopt(opts,KNOSYM(shared),KNO_FALSE)));
   struct KNO_POOL_TYPEINFO *ptype = pool_typeinfo; while (ptype) {
     if (ptype->matcher) {
       u8_string use_spec = ptype->matcher(spec,ptype->type_data);
       if (use_spec) {
-        kno_pool found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
-          (kno_find_pool_by_source(use_spec));
+        kno_pool found = (shared) ? (kno_find_pool_by_source(use_spec)) : (NULL);
         kno_pool opened = (found) ? (found) :
           (ptype->opener(use_spec,flags,opts));
         if (use_spec!=spec) u8_free(use_spec);
@@ -558,7 +564,7 @@ static lispval index_dispatchfn(lispval ix,lispval op,int flags,
 
 
 static kno_index open_index(kno_index_typeinfo ixtype,u8_string spec,
-                           kno_storage_flags flags,lispval opts)
+			    kno_storage_flags flags,lispval opts)
 {
   u8_string search_spec = spec;
   if ( (strchr(search_spec,'@')==NULL) || (strchr(search_spec,':')==NULL) ) {
@@ -585,13 +591,15 @@ kno_index kno_open_index(u8_string spec,kno_storage_flags flags,lispval opts)
   CHECK_ERRNO();
   struct KNO_INDEX_TYPEINFO *ixtype = index_typeinfo;
   if (flags<0) flags = kno_get_dbflags(opts,KNO_STORAGE_ISINDEX);
+  int shared = (!(flags&KNO_STORAGE_UNREGISTERED)) ||
+    (!(kno_testopt(opts,KNOSYM(shared),KNO_FALSE)));
   while (ixtype) {
     if (ixtype->matcher) {
       u8_string use_spec = ixtype->matcher(spec,ixtype->type_data);
       if (use_spec) {
-        kno_index found = (flags&KNO_STORAGE_UNREGISTERED) ? (NULL) :
-          (kno_find_index_by_source(use_spec));
-        kno_index opened = (found) ? (found) :
+        kno_index found = (shared) ? (kno_find_index_by_source(use_spec)) : (NULL);
+        kno_index opened =
+	  ( (found) && (found->index_serialno>=0) ) ? (found) :
           (ixtype->opener(use_spec,flags,opts));
         if (opened==NULL) {
 	  if (u8_current_exception) {
@@ -1385,8 +1393,6 @@ KNO_EXPORT int kno_init_drivers_c()
   kno_stats_op=kno_intern("stats");
   kno_label_op=kno_intern("label");
   kno_source_op=kno_intern("source");
-  kno_populate_op=kno_intern("populate");
-  kno_getmap_op=kno_intern("getmap");
   kno_xrefs_op=kno_intern("xrefs");
   kno_slotids_op=kno_intern("slotids");
   kno_baseoids_op=kno_intern("baseoids");
@@ -1396,9 +1402,12 @@ KNO_EXPORT int kno_init_drivers_c()
   kno_raw_metadata_op=kno_intern("%metadata");
   kno_keys_op=kno_intern("keys");
   kno_keycount_op=kno_intern("keycount");
+  kno_livecount_op=kno_intern("livecount");
   kno_partitions_op=kno_intern("partitions");
   pooltype_symbol=kno_intern("pooltype");
   indextype_symbol=kno_intern("indextype");
+
+  KNOSYM_ROLLBACK=kno_intern("rollback");
 
   u8_init_mutex(&pool_typeinfo_lock);
   u8_init_mutex(&index_typeinfo_lock);
@@ -1415,6 +1424,9 @@ KNO_EXPORT int kno_init_drivers_c()
   kno_register_config("STORAGE:WRITESIZE",
 		      "The write buffer size for file streams used in on-disk dbs",
 		      kno_sizeconfig_get,kno_sizeconfig_set,&kno_driver_writesize);
+  kno_register_config("STORAGE:ROLLBACKS",
+		      "Check file rollbacks for writable files on open",
+		      kno_boolconfig_get,kno_boolconfig_set,&kno_check_rollbacks);
 
   kno_unparsers[kno_pooltype_type]=unparse_pool_type;
   kno_unparsers[kno_indextype_type]=unparse_index_type;

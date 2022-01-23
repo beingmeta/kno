@@ -8,6 +8,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define U8_INLINE_IO 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 
@@ -19,21 +21,22 @@ lispval *kno_symbol_names;
 int kno_n_symbols = 0, kno_max_symbols = 0, kno_initial_symbols = 4096;
 struct KNO_SYMBOL_TABLE kno_symbol_table;
 
-lispval KNOSYM_ADD, KNOSYM_ADJUNCT, KNOSYM_ALL, KNOSYM_ALWAYS, KNOSYM_ARG;
-lispval KNOSYM_ATMARK;
+lispval KNOSYM_ADD, KNOSYM_ADDS, KNOSYM_ADJUNCT, KNOSYM_ALL;
+lispval KNOSYM_ALWAYS, KNOSYM_ARG, KNOSYM_ATMARK;
 lispval KNOSYM_BLOCKSIZE, KNOSYM_BUFSIZE;
-lispval KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
+lispval KNOSYM_CACHE, KNOSYM_CACHED, KNOSYM_CACHELEVEL, KNOSYM_CACHESIZE;
 lispval KNOSYM_CONS, KNOSYM_CONTENT, KNOSYM_CREATE;
-lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DTYPE;
+lispval KNOSYM_DEFAULT, KNOSYM_DRIVER, KNOSYM_DOT, KNOSYM_DROP, KNOSYM_DROPS;
+lispval KNOSYM_DTYPE;
 lispval KNOSYM_ENCODING, KNOSYM_EQUALS, KNOSYM_ERROR;
 lispval KNOSYM_FILE, KNOSYM_FILENAME;
 lispval KNOSYM_FLAGS, KNOSYM_FORMAT, KNOSYM_FRONT;
 lispval KNOSYM_GT, KNOSYM_GTE;
 lispval KNOSYM_HASHMARK, KNOSYM_HISTREF, KNOSYM_HISTORY_TAG;
-lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT, KNOSYM_ISADJUNCT;
-lispval KNOSYM_KEY, KNOSYM_KEYSLOT, KNOSYM_KEYVAL;
-lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOGLEVEL;
-lispval KNOSYM_LT, KNOSYM_LTE;
+lispval KNOSYM_ID, KNOSYM_INDEX, KNOSYM_INPUT;
+lispval KNOSYM_ISADJUNCT, KNOSYM_KEY, KNOSYM_KEYSLOT, KNOSYM_KEYVAL;
+lispval KNOSYM_LABEL, KNOSYM_LAZY, KNOSYM_LENGTH, KNOSYM_LOAD, KNOSYM_LOCK, KNOSYM_LOCKS;
+lispval KNOSYM_LOGLEVEL, KNOSYM_LT, KNOSYM_LTE;
 lispval KNOSYM_MAIN, KNOSYM_MERGE, KNOSYM_METADATA;
 lispval KNOSYM_MINUS, KNOSYM_MODSRC, KNOSYM_MODULE, KNOSYM_MODULEID;
 lispval KNOSYM_NAME, KNOSYM_NO, KNOSYM_NONE, KNOSYM_NOT;
@@ -41,11 +44,12 @@ lispval KNOSYM_OID, KNOSYM_OPT, KNOSYM_OPTIONAL, KNOSYM_OPTS, KNOSYM_OUTPUT;
 lispval KNOSYM_PACKET, KNOSYM_PCTID, KNOSYM_PLUS, KNOSYM_POOL;
 lispval KNOSYM_PREFIX, KNOSYM_PROPS;
 lispval KNOSYM_QMARK, KNOSYM_QONST, KNOSYM_QUOTE, KNOSYM_READONLY;
-lispval KNOSYM_SECRET, KNOSYM_SEP;
+lispval KNOSYM_SECRET, KNOSYM_SEP, KNOSYM_SESSION;
 lispval KNOSYM_SET, KNOSYM_SIZE, KNOSYM_SORT, KNOSYM_SORTED;
-lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STRING, KNOSYM_SUFFIX;
+lispval KNOSYM_SOURCE, KNOSYM_STAR, KNOSYM_STORE, KNOSYM_STORES;
+lispval KNOSYM_STRING, KNOSYM_SUFFIX;
 lispval KNOSYM_TAG, KNOSYM_TEST, KNOSYM_TEXT, KNOSYM_TYPE;
-lispval KNOSYM_UTF8;
+lispval KNOSYM_UNSUPPORTED, KNOSYM_UTF8;
 lispval KNOSYM_VALUE, KNOSYM_VERSION, KNOSYM_VOID;
 lispval KNOSYM_XREFS, KNOSYM_XTYPE, KNOSYM_XXREFS;
 lispval KNOSYM_ZIPSOURCE;
@@ -102,6 +106,7 @@ static void init_builtin_symbols()
 
   /* Here they are in alphabetical order */
   KNOSYM_ADD = kno_intern("add");
+  KNOSYM_ADDS = kno_intern("adds");
   KNOSYM_ADJUNCT = kno_intern("adjunct");
   KNOSYM_ALL = kno_intern("all");
   KNOSYM_ALWAYS = kno_intern("always");
@@ -109,16 +114,18 @@ static void init_builtin_symbols()
   KNOSYM_ATMARK = kno_intern("@");
   KNOSYM_BLOCKSIZE = kno_intern("blocksize");
   KNOSYM_BUFSIZE = kno_intern("bufsize");
+  KNOSYM_CACHE = kno_intern("cached");
+  KNOSYM_CACHED = kno_intern("cached");
   KNOSYM_CACHELEVEL = kno_intern("cachelevel");
   KNOSYM_CACHESIZE = kno_intern("cachesize");
   KNOSYM_CONS = kno_intern("cons");
   KNOSYM_CONTENT = kno_intern("content");
   KNOSYM_CREATE = kno_intern("create");
-  KNOSYM_CREATE = kno_intern("file");
   KNOSYM_DEFAULT = kno_intern("default");
   KNOSYM_DRIVER = kno_intern("driver");
   KNOSYM_DOT = kno_intern(".");
   KNOSYM_DROP = kno_intern("drop");
+  KNOSYM_DROPS = kno_intern("drops");
   KNOSYM_DTYPE = kno_intern("dtype");
   KNOSYM_ENCODING = kno_intern("encoding");
   KNOSYM_EQUALS = kno_intern("=");
@@ -143,6 +150,9 @@ static void init_builtin_symbols()
   KNOSYM_LABEL = kno_intern("label");
   KNOSYM_LAZY = kno_intern("lazy");
   KNOSYM_LENGTH = kno_intern("length");
+  KNOSYM_LOAD = kno_intern("load");
+  KNOSYM_LOCK = kno_intern("lock");
+  KNOSYM_LOCKS = kno_intern("locks");
   KNOSYM_LOGLEVEL = kno_intern("loglevel");
   KNOSYM_LT = kno_intern("<");
   KNOSYM_LTE = kno_intern("<=");
@@ -174,6 +184,7 @@ static void init_builtin_symbols()
   KNOSYM_READONLY = kno_intern("readonly");
   KNOSYM_SECRET = kno_intern("secret");
   KNOSYM_SEP = kno_intern("sep");
+  KNOSYM_SESSION = kno_intern("session");
   KNOSYM_SET = kno_intern("set");
   KNOSYM_SIZE = kno_intern("size");
   KNOSYM_SORT = kno_intern("sort");
@@ -181,6 +192,7 @@ static void init_builtin_symbols()
   KNOSYM_SOURCE = kno_intern("source");
   KNOSYM_STAR = kno_intern("*");
   KNOSYM_STORE = kno_intern("store");
+  KNOSYM_STORES = kno_intern("store");
   KNOSYM_STRING = kno_intern("string");
   KNOSYM_SUFFIX = kno_intern("suffix");
   KNOSYM_TAG = kno_intern("tag");
@@ -188,6 +200,7 @@ static void init_builtin_symbols()
   KNOSYM_TEXT = kno_intern("text");
   KNOSYM_TYPE = kno_intern("type");
   KNOSYM_UTF8 = kno_intern("utf8");
+  KNOSYM_UNSUPPORTED = kno_intern("unsupported");
   KNOSYM_VALUE = kno_intern("value");
   KNOSYM_VERSION = kno_intern("version");
   KNOSYM_VOID = kno_intern("void");

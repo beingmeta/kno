@@ -650,7 +650,12 @@
 			     (testopt opts '%nowarn #t))
 		   (codewarning (cons* 'UNBOUND symbol bound))
 		   (when env
-		     (add! env '%warnings (cons* 'UNBOUND symbol bound)))
+		     (if (module? env)
+			 (add! env '%warnings (cons* 'UNBOUND symbol bound))
+			 (let ((module (env-module env)))
+			   (if module
+			       (add! module '%warnings (cons* 'UNBOUND symbol bound))
+			       (logwarn |MissingParentModule| "Can't save warnings in " env)))))
 		   (when (or optwarn (not env))
 		     (logwarn |Unbound|
 		       "The symbol " symbol " appears to be unbound "
@@ -955,8 +960,8 @@
 	    (lambda (ex) 
 	      (logwarn |OptimizationError|
 		"While optimizing "
-		(or (procedure-name proc) proc) ", got "
-		(error-condition ex) " in " (error-context ex) 
+		(or (procedure-name proc) proc)
+		" got " (error-condition ex) " in " (error-context ex) 
 		(if (error-details ex) (printout " (" (error-details ex) ")"))
 		(when (error-irritant? ex)
 		  (printout "\n" (pprint (error-irritant ex)))))
@@ -1599,7 +1604,7 @@
 				(optimize val-expr env bound opts)
 				(convert-locals (cddr locals) env bound opts))))
 		      ((and (symbol? head) (pair? scan))
-		       (codewarning (cons* '|NotLocal| head) bound)
+		       (codewarning (cons* '|NotLocal| head bound))
 		       #f)
 		      ((symbol? head) #f)
 		      ((and (pair? head) (or (= (length head) 2) (= (length head) 3)))
@@ -1707,7 +1712,7 @@
       (cons* #OP_BRANCH
 	     (optimize (get-arg expr 1) env bound opts)
 	     (cons #OP_TRY (optimize-exprs (cddr expr)))
-	     {})
+	     #{})
       (optimize-block handler expr env bound opts)))
 
 (define (optimize-evaltest handler expr env bound opts)
@@ -1744,7 +1749,7 @@
 (define (nest-numeric-op op args env bound opts)
   (tryif (and (pair? args) (proper-list? args))
     (if (empty-list? (cdr args))
-	(optimize (car args))
+	(optimize (car args) env bound opts)
 	(if (= (length args) 2)
 	    (cons* op (optimize (car args) env bound opts)
 		   (optimize (cadr args) env bound opts))
@@ -1828,13 +1833,11 @@
 	(else expr)))
 
 (define (optimize-logmsg handler expr env bound opts)
-  (if (or (symbol? (cadr expr)) (number? (cadr expr)) (not (cadr expr)))
-      (if (symbol? (caddr expr))
-	  `(,handler ,(cadr expr)
-		     ,(caddr expr)
-		     ,@(optimize-exprs (cdddr expr)))
-	  `(,handler ,(cadr expr) ,@(optimize-exprs (cddr expr))))
-      `(,handler ,@(optimize-exprs (cdr expr)))))
+  (if (symbol? (caddr expr))
+      `(,handler ,(cadr expr)
+		 ,(caddr expr)
+		 ,@(optimize-exprs (cdddr expr)))
+      `(,handler ,(cadr expr) ,@(optimize-exprs (cddr expr)))))
 
 (define (optimize-logif handler expr env bound opts)
   (let ((test (second expr))
@@ -1912,6 +1915,9 @@
   |#
   expr)
 
+(define (optimize-wrap fcn expr env bound opts)
+  `(,(car expr) ,(optimize (cadr expr) env bound opts)))
+
 (define (optimize-watchrefs fcn expr env bound opts)
   (let ((possible-label (get-arg expr 2)))
     (if (or (string? possible-label) (symbol? possible-label))
@@ -1941,6 +1947,9 @@
 (add! special-form-optimizers %watch optimize-watch)
 (add! special-form-optimizers %watchptr optimize-block)
 (add! special-form-optimizers %watchrefs optimize-watchrefs)
+(add! special-form-optimizers
+    {%wrap1 %wrap2 %wrap3 %wrap4 %wrap5 %wrap6 %wrap7}
+  optimize-wrap)
 
 ;;; Declare them
 

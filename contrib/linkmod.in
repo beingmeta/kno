@@ -1,0 +1,26 @@
+#!/bin/sh
+# This links a contrib module into a KNO build tree
+usage() {
+    echo linkmod *modname* [*build*=..] [*srcdir*=../*modname*];
+    echo Links *modname*, implemented in *srcdir*, into the KNO build tree at *build*;
+}
+if [ $# -eq 0 ]; then usage; exit; fi;
+MODNAME=$1
+BUILD=${2:-..}
+SRCDIR=${3:-./${MODNAME}}
+if [ ! -d ${SRCDIR} ]; then
+    usage;
+    exit;
+fi;
+CMODS=$(cat ${SRCDIR}/CMODS 2> /dev/null || echo ${MODNAME})
+shared_suffix=${SHARED_SUFFIX:-@shared_suffix@}
+if [ "${BUILD}" = ".." ]; then
+    for mod in ${CMODS}; do
+	if [ -n "${mod}" ]; then
+	    ln -sf ../../contrib/${MODNAME}/${mod}.${shared_suffix} ${BUILD}/lib/kno; fi; done;
+else
+    link_root=$(pwd)
+    for mod in ${CMODS}; do
+	if [ -n "${mod}" ]; then
+	    ln -sf ${link_root}/${contrib}/${MODNAME}/${mod}.${shared_suffix} ${BUILD}/lib/kno; fi; done;
+fi;

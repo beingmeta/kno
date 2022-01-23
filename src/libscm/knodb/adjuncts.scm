@@ -154,9 +154,10 @@
 	     (adjunct-setup! pool slotid (get adjuncts slotid) opts))))))
 
 (define (adjunct-setup! pool slotid spec opts)
+  (local adjunct (ref-adjunct pool (cons (getadjopts pool slotid spec) opts)))
   (info%watch "ADJUNCT-SETUP!" pool slotid spec opts)
-  (adjunct! pool slotid 
-	    (ref-adjunct pool (cons (getadjopts pool slotid spec) opts))))
+  (unless adjunct (logwarn |BadAdjunct| "Couldn't open adjunct for " slotid " in " pool ": " spec))
+  (when adjunct (adjunct! pool slotid adjunct)))
 
 (define suffix-pat #((opt #("." (isxdigit+))) "." (isalpha+) (eos)))
 

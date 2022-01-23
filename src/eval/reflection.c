@@ -1035,19 +1035,43 @@ static lispval macroexpand(lispval expander,lispval expr)
 
 /* Module bindings */
 
-DEFC_PRIM("module-binds",module_binds_prim,
+DEFC_PRIM("module?",modulep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns the symbols bound in a module's "
-	  "environment",
+	  "Returns true if *arg* is a module.",
 	  {"arg",kno_any_type,KNO_VOID})
-static lispval module_binds_prim(lispval arg)
+static lispval modulep(lispval arg)
 {
   if (KNO_LEXENVP(arg)) {
-    kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
-    return kno_getkeys(envptr->env_bindings);}
+    struct KNO_LEXENV *env=
+      kno_consptr(struct KNO_LEXENV *,arg,kno_lexenv_type);
+    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID))
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else if ((HASHTABLEP(arg)) || (SLOTMAPP(arg)) || (SCHEMAPP(arg))) {
+    if (kno_test(arg,KNOSYM_MODULEID,VOID))
+      return KNO_TRUE;
+    else return KNO_FALSE;}
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("env-module",env_module_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the enclosing lexical module for an environment",
+	  {"arg",kno_any_type,KNO_VOID})
+static lispval env_module_prim(lispval arg)
+{
+  if (KNO_LEXENVP(arg)) {
+    kno_lexenv scan = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
+    while (scan) {
+      if (KNO_HASHTABLEP(scan->env_bindings))
+	return kno_incref((lispval)scan);
+      else if (scan->env_copy)
+	scan = scan->env_copy->env_parent;
+      else scan = scan->env_parent;}
+    return KNO_FALSE;}
   else if (TABLEP(arg))
-    return kno_getkeys(arg);
-  else return kno_type_error(_("module"),"module_binds_prim",arg);
+    return kno_incref(arg);
+  else return kno_type_error(_("environment"),"module_binds_prim",arg);
 }
 
 DEFC_PRIM("module-source",module_getsource,
@@ -1111,25 +1135,6 @@ static lispval module_bindings_prim(lispval arg)
   else return KNO_FALSE;
 }
 
-DEFC_PRIM("module?",modulep,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Returns true if *arg* is a module.",
-	  {"arg",kno_any_type,KNO_VOID})
-static lispval modulep(lispval arg)
-{
-  if (KNO_LEXENVP(arg)) {
-    struct KNO_LEXENV *env=
-      kno_consptr(struct KNO_LEXENV *,arg,kno_lexenv_type);
-    if (kno_test(env->env_bindings,KNOSYM_MODULEID,VOID))
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else if ((HASHTABLEP(arg)) || (SLOTMAPP(arg)) || (SCHEMAPP(arg))) {
-    if (kno_test(arg,KNOSYM_MODULEID,VOID))
-      return KNO_TRUE;
-    else return KNO_FALSE;}
-  else return KNO_FALSE;
-}
-
 DEFC_PRIM("module-exported",module_exported,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Returns the symbols exported from a module",
@@ -1150,6 +1155,21 @@ static lispval module_exported(lispval arg)
       kno_decref(module);
       return v;}}
   else return kno_type_error(_("module"),"module_exported",arg);
+}
+
+DEFC_PRIM("module-binds",module_binds_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the symbols bound in a module's "
+	  "environment",
+	  {"arg",kno_any_type,KNO_VOID})
+static lispval module_binds_prim(lispval arg)
+{
+  if (KNO_LEXENVP(arg)) {
+    kno_lexenv envptr = kno_consptr(kno_lexenv,arg,kno_lexenv_type);
+    return kno_getkeys(envptr->env_bindings);}
+  else if (TABLEP(arg))
+    return kno_getkeys(arg);
+  else return kno_type_error(_("module"),"module_binds_prim",arg);
 }
 
 DEFC_EVALFN("%bindings",local_bindings_evalfn,KNO_EVALFN_DEFAULTS,
@@ -1761,8 +1781,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("consblock-head",consblock_head,1,reflection);
   KNO_LINK_CPRIM("consblock-origin",consblock_original,1,reflection);
   KNO_LINK_CPRIM("consblock",make_consblock,1,reflection);
-  KNO_LINK_CPRIM("module-exported",module_exported,1,reflection);
   KNO_LINK_CPRIM("module?",modulep,1,reflection);
+  KNO_LINK_CPRIM("env-module",env_module_prim,1,reflection);
+  KNO_LINK_CPRIM("module-exported",module_exported,1,reflection);
   KNO_LINK_CPRIM("module-bindings",module_bindings_prim,1,reflection);
   KNO_LINK_CPRIM("module-exports",module_exports_prim,1,reflection);
   KNO_LINK_CPRIM("module-source",module_getsource,1,reflection);

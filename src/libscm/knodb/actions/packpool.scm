@@ -51,8 +51,8 @@
 	(xrefs (and (eq? type 'kpool) (get-xrefs old opts))))
     (when (eq? type 'kpool)
       (if xrefs
-	  (lognotice |XRefs| "Identified " (length xrefs) " xrefs")
-	  (lognotice |XRefs| "Disabled"))
+	  (lognotice |XRefs| "Identified " (length xrefs) " xrefs for " filename)
+	  (lognotice |XRefs| "Disabled for " filename))
       (when (config 'savexrefs)
 	(if xrefs
 	    (fileout (config 'savexrefs) (doseq (xref xrefs) (lineout xref)))
@@ -210,9 +210,9 @@
 
 (define (read-xrefs file (opts #f))
   (cond ((has-suffix file ".pool")
-	 (poolctl (open-pool file [register #f adjunct #t]) 'xrefs))
+	 (poolctl (open-pool file [register #f shared #f adjunct #t]) 'xrefs))
 	((has-suffix file ".index")
-	 (poolctl (open-index file [register #f adjunct #t]) 'xrefs))
+	 (poolctl (open-index file [register #f shared #f adjunct #t]) 'xrefs))
 	(else (let* ((elts '())
 		     (in (open-input-file file))
 		     (item (read in)))
@@ -236,7 +236,7 @@
   (let* ((base (basename from))
 	 (inplace (equal? from to))
 	 (tmpfile (config 'TMPFILE (CONFIG 'TEMPFILE (glom to ".part"))))
-	 (bakfile (knodb/bakpath from opts)))
+	 (bakfile (knodb/backup from opts)))
     (config! 'appid (glom "pack(" (basename to) ")"))
     (cond ((and (not (writable? to)))
 	   (logcrit |NotWritable| "Can't write output file " (write to))
@@ -263,7 +263,7 @@
       (let ((new (make-new-pool tmpfile old)))
 	(copy-oids old new opts)
 	(commit new)))
-    (when inplace (domove from bakfile))
+    (when inplace (knodb/backup! from bakfile))
     (domove tmpfile to)))
 
 (define (copy-pool from to (opts #f))

@@ -6,8 +6,8 @@
 
 ;;; Simple FIFO queue gated by a condition variable
 
-(use-module '{ezrecords logger varconfig reflection})
-(define %used_modules 'ezrecords)
+(use-module '{defstruct logger varconfig reflection})
+(define %used_modules 'defstruct)
 
 (module-export!
  '{->fifo fifo/make fifo/close! fifo?
@@ -92,7 +92,7 @@
 	  " waiting=" (fifo-waiting fifo))
 	">")))
 
-(defrecord (fifo MUTABLE OPAQUE `(stringfn . fifo->string))
+(defstruct (fifo MUTABLE OPAQUE [stringfn fifo->string])
   name           ;; a string
   condvar        ;; a condvar
   queue          ;; a vector
@@ -123,7 +123,8 @@
 	(items #f) (debug #f) (live? #t) (init-items 0)
 	(grow #f) (maxlen #f))
     (doseq (arg args)
-      (cond ((string? arg)
+      (cond ((not arg))
+	    ((string? arg)
 	     (if name 
 		 (irritant (cons name arg) |FIFO/AmbiguousSpec/Name|)
 		 (set! name arg)))

@@ -8,6 +8,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define U8_INLINE_IO 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/eval.h"

@@ -1068,6 +1068,42 @@ static lispval set_log_context_prim(lispval label)
 #define DONT_OPTIMIZE __attribute__((optimize("O0")))
 #endif
 
+static lispval wrap_body(lispval body,kno_lexenv env,kno_stack s)
+{
+  lispval scan = body;
+  while (KNO_PAIRP(KNO_CDR(scan))) {
+    lispval result = kno_eval(KNO_CAR(scan),env,s);
+    if (KNO_ABORTED(result)) return result;
+    else kno_decref(result);
+    scan = KNO_CDR(scan);}
+  if (KNO_PAIRP(scan))
+    return kno_eval(KNO_CAR(scan),env,s);
+  else return KNO_VOID;
+}
+
+#define DEF_WRAP(pname,cname)						\
+  int _kno_in_ ## cname = 0;						\
+  DEFC_EVALFN( pname,_kno_ ## cname,KNO_EVALFN_DEFAULTS,		\
+	       "evaluates *expr* to support debugger tracing")		\
+    KNO_EXPORT DONT_OPTIMIZE lispval _kno_ ## cname			\
+    (lispval expr,kno_lexenv env,kno_stack s)				\
+  {									\
+  enter:								\
+    _kno_in_ ## cname ++;						\
+    lispval result = wrap_body(KNO_CDR(expr),env,s);			\
+  exit:									\
+    _kno_in_ ## cname --;						\
+    return result;							\
+  }
+
+DEF_WRAP("%wrap1",wrap1);
+DEF_WRAP("%wrap2",wrap2);
+DEF_WRAP("%wrap3",wrap3);
+DEF_WRAP("%wrap4",wrap4);
+DEF_WRAP("%wrap5",wrap5);
+DEF_WRAP("%wrap6",wrap6);
+DEF_WRAP("%wrap7",wrap7);
+
 /* These are for wrapping around Scheme code to see in C profilers */
 DEFC_EVALFN("eval1",eval1,KNO_EVALFN_DEFAULTS,
 	    "evaulates *expr* and returns the "
@@ -1613,6 +1649,8 @@ KNO_EXPORT void knodbg_show_stack_env(FILE *out,void *arg)
 
 /* Initialization */
 
+#define LINK_WRAP(name) KNO_LINK_EVALFN(kno_scheme_module,_kno_ ## name)
+
 KNO_EXPORT void kno_init_eval_debug_c()
 {
   u8_register_source_file(_FILEINFO);
@@ -1627,6 +1665,14 @@ KNO_EXPORT void kno_init_eval_debug_c()
   KNO_LINK_EVALFN(kno_scheme_module,eval5);
   KNO_LINK_EVALFN(kno_scheme_module,eval6);
   KNO_LINK_EVALFN(kno_scheme_module,eval7);
+
+  LINK_WRAP(wrap1);
+  LINK_WRAP(wrap2);
+  LINK_WRAP(wrap3);
+  LINK_WRAP(wrap4);
+  LINK_WRAP(wrap5);
+  LINK_WRAP(wrap6);
+  LINK_WRAP(wrap7);
 
   kno_register_config
     ("BUGDIR","Save exceptions to this directory",

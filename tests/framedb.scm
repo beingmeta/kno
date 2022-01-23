@@ -342,6 +342,8 @@
 
 (define (checkdb count pool index)
   ;; Check basic oid functionality
+  (applytest {} poolctl pool 'flibbergibbit)
+  (applytest {} indexctl index 'flibbergibbit)
   (checkoids pool index)
   (message "Running DB wide integrity checks")
   (applytest #t identical?

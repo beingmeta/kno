@@ -974,7 +974,8 @@ static lispval attrib_merge_classes(lispval attribs,lispval classes)
       lispval car = KNO_CAR(classes);
       if (!(STRINGP(car))) {}
       else {
-        if (i) u8_puts(&classout," "); i++;
+        if (i) u8_puts(&classout," ");
+	i++;
         u8_puts(&classout,CSTRING(car));}
       classes = KNO_CDR(classes);}
     {lispval old = KNO_CAR(class_cons);

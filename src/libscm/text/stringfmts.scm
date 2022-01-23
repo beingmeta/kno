@@ -4,7 +4,7 @@
 
 (in-module 'text/stringfmts)
 
-(use-module '{defmacro reflection logger})
+(use-module '{defmacro reflection logger varconfig})
 
 ;;; Generation of strings from various other kinds of values
 
@@ -16,12 +16,15 @@
    minimal-interval-string
    compact-interval-string
    padnum printnum numstring
+   xround $xround
    $count $countstring
    $num $numstring
    $size $sizestring $nelts
    $bytes $bytestring
    $bytes/sec
    $rate
+   $filetimes
+   $fileinfo
    $fn
    $pid})
 
@@ -30,6 +33,12 @@
    $indented $table})
 
 (module-export! '{$singular $plural})
+
+(define (xround x (factor #f))
+  (if factor
+      (->exact (* factor (round (/~ x factor))))
+      (->exact (round x))))
+(define $xround (fcn/alias xround))
 
 ;; Percentages
 
@@ -231,12 +240,13 @@
 ;; Temporal intervals
 
 (define (interval-string secs (precise #t))
-  (let* ((days (inexact->exact (floor (/ secs (* 3600 24)))))
-	 (hours (inexact->exact (floor (/ (- secs (* days 3600 24))
-					  3600))))
+  (when (number? precise)
+    (if (< precise 0) (set! secs (- secs)))
+    (set! secs (xround secs precise)))
+  (let* ((days (inexact->exact (floor (/~ secs (* 3600 24)))))
+	 (hours (inexact->exact (floor (/~ (- secs (* days 3600 24)) 3600))))
 	 (minutes (inexact->exact
-		   (floor (/ (- secs (* days 3600 24) (* hours 3600))
-			     60))))
+		   (floor (/~ (- secs (* days 3600 24) (* hours 3600)) 60))))
 	 (seconds (- secs (* days 3600 24) (* hours 3600) (* minutes 60))))
     (stringout
 	(cond ((= days 1) "one day, ")
@@ -252,30 +262,32 @@
 	    ((< secs 1) (printout seconds " seconds"))
 	    (precise (printout seconds " seconds"))
 	    ((> secs 1800)
-	     ($count (inexact->exact (round seconds)) " second" " seconds"))
+	     ($count (xround seconds) " second" " seconds"))
 	    ((> seconds 60)
 	     ($count (inexact->string seconds 2) "second" "seconds"))
 	    (else ($count (inexact->string seconds 2) "second" "seconds"))))))
 
 (define (short-interval-string secs (precise #t))
+  (when (number? precise)
+    (if (< precise 0) (set! secs (- secs)))
+    (set! secs (xround secs precise)))
   (if (< secs 180)
       (stringout (cond ((< secs 0) secs)
 		       ((and (not precise) (> secs 2))
-			(printout (inexact->exact (round secs))))
+			(printout (xround secs)))
 		       ((< secs 10) (inexact->string secs 3))
 		       (else (inexact->string secs 2)))
 		 " secs")
-      (let* ((days (inexact->exact (/ secs (* 3600 24))))
-	     (hours (inexact->exact (/ (- secs (* days 3600 24))
+      (let* ((days (inexact->exact (/~ secs (* 3600 24))))
+	     (hours (inexact->exact (/~ (- secs (* days 3600 24))
 				       3600)))
 	     (minutes (inexact->exact
-		       (/ (- secs (* days 3600 24) (* hours 3600))
+		       (/~ (- secs (* days 3600 24) (* hours 3600))
 			  60)))
 	     (raw-seconds (- secs (* days 3600 24)
 			     (* hours 3600)
 			     (* minutes 60)))
-	     (seconds (if precise raw-seconds
-			  (inexact->exact (round raw-seconds)))))
+	     (seconds (if precise raw-seconds (xround raw-seconds))))
 	(stringout
 	  (cond ((= days 1) "one day, ")
 		((> days 0) (printout days " days, ")))
@@ -285,57 +297,30 @@
 	    minutes ":")
 	  (printout (if (< seconds 10) "0")
 		    (cond (precise seconds)
-			  ((> secs 600) (inexact->exact (round seconds)))
-			  ((>= secs 10) (inexact->string seconds 2))
-			  (else seconds)))))))
-
-(define (short-interval-string secs (precise #t))
-  (if (< secs 180)
-      (stringout (cond ((< secs 0) secs)
-		       ((and (not precise) (> secs 2))
-			(printout (inexact->exact (round secs))))
-		       ((< secs 10) (inexact->string secs 3))
-		       (else (inexact->string secs 2)))
-		 " secs")
-      (let* ((days (inexact->exact (/ secs (* 3600 24))))
-	     (hours (inexact->exact (/ (- secs (* days 3600 24))
-				       3600)))
-	     (minutes (inexact->exact
-		       (/ (- secs (* days 3600 24) (* hours 3600))
-			  60)))
-	     (raw-seconds (- secs (* days 3600 24)
-			     (* hours 3600)
-			     (* minutes 60)))
-	     (seconds (if precise raw-seconds
-			  (inexact->exact (round raw-seconds)))))
-	(stringout
-	  (cond ((= days 1) "one day, ")
-		((> days 0) (printout days " days, ")))
-	  (when (> hours 0) (printout hours ":"))
-	  (printout 
-	    (if (and (> hours 0) (< minutes 10)) "0")
-	    minutes ":")
-	  (printout (if (< seconds 10) "0")
-		    (cond (precise seconds)
-			  ((> secs 600) (inexact->exact (round seconds)))
+			  ((> secs 600) (xround seconds))
 			  ((>= secs 10) (inexact->string seconds 2))
 			  (else seconds)))))))
 
 (define (minimal-interval-string secs (precise #t))
+  (when (number? precise)
+    (when (< precise 0)
+      (set! secs (- secs))
+      (set! precise (- precise)))
+    (set! secs (xround secs precise)))
   (cond ((< secs 180)
 	 (stringout secs " seconds"))
 	((< secs 3600)
-	 (stringout (round (/ secs 60)) " minutes"))
+	 (stringout (xround (/~ secs 60)) " minutes"))
 	((< secs (* 24 3600))
-	 (stringout (round (/ secs 3600)) " hours"))
+	 (stringout (xround (/~ secs 3600)) " hours"))
 	((< secs (* 14 24 3600))
-	 (stringout (round (/ secs (* 24 3600))) " days"))
+	 (stringout (xround (/~ secs (* 24 3600))) " days"))
 	((< secs (* 60 24 3600))
-	 (stringout (round (/ secs (* 7 24 3600))) " weeks"))
+	 (stringout (xround (/~ secs (* 7 24 3600))) " weeks"))
 	((< secs (* 720 24 3600))
-	 (stringout (round (/ secs (* 30 24 3600))) " months"))
+	 (stringout (xround (/~ secs (* 30 24 3600))) " months"))
 	(else
-	 (stringout (round (/ secs (* 365 24 3600))) " years"))))
+	 (stringout (xround (/~ secs (* 365 24 3600))) " years"))))
 
 (define (compact-interval-string total (precise #t) (started #f) (secs))
   (default! secs (->exact (floor total)))
@@ -394,6 +379,38 @@
       (if (subproc? pid)
 	  (number->string (proc-pid pid) 10 #f)
 	  pid)))
+
+;;;; Fileinfo
+
+(define ($filetimes file (opts #f))
+  (let* ((mtime (file-modtime file))
+	 (ctime (file-creationtime file))
+	 (mdelta (- (difftime mtime)))
+	 (cdelta (- (difftime ctime)))
+	 (showstamps (getopt opts 'timestamps (config 'timestamps {} config:boolean))))
+    (printout "modified " 
+      (if (> mdelta 600) (interval-string mdelta 60) (interval-string mdelta))
+      " ago"
+      (when showstamps (printout " (" (get mtime 'string) ")"))
+      ", created " 
+      (if (> cdelta 600) (interval-string cdelta 60) (interval-string cdelta))
+      " ago (" (get mtime 'string) ")")))
+
+(define ($fileinfo file (opts #f))
+  (let* ((mtime (file-modtime file))
+	 (ctime (file-creationtime file))
+	 (mdelta (- (difftime mtime)))
+	 (cdelta (- (difftime ctime)))
+	 (size (file-size file))
+	 (showstamps (getopt opts 'timestamps (config 'timestamps {} config:boolean))))
+    (printout "size " ($bytes size) ", "
+      "modified " 
+      (if (> mdelta 600) (interval-string mdelta 60) (interval-string mdelta))
+      " ago"
+      (when showstamps (printout " (" (get mtime 'string) ")"))
+      ", created " 
+      (if (> cdelta 600) (interval-string cdelta 60) (interval-string cdelta))
+      " ago (" (get mtime 'string) ")")))
 
 ;;;; Displaying procedures
 

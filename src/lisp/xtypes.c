@@ -440,7 +440,15 @@ static ssize_t write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 
 KNO_EXPORT ssize_t kno_write_xtype(kno_outbuf out,lispval x,xtype_refs refs)
 {
+#if KNO_CHECK_XTYPE_OUTLEN
+  ssize_t start_off = out->bufwrite-out->buffer;
+  ssize_t n_bytes = write_xtype(out,x,refs);
+  ssize_t end_off = out->bufwrite-out->buffer;
+  if (end_off>start_off) assert((end_off-start_off)==n_bytes);
+  return n_bytes;
+#else
   return write_xtype(out,x,refs);
+#endif
 }
 
 KNO_EXPORT unsigned char *kno_encode_xtype(lispval x,ssize_t *sz,xtype_refs refs)

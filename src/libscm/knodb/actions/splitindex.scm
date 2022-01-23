@@ -5,7 +5,7 @@
 (module-export! '{splitindex main})
 
 (use-module '{varconfig logger text/stringfmts optimize knodb})
-(use-module '{knodb/indexes})
+(use-module '{knodb/indexes knodb/filenames})
 
 (define %loglevel (config 'loglevel %notice%))
 (define %optmods '{knodb/actions/splitindex
@@ -24,23 +24,6 @@
 	  (parse-arg arg)
 	  (string->symbol (downcase arg)))))
 
-(define (overwriting file)
-  (when (file-exists? (glom file ".part"))
-    (remove-file (glom file ".part")))
-  (when (file-exists? file)
-    (cond ((config 'unsafe)
-	   (remove-file! file)
-	   (logwarn |FileExists| "Removed existing file " (write file)))
-	  (else
-	   (onerror
-	       (move-file! file (glom file ".bak"))
-	       (lambda (ex)
-		 (logwarn |FileExists|
-		   "Couldn't back up " file " to " (glom file ".bak"))
-		 (exit)))
-	   (logwarn |FileExists|
-	     "Moved existing file " file " " "to " (glom file ".bak"))))))
-
 (define (get-new-type old opts)
   (getopt opts 'type
 	  (config 'NEWTYPE 
@@ -54,7 +37,7 @@
 
 (define (do-splitindex in head-file tail-file tailcount)
   (let* ((restart (config 'restart #f config:boolean))
-	 (input (open-index in #[register #f]))
+	 (input (open-index in #[register #f shared #f]))
 	 (keyslot (indexctl input 'keyslot))
 	 (input-keycount (table-size input)))
     (when (and head-file (file-exists? (glom head-file ".part")))
@@ -82,6 +65,7 @@
 			      'create #t)))
 	   (opts (frame-create #f
 		   'tail tail
+		   'checksync (config 'checksync (config 'checklimit 30))
 		   'tailcount (or tailcount {})
 		   'maxcount (config 'maxcount {})
 		   'mincount (config 'mincount {}))))

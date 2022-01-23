@@ -1,5 +1,5 @@
 source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@abs_top_srcdir@/../lingo:@extra_sources@
+directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8:@extra_gdb_sources@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env FD_DLOADPATH @abs_top_srcdir@/lib/framerd/%.@shared_suffix@

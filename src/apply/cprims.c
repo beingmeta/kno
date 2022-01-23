@@ -407,7 +407,7 @@ KNO_EXPORT void kno_defcprimN(lispval module,kno_cprimn fn,
 
 KNO_EXPORT void kno_defcprim0(lispval module,kno_cprim0 fn,
 			      struct KNO_CPRIM_INFO *info,
-			      struct KNO_CPRIM_ARGINFO arginfo[0])
+			      struct KNO_CPRIM_ARGINFO *arginfo)
 {
   struct KNO_CPRIM *prim = kno_init_xcprim
     (info->pname,info->cname,info->arity,info->filename,
@@ -594,7 +594,9 @@ KNO_EXPORT u8_string kno_fcn_sig(struct KNO_FUNCTION *fcn,u8_byte namebuf[100])
     lispval *limit = scan+fcn->fcn_arginfo_len;
     while (scan<limit) {
       lispval arg = *scan++;
-      if (i>0) u8_putc(&sigout,' '); u8_putc(&sigout,'('); i++;
+      if (i>0) u8_putc(&sigout,' ');
+      u8_putc(&sigout,'(');
+      i++;
       if (KNO_SYMBOLP(arg)) {
 	u8_puts(&sigout,KNO_SYMBOL_NAME(arg));}
       else u8_puts(&sigout,"??");}

@@ -331,6 +331,7 @@ lispval eval_lambda(kno_lambda into,kno_lambda lambda,kno_lexenv env)
   if (into == NULL)
     result = u8_alloc(struct KNO_LAMBDA);
   else result = into;
+  KNO_NOT_NULL(result);
   memcpy(result,lambda,sizeof(struct KNO_LAMBDA));
   if (into) {KNO_INIT_STATIC_CONS(result,kno_lambda_type);}
   else {KNO_INIT_CONS(result,kno_lambda_type);}

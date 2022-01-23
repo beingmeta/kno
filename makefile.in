@@ -13,13 +13,13 @@ EXECFLAGS	  = @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
 		    @PROFILING@ @GCOV_CFLAGS@ \
 		    -I./include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG	  = @dynamic_cflag@
-CFLAGS		  = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} \
+CFLAGS		  = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} -I./DIY/include \
 		    @MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
 		    @PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
 		    -I./include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH		  = @rpath@
 RPATHFLAGS	  = @RPATHFLAGS@
-LDFLAGS		  = -L./ -L./lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
+LDFLAGS		  = -L./ -L./lib -L./DIY/lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
 		    $(XLDFLAGS)
 KNOVERSION	 := $(shell cat ./etc/base_version)
 DYLIB_FLAGS	  = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
@@ -650,10 +650,10 @@ exe/scripts/%: src/scripts/%.scm
 	@$(MSG) MAKESCRIPT $@ $<
 
 exe/%@suffix@: src/exe/%.c ${CONFIG_HDRS}
-	$(CC) $(CFLAGS)  $(EXEFLAGS) $(LDFLAGS)				\
+	$(CC) $(CFLAGS) $(EXEFLAGS) $(LDFLAGS)				\
 		-o $@ $<						\
 		@xdynamic_scheme_libs@					\
-		-lkno@suffix@					\
+		-lkno@suffix@						\
 		-lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -661,9 +661,9 @@ exe/knocgi@suffix@: src/exe/knocgi.c ${CONFIG_HDRS}
 	$(CC) $(CFLAGS) $(LDFLAGS) $(EXEFLAGS)				\
 		-o $@ $<						\
 		@xdynamic_scheme_libs@					\
-		-lknotexttools \
-		-lknowebtools \
-		-lkno@suffix@					\
+		-lknotexttools 						\
+		-lknowebtools 						\
+		-lkno@suffix@						\
 		-lu8stdio $(LIBS) $(EXELIBS)
 	@$(MSG) MKEXE $@ $<
 
@@ -684,9 +684,9 @@ lib/kno/%.@KNO_MAJOR@.dylib: lib/kno/%.dylib
 
 dbg/%: src/exe/%.c $(LINK_STATIC_LIBS)
 	@echo MKEXE_DEBUG $@
-	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) \
+	$(CC) $(DEBUG_CFLAGS) -o $@ $< $(LINK_STATIC_LIBS) 	\
 	      @STATICLDFLAGS@ $(TEST_LDFLAGS) $(TEST_EXEFLAGS)	\
-	      -lu8 -lu8stdio -lu8syslog			\
+	      -lu8 -lu8stdio -lu8syslog				\
 	      $(LIBS) $(EXELIBS)
 dbg/%: ${VERSION_H} ${CONFIG_H} src/exe/main.h src/exe/webcommon.h
 
@@ -873,7 +873,7 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 		src/scripts/*.scm src/shell/*.in			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
-		etc/*.in src/extmods/*.in				\
+		etc/*.in contrib/*.in					\
 		dbg/.gdbinit.in tests/*.scm				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
@@ -883,8 +883,8 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 		include/kno/knosource.h.in		\
 		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
+		contrib/*.in 				\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
 	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
@@ -896,7 +896,7 @@ TAGS: makefile configure.ac include/kno/config.h.in			\
 	@etags -o $@ -a src/cmodules/*.c;
 	@etags -o $@ -a src/python/*.c;
 	@etags -o $@ -a src/scripts/*.scm;
-	@etags -o $@ -a src/extmods/*/makefile src/extmods/*/*.c src/extmods/*/*.h 
+	@etags -o $@ -a contrib/*/makefile contrib/*/*.c contrib/*/*.h 
 	@find src/libscm/ -name "*.scm" -type f | xargs etags -a -o $@;
 	@find src/stdmods/ -name "*.scm" -type f | xargs etags -a -o $@;
 	@find src/webmods/ -name "*.scm" -type f | xargs etags -a -o $@;
@@ -918,7 +918,7 @@ CORETAGS: makefile configure.ac include/kno/config.h.in			\
 		src/scripts/*.scm src/shell/*.in			\
 		src/shell/knoctl					\
 		include/kno/components/*.h				\
-		etc/*.in src/extmods/*.in				\
+		etc/*.in contrib/*.in					\
 		dbg/.gdbinit.in tests/*.scm				\
 		${SRC_HEADERS}
 	@echo "# (kno)" Building TAGS file
@@ -927,8 +927,8 @@ CORETAGS: makefile configure.ac include/kno/config.h.in			\
 		include/kno/knosource.h.in		\
 		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
+		contrib/*.in				\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
 	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
@@ -953,7 +953,7 @@ CTAGS: makefile configure.ac include/kno/config.h.in	\
 		src/cmodules/*.c					\
 		src/python/*.c						\
 		include/kno/components/*.h				\
-		src/extmods/*.in src/extmods/*/*.c src/extmods/*/*.h	\
+		contrib/*.in contrib/*/*.c contrib/*/*.h		\
 		dbg/.gdbinit.in						\
 		${SRC_HEADERS}
 	@echo Building KNO_SOURCE TAGS file
@@ -963,8 +963,8 @@ CTAGS: makefile configure.ac include/kno/config.h.in	\
 		include/kno/knosource.h.in		\
 		tests/*/*.in tests/*.in dbg/*.in	\
 		etc/*.in etc/*/*.in include/kno/*.h	\
-		src/extmods/*.in src/extmods/*/makefile \
 		include/kno/components/*.h		\
+		contrib/*.in 				\
 		${SRC_HEADERS};
 	@etags -o $@ -a src/exe/*.c src/exe/*.h
 	@etags -o $@ -a src/lisp/*.c src/sys/*.c src/apply/*.c	src/apply/*.h 
@@ -1092,18 +1092,18 @@ lib/libknodrivers@suffix@.dylib: $(DRIVER_OBJS) \
 	lib/libknostorage@suffix@.dylib lib/libknocore@suffix@.dylib
 
 lib/libknoscheme@suffix@.a: $(SCHEME_OBJS)
-lib/libknoscheme@suffix@.so: $(SCHEME_OBJS)		\
+lib/libknoscheme@suffix@.so: $(SCHEME_OBJS)			\
 	lib/libknocore@suffix@.so lib/libknostorage@suffix@.so	\
 	lib/libknodrivers@suffix@.so
-lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS)			\
+lib/libknoscheme@suffix@.dylib: $(SCHEME_OBJS)				\
 	lib/libknocore@suffix@.dylib  lib/libknostorage@suffix@.dylib	\
 	lib/libknodrivers@suffix@.dylib
 
 lib/libknowebtools@suffix@.a: $(WEB_OBJS)
 lib/libknowebtools@suffix@.so: $(WEB_OBJS) lib/libkno@suffix@.so
 lib/libknowebtools@suffix@.dylib: $(WEB_OBJS) lib/libkno@suffix@.dylib
-	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
+	@$(MACLIBTOOL) -install_name 					\
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib 	\
 		$(DYLIB_FLAGS) \
 		-o $@ $(WEB_OBJS)
 	@$(MSG) MACLIBTOOL $@
@@ -1112,8 +1112,8 @@ lib/libknotexttools@suffix@.a: $(TEXT_OBJS)
 lib/libknotexttools@suffix@.so: $(TEXT_OBJS) lib/libkno@suffix@.so
 lib/libknotexttools@suffix@.dylib: $(TEXT_OBJS) lib/libkno@suffix@.dylib
 	@$(MACLIBTOOL) -install_name \
-		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib \
-		$(DYLIB_FLAGS) \
+		@rpath/lib/`basename $(@F) .dylib`.@KNO_MAJOR@.dylib	\
+		$(DYLIB_FLAGS) 						\
 		-o $@ $(TEXT_OBJS)
 	@$(MSG) MACLIBTOOL $@
 
@@ -1220,12 +1220,12 @@ install-i18n: $(LOCALEDIR)/fr/LC_MESSAGES/kno.mo   \
 		$(LOCALEDIR)/nl/LC_MESSAGES/kno.mo
 i18n: etc/intl/fr.gmo etc/intl/nl.gmo etc/intl/es.gmo
 
-# Extmods
+# Contribs
 
-extmods:
-	cd src/extmods; submake; make symlinks;
-install-extmods: extmods
-	cd src/extmods; submake install;
+contribs contrib:
+	cd contrib; ./submake; make symlinks;
+install-contrib install-contribs: contribs
+	cd contrib; ./submake install;
 
 # Documentation
 
@@ -1753,6 +1753,9 @@ submodules update-submodules update-git update-modules:
 	  git submodule update --remote --merge src/textmods;	\
 	  git submodule update --remote --merge src/webmods;	\
 	  git submodule update --remote --merge src/brico;	\
+	  if [ ! -f .git/hooks/pre-commit ]; then 		\
+	   ln -s ../../etc/precommit.hook .git/hooks/pre-commit;\
+	  fi;							\
 	fi;
 .PHONY: submodules update-modules update-git update-submodules
 
