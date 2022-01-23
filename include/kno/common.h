@@ -140,7 +140,7 @@ KNO_EXPORT u8_condition kno_UnexpectedEOD, kno_UnexpectedEOF;
 KNO_EXPORT u8_condition kno_ParseError, kno_ParseArgError, kno_TypeError;
 KNO_EXPORT u8_condition kno_ExternalFormatError, kno_InconsistentDTypeSize;
 KNO_EXPORT u8_condition kno_RangeError, kno_DisorderedRange;
-KNO_EXPORT u8_condition kno_BadEscapeSequence, kno_ConstantTooLong;
+KNO_EXPORT u8_condition kno_BadEscapeSequence, kno_ConstantTooLong, kno_BadHistref;
 KNO_EXPORT u8_condition kno_CantParseRecord, kno_CantUnparse, kno_InvalidConstant;
 KNO_EXPORT u8_condition kno_MissingOpenQuote, kno_MissingCloseQuote;
 KNO_EXPORT u8_condition kno_InvalidHexChar, kno_InvalidBase64Char;

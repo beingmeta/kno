@@ -31,6 +31,7 @@ KEEPTIMES=no
 KEEPLOGS=no
 COMBOLOG=state/success.log
 
+# BIZZARO is for cases where a failed test (execution) is a success
 if [ -z "${BIZZARO}" ]; then
     SUCCESS_MSG="SUCCESS"
     FAILURE_MSG="FAILURE"

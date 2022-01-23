@@ -1,6 +1,38 @@
 #!@SCRIPT_SHELL@
-exec gdb -x @share_dir@/gdbinit $*
+usage() {
+    echo "Usage: knogdb *program*";
+    echo "Usage: knogdb *program* *pid*";
+    echo "Usage: knogdb *pid* *program*";
+    echo "Usage: knogdb *pid*";
+}
+PID=
+PROGNAME=
+if [ $# -eq 0 ]; then
+    usage;
+    exit;
+else case $1 in
+	 [0123456789]*)
+	     PID=$1;
+	     shift;
+	     ;;
+	 *)
+	     PROGNAME=$1;
+	     shift;
+	     ;;
+     esac;
+fi;
+if [ -n "${PID}" ] && [ -h /proc/${PID}/exe ]; then
+    PROGNAME=$(readlink /proc/${PID}/exe);
+elif [ -z "${PROGNAME}" ] && [ $# -gt 0 ]; then
+    PROGNAME=$1;
+    shift;
+fi;
 
+if [ -n "${PID}" ]; then
+     exec gdb -x @share_dir@/gdbinit ${PROGNAME} -p ${PID} $*;
+else
+    exec gdb -x @share_dir@/gdbinit ${PROGNAME} $*;
+fi;
 # Local variables:
 # mode: shell-script
 # End:

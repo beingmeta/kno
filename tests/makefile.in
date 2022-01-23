@@ -17,7 +17,7 @@ header          = $(shell echo ":")
 TESTPROG	= ./runtest
 MEMTESTER	= ./memtest
 LEAKTESTER	= ./leaktest
-TEST_ENV	= MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 KNO_INIT_LOADPATH=,../src/stdmods/,../src/textmods/,../src/webmods/
+TEST_ENV	= KNO_SUPPRESS_BANNERS=yes MEMCHECKING=yes ASAN_SYMBOLIZER_PATH= ASAN_OPTIONS=malloc_context_size=20 LSAN_OPTIONS=report_objects=1 KNO_INIT_LOADPATH=,../src/stdmods/,../src/textmods/,../src/webmods/
 MEMTEST_ENV	= MALLOC_CHECK_=3 
 LEAKTEST_ENV	= 
 TESTSIZE	= 512

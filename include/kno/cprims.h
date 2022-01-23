@@ -58,9 +58,8 @@ typedef struct KNO_CPRIM_ARGINFO {
 
 /* Registering the primitives */
 
-#define KNO_LINK_CPRIM(pname,cname,arity,module)                  \
-  kno_defcprim ## arity(module,cname,&cname ## _info,             \
-			cname ## _arginfo)
+#define KNO_LINK_CPRIM(pname,cname,arity,module)			\
+  kno_defcprim ## arity(module,cname,&cname ## _info,cname ## _arginfo)
 /* We separate this case because we want arity mismatches to be detected
    at compile time. */
 #define KNO_LINK_CPRIMN(pname,cname,module)				\
@@ -85,7 +84,7 @@ KNO_EXPORT void kno_defcprimN(lispval module,kno_cprimn fn,
 			      struct KNO_CPRIM_ARGINFO *arginfo);
 KNO_EXPORT void kno_defcprim0(lispval module,kno_cprim0 fn,
 			      struct KNO_CPRIM_INFO *info,
-			      struct KNO_CPRIM_ARGINFO arginfo[0]);
+			      struct KNO_CPRIM_ARGINFO *arginfo);
 KNO_EXPORT void kno_defcprim1(lispval module,kno_cprim1 fn,
 			      struct KNO_CPRIM_INFO *info,
 			      struct KNO_CPRIM_ARGINFO arginfo[1]);

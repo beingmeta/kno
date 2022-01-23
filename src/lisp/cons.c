@@ -366,7 +366,7 @@ lispval kno_substring(u8_string start,u8_string end)
 {
   ssize_t length = ((end == NULL) ? (strlen(start)) : (end-start));
   if ((length>=0)&&((kno_max_strlen<0)||(length<kno_max_strlen))) {
-    struct KNO_STRING *ptr = u8_malloc(KNO_STRING_LEN+length+1);
+    struct KNO_STRING *ptr = u8_malloc(KNO_STRING_LEN+length+1); NOT_NULL(ptr);
     u8_byte *bytes = ((u8_byte *)ptr)+KNO_STRING_LEN;
     memcpy(bytes,start,length); bytes[length]='\0';
     KNO_INIT_FRESH_CONS(ptr,kno_string_type);

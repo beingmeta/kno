@@ -13,10 +13,12 @@
 		  knodb/partitions knodb/components knodb/getindexes knodb/getindex
 		  knodb/pool knodb/wrap-index
 		  knodb/id knodb/source
-		  knodb/mods knodb/modified? knodb/get-modified
+		  knodb/mods knodb/alldbs knodb/modified? knodb/get-modified
 		  pool/ref index/ref pool/copy
-		  pool/getindex pool/getindexes knodb/add-index!
-		  knodb/readonly!
+		  pool/index/find pool/index/probe pool/index/open pool/index/target
+		  pool/getindex pool/getindexes
+		  pool/index/spec pool/index/add!
+		  knodb/readonly! knodb/writable!
 		  knodb/open-index
 		  knodb/checkpath
 		  knodb/makedb
@@ -35,6 +37,12 @@
 
 (define-init debugging-knodb #f)
 (varconfig! knodb:debug debugging-knodb config:boolean)
+
+(define-init init-index-size 100000)
+(varconfig! knodb:initbuckets init-index-size)
+
+(define default-repack #f)
+(varconfig! knodb:repack default-repack)
 
 ;;; Patterns
 
@@ -135,6 +143,9 @@
   (let ((addopts (or (deep-copy (getopt opts 'make)) `#[]))
 	(usetype (find-dbtype opts basetype)))
     (store! addopts (car usetype) (cdr usetype))
+    (when (testopt opts 'addkeys)
+      (store! addopts 'size 
+	(max (getopt opts 'addkeys 0) (getopt opts 'size init-index-size))))
     (when (or (getopt opts 'adjuncts) (getopt opts 'maxload))
       (store! addopts 'metadata (or (deep-copy (getopt opts 'metadata)) #[])))
     (when (getopt opts 'adjuncts)
@@ -200,7 +211,8 @@
 
 (define (resolve-dbref dbsource opts)
   (info%watch "RESOLVE-DBREF" dbsource "\nOPTS" opts)
-  (cond ((and (string? dbsource) (textmatch (qc network-source) dbsource))
+  (cond ((not dbsource) #f)
+	((and (string? dbsource) (textmatch (qc network-source) dbsource))
 	 (if (testopt opts '{dbtype type} 'pool)
 	     (knodb/pool dbsource opts)
 	     (knodb/wrap-index (open-index dbsource opts) opts)))
@@ -258,25 +270,51 @@
 		       (fail))))
       (when (exists? indexes)
 	(loginfo |Indexes| 
-	  "Linking " ($count (|| indexes) "index" "indexes") " for " pool))))
+	  "Linking " ($count (|| indexes) "indexes") " for " pool))))
   pool)
 
-(define (get-indexes-for-pool pool (opts #f))
-  (or (try (poolctl pool 'props 'indexes)
-	   (let* ((indexes (sync-init-pool-indexes pool opts)))
-	     (do-choices (partition (poolctl pool 'partitions))
-	       (set+! indexes (get-indexes-for-pool partition opts)))
-	     (poolctl pool 'props 'indexes indexes)
-	     indexes))
-      (fail)))
+;;;; Pool indexes
+
+(define open-pool-appendixes #f)
+
+(define pool-index-opts #[register #t])
+
+(define (open-pool-index pool spec (opts #f) (rootdir))
+  (default! rootdir (or (getopt opts 'indexloc #f)
+			(poolctl pool 'opts 'indexloc)
+			(try (poolctl pool 'props 'indexloc) #f)
+			(try (poolctl pool 'metadata 'indexloc) #f)
+			(dirname (pool-source pool))))
+  (cond ((string? spec)
+	 (index/ref spec (cons [rootdir rootdir] pool-index-opts)))
+	((not (table? spec))
+	 (logwarn |BadIndexSpec| spec " for " pool)
+	 (fail))
+	((not (test spec 'path))
+	 (logwarn |NoIndexPath| " in " spec " for " pool)
+	 (fail))
+	((and (test spec 'appendix)
+	      (not (or (getopt opts 'appendixes)
+		       (poolctl pool 'props 'appendixes)
+		       (poolctl pool 'opts 'appendixes) 
+		       open-pool-appendixes)))
+	 (loginfo |SkippedAppendix|
+	   "Skipping appendix "
+	   (try (get spec 'name) (get spec 'path)) " for " pool)
+	 (fail))
+	(else (index/ref (get spec 'path) 
+			 (cons [rootdir rootdir] (cons spec pool-index-opts))))))
 
 (define (init-pool-indexes pool (opts #f))
-  (let* ((rootdir (dirname (pool-source pool)))
+  (let* ((rootdir (or (getopt opts 'indexloc)
+		      (try (poolctl pool 'opts 'indexloc) #f)
+		      (try (poolctl pool 'metadata 'indexloc) #f)
+		      (dirname (pool-source pool))))
 	 (indexrefs (poolctl pool 'metadata 'indexes))
 	 (indexes (pick (for-choices (ref indexrefs)
 			  (if debugging-knodb
-			      (index/ref ref (opt+ 'rootdir rootdir opts))
-			      (onerror (index/ref ref (opt+ 'rootdir rootdir opts))
+			      (open-pool-index pool ref opts)
+			      (onerror (open-pool-index pool ref opts)
 				  (lambda (ex)
 				    (logwarn |IndexRefError|
 				      (exception-summary ex) " REF=\n" (listdata ref)
@@ -291,15 +329,98 @@
 (define-init sync-init-pool-indexes
   (slambda (pool (opts #f)) (init-pool-indexes pool opts)))
 
-(define pool-index-opts
-  #[register #t])
+;;;; Finding pool indexes
 
-(defambda (some-writable? indexes (result #f))
-  (do-choices (index indexes)
-    (unless (indexctl index 'readonly)
-      (set! result #t)
-      (break)))
-  result)
+(defambda (pool/index/find pool . args)
+  (filter-choices (index (or (poolctl pool 'props 'indexes) (fail)))
+    (match-index index args)))
+
+(defambda (pool/index/probe pool . args)
+  (try (filter-choices (index (or (poolctl pool 'props 'indexes) (fail)))
+	 (match-index index args))
+       (let ((specs (or (poolctl pool 'metadata 'indexes) (fail))))
+	 (for-choices (spec (apply pick specs args))
+	   (onerror (open-pool-index pool spec)
+	       (lambda (ex)
+		 (logwarn |BadPoolIndex|
+		   "Error while resolving index"
+		   (if (test spec 'name) (printout " '" (get spec 'name) "' "))
+		   " for " pool "\n  " spec "\n " ex)
+		 (fail)))))))
+
+(defambda (pool/index/spec pool . args)
+  (let ((specs (or (poolctl pool 'metadata 'indexes) (fail))))
+    (apply pick specs args)))
+
+(defambda (pool/index/open pool . args)
+  (let ((specs (or (poolctl pool 'metadata 'indexes) (fail))))
+    (for-choices (spec (apply pick specs args))
+      (onerror (open-pool-index pool spec)
+	  (lambda (ex)
+	    (logwarn |BadPoolIndex|
+	      "Error while resolving index"
+	      (if (test spec 'name) (printout " '" (get spec 'name) "' "))
+	      " for " pool "\n  " spec "\n " ex)
+	    spec)))))
+
+(define (pool/index/add! pool index (persist #f))
+  (cond ((index? index)
+	 (when persist (logwarn |CantPersist| "direct index " index " for " pool))
+	 (unless (overlaps? index (pool/getindexes pool))
+	   (poolctl pool 'props index 'add)
+	   (when (exists? (difference (poolctl pool 'props 'index) index))
+	     (if (aggregate-index? (poolctl pool 'props 'index))
+		 (add-to-aggregate-index! (poolctl pool 'props 'index) index)
+		 (poolctl pool 'props 'index (make-aggregate-index (poolctl pool 'props 'index) index))))))
+	(else (let ((new-index (make-pool-index (getopt index 'source) pool index)))
+		(pool/index/add! pool new-index)
+		(when persist (poolctl pool 'metadata 'indexes index 'add))
+		new-index))))
+
+(define (match-index index args)
+  (local matched #t)
+  (while (and (pair? args) matched)
+    (let ((slot (car args))
+	  (val (and (pair? (cdr args)) (cadr args))))
+      (set! matched
+	(cond ((overlaps? slot '{keyslot source type})
+	       (overlaps? (indexctl index slot) val))
+	      ((eq? slot 'readonly)
+	       (if (pair? (cdr args))
+		   (equal? val (indexctl index 'readonly))
+		   (indexctl index 'readonly)))
+	      ((eq? slot 'writable)
+	       (if (pair? (cdr args))
+		   (equal? val (not (indexctl index 'readonly)))
+		   (not (indexctl index 'readonly))))
+	      (else (if (pair? (cdr args))
+			(overlaps? val (indexctl index 'metadata slot))
+			(indexctl index 'metadata slot)))))
+      (set! args (cdr args))
+      (when (pair? args) (set! args (cdr args)))))
+  matched)
+
+;;;; Used by pool/ref etc
+
+(define (pool/getindex pool (opts #f))
+  (try (pick pool index?)
+       (poolctl pool 'props 'index)
+       (get-index-for-pool pool opts)))
+
+(define (pool/getindexes pool (opts #f))
+  (try (pick pool index?)
+       (poolctl pool 'props 'indexes)
+       (get-indexes-for-pool pool opts)
+       (pool/getindex pool opts)))
+
+(define (get-indexes-for-pool pool (opts #f))
+  (or (try (poolctl pool 'props 'indexes)
+	   (let* ((indexes (sync-init-pool-indexes pool opts)))
+	     (do-choices (partition (poolctl pool 'partitions))
+	       (set+! indexes (get-indexes-for-pool partition opts)))
+	     (poolctl pool 'props 'indexes indexes)
+	     indexes))
+      (fail)))
 
 (define (get-index-for-pool pool (opts #f))
   (or (try (poolctl pool 'props 'index)
@@ -320,18 +441,70 @@
 	     index))
       (fail)))
 
-(define (pool/getindex pool (opts #f))
-  (try (pick pool index?)
-       (poolctl pool 'props 'index)
-       (get-index-for-pool pool opts)))
+(defambda (some-writable? indexes)
+  "Returns true if any of *indexes* is writable"
+  (local result #f)
+  (do-choices (index indexes)
+    (unless (indexctl index 'readonly)
+      (set! result #t)
+      (break)))
+  result)
 
-(define (pool/getindexes pool (opts #f))
-  (try (pick pool index?)
-       (poolctl pool 'props 'indexes)
-       (get-indexes-for-pool pool opts)
-       (pool/getindex pool opts)))
+;;;; Making indexes
+
+(define (slots->string slotid)
+  (cond ((ambiguous? slotid)
+	 (stringout (do-choices (slot slotid i)
+		      (printout (if (> i 0) "_") (slots->string slot)))))
+	((symbol? slotid) (symbol->string slotid))
+	(else #f)))
+
+(define (roundup j) (->exact (ceiling j)))
+
+(define (get-sizing base pool)
+  (cond ((or (not (number? base)) (<= base 0)) #mib)
+	((or (inexact? base) (< base 100))
+	 (->exact (* base (1+ (quotient (+ (pool-load pool) (pool-capacity pool)) 2)))))
+	((< base 100) #mib)
+	(else base)))
+
+(define (make-pool-index pool ref spec (rootdir))
+  (default! rootdir
+    (try (or (poolctl pool 'opts 'indexloc) (fail))
+	 (poolctl pool 'props 'indexloc)
+	 (poolctl pool 'metadata 'indexloc)
+	 (dirname (pool-source pool))))
+  (debug%watch "make-pool-index" rootdir ref rootdir pool "\n" spec)
+  (let* ((capacity (get-sizing (getopt spec 'sizing 2.0) pool))
+	 (keyslots (getopt spec 'keyslot))
+	 (name (getopt spec 'name (or (slots->string keyslots) ref)))
+	 (db-label (pool-label pool))
+	 (add-opts (frame-create #f
+		     'rootdir rootdir 'create #t
+		     'size capacity
+		     'keyslots (tryif keyslots keyslots)
+		     'label (glom name "." db-label)
+		     'metadata (frame-create #f 'name name 'tags (getopt spec 'tags {})))))
+    (cond ((string? ref) (index/ref ref (cons add-opts spec)))
+	  ((not (table? ref))
+	   (logwarn |BadIndexRef| ref " for " pool)
+	   (fail))
+	  ((not (test ref 'path))
+	   (logwarn |NoIndexPath| ref " for " pool)
+	   (fail))
+	  (else (index/ref (get ref 'path) (cons add-opts spec))))))
+
+(defambda (pool/index/target pool . args)
+  (let ((indexes (try (filter-choices (index (or (poolctl pool 'props 'indexes) (fail)))
+			(and (not (indexctl index 'readonly)) (match-index index args)))
+		      (let ((specs (or (poolctl pool 'metadata 'indexes) (fail))))
+			(for-choices (spec (reject (apply pick specs args) 'readonly))
+			  (make-pool-index pool (getopt spec 'path) spec))))))
+    (knodb/writable! indexes)
+    indexes))
 
 ;;; Indexfns
+;;; Note that this is mostly replaced by knodb/index+! and database fuzz
 
 (define-init default-indexslots {})
 (varconfig! knodb:indexslots default-indexslots)
@@ -414,14 +587,19 @@
 
 (define (knodb/open-index source opts)
   (or (source->index source)
-      (if (testopt opts 'maxload)
+      (if (and (or (testopt opts 'maxload) (getopt opts 'repack default-repack))
+	       (file-exists? source) (file-writable? source))
+	  ;; When we open an existing index with a 
 	  (let* ((loaded (source->index source))
-		 (index (open-index source (cons [register #f] opts)))
-		 (repack (and (not loaded) (get-repack-size index opts))))
+		 (index (open-index source (cons [register #f shared #f] opts)))
+		 (repack (and (not loaded) (get-repack-size index opts)))
+		 (backup (and repack
+			      (getopt opts 'backup (config 'KNODB:BACKUP (CONFIG 'BACKUP))))))
 	    (cond (repack
 		   (logwarn |RepackingIndex| 
-		     "Repacking index " (write source) " based on maxload " (getopt opts 'maxload))
-		   (index/pack! index #f `#[newsize ,repack])
+		     "Repacking index " (write source) " to " repack
+		     " based on maxload " (getopt opts 'maxload))
+		   (index/pack! index #f `#[newsize ,repack backup ,backup])
 		   ;; The 'right' thing would be to reopen the index,
 		   ;;  but reopening isn't currently supported, so
 		   ;;  we try to force the index to be freed and then
@@ -512,20 +690,6 @@
 	((oid? index) (apply find-frames (pool/getindex (oid->pool index)) slotvals))
 	(else (apply find-frames #f index slotvals))))
 
-(defambda (knodb/add-index! pool indexes)
-  (let ((cur (poolctl pool 'props 'indexes))
-	(new {(pick indexes index?)
-	      (index/ref (reject indexes index?))})
-	(combined (poolctl pool 'props 'index)))
-    (unless (identical? cur new)
-      (poolctl pool 'props indexes {cur new})
-      (cond ((fail? combined))
-	    ((aggregate-index? combined)
-	     (add-to-aggregate-index!
-	      combined (difference new (dbctl combined 'partitions))))
-	    (else (poolctl pool 'props 'index
-			   (make-aggregate-index {combined cur new} pool-index-opts)))))))
-
 ;;; Prefetching
 
 (defambda (knodb/prefetch-oids! oids (pool #f))
@@ -539,55 +703,31 @@
 	      (set+! threads (thread/call pool-prefetch! (pick oids pool) pool))))
 	(thread/wait threads))))
 
-;;;; Repacking
-
-;; (define (needs-repack? index opts (filename))
-;;   (default! filename (indexctl index 'filename))
-;;   (and filename (file-exists? filename) (file-writable? filename)
-;;        (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
-;; 	      (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
-;; 	      (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
-;; 	      (loadsize (and maxload n-keys
-;; 			     (->exact
-;; 			      (* maxload (+ (max (getopt opts 'minkeys n-keys) n-keys)
-;; 					    (getopt opts 'addkeys 0))))))
-;; 	      (minsize (and (or loadsize (getopt opts 'minsize))
-;; 			    (max (or loadsize 0) (getopt opts 'minsize 0)
-;; 				 (getopt opts 'minkeys 0)))))
-;; 	 (and n-buckets n-keys minsize (< n-buckets minsize)))))
+;;;; Auto repacking
+;;;; When we open an index 
 
 (define (get-repack-size index opts (filename))
   (default! filename (indexctl index 'filename))
-  (and filename (file-exists? filename) (file-writable? filename)
+  (and filename 
+       (file-exists? filename) (file-writable? filename)
+       (not (dbctl index 'readonly))
        (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
 	      (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
 	      (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
-	      (target-keys (+ (max (getopt opts 'minkeys 1961) n-keys) (getopt opts 'addkeys 0)))
-	      (target-load (and maxload n-keys (->exact (* target-keys maxload))))
-	      (min-buckets (and (or target-load (getopt opts 'minsize))
-				(max (or target-load 0) (getopt opts 'minsize 0)
-				     (getopt opts 'minkeys 0)))))
+	      (target-keys (+ (max (getopt opts 'minkeys 1961) n-keys)
+			      (getopt opts 'addkeys 0)))
+	      (target-buckets (and maxload target-keys (->exact (/~ target-keys maxload))))
+	      (min-buckets (and (or target-buckets (getopt opts 'minsize))
+				(->exact
+				 (max (or target-buckets 0) (getopt opts 'minsize 0)
+				      (/~ (getopt opts 'minkeys 0) maxload))))))
 	 (and n-buckets n-keys min-buckets (< n-buckets min-buckets)
 	      (begin (logwarn |RepackIndex| 
-		       "Repacking index " (write filename) " to " ($num min-buckets) " buckets (current=" ($num n-buckets) "),\n"
-		       "given keycount=" ($num n-keys) "/" ($num target-keys) " (cur/target) and maxload=" maxload)
+		       "Repacking index " (write filename) 
+		       " to " ($num min-buckets) " buckets (current=" ($num n-buckets) "),\n"
+		       "given keycount=" ($num n-keys) "/" ($num target-keys)
+		       " (cur/target) and maxload=" maxload)
 		min-buckets)))))
-
-;; (define (repack-index source opts old)
-;;   (let* ((n-buckets (onerror (indexctl index 'metadata 'buckets) #f))
-;; 	 (n-keys (and n-buckets (onerror (indexctl index 'metadata 'keys) #f)))
-;; 	 (maxload (getopt opts 'maxload (indexctl index 'metadata 'maxload)))
-;; 	 (loadsize (and maxload n-keys
-;; 			(->exact
-;; 			 (* maxload (+ (max (getopt opts 'minkeys n-keys) n-keys)
-;; 				       (getopt opts 'addkeys 0))))))
-;; 	 (minsize (and (or loadsize (getopt opts 'minsize))
-;; 		       (max (or loadsize 0) (getopt opts 'minsize 0)
-;; 			    (getopt opts 'minkeys 0))))
-;; 	 (maxload (getopt opts 'maxload (dbctl old 'metadata 'maxload)))
-;; 	 (pack-opts `(#[maxload ,maxload] . ,opts)))
-    
-;;     (index/pack! old #f pack-opts)))
 
 ;;; Getting partitions
 
@@ -619,17 +759,33 @@
   (gather-components-loop arg set include-indexes)
   (pick (hashset-elts set) filter))
 
-(defambda (knodb/readonly! db flag (opts #f))
-  (local component-opts (getopt opts 'components [filter {pool? index?}])
+(defambda (knodb/readonly! db flag (opts #f) (persist))
+  (if (eq? opts #t)
+      (begin (set! persist #t) (set! opts #f))
+      (default! persist (getopt opts 'persist #f)))
+  (local components (getopt opts 'components [filter {pool? index?}])
 	 count 0)
-  (do-choices (component (if component-opts (knodb/components db component-opts)
+  (do-choices (component (if components
+			     (knodb/components db components)
 			     db))
-    (unless (if flag (dbctl component 'metadata 'readonly)
-		(not (dbctl component 'metadata 'readonly)))
-      (dbctl component 'metadata 'readonly flag))
-    (dbctl component 'readonly flag)
+    (let ((cur (dbctl component 'readonly))
+	  (curconfig (dbctl component 'metadata 'readonly)))
+      (cond ((and flag persist curconfig)) ;; No-op
+	    ((and flag persist)
+	     (dbctl component 'metadata 'readonly #t)
+	     (dbctl component 'readonly #t))
+	    (flag (dbctl component 'readonly #t))
+	    (curconfig 
+	     (if (dbctl component 'metadata 'readonly #f)
+		 (dbctl component 'readonly #f)
+		 (logwarn |ReadModeLocked|
+		   "Unable to change the readonly setting of " component)))
+	    (else (dbctl component 'readonly #f))))
     (set! count (1+ count)))
   count)
+
+(defambda (knodb/writable! db (opts #f))
+  (knodb/readonly! db #f opts))
 
 ;;;; OPEN-FILEDB
 
@@ -641,7 +797,7 @@
 	((flexpool-spec? source opts)
 	 (flexpool/ref source opts))
 	((flexindex-spec? source opts)
-	 (flex/open-index source opts))
+	 (flexindex/ref source opts))
 	((has-suffix source ".pool")
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
@@ -663,7 +819,7 @@
 	     (knodb/wrap-index (use-index source opts) opts)
 	     (knodb/wrap-index (open-index source opts) opts)))
 	((exists? (knodb/partition-files source "index"))
-	 (flex/open-index source opts))
+	 (flexindex/ref source opts))
 	((exists? (knodb/partition-files source "pool"))
 	 (if (or (testopt opts 'adjunct)
 		 (not (getopt opts 'background #t)))
@@ -747,6 +903,7 @@
 (define skip-indexes 'tempindex)
 
 (define (get-modified arg)
+  "Returns all modified databases under *arg*, partitions and adjuncts"
   (cond ((registry? arg) (tryif (registry/modified? arg) arg))
 	((flexpool/record arg) (get-modified (flexpool/partitions arg)))
 	((pool? arg) 
@@ -758,6 +915,7 @@
 		   (get-modified (for-choices (adjunct adjuncts) (dbctl adjunct 'partitions)))
 		   (get-modified (for-choices (partition partitions)
 				   (getvalues (or (dbctl partition 'adjuncts) {})))))))
+	((aggregate-index? arg) (get-modified (indexctl arg 'partitions)))
 	((index? arg)
 	 (tryif (not (overlaps? (dbctl arg 'type) skip-indexes))
 	   (choice (tryif (modified? arg) arg)
@@ -772,22 +930,52 @@
 	(registries (db->registry alldbs))
 	(unregistered (reject alldbs db->registry)))
     {unregistered registries}))
+(define knodb/alldbs (fcn/alias get-all-dbs))
 
 ;;; Committing
 
+(define commit-loglevel {})
+(varconfig! knodb:commit:loglevel commit-loglevel config:loglevel)
+(varconfig! knodb:commit:log commit-loglevel config:loglevel)
+
 (define commit-threads #t)
+(varconfig! KNODB:COMMIT:THREADS commit-threads)
 (varconfig! COMMIT:THREADS commit-threads)
 
 (define skipdbs 'tempindex)
 
+(define (getdbload db)
+  "This returns the key used to sort databases for commit. "
+  "The idea is to have bigger databases first so that they have "
+  "all the time they need. This may be adjusted if saving them at "
+  "the same time causes performance issues."
+  (cond ((pool? db) (* 4 (change-load db)))
+	((index? db) (change-load db))
+	(else 1)))
+
+(define (getdbtype db)
+  "This returns database type tag."
+  (cond ((pool? db) {(poolctl db 'type) (poolctl db 'props 'tags) (poolctl db 'metadata 'tags)})
+	((index? db) {(indexctl db 'type) (indexctl db 'props 'tags) (indexctl db 'metadata 'tags)})
+	(else {})))
+
 (defambda (knodb/commit! (dbs (get-all-dbs)) (opts #f))
-  (let ((modified (get-modified dbs))
-	(%loglevel (getopt opts 'loglevel %loglevel))
-	(threads-arg (mt/threadcount (getopt opts 'threads commit-threads)))
-	(started (elapsed-time)))
+  "Commits all of the modified *dbs* and their components. "
+  "Multiple threads may be used for saving the databases. "
+  "Other options include:\n"
+  "* `threads` indicating how many threads to use and configured by the `KNODB:COMMIT:THREADS`\n"
+  "* `loglevel` (for knodb/commit! itself, configured as `KNODB:COMMIT:LOGLEVEL`)\n"
+  "* `skipdbs` indicating dbs or db types or tags to skip\n"
+  "* `commit` specifies options to be passed to individual `commit` calls"
+  (let* ((skipdbs {(getopt opts 'skipdbs {}) 'tempindex})
+	 (modified (difference (reject (get-modified dbs) getdbtype skipdbs) skipdbs))
+	 (%loglevel (getopt opts 'loglevel (try commit-loglevel %loglevel)))
+	 (threads-arg (mt/threadcount (getopt opts 'threads commit-threads)))
+	 (started (elapsed-time)))
     (when (exists? modified)
       (let* ((timings (make-hashtable))
-	     (fifo (fifo/make (choice->vector modified)))
+	     (loads (make-hashtable))
+	     (fifo (fifo/make (rsorted modified getdbload)))
 	     (n-threads (and threads-arg (min threads-arg (choice-size modified)))))
 	(lognotice |Commit|
 	  "Saving " (choice-size modified) " dbs using "
@@ -795,26 +983,27 @@
 	  (when (log>? %notify%)
 	    (do-choices (db modified) (printout "\n\t" db))))
 	(cond ((not n-threads)
-	       (do-choices (db modified) (commit-db db opts timings)))
+	       (do-choices (db modified) (commit-db db timings loads)))
 	      ((>= n-threads (choice-size modified))
 	       (set! n-threads (choice-size modified))
-	       (let ((threads (thread/call commit-db modified opts timings)))
+	       (let ((threads (thread/call commit-db modified timings loads)))
 		 (thread/wait! threads)))
 	      (else
 	       (let ((threads {}))
 		 (dotimes (i n-threads)
 		   (set+! threads 
-		     (thread/call commit-queued fifo opts timings)))
+		     (thread/call commit-queued fifo timings loads)))
 		 (thread/wait! threads))))
 	(lognotice |Commit|
 	  "Committed " (choice-size (getkeys timings)) " dbs "
 	  "in " (secs->string (elapsed-time started)) " "
 	  "using " (or n-threads "no") " threads: "
 	  (do-choices (db (getkeys timings))
-	    (let ((time (get timings db)))
+	    (let ((time (get timings db))
+		  (load (get loads db)))
 	      (if (>= time 0)
-		  (printout "\n\t" ($num time 1) "s \t" db)
-		  (printout "\n\tFAILED after " ($num time 1) "s:\t" db)))))))))
+		  (printout "\n\t" ($num time 1) "s \t" load "\t\t" db)
+		  (printout "\n\tFAILED after " ($num time 1) "s for " load "items:\t" db)))))))))
 (define knodb/commit knodb/commit!)
 
 (defambda (knodb/save! . args)
@@ -832,7 +1021,8 @@
   (store! timings arg (elapsed-time start))
   arg)
 
-(define (commit-db arg opts timings (start (elapsed-time)))
+(define (commit-db arg timings loads (start (elapsed-time)))
+  (store! loads arg (change-load arg))
   (if debugging-knodb
       (inner-commit arg timings start)
       (onerror (inner-commit arg timings start)
@@ -840,11 +1030,10 @@
 	    (store! timings arg (- (elapsed-time start)))
 	    (logwarn |CommitError| "Error committing " arg ": " ex)
 	    ex))))
-
-(define (commit-queued fifo opts timings)
+(define (commit-queued fifo timings loads)
   (let ((db (fifo/pop fifo)))
     (while (and (exists? db) db)
-      (commit-db db opts timings)
+      (commit-db db timings loads)
       (set! db (fifo/pop fifo)))))
 
 ;;;; Configs

@@ -55,13 +55,18 @@ typedef int kno_storage_flags;
 #define KNO_STORAGE_KEEP_CACHESIZE          0x020
 #define KNO_STORAGE_NOSWAP                  0x040
 #define KNO_STORAGE_NOERR                   0x080
-#define KNO_STORAGE_PHASED                  0x100
-#define KNO_STORAGE_REPAIR                  0x200
-#define KNO_STORAGE_VIRTUAL                 0x400
-#define KNO_STORAGE_PRECHOICES              0x800
+#define KNO_STORAGE_PHASED                  0x100  /* This DB supports phased commit */
+#define KNO_STORAGE_REPAIR                  0x200  /* Repair this DB on opening */
+#define KNO_STORAGE_VIRTUAL                 0x400  /* This DB doesn't store anything
+						      by itself */
 
-#define KNO_STORAGE_MAX_INIT_BITS           0x1000
-#define KNO_STORAGE_MAX_STATE_BITS          0x10000
+#define KNO_STORAGE_MAX_INIT_BITS            0x1000
+#define KNO_STORAGE_MAX_STATE_BITS         0x100000
+
+#define KNO_STORAGE_COMMON_BITS          0x00000FFF
+#define KNO_STORAGE_POOL_BITS            0x000FF000
+#define KNO_STORAGE_INDEX_BITS           0x000FF000
+#define KNO_STORAGE_DRIVER_BITS          0xFFF00000
 
 typedef char fdb_cache_level;
 
@@ -306,6 +311,12 @@ KNO_EXPORT lispval kno_getpath(lispval start,int n,kno_argvec path,
 KNO_EXPORT ssize_t kno_save_head(u8_string source,u8_string dest,size_t head_len);
 KNO_EXPORT ssize_t kno_apply_head(u8_string head,u8_string file);
 KNO_EXPORT ssize_t kno_restore_head(u8_string file,u8_string head);
+
+/* Structures for information about disk-based hash buckets */
+
+typedef struct KNO_BUCKET_INFO {
+  KNO_CHUNK_REF ref;
+  unsigned int bucket;} KNO_BUCKET_INFO;
 
 #endif
 

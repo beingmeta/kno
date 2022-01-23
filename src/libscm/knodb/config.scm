@@ -5,59 +5,85 @@
 (in-module 'knodb/config)
 
 (use-module '{ezrecords text/stringfmts logger varconfig fifo texttools})
-(use-module '{knodb})
+(use-module '{knodb knodb/filenames})
 
 (define %loglevel %warn%)
 
-(module-export! 'knodb/configfn)
+(define-init db-configs (make-hashtable))
 
-(define (knodb/configfn setupfn (opts #f) (db #f))
+(module-export! '{knodb/configfn knodb/config-dbref})
+
+(define (normsource dbspec)
+  (realpath dbspec))
+
+(define (knodb/configfn setupfn (opts #f) (unsetupfn #f))
+  "Returns a config handler for setting up a database given a setup function and "
+  "a table of configuration options.\n"
+  "`knodb/configfn` also takes an *unsetupfn* but that isn't handled yet."
+  (local db #f)
+  (local setup #f)
+  (local aliases {})
   (slambda (var (val))
-    (if (not (bound? val)) db
-	(try
-	 (tryif (and db (getopt opts 'oneshot)) db)
-	 (tryif (and db (equal? (pool-source db) val)) db)
-	 (tryif (and db (string? val) 
-		     (or (equal? (pool-source db) val)
-			 (and (position #\/ (pool-source db))
-			      (file-exists? (pool-source db))
-			      (equal? (realpath val) (realpath (pool-source db))))))
+    (local disabled (getopt opts 'disabled))
+    (local dbname (getopt opts 'dbname "db"))
+    (cond ((not (bound? val)) db)
+	  ;; The most common case where we actually do something
+	  ((and val (or (not db) (not setup))
+		(not disabled))
+	   (let ((usedb (if (or (pool? val) (index? val)) val
+			    (knodb/config-dbref val opts))))
+	     (unless usedb
+	       (if (getopt opts 'err)
+		   (irritant val |BadDBRef| "for " dbname " given " opts)
+		   (logerr |BadDBRef| val " for " dbname " given " opts)))
+	     ;; It's simple with no current DB
+	     (set! db usedb)
+	     (setupfn usedb opts)
+	     (set! setup #t)))
+	  ((and (not db) (not val)) db)
+	  ((and (equal? db val) setup) db)
+	  ((and (overlaps? val aliases) setup) db)
+	  ((equal? db val)
+	   (setupfn db opts)
+	   (set! setup #t))
+	  ((and disabled (or (not setup) (not db)))
+	   ;; Okay to change it because it hasn't been setup
+	   (set! db val)
+	   val)
+	  (disabled
+	   (logwarn |Locked|
+	     "The " dbname " is currently set up as " db " and disabled")
 	   db)
-	 (let* ((source (if (and (table? val) (testopt val 'source))
-			    (getopt val 'source #f)
-			    val))
-		(open-opts (if (and (table? val) (testopt val 'source))
-			       (cons val opts)
-			       opts))
-		(dbref (resolve-dbref val open-opts)))
-	   (debug%watch "knodb/config" var db val dbref)
-	   (cond ((not dbref) 
-		  (if (getopt opts 'err)
-		      (irritant val |InvalidDBRef| knodb/configfn)
-		      db))
-		 ((not db)
-		  (set! db (setupfn dbref open-opts))
-		  (when db (lognotice |KnoDB/CONFIG| var " = " db))
-		  db)
-		 ((equal? db dbref)
-		  (logdebug |KnoDB/CONFIG| "Redundant " var " init")
-		  db)
-		 ((getopt opts 'mutable)
-		  (logwarn |DBChange| var " = " dbref " replacing " db)
-		  (when (getopt opts 'dropfn)
-		    ((getopt opts 'dropfn) db))
-		  (set! db (setupfn dbref open-opts))
-		  db)
-		 (else
-		  (logwarn |DBConflict| 
-		    var " = " db ", configured late as " val " => " dbref)
-		  (when (getopt opts 'err) 
-		    (irritant dbref
-			|DBConflict| knodb/configfn
-			var " is already " db " not " val " => " dbref))
-		  db)))))))
+	  ((or (not db) (not val))
+	   (logwarn |CodeError| "You should never see this")
+	   db)
+	  (else
+	   ;;; At this point, neither db nor val nor setup are false and we're not disabled
+	   ;;; We also know that db and val are not the same (equal)
+	   (let* ((source (if (and (table? val) (testopt val 'source))
+			      (getopt val 'source #f)
+			      val))
+		  (open-opts (if (table? val)
+				 (cons val opts)
+				 opts)))
+	     (cond ((and (string? source) (equal? source (dbctl db 'source))) db)
+		   ((overlaps? source aliases) db)
+		   ((and (string? source) (knodb/same-path? db source))
+		    (loginfo |RedundantConfig| "The " dbname " is already configured as " db)
+		    ;; This will only generate the log message once
+		    (set+! aliases source)
+		    db)
+		   (unsetupfn db)
+		   ((getopt opts 'err)
+		    (irritant val |DBConflict| "The " dbname " has already been configured with " db))
+		   (else
+		    (logwarn |DBConflict|
+		      "Can't configure db " dbname " as " val ", the " dbname
+		      " has already been configured to "
+		      db))))))))
 
-(define (resolve-dbref val opts (db #f))
+(define (knodb/config-dbref val opts)
+  (local db #f)
   (cond ((ambiguous? val)
 	 (do-choices (v val)
 	   (unless db
@@ -74,11 +100,19 @@
 	 (set! db (knodb/ref val opts)))
 	((position #\: val)
 	 (set! db (knodb/ref val opts)))
-	((position #\: val)
+	((has-suffix val {".pool" ".index" ".flexpool" ".flexindex"})
 	 (set! db (knodb/ref val opts)))
 	((and (file-directory? val)
 	      (file-exists? (mkpath val (getopt opts 'basename "db.pool"))))
 	 (set! db (knodb/ref (mkpath val (getopt opts 'basename "db.pool")) opts)))
+	((and (file-directory? val)
+	      (file-exists? (mkpath val (glom (basename (strip-suffix val "/")) ".pool"))))
+	 (set! db (knodb/ref (mkpath val (glom (basename (strip-suffix val "/")) ".pool"))
+			     opts)))
+	((and (file-directory? val)
+	      (file-exists? (mkpath val (glom (basename (strip-suffix val "/")) ".flexpool"))))
+	 (set! db (knodb/ref (mkpath val (glom (basename (strip-suffix val "/")) ".flexpool"))
+			     opts)))
 	((and (file-exists? val) (not (file-directory? val)))
 	 (set! db (knodb/ref val opts)))
 	((file-exists? (glom val ".pool"))

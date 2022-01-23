@@ -72,11 +72,25 @@ define xx
   x/16xb $arg0
 end
 define freeze
-  set scheduler on
+  set scheduler-locking on
 end
 define unfreeze
-  set scheduler off
+  set scheduler-locking off
 end
+# By default, 'c' ensures that the scheduler is turned on
+set confirm off
+define c
+  echo Enabling scheduler\n
+  set scheduler-locking off
+  continue
+end
+set confirm on
+# 'ct' (continue thread) continues with the scheduler off
+define ct
+  set scheduler-locking on
+  continue
+end
+
 
 define heapcheck
   set env HEAPPROFILE=/tmp/heap.profiles/heapprof
@@ -138,6 +152,12 @@ define lispout
 end
 define unparse
   call _kno_lisp2stderr($arg0)
+end
+define lispsym
+  print kno_intern($arg0)
+end
+define configsym
+  print config_intern($arg0)
 end
 define refcount
   if (((lispval)$arg0)&3)
@@ -389,9 +409,11 @@ define use_session
   if ($argc == 0)
      set environment KNO_INITSESSION .knoc
   else
-     set environment KNO_INITSESSION $1
+     set environment KNO_INITSESSION $arg0
   end
 end
+alias use_sessions=use_session
+alias sessions=use_session
 
 define dotload
   unset environment KNO_SKIP_DOTLOAD

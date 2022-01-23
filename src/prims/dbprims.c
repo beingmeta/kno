@@ -690,6 +690,24 @@ static lispval get_index_type(lispval spec)
   else return KNO_FALSE;
 }
 
+DEFC_PRIM("index-keyslots",index_keyslots_prim,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+	  "returns the type of *index* or, if *index* is a string, "
+	  "then corresponding named type is returned.",
+	  {"index",kno_index_type,KNO_VOID},
+	  {"slots",kno_any_type,KNO_VOID})
+static lispval index_keyslots_prim(lispval index,lispval slots)
+{
+  kno_index ix = kno_lisp2index(index);
+  if (ix==NULL) return kno_err("NotAnIndex","index_keyslots_prim",NULL,index);
+  lispval keyslots = ix->index_keyslot;
+  if ( (KNO_VOIDP(slots)) || (KNO_DEFAULTP(slots)) )
+    return kno_incref(keyslots);
+  else if ( (keyslots == slots) || (kno_overlapp(keyslots,slots)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 DEFC_PRIM("oid-value",oidvalue,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "Resolves the value of OID in the pools declared "
@@ -1382,7 +1400,15 @@ static lispval isadjunctp(lispval pool_arg)
 
 DEFC_PRIMN("swapout",swapout_lexpr,
 	   KNO_VAR_ARGS|KNO_MIN_ARGS(0)|KNO_NDCALL,
-	   "**undocumented**")
+	   "Frees unmodified objects in memory from pools and indexes.\n"
+	   "With no arguments, it swaps out unmodified objects in all "
+	   "pools and indexes.\n"
+	   "With one argument, the argument should be a choice of OIDs "
+	   "and all of those OIDs will be swapped out from their primary "
+	   "pools, but not from any adjunct pools."
+	   "With two arguments, the first argument should be a pool or index "
+	   "and the second argument should be OIDs or keys which should be "
+	   "reclaimed if unmodified.")
 static lispval swapout_lexpr(int n,kno_argvec args)
 {
   if (n == 0) {
@@ -1438,23 +1464,20 @@ static lispval swapout_lexpr(int n,kno_argvec args)
     return kno_err(kno_TooManyArgs,"swapout",NULL,args[0]);
   else if (KNO_EMPTY_CHOICEP(args[1]))
     return KNO_INT(0);
+  else if (KNO_EMPTY_CHOICEP(args[0]))
+    return KNO_INT(0);
   else {
-    lispval arg, keys; int rv_sum = 0;
-    if ((TYPEP(args[0],kno_poolref_type))||
-	(TYPEP(args[0],kno_indexref_type))||
-	(TYPEP(args[0],kno_consed_pool_type))||
-	(TYPEP(args[0],kno_consed_index_type))) {
-      arg = args[0]; keys = args[1];}
-    else {arg = args[0]; keys = args[1];}
-    if (TYPEP(arg,kno_indexref_type))
-      kno_index_swapout(kno_indexptr(arg),keys);
-    else if (TYPEP(arg,kno_poolref_type))
-      rv_sum = kno_pool_swapout(kno_lisp2pool(arg),keys);
-    else if (TYPEP(arg,kno_consed_index_type))
-      kno_index_swapout(kno_indexptr(arg),keys);
-    else if (TYPEP(arg,kno_consed_pool_type))
-      rv_sum = kno_pool_swapout((kno_pool)arg,keys);
-    else return kno_type_error(_("pool, index, or OIDs"),"swapout_lexpr",arg);
+    lispval keys=args[1]; int rv_sum = 0;
+    KNO_DO_CHOICES(db,args[0]) {
+      if (TYPEP(db ,kno_indexref_type))
+	kno_index_swapout(kno_indexptr(db),keys);
+      else if (TYPEP(db,kno_poolref_type))
+	rv_sum = kno_pool_swapout(kno_lisp2pool(db),keys);
+      else if (TYPEP(db,kno_consed_index_type))
+	kno_index_swapout(kno_indexptr(db),keys);
+      else if (TYPEP(db,kno_consed_pool_type))
+	rv_sum = kno_pool_swapout((kno_pool)db,keys);
+      else return kno_type_error(_("pool, index, or OIDs"),"swapout_lexpr",db);}
     if (rv_sum<0) return KNO_ERROR;
     else return KNO_INT(rv_sum);}
 }
@@ -1965,7 +1988,8 @@ static lispval oid_lo(lispval x)
 
 DEFC_PRIM("oid-base",oid_base,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the beginning of the *modulo* range containing *oid*, with "
+	  "*modulo* defaulting to the OID bucket size",
 	  {"oid",kno_oid_type,KNO_VOID},
 	  {"modulo",kno_fixnum_type,KNO_INT(1048576)})
 static lispval oid_base(lispval oid,lispval modulo)
@@ -1985,7 +2009,7 @@ static lispval oid_base(lispval oid,lispval modulo)
 
 DEFC_PRIM("oid?",oidp,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is an OID",
 	  {"x",kno_any_type,KNO_VOID})
 static lispval oidp(lispval x)
 {
@@ -1995,7 +2019,7 @@ static lispval oidp(lispval x)
 
 DEFC_PRIM("oid-pool",oidpool,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns the background pool covering the OID *x*",
 	  {"x",kno_oid_type,KNO_VOID})
 static lispval oidpool(lispval x)
 {
@@ -2006,7 +2030,7 @@ static lispval oidpool(lispval x)
 
 DEFC_PRIM("in-pool?",inpoolp,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
+	  "Returns true if *x* is in the allocated range of *pool*",
 	  {"x",kno_oid_type,KNO_VOID},
 	  {"pool_arg",kno_any_type,KNO_VOID})
 static lispval inpoolp(lispval x,lispval pool_arg)
@@ -2028,7 +2052,8 @@ static lispval inpoolp(lispval x,lispval pool_arg)
 
 DEFC_PRIM("valid-oid?",validoidp,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
+	  "Returns true if *x* is a valid OID (allocated with an actual value) in *pool*, "
+	  "which defaults to the background pool for the OID address",
 	  {"x",kno_oid_type,KNO_VOID},
 	  {"pool_arg",kno_any_type,KNO_VOID})
 static lispval validoidp(lispval x,lispval pool_arg)
@@ -2085,6 +2110,8 @@ static lispval pool_prefetch_prim(lispval pool,lispval oids)
     if (kno_prefetch_oids(oids)>=0)
       return KNO_TRUE;
     else return KNO_ERROR;}
+  else if (EMPTYP(pool))
+    return KNO_VOID;
   else if (! (CHOICEP(pool)) ) {
     kno_pool p=kno_lisp2pool(pool);
     if (p==NULL)
@@ -2119,6 +2146,9 @@ static lispval prefetch_oids_prim(lispval oids,lispval pool)
     if (kno_prefetch_oids(oids)>=0)
       return KNO_TRUE;
     else return KNO_ERROR;}
+  else if (EMPTYP(pool))
+    return KNO_VOID;
+  else NO_ELSE;
   int pool_ok = pool_argp(pool);
   if (pool_ok<0)
     return kno_err("NotAPool","prefetch_oids_prim",NULL,pool);
@@ -2271,11 +2301,11 @@ DEFC_PRIM("change-load",change_load,
 	  {"db",kno_any_type,KNO_VOID})
 static lispval change_load(lispval db)
 {
-  if ( (KNO_POOLP(db)) || (TYPEP(db,kno_consed_pool_type) ) ) {
+  if (KNO_POOLP(db)) {
     kno_pool p = kno_lisp2pool(db);
     int n_pending = p->pool_changes.table_n_keys;
     return KNO_INT(n_pending);}
-  else if (INDEXP(db)) {
+  else if (KNO_INDEXP(db)) {
     kno_index ix = kno_lisp2index(db);
     int n_pending = ix->index_adds.table_n_keys +
       ix->index_drops.table_n_keys +
@@ -2485,7 +2515,7 @@ static lispval index_keysvec(lispval ixarg)
 
 DEFC_PRIM("index/merge!",index_merge,
 	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
-	  "Merges a hashtable into the ADDS of an index as a "
+	  "Merges a hashtable or a temporary index into the ADDS of another index in a "
 	  "batch operation",
 	  {"ixarg",kno_any_type,KNO_VOID},
 	  {"addstable",kno_any_type,KNO_VOID})
@@ -2554,8 +2584,9 @@ static lispval commit_index_prim(lispval ix_arg)
 
 DEFC_PRIM("index/save!",index_save_prim,
 	  KNO_MAX_ARGS(5)|KNO_MIN_ARGS(2),
-	  "(INDEX-PREFETCH! *index* *keys*) "
-	  "**undocumented**",
+	  "Updates *index* on disk from the arguments. If *source* is an index "
+	  "this uses it as the source of adds, drops, and stores; otherwise "
+	  "the tables are used directly.",
 	  {"index",kno_any_type,KNO_VOID},
 	  {"adds",kno_any_type,KNO_VOID},
 	  {"drops",kno_any_type,KNO_VOID},
@@ -2566,11 +2597,20 @@ static lispval index_save_prim(lispval index,
 			       lispval stores,
 			       lispval metadata)
 {
+  lispval add_table = KNO_VOID;
   kno_index ix = kno_lisp2index(index);
   if (!(ix))
     return kno_type_error("index","index_save_prim",index);
+  if (KNO_INDEXP(adds)) {
+    kno_index ix = kno_lisp2index(adds);
+    add_table=(lispval)(&(ix->index_adds));
+    if ( (KNO_VOIDP(drops)) || (KNO_DEFAULTP(drops)) )
+      drops=(lispval)(&(ix->index_drops));
+    if ( (KNO_VOIDP(stores)) || (KNO_DEFAULTP(stores)) )
+      stores=(lispval)(&(ix->index_stores));}
+  else add_table=adds;
 
-  int rv = kno_index_save(ix,adds,drops,stores,metadata);
+  int rv = kno_index_save(ix,add_table,drops,stores,metadata);
   if (rv<0)
     return KNO_ERROR_VALUE;
   else return KNO_INT(rv);
@@ -4495,6 +4535,7 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("make-index",make_index,2,kno_db_module);
   KNO_LINK_CPRIM("index-type?",known_index_typep,1,kno_db_module);
   KNO_LINK_CPRIM("index-type",get_index_type,1,kno_db_module);
+  KNO_LINK_CPRIM("index-keyslots",index_keyslots_prim,2,kno_db_module);
   KNO_LINK_CPRIM("open-pool",open_pool,2,kno_db_module);
   KNO_LINK_CPRIM("make-pool",make_pool,2,kno_db_module);
   KNO_LINK_CPRIM("pool-type?",known_pool_typep,1,kno_db_module);

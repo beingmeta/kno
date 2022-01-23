@@ -1300,9 +1300,9 @@ DEFC_PRIM("file-creationtime",file_ctime,
 	  {"filename",kno_string_type,KNO_VOID})
 static lispval file_ctime(lispval filename)
 {
-  time_t mtime = u8_file_ctime(CSTRING(filename));
-  if (mtime<0) return KNO_ERROR;
-  else return make_timestamp(mtime);
+  time_t ctime = u8_file_ctime(CSTRING(filename));
+  if (ctime<0) return KNO_ERROR;
+  else return make_timestamp(ctime);
 }
 
 DEFC_PRIM("file-mode",file_mode,
@@ -2175,5 +2175,9 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("basename",path_basename,fileio_module);
   KNO_LINK_ALIAS("statfs",fsinfo_prim,fileio_module);
   KNO_LINK_ALIAS("setpos",setpos_prim,kno_textio_module);
+
+  KNO_LINK_ALIAS("file-ctime",file_ctime,fileio_module);
+  KNO_LINK_ALIAS("file-mtime",file_modtime,fileio_module);
+  KNO_LINK_ALIAS("file-atime",file_atime,fileio_module);
 
 }

@@ -1,4 +1,4 @@
-;;; -*- Mode: Scheme; Text-encoding: latin-1; -*-
+;;; -*- Mode: Scheme; Text-encoding: utf-8; -*-
 
 (load-component "common.scm")
 
@@ -26,21 +26,21 @@
 (applytest #t lowercase? "foo")
 (applytest #f lowercase? "Foo")
 
-(applytest #t uppercase? "ÇÖØ")
-(applytest #f uppercase? "çöø")
+(applytest #t uppercase? "Ã‡Ã–Ã˜")
+(applytest #f uppercase? "Ã§Ã¶Ã¸")
 
 (applytest #t uppercase? "FOO")
 (applytest #f uppercase? "Foo")
 
-(applytest #t uppercase? "ÇÖØ")
-(applytest #f uppercase? "çöø")
+(applytest #t uppercase? "Ã‡Ã–Ã˜")
+(applytest #f uppercase? "Ã§Ã¶Ã¸")
 
 (applytest #t capitalized? "FOO")
 (applytest #t capitalized? "Foo")
 (applytest #f capitalized? "foo")
 
-(applytest #t capitalized? "ÇOO")
-(applytest #f capitalized? "çoo")
+(applytest #t capitalized? "Ã‡OO")
+(applytest #f capitalized? "Ã§oo")
 
 ;(applytest #t numeric? "33")
 ;(applytest #f numeric? "33.5")
@@ -72,10 +72,10 @@ is the other number")
 (define time-text
   "The squad travelled from last Friday to July 20, 1969.")
 (define i18n-test-text
-  "Danes smuggled Jews over the Öersund to Malmö.")
+  "Danes smuggled Jews over the Ã–ersund to MalmÃ¶.")
 ; (applytest {"Bill J. Clinton" "Bill Gates, III" "New Orleans, LA" "San Diego"}
 ; 	   refpoints test-text)
-; (applytest {"Danes" "Jews" "Öersund" "Malmö"}
+; (applytest {"Danes" "Jews" "Ã–ersund" "MalmÃ¶"}
 ; 	   refpoints i18n-test-text)
 
 ;(applytest {"Friday" "July 20, 1969"} get-times time-text))
@@ -96,12 +96,12 @@ is the other number")
 	   getwords sample-string #t)
 
 (define unicode-boundary-case
-  "mud when dry weighed\nonly 6¾ ounces; I kept it covered")
+  "mud when dry weighed\nonly 6Â¾ ounces; I kept it covered")
 
-(applytest '("mud" "when" "dry" "weighed" "only" "6¾" "ounces" "I"
+(applytest '("mud" "when" "dry" "weighed" "only" "6Â¾" "ounces" "I"
 	     "kept" "it" "covered")
 	   getwords unicode-boundary-case)
-(applytest '("mud" "when" "dry" "weighed" "only" "6¾" "ounces" ";"
+(applytest '("mud" "when" "dry" "weighed" "only" "6Â¾" "ounces" ";"
 	     "I" "kept" "it" "covered")
 	   getwords unicode-boundary-case #t)
 
@@ -157,8 +157,8 @@ is the other number")
 ; (applytest
 ; 	 '(" " "" "somethhing" "" " " "" "m" "" "\u00e4"
 ; 	   "" "de" "" " " "" "from" "" " " "" "words" "")
-; 	 tx-fragment " somethhing mäde from words"
-; 		       '(* (char-not " ä\n\r\t")))
+; 	 tx-fragment " somethhing mÃ¤de from words"
+; 		       '(* (char-not " Ã¤\n\r\t")))
 
 ; (applytest
 ; 	 '("" " somethhing made from " "http://words.com" "")
@@ -169,12 +169,12 @@ is the other number")
 
 ; (applytest
 ; 	 '("na sowas \u00dcberfall")
-; 	 tx-fragment "na sowas Überfall"
+; 	 tx-fragment "na sowas Ãœberfall"
 ; 		       '#((isupper) (* (isalnum)) (isupper)))
 
 ; (applytest
 ; 	 '("" "na sowas " "\u00dcberfall" "")
-; 	 tx-fragment "na sowas Überfall"
+; 	 tx-fragment "na sowas Ãœberfall"
 ; 		       '#((isupper) (* (isalnum))))
 
 (applytest 0 textsearch '(word (isalpha+)) "word")
@@ -183,15 +183,15 @@ is the other number")
 (applytest #f textsearch '(word (isalpha+)) " word9 ")
 
 (applytest 1 textsearch '(word (isalnum+)) " word9")
-(applytest 0 textsearch '(word (isalpha+)) "wörd")
-(applytest 1 textsearch '(word (isalpha+)) " åerö")
-(applytest 1 textsearch '(word (isalpha+)) " åerö ")
-(applytest #f textsearch '(word (isalpha+)) " åerö9 ")
-(applytest #f textsearch '(word (isalpha+)) " åerö9")
+(applytest 0 textsearch '(word (isalpha+)) "wÃ¶rd")
+(applytest 1 textsearch '(word (isalpha+)) " Ã¥erÃ¶")
+(applytest 1 textsearch '(word (isalpha+)) " Ã¥erÃ¶ ")
+(applytest #f textsearch '(word (isalpha+)) " Ã¥erÃ¶9 ")
+(applytest #f textsearch '(word (isalpha+)) " Ã¥erÃ¶9")
 
-(applytest #t textmatch '(ID "foobar") "foöbár")
-(applytest 3 textmatcher '(ID "foo") "foöbár")
-(applytest 3 textsearch '(ID "bar") "foöbár")
+(applytest #t textmatch '(ID "foobar") "foÃ¶bÃ¡r")
+(applytest 3 textmatcher '(ID "foo") "foÃ¶bÃ¡r")
+(applytest 3 textsearch '(ID "bar") "foÃ¶bÃ¡r")
 
 (applytest #t textmatch '(IS "George Washington  Carver") "George 
   Washington 	Carver")
@@ -207,7 +207,7 @@ is the other number")
 
 (applytest "g\u00e9\u00f6Rg\u00ea WASH\u00cd\u00d1gt\u00f6n"
 	   gather '(CANONICAL "George Washington")
-	   "who was géöRgê WASHÍÑgtön anyway")
+	   "who was gÃ©Ã¶RgÃª WASHÃÃ‘gtÃ¶n anyway")
 
 ;;; Extraction tests
 
@@ -312,10 +312,10 @@ is the other number")
 
 ;;; Unicode tests
 
-(applytest 3 textmatcher "xöx" "xöxöy")
-(applytest 4 textsearch "xöx" "fooÿxöxöy")
+(applytest 3 textmatcher "xÃ¶x" "xÃ¶xÃ¶y")
+(applytest 4 textsearch "xÃ¶x" "fooÃ¿xÃ¶xÃ¶y")
 
-(applytest '("föö" "bár" "bèç") getwords "föö bár bèç")
+(applytest '("fÃ¶Ã¶" "bÃ¡r" "bÃ¨Ã§") getwords "fÃ¶Ã¶ bÃ¡r bÃ¨Ã§")
 
 ;; This used to signal bad utf-8 string because it got lost in the
 ;; middle of the string.
@@ -369,6 +369,14 @@ is the other number")
 (applytest "Find My Phone" stdcap "find my Phone")
 (applytest "find my iPhone" stdcap "find my iPhone")
 (applytest "Find My iPhone" stdcap "Find my iPhone")
+
+;;; STDPUNCT testing
+
+(applytest "foo-bar" stdpunct "fooâ€bar")
+(applytest "foo-barâ€¦" stdpunct "fooâ€barâ€¦")
+(applytest "foo-bar..." stdpunct "fooâ€barâ€¦" #["â€¦" "..."])
+(applytest "foo-barâ€¦baz" stdpunct "fooâ€barâ€¦baz")
+(applytest "foo-bar...baz" stdpunct "fooâ€barâ€¦baz" #["â€¦" "..."])
 
 ;;;; Mime parsing
 

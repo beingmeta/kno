@@ -581,41 +581,50 @@ static int merge_keys_without_slotid(struct KNO_KEYVAL *kv,void *data)
 KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from)
 {
   lispval keyslot = into->index_keyslot;
+  kno_hashtable from_table = &(into->index_adds);
   if (KNO_HASHTABLEP(from)) {
     if (KNO_VOIDP(keyslot))
       return kno_index_merge(into,(kno_hashtable)from);
     else if (SINGLE_KEYSLOTP(keyslot)) {
       /* If we merge a hashtable into a single-keyslot index, we just
 	 add the values directly. */
-      struct KEYSLOT_STATE state = { (kno_hashtable)from, keyslot };
+      struct KEYSLOT_STATE state = { from_table, keyslot };
+      kno_write_lock_table(from_table);
       int rv = kno_for_hashtable_kv
 	((kno_hashtable)from,merge_keys_without_slotid,&state,1);
+      kno_unlock_table(from_table);
       return rv;}
     else  {
       /* If we merge a hashtable into an index with keyslots, we merge
 	 only the pairs whose cars (the slotkeys) are in the target's
 	 slotkeys. */
-      struct KEYSLOT_STATE state = { (kno_hashtable)from, keyslot };
+      struct KEYSLOT_STATE state = { from_table, keyslot };
+      kno_write_lock_table(from_table);
       int rv = kno_for_hashtable_kv
 	((kno_hashtable)from,merge_keys_for_slotids,&state,1);
+      kno_unlock_table(from_table);
       return rv;}}
   else if ( (SINGLE_KEYSLOTP(keyslot)) && (KNO_INDEXP(from)) ) {
     kno_index ix = kno_indexptr(from);
+    kno_hashtable to_table = &(ix->index_adds);
     if (kno_tempindexp(ix)) {
       if ( (KNO_VOIDP(ix->index_keyslot)) ||
 	   ( (KNO_AMBIGP(ix->index_keyslot)) &&
 	     (kno_choice_containsp(keyslot,ix->index_keyslot)) ) ) {
-	struct KEYSLOT_STATE state = { &ix->index_adds, keyslot };
+	struct KEYSLOT_STATE state = { from_table, keyslot };
 	/* If the input index doesn't have any keyslots, then it
 	   contains (slot . value) keys and we merge just the values
 	   for entries whose slot matches the target's keyslot). */
-	int rv = kno_for_hashtable_kv
-	  (&(into->index_adds),merge_keys_without_slotid,&state,1);
+	kno_write_lock_table(from_table);
+	kno_read_lock_table(to_table);
+	int rv = kno_for_hashtable_kv(to_table,merge_keys_without_slotid,&state,1);
+	kno_unlock_table(to_table);
+	kno_unlock_table(from_table);
 	return rv;}
       else if ( ix->index_keyslot == keyslot ) {
 	/* If the target index and the subject index have exactly the
 	   same keyslots, do a straight merge. */
-	return kno_index_merge(into,&(ix->index_adds));}
+	return kno_index_merge(into,from_table);}
       else {
 	/* In this case, the subject index doesn't have any keys in
 	   which we're interested. */
@@ -627,11 +636,13 @@ KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from)
   else if ( (FALSISH(keyslot)) && (KNO_INDEXP(from)) ) {
     /* This is where we just copy any key value pairs we find. */
     kno_index ix = kno_indexptr(from);
+    kno_hashtable to_table = &(ix->index_adds);
     if (kno_tempindexp(ix)) {
       if (SINGLE_KEYSLOTP(ix->index_keyslot)) {
 	struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
-	int rv = kno_for_hashtable_kv
-	  (&(into->index_adds),merge_keys_with_slotid,&state,1);
+	kno_write_lock_table(to_table);
+	int rv = kno_for_hashtable_kv(to_table,merge_keys_with_slotid,&state,1);
+	kno_unlock_table(to_table);
 	return rv;}
       else return kno_index_merge(into,&(ix->index_adds));}
     else if (kno_aggregate_indexp(ix)) {
@@ -658,20 +669,27 @@ KNO_EXPORT int kno_slotindex_merge(kno_index into,lispval from)
   else if (KNO_INDEXP(from)) {
     /* Here, the keyslot is a choice of slotids */
     kno_index ix = kno_indexptr(from);
+    kno_hashtable to_table = &(ix->index_adds);
     if (kno_tempindexp(ix)) {
       if ( (SINGLE_KEYSLOTP(ix->index_keyslot)) &&
 	   (kno_choice_containsp(ix->index_keyslot,keyslot)) ) {
-	struct KEYSLOT_STATE state = { &ix->index_adds, ix->index_keyslot };
-	int rv = kno_for_hashtable_kv
-	  (&(into->index_adds),merge_keys_with_slotid,&state,1);
+	struct KEYSLOT_STATE state = { from_table, ix->index_keyslot };
+	kno_write_lock_table(from_table);
+	kno_read_lock_table(to_table);
+	int rv = kno_for_hashtable_kv(to_table,merge_keys_with_slotid,&state,1);
+	kno_unlock_table(to_table);
+	kno_unlock_table(from_table);
 	return rv;}
       else if ( (KNO_AMBIGP(ix->index_keyslot)) ) {
 	lispval v[2] = { ix->index_keyslot, keyslot };
 	lispval common = kno_intersection(v,2);
 	if (!(KNO_EMPTYP(common))) {
 	  struct KEYSLOT_STATE state = { &ix->index_adds, common };
-	  int rv = kno_for_hashtable_kv
-	    (&(into->index_adds),merge_keys_for_slotids,&state,1);
+	  kno_write_lock_table(from_table);
+	  kno_read_lock_table(to_table);
+	  int rv = kno_for_hashtable_kv(to_table,merge_keys_for_slotids,&state,1);
+	  kno_unlock_table(to_table);
+	  kno_unlock_table(from_table);
 	  kno_decref(common);
 	  return rv;}
 	return 0;}

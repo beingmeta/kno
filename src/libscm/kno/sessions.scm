@@ -12,6 +12,7 @@
 		  create-session!
 		  session-config!
 		  session-setup!
+		  opt-session-setup!
 		  session-load!
 		  session.command
 		  newsession.command
@@ -22,12 +23,14 @@
 		  loadmods.command
 		  loadmod.command
 		  optmods.command
+		  optimize.command
 		  optmod.command
 		  optuse.command
 		  usemods.command
 		  usemod.command
 		  use.command
 		  reflect.command
+		  reload.command
 		  reopt.command
 		  load.command
 		  appload.command
@@ -214,33 +217,12 @@
     (printout-to out ";; Added " (gmtimestamp) " from " (config 'sessionid) "\n")
     (printout-to out (pprint expr) "\n")))
 
-;;;; Configuring session
-
-(config-def! 'session
-  (slambda (var (val))
-    (cond ((unbound? val) *session*)
-	  ((not val) (set! *session* val))
-	  ((not (string? val)) (irritant val |SessionDirectoryPath|))
-	  ((or (empty-string? val) (overlaps? (downcase val) {"none" "no" "non" "nei"}))
-	   (logwarn |NoSession| val)
-	   (set! *session* #f))
-	  ((not (file-directory? val))
-	   (irritant val |SessionDirectoryPath|))
-	  ((config 'NOSESSIONS #f) 
-	   (logwarn |SessionsDisabled| "by previous config"))
-	  ((and *session*
-		(or (equal? val *session*)
-		    (equal? (abspath val) (abspath *session*))))
-	   (loginfo |SessionAlreadyLoaded| " from " *session*))
-	  (else (set! *session* val)
-		(load-session val)))))
-
-(config-def! 'initsession
-  (slambda (var (val))
-    (cond ((unbound? val) *init-session*)
-	  ((and *session* (equal? val *session*)))
-	  ((file-directory? val) (config! 'session val))
-	  (else (mkdir val) (config! 'session val)))))
+(define (opt-session-setup! expr (session *session*))
+  (if (valid-session? session)
+      (let ((out (extend-output-file (mkpath session "setup.scm"))))
+	(printout-to out ";; Added " (gmtimestamp) " from " (config 'sessionid) "\n")
+	(printout-to out (pprint expr) "\n"))
+      (logwarn |NoValidSession| "There is no valid session to persist changes")))
 
 ;;;; Session variables
 
@@ -270,10 +252,15 @@
 		((has-suffix pname ".xtype") (write-xtype val path))
 		((has-suffix pname ".dtype") (dtype->file val path))
 		(else (write-xtype val path)))
-	  (if problem
-	      (lineout ";;; Write failed of " (typeof val) " to " path " for " pname ": " 
-		problem)
-	      (lineout ";;; Wrote " (typeof val) " to " path " for init " pname))
+	  (cond (problem
+		 (lineout ";;; Write failed of " (typeof val) " to " path " for " pname ": " 
+		   problem))
+		((ambiguous? val)
+		 (let ((types (typeof val)))
+		   (if (ambiguous? types)
+		       (lineout ";;; Wrote choice of " (|| val) " items to " path " for init " pname)
+		       (lineout ";;; Wrote " ($count (|| val) types) " to " path " for init " pname))))
+		(else (lineout ";;; Wrote one " (typeof val) " to " path " for init " pname)))
 	  (void)))))
 
 ;;;; Default KNOC Commands
@@ -319,10 +306,10 @@
       (create-session! (mkpath "~/.kno_sessions" arg) #t)))
 
 (define (addconfig.command var val)
-  (session-config! var val *session*))
+  (session-config! var val))
 (define (config.command var (val))
   (if (bound? val)
-      (session-config! var val *session*)
+      (session-config! var val)
       (config var)))
 (define (addsetup.command expr)
   (session-setup! expr *session*))
@@ -336,14 +323,15 @@
   (filter-choices (name {(picksyms modnames)
 			 (string->symbol (pickstrings modnames))})
     (or (get-module name)
-	(begin (when warn (logwarn |UnknownModule| name)) #f))))
+	(begin (when warn (logwarn |UnknownModule| name))
+	  #f))))
 
 (define (loadmods.command . modules)
   "Add modules to the current application session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (if (exists? good-mods)
 	(if *session*
-	    (session-config! 'appmods good-mods *session*)
+	    (session-config! 'appmods good-mods)
 	    (config! 'appmods good-mods))
 	(logwarn |LoadMods| "No modules specified"))))
 (define loadmod.command (fcn/alias loadmods.command))
@@ -351,20 +339,29 @@
 (define (optmods.command . modules)
   "Optimize the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
-    (cond ((exists? good-mods) (optimize-module! good-mods)
-	   (session-setup! `((importvar 'optimize 'optimize*) ',good-mods) *session*))
+    (cond ((exists? good-mods)
+	   (optimize-module! good-mods)
+	   (opt-session-setup! `((importvar 'optimize 'optimize*) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
 (define optmod.command (fcn/alias optmods.command))
+
+(define (optimize.command . modules)
+  "Optimize the specified modules for the current session"
+  (if (null? modules)
+      (optimize! (req/get 'console_env))
+      (let ((good-mods (get-good-mods (elts modules) #t)))
+	(cond ((exists? good-mods) (optimize-module! good-mods))
+	      (else (logwarn |OptMods| "No modules specified"))))))
 
 (define (optuse.command . modules)
   "Use (and optimize) the specified modules for the current session"
   (let ((good-mods (get-good-mods (elts modules) #t)))
     (cond ((exists? good-mods)
 	   (if *session*
-	       (session-config! 'appmods good-mods *session*)
+	       (session-config! 'appmods good-mods)
 	       (config! 'appmods good-mods))
 	   (optimize-module! (get-module (elts modules)))
-	   (session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
+	   (opt-session-setup! `((importvar 'optimize 'optimize!) ',good-mods) *session*))
 	  (else (logwarn |OptMods| "No modules specified")))))
 
 (define optimize-usemods #t)
@@ -376,8 +373,8 @@
     (if (exists? good-mods)
 	(if *session*
 	    (begin
-	      (session-config! 'appmods good-mods *session*)
-	      (when optimize-usemods (session-config! 'optmods good-mods *session*)))
+	      (session-config! 'appmods good-mods)
+	      (when optimize-usemods (session-config! 'optmods good-mods)))
 	    (begin (config! 'appmods good-mods)
 	      (when optimize-usemods (config! 'optmods good-mods))))
 	(logwarn |UseMods| "No modules specified"))))
@@ -391,18 +388,23 @@
 
 ;;; Other commands
 
-(define-init *reopt-arg* #f)
+(define-init *reload-arg* #f)
+(define-init *optimize-on-reload* #t)
+(varconfig! 'reload:optimize *optimize-on-reload*)
 
-(define (reopt.command (module *reopt-arg*) . more)
+(define (reload.command (module *reload-arg*) . more)
   (if module
       (let ((good-mods (get-good-mods {module (elts more)} #t)))
 	(cond ((exists? good-mods)
 	       (do-choices (module good-mods)
 		 (reload-module module)
-		 (optimize-module! module))
-	       (set! *reopt-arg* good-mods))
+		 (when *optimize-on-reload*
+		   (optimize-module! module)))
+	       (set! *reload-arg* good-mods))
 	      (else (logwarn |OptMods| "No modules specified"))))
-      (logwarn |ReOpt| "Reload and optimize modules")))
+      (logwarn |Reload| "Reload and optimize modules")))
+
+(define reopt.command (fcn/alias reload.command))
 
 (define load.command
   (macro expr `(load ,(get-arg expr 1))))
@@ -427,11 +429,51 @@
     (if (string? db)
 	(logwarn |UseDBFailed| db)
 	(if *session*
-	    (session-config! 'usedb spec *session*)
+	    (session-config! 'usedb spec)
 	    (config! 'usedb spec)))))
 
 (define (commit.command . args)
   (knodb/commit!))
 
+;;;; Configuring session
 
+(config-def! 'session
+  (slambda (var (val))
+    (cond ((unbound? val) *session*)
+	  ((not val) (set! *session* val))
+	  ((not (string? val)) (irritant val |SessionDirectoryPath|))
+	  ((or (empty-string? val) (overlaps? (downcase val) {"none" "no" "non" "nei"}))
+	   (logwarn |NoSession| val)
+	   (config! 'autosession #f)
+	   (set! *session* #f))
+	  ((not (file-directory? val))
+	   (irritant val |SessionDirectoryPath|))
+	  ((config 'NOSESSIONS #f) 
+	   (logwarn |SessionsDisabled| "by previous config"))
+	  ((and *session*
+		(or (equal? val *session*)
+		    (equal? (abspath val) (abspath *session*))))
+	   (loginfo |SessionAlreadyLoaded| " from " *session*))
+	  (else (set! *session* val)
+		(load-session val)))))
+
+(config-def! 'initsession
+  (slambda (var (val))
+    (cond ((unbound? val) *session*)
+	  ((and *session* (equal? val *session*)))
+	  ((file-directory? val) (config! 'session val))
+	  (else (create-session! val #t)))))
+
+(config-def! 'linksession
+  (slambda (var (val))
+    (cond ((unbound? val) *session*)
+	  ((not (file-directory? val)) (irritant val |BadSession|))
+	  (else (let ((.knoc (mkpath (getcwd) ".knoc")))
+		  (cond ((not (file-exists? .knoc))
+			 (link-file! val .knoc))
+			((symbolic-link? .knoc)
+			 (remove-file .knoc)
+			 (link-file! val .knoc))
+			(else (irritant .knoc |CantOverride| " with " val)))
+		  (create-session! (abspath .knoc)))))))
 

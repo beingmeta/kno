@@ -37,10 +37,12 @@
 	((or (string? spec) (symbol? spec))
 	 (set! invoke spec))
 	(else (irritant spec |InvalidProcSpec|)))
-  (let* ((shell (getopt opts 'shell (and (symbol? invoke) (config 'KNOX "knox"))))
+  (let* ((shell (getopt opts 'shell
+		  (getopt opts 'interpreter
+		    (and (symbol? invoke) (config 'KNOX "knox")))))
 	 (isknox (getopt opts 'isknox 
-			 (or (symbol? invoke) (testopt opts 'configs)
-			     (knox-shell? shell))))
+		   (or (symbol? invoke) (testopt opts 'configs)
+		       (knox-shell? shell))))
 	 (addopts (if addopts (deep-copy addopts) #[]))
 	 (configs '()))
     ;; Assemble config arguments

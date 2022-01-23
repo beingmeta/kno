@@ -14,10 +14,13 @@
 #define KNO_KINDEX_TO_RECOVER 0x9011328
 
 #define KNO_KINDEX_FN_MASK	   0x0F
-#define KNO_KINDEX_OFFTYPE_MASK  0x30
+#define KNO_KINDEX_OFFTYPE_MASK    0x30
 #define KNO_KINDEX_ODDKEYS	   0x40
 #define KNO_KINDEX_READ_ONLY	   0x80
 #define KNO_KINDEX_ONESLOT	   0x100
+
+/* Write-all-together, so don't bother writing rollbacks */
+#define KNO_KINDEX_NO_ROLLBACK     0x00100000
 
 /* Used to generate hash codes */
 #define MAGIC_MODULUS 16777213 /* 256000001 */

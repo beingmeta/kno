@@ -33,6 +33,8 @@ u8_condition kno_BadIndexSpec=_("bad index specification");
 u8_condition kno_CorruptedIndex=_("corrupted index file");
 u8_condition kno_IndexCommitError=_("can't save changes to index");
 
+struct KNO_TYPEINFO *kno_default_index_typeinfo = NULL;
+
 lispval kno_index_hashop, kno_index_slotsop, kno_index_bucketsop;
 
 u8_condition kno_IndexCommit=_("Index/Commit");
@@ -1197,7 +1199,7 @@ static int remove_keyvals(struct KNO_KEYVAL *keyvals,int n,lispval remove)
 typedef struct KNO_CONST_KEYVAL *const_keyvals;
 
 static struct KNO_KEYVAL *
-hashtable_keyvals(kno_hashtable ht,int *sizep,int keep_empty)
+hashtable_keyvals(kno_hashtable ht,int *sizep,int keep_empty,lispval replace)
 {
   /* We assume that the table is locked */
   struct KNO_KEYVAL *results, *rscan;
@@ -1221,8 +1223,12 @@ hashtable_keyvals(kno_hashtable ht,int *sizep,int keep_empty)
 	    if (KNO_PRECHOICEP(val)) {
 	      val = kvscan->kv_val = kno_simplify_choice(val);}
 	    rscan->kv_key=key; kno_incref(key);
-	    rscan->kv_val=val; kno_incref(val);
-	    rscan++; size++;}
+	    rscan->kv_val=val;
+	    if ( replace == KNO_DEFAULT_VALUE )
+	      kno_incref(val);
+	    else kvscan->kv_val = KNO_EMPTY;
+	    rscan++;
+	    size++;}
 	  kvscan++;}
 	scan++;}
       else scan++;
@@ -1426,9 +1432,9 @@ static int index_docommit(kno_index ix,struct KNO_INDEX_COMMITS *use_commits)
       unlock_stores=1;}
 
     /* Copy them */
-    struct KNO_KEYVAL *adds = hashtable_keyvals(adds_table,&n_adds,0);
-    struct KNO_KEYVAL *drops = hashtable_keyvals(drops_table,&n_drops,0);
-    struct KNO_KEYVAL *stores = hashtable_keyvals(stores_table,&n_stores,1);
+    struct KNO_KEYVAL *adds = hashtable_keyvals(adds_table,&n_adds,0,KNO_DEFAULT);
+    struct KNO_KEYVAL *drops = hashtable_keyvals(drops_table,&n_drops,0,KNO_DEFAULT);
+    struct KNO_KEYVAL *stores = hashtable_keyvals(stores_table,&n_stores,1,KNO_DEFAULT);
 
     /* We've got the data to save, so we unlock the tables. */
     if (unlock_adds) kno_unlock_table(adds_table);
@@ -1643,11 +1649,12 @@ KNO_EXPORT int kno_index_save(kno_index ix,
   commits.commit_index = ix;
 
   if (KNO_VOIDP(toadd)) {}
-  else if (KNO_SLOTMAPP(toadd))
+  else if (KNO_SLOTMAPP(toadd)) {
     adds = KNO_SLOTMAP_KEYVALS(toadd);
+    n_adds = KNO_SLOTMAP_NSLOTS(toadd);}
   else if (KNO_HASHTABLEP(toadd)) {
-    adds = hashtable_keyvals((kno_hashtable)toadd,&n_adds,0);
-    free_adds = 1;}
+    adds = hashtable_keyvals((kno_hashtable)toadd,&n_adds,0,KNO_DEFAULT);
+    if (n_adds) free_adds = 1;}
   else if ( (KNO_PAIRP(toadd)) &&
 	    (KNO_VECTORP(KNO_CAR(toadd))) &&
 	    (KNO_VECTORP(KNO_CDR(toadd)))) {
@@ -1674,56 +1681,64 @@ KNO_EXPORT int kno_index_save(kno_index ix,
   else if (KNO_TABLEP(toadd)) {
     lispval keys = kno_getkeys(toadd);
     int i=0, n = KNO_CHOICE_SIZE(keys);
-    adds = u8_big_alloc_n(n,struct KNO_KEYVAL);
-    KNO_DO_CHOICES(key,keys) {
-      lispval val = kno_get(toadd,key,KNO_VOID);
-      if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
-	adds[i].kv_key = key; kno_incref(key);
-	adds[i].kv_val = val;
-	i++;}}
-    kno_decref(keys);
-    free_adds = 1;
-    toadd=i;}
+    if (n) {
+      adds = u8_big_alloc_n(n,struct KNO_KEYVAL);
+      KNO_DO_CHOICES(key,keys) {
+	lispval val = kno_get(toadd,key,KNO_VOID);
+	if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
+	  adds[i].kv_key = key; kno_incref(key);
+	  adds[i].kv_val = val;
+	  i++;}}
+      kno_decref(keys);
+      free_adds = 1;
+      n_adds=i;}}
+  else NO_ELSE;
 
   if (KNO_VOIDP(todrop)) {}
-  else if (KNO_SLOTMAPP(todrop))
+  else if (KNO_SLOTMAPP(todrop)) {
     drops = KNO_SLOTMAP_KEYVALS(todrop);
+    n_drops = KNO_SLOTMAP_NSLOTS(todrop);}
   else if (KNO_HASHTABLEP(todrop)) {
-    drops = hashtable_keyvals((kno_hashtable)todrop,&n_drops,0);
-    free_drops = 1;}
+    drops = hashtable_keyvals((kno_hashtable)todrop,&n_drops,0,KNO_DEFAULT);
+    if (n_drops) free_drops = 1;}
   else if (KNO_TABLEP(todrop)) {
     lispval keys = kno_getkeys(todrop);
     int i=0, n = KNO_CHOICE_SIZE(keys);
-    drops = u8_big_alloc_n(n,struct KNO_KEYVAL);
-    KNO_DO_CHOICES(key,keys) {
-      lispval val = kno_get(todrop,key,KNO_VOID);
-      if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
-	drops[i].kv_key = key; kno_incref(key);
-	drops[i].kv_val = val;
-	i++;}}
-    kno_decref(keys);
-    free_drops = 1;
-    todrop=i;}
+    if (n) {
+      drops = u8_big_alloc_n(n,struct KNO_KEYVAL);
+      KNO_DO_CHOICES(key,keys) {
+	lispval val = kno_get(todrop,key,KNO_VOID);
+	if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
+	  drops[i].kv_key = key; kno_incref(key);
+	  drops[i].kv_val = val;
+	  i++;}}
+      kno_decref(keys);
+      free_drops = 1;
+      n_drops=i;}}
+  else NO_ELSE;
 
   if (KNO_VOIDP(tostore)) {}
-  else if (KNO_SLOTMAPP(tostore))
+  else if (KNO_SLOTMAPP(tostore)) {
     stores = KNO_SLOTMAP_KEYVALS(tostore);
+    n_stores = KNO_SLOTMAP_NSLOTS(tostore);}
   else if (KNO_HASHTABLEP(tostore)) {
-    stores = hashtable_keyvals((kno_hashtable)tostore,&n_stores,1);
-    free_stores = 1;}
+    stores = hashtable_keyvals((kno_hashtable)tostore,&n_stores,1,KNO_DEFAULT);
+    if (n_stores) free_stores = 1;}
   else if (KNO_TABLEP(tostore)) {
     lispval keys = kno_getkeys(tostore);
     int i=0, n = KNO_CHOICE_SIZE(keys);
-    stores = u8_big_alloc_n(n,struct KNO_KEYVAL);
-    KNO_DO_CHOICES(key,keys) {
-      lispval val = kno_get(tostore,key,KNO_VOID);
-      if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
-	stores[i].kv_key = key; kno_incref(key);
-	stores[i].kv_val = val;
-	i++;}}
-    kno_decref(keys);
-    free_stores = 1;
-    tostore=i;}
+    if (n) {
+      stores = u8_big_alloc_n(n,struct KNO_KEYVAL);
+      KNO_DO_CHOICES(key,keys) {
+	lispval val = kno_get(tostore,key,KNO_VOID);
+	if (!((KNO_VOIDP(val)) || (KNO_EMPTYP(val)))) {
+	  stores[i].kv_key = key; kno_incref(key);
+	  stores[i].kv_val = val;
+	  i++;}}
+      kno_decref(keys);
+      free_stores = 1;
+      n_stores=i;}}
+  else NO_ELSE;
 
   int n_changes = n_adds + n_drops + n_stores;
   if (!(KNO_VOIDP(metadata))) n_changes++;
@@ -1735,9 +1750,12 @@ KNO_EXPORT int kno_index_save(kno_index ix,
 	    n_changes,n_adds,n_drops,n_stores,
 	    (KNO_VOIDP(metadata)) ? ("") : ("/md"),
 	    ix->indexid);}
+  else {
+    u8_logf(LOG_DEBUG,kno_IndexCommit,_("No changes to %s"),ix->indexid);
+    return 0;}
 
   if (KNO_SLOTMAPP(metadata))
-    commits.commit_metadata = metadata;
+    commits.commit_metadata = kno_incref(metadata);
   else commits.commit_metadata = KNO_VOID;
 
   commits.commit_adds     = (kno_const_keyvals) adds;
@@ -1823,7 +1841,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   kno_decref(v);
 }
 
-static lispval metadata_readonly_props = KNO_VOID;
+static lispval metadata_readonly_props_prop = KNO_VOID;
+static lispval metadata_readonly_props = KNO_EMPTY_CHOICE;
 
 KNO_EXPORT lispval kno_index_base_metadata(kno_index ix)
 {
@@ -1865,20 +1884,7 @@ KNO_EXPORT lispval kno_index_base_metadata(kno_index ix)
   if (KNO_TABLEP(ix->index_opts))
     kno_add(metadata,opts_slot,ix->index_opts);
 
-  kno_add(metadata,metadata_readonly_props,cachelevel_slot);
-  kno_add(metadata,metadata_readonly_props,indexid_slot);
-  kno_add(metadata,metadata_readonly_props,realpath_slot);
-  kno_add(metadata,metadata_readonly_props,source_slot);
-  kno_add(metadata,metadata_readonly_props,KNOSYM_TYPE);
-  kno_add(metadata,metadata_readonly_props,edits_slot);
-  kno_add(metadata,metadata_readonly_props,adds_slot);
-  kno_add(metadata,metadata_readonly_props,drops_slot);
-  kno_add(metadata,metadata_readonly_props,replaced_slot);
-  kno_add(metadata,metadata_readonly_props,cached_slot);
-  kno_add(metadata,metadata_readonly_props,flags_slot);
-
-  kno_add(metadata,metadata_readonly_props,KNOSYM_PROPS);
-  kno_add(metadata,metadata_readonly_props,opts_slot);
+  kno_add(metadata,metadata_readonly_props_prop,metadata_readonly_props);
 
   return metadata;
 }
@@ -2248,6 +2254,7 @@ KNO_EXPORT void kno_recycle_index(struct KNO_INDEX *ix)
   kno_free_slotmap(&(ix->index_metadata));
   kno_free_slotmap(&(ix->index_props));
 
+  if (ix->index_keyslot) kno_decref(ix->index_keyslot);
   kno_decref(ix->index_opts);
 }
 
@@ -2317,29 +2324,37 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       return kno_mkstring(ix->canonical_source);
     else return KNO_FALSE;}
   else if (op == kno_metadata_op) {
-    lispval metadata = ((lispval)&(ix->index_metadata));
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
-    /* TODO: check that slotid isn't any of the slots returned by default */
     if (n == 0)
       return kno_index_base_metadata(ix);
     else if (n == 1) {
+      lispval v = kno_slotmap_get(&(ix->index_metadata),slotid,KNO_VOID);
+      if (!(KNO_VOIDP(v))) return v;
+      /* Generate a metadata object to interrogate */
       lispval extended=kno_index_ctl(ix,kno_metadata_op,0,NULL);
-      lispval v = kno_get(extended,args[0],KNO_EMPTY);
+      v = kno_get(extended,args[0],KNO_EMPTY);
       kno_decref(extended);
       return v;}
-    else if (n == 2) {
-      lispval extended=kno_index_ctl(ix,kno_metadata_op,0,NULL);
-      if (kno_test(extended,KNOSYM_READONLY,slotid)) {
-	kno_decref(extended);
+    else if (n > 3)
+      return kno_err(kno_TooManyArgs,"kno_index_ctl/metadata",
+		     KNO_SYMBOL_NAME(op),kno_index2lisp(ix));
+    else {
+      if (kno_overlapp(metadata_readonly_props,slotid))
 	return kno_err("ReadOnlyMetadataProperty","kno_default_indexctl",
-		       ix->indexid,slotid);}
-      else kno_decref(extended);
-      int rv=kno_store(metadata,slotid,args[1]);
-      if (rv<0)
-	return KNO_ERROR_VALUE;
-      else return kno_incref(args[1]);}
-    else return kno_err(kno_TooManyArgs,"kno_index_ctl/metadata",
-			KNO_SYMBOL_NAME(op),kno_index2lisp(ix));}
+		       ix->indexid,slotid);
+      kno_slotmap metadata = &(ix->index_metadata);
+      lispval op = (n==2) ? (KNOSYM_STORE) : (args[2]), result = KNO_VOID;
+      lispval val = args[1];
+      int rv=-1;
+      if (op == KNOSYM_STORE)
+	rv=kno_slotmap_store(metadata,slotid,val);
+      else if (op == KNOSYM_ADD)
+	rv=kno_slotmap_add(metadata,slotid,val);
+      else if (op == KNOSYM_DROP)
+	rv=kno_slotmap_drop(metadata,slotid,val);
+      else kno_seterr(_("BadSlotOp"),"kno_default_indexctl",ix->indexid,op);
+      if (rv<0) return KNO_ERROR;
+      else return result;}}
   else if (op == KNOSYM_PROPS) {
     lispval props = (lispval) &(ix->index_props);
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
@@ -2347,13 +2362,27 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       return kno_copier(props,0);
     else if (n == 1)
       return kno_get(props,slotid,KNO_EMPTY);
-    else if (n == 2) {
-      int rv=kno_store(props,slotid,args[1]);
+    else if (n > 3)
+      return kno_err(kno_TooManyArgs,"kno_index_ctl/props",
+		     KNO_SYMBOL_NAME(op),kno_index2lisp(ix));
+    else {
+      lispval op = (n==2) ? (KNOSYM_STORE) : (args[2]), result = KNO_VOID;
+      int rv=-1;
+      if (op == KNOSYM_STORE)
+	rv=kno_store(props,slotid,args[1]);
+      else if (op == KNOSYM_ADD)
+	rv=kno_add(props,slotid,args[1]);
+      else if (op == KNOSYM_DROP)
+	rv=kno_drop(props,slotid,args[1]);
+      else if (op == KNOSYM_TEST) {
+	rv=kno_drop(props,slotid,args[1]);
+	if (rv==0) result=KNO_FALSE;
+	else if (rv>0) result=KNO_TRUE;
+	else NO_ELSE;}
+      else kno_seterr(_("BadSlotOp"),"kno_default_indexctl",ix->indexid,op);
       if (rv<0)
 	return KNO_ERROR_VALUE;
-      else return kno_incref(args[1]);}
-    else return kno_err(kno_TooManyArgs,"kno_index_ctl/props",
-			KNO_SYMBOL_NAME(op),kno_index2lisp(ix));}
+      else return result;}}
   else if (op == KNOSYM_KEYSLOT) {
     if (n == 0) {
       if ( (KNO_NULLP(ix->index_keyslot)) || (KNO_VOIDP(ix->index_keyslot)) )
@@ -2401,8 +2430,7 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
       if (FIXNUMP(args[0])) {
 	long long level = KNO_FIX2INT(args[0]);
 	if ((level<0) || (level > 128))
-	  return kno_err(kno_RangeError,
-			 "kno_default_indexctl",ix->indexid,args[0]);
+	  return kno_err(kno_RangeError,"kno_default_indexctl",ix->indexid,args[0]);
 	else {
 	  int old_loglevel = ix->index_loglevel;
 	  ix->index_loglevel = level;
@@ -2411,6 +2439,14 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
 	  else return KNO_INT(old_loglevel);}}
       else return kno_type_error("loglevel","kno_default_indexctl",args[0]);}
     else return kno_err(kno_TooManyArgs,"kno_default_indexctl",ix->indexid,VOID);}
+  else if (op == kno_keycount_op) {
+    return KNO_INT(0);}
+  else if (op == kno_livecount_op) {
+    lispval keycount = kno_index_ctl(ix,kno_keycount_op,0,NULL);
+    ssize_t count = ((KNO_FIXNUMP(keycount)) ? (KNO_FIX2INT(keycount)) : (0) ) +
+      ix->index_adds.table_n_keys + ix->index_stores.table_n_keys;
+    kno_decref(keycount);
+    return KNO_INT(count);}
   else if (op == kno_keys_op)
     return kno_index_keys(ix);
   else if (op == kno_partitions_op)
@@ -2424,17 +2460,67 @@ KNO_EXPORT lispval kno_default_indexctl(kno_index ix,lispval op,
   else if (op == KNOSYM_TYPE)
     return kno_intern(ix->index_typeid);
   else if (op == KNOSYM_READONLY) {
-    if (KNO_INDEX_READONLYP(ix))
-      return KNO_TRUE;
-    else return KNO_FALSE;}
+    if (n==0) {
+      if (KNO_INDEX_READONLYP(ix))
+	return KNO_TRUE;
+      else return KNO_FALSE;}
+    else if (n==1) {
+      lispval val = args[0];
+      if (KNO_EMPTYP(val))
+	return KNO_EMPTY;
+      else if (KNO_FALSEP(val)) {
+	if (! ( (ix->index_flags) & KNO_STORAGE_READ_ONLY ) )
+	  return KNO_TRUE;
+	else if (1) {
+	  ix->index_flags &= (~(KNO_STORAGE_READ_ONLY));
+	  return KNO_TRUE;}
+	else return KNO_FALSE;}
+      else {
+	if ( (ix->index_flags) & KNO_STORAGE_READ_ONLY )
+	  return KNO_TRUE;
+	else if (1) {
+	  ix->index_flags |= (KNO_STORAGE_READ_ONLY);
+	  return KNO_TRUE;}
+	else return KNO_FALSE;}}
+    else return kno_err(kno_TooManyArgs,"kno_default_indexctl/readonly",ix->indexid,KNO_VOID);}
+  else if (op == KNOSYM_READONLY) {
+    if (n==1) {
+      if (KNO_INDEX_READONLYP(ix))
+	return KNO_TRUE;
+      else return KNO_FALSE;}
+    else return kno_err("IntrinsicReadOnly","kno_default_indexctl",ix->indexid,KNO_VOID);}
+  else if (op == kno_stats_op) {
+    lispval result = kno_make_slotmap(8,0,NULL);
+    lispval idstring = knostring(ix->indexid);
+    kno_store(result,KNOSYM_ID,idstring);
+    kno_store(result,KNOSYM_ADDS,KNO_INT2LISP(ix->index_adds.table_n_keys));
+    kno_store(result,KNOSYM_DROPS,KNO_INT2LISP(ix->index_drops.table_n_keys));
+    kno_store(result,KNOSYM_STORES,KNO_INT2LISP(ix->index_stores.table_n_keys));
+    kno_store(result,KNOSYM_CACHED,KNO_INT2LISP(ix->index_cache.table_n_keys));
+    kno_decref(idstring);
+    return result;}
   else if (op == KNOSYM_FILENAME)
     return KNO_FALSE;
   else {
     lispval lx = (ix->index_serialno<0) ? ((lispval)ix) :
       LISPVAL_IMMEDIATE(kno_index_type,ix->index_serialno);
-    int flags = n | KNO_DISPATCH_NOERR;
     struct KNO_TYPEINFO *info=ix->index_handler->typeinfo;
-    return kno_type_dispatch(NULL,info,lx,op,flags,args);}
+    if ( (info) && (KNO_TABLEP(info->type_props)) ) {
+      lispval props=info->type_props, handler=kno_get(props,op,KNO_VOID);
+      if (KNO_VOIDP(handler))
+	handler=kno_get(kno_default_index_typeinfo->type_props,op,KNO_VOID);
+      if (KNO_VOIDP(handler))
+	return KNO_EMPTY;
+      else if (!(KNO_APPLICABLEP(handler)))
+	return handler;
+      else {
+	lispval handler_args[n+1];
+	handler_args[0]=lx;
+	memcpy(&(handler_args[1]),args,n*sizeof(lispval));
+	lispval result = kno_dcall(NULL,handler,n+1,handler_args);
+	kno_decref(handler);
+	return result;}}
+    else return KNO_EMPTY;}
 }
 
 /* Initialize */
@@ -2487,9 +2573,10 @@ KNO_EXPORT void kno_init_indexes_c()
   phased_flag=kno_intern("phased");
   background_flag=kno_intern("background");
 
-  {
-    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("index"));
-    e->type_consfn = index_parsefn;}
+  kno_default_index_typeinfo = kno_use_typeinfo(KNO_CTYPE(kno_index_type));
+  kno_alias_typeinfo(KNOSYM_INDEX,KNO_CTYPE(kno_index_type));
+  kno_default_index_typeinfo->type_consfn = index_parsefn;
+  kno_default_index_typeinfo->type_usetag = KNOSYM_INDEX;
 
   kno_tablefns[kno_indexref_type]=u8_zalloc(struct KNO_TABLEFNS);
   kno_tablefns[kno_indexref_type]->get = table_indexget;
@@ -2516,7 +2603,21 @@ KNO_EXPORT void kno_init_indexes_c()
   kno_copiers[kno_consed_index_type]=copy_consed_index;
 
   kno_unparsers[kno_indexref_type]=unparse_index;
-  metadata_readonly_props = kno_intern("_readonly_props");
+  metadata_readonly_props_prop = kno_intern("_readonly_props");
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,cachelevel_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,indexid_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,realpath_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,source_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,KNOSYM_TYPE);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,edits_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,adds_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,drops_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,replaced_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,cached_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,flags_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,KNOSYM_PROPS);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,opts_slot);
+  metadata_readonly_props=kno_simplify_choice(metadata_readonly_props);
 
   u8_init_rwlock(&indexes_lock);
   u8_init_mutex(&background_lock);

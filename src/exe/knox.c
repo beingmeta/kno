@@ -58,7 +58,8 @@ static int is_knapp=0;
 static u8_condition FileWait=_("FILEWAIT");
 static u8_condition MissingSource=_("MissingSource");
 
-static lispval app_source = KNO_VOID, app_main = KNO_VOID;
+static lispval app_source = KNO_VOID;
+static lispval app_main = KNO_VOID, app_setup = KNO_VOID;
 static lispval real_main = KNO_VOID;
 static u8_string exe_name = NULL, app_path = NULL;
 static int exec_module = 0;
@@ -232,6 +233,7 @@ static lispval *handle_args(int argc,char **argv,size_t *arglenp,
    * exe_name (u8_string) name of interpreter (argv[0])
    * app_source (moduleid or filename)
    * app_main (name of the procedure defined within app_source)
+   * app_setup (name of the setup procedure defined within app_source)
    * app_path (specified source)
    */
   lispval *args = NULL;
@@ -352,6 +354,18 @@ static void init_config_handlers()
      kno_lconfig_get,kno_symconfig_set,
      &app_main);
   kno_register_config
+    ("APPMAIN",_("The name of the main routine for this application"),
+     kno_lconfig_get,kno_symconfig_set,
+     &app_main);
+  kno_register_config
+    ("APP:MAIN",_("The name of the main routine for this application"),
+     kno_lconfig_get,kno_symconfig_set,
+     &app_main);
+  kno_register_config
+    ("APP:SETUP",_("The name of the setup routine for this application"),
+     kno_lconfig_get,kno_symconfig_set,
+     &app_setup);
+  kno_register_config
     ("APPSOURCE",_("The source module/file for this application"),
      kno_lconfig_get,kno_lconfig_set,&app_source);
   kno_register_config
@@ -368,7 +382,7 @@ static void init_config_handlers()
 int run(int argc,char **argv,lispval *args,size_t n_args)
 {
   kno_lexenv env = kno_working_lexenv();
-  lispval main_proc = VOID, result = VOID;
+  lispval main_proc = VOID, setup_proc = VOID, result = VOID;
   int retval = 0;
 
   KNO_LINK_CPRIM("CHAIN",chain_prim,0,(lispval)env);
@@ -467,8 +481,16 @@ int run(int argc,char **argv,lispval *args,size_t n_args)
 	main_proc = kno_get(env->env_bindings,app_main,KNO_VOID);
       else if (KNO_TABLEP(env->env_exports))
 	main_proc = kno_get(env->env_exports,app_main,KNO_VOID);
-      else main_proc = kno_get(env->env_bindings,app_main,KNO_VOID);}
-    else main_proc = kno_get(result,app_main,KNO_VOID);
+      else main_proc = kno_get(env->env_bindings,app_main,KNO_VOID);
+      if (!(KNO_SYMBOLP(app_setup))) {}
+      else if (KNO_VOIDP(env->env_exports))
+	setup_proc = kno_get(env->env_bindings,app_setup,KNO_VOID);
+      else if (KNO_TABLEP(env->env_exports))
+	setup_proc = kno_get(env->env_exports,app_setup,KNO_VOID);}
+    else {
+      main_proc = kno_get(result,app_main,KNO_VOID);
+      if (KNO_SYMBOLP(app_setup))
+	setup_proc = kno_get(result,app_setup,KNO_VOID);}
     if (KNO_VOIDP(main_proc)) {
       u8_log(LOG_ERROR,kno_NoHandler,"No handler for %q --- %q in %q",
 	     app_source,app_main,result);
@@ -479,7 +501,10 @@ int run(int argc,char **argv,lispval *args,size_t n_args)
       lispval err = kno_err(kno_BadHandler,"knox",app_path,main_proc);
       kno_decref(main_proc);
       main_proc=err;}}
-  else main_proc = kno_symeval(app_main,env);
+  else {
+    main_proc = kno_symeval(app_main,env);
+    if (KNO_SYMBOLP(app_setup)) {
+      setup_proc = kno_symeval(app_setup,env);}}
 
   if (!(KNO_ABORTP(result))) {
     if (KNO_VOIDP(main_proc)) {
@@ -502,9 +527,22 @@ int run(int argc,char **argv,lispval *args,size_t n_args)
     else if (KNO_ABORTED(main_proc))
       result = kno_incref(main_proc); /* Probably not necessary */
     else if (KNO_APPLICABLEP(main_proc)) {
-      if (u8run_jobid) u8run_set_status("knox");
-      kno_decref(result);
-      result = kno_apply(main_proc,n_args,args);}
+      lispval setup_result = KNO_VOID;
+      if (KNO_APPLICABLEP(setup_proc)) {
+	if (u8run_jobid)
+	  u8run_set_status((is_knapp) ? ("knapp.setup") : ("knox.setup"));
+	setup_result = kno_apply(setup_proc,n_args,args);}
+      else if (KNO_ABORTED(setup_proc))
+	setup_result=setup_proc;
+      else if ( (KNO_VOIDP(setup_proc)) || (KNO_EMPTYP(setup_proc)) ||
+		(KNO_FALSEP(setup_proc)) ) {}
+      else setup_result=kno_err
+	     ("BadSetup","main()",KNO_SYMBOL_NAME(app_setup),setup_proc);
+      if (!(KNO_ABORTED(setup_result))) {
+	if (u8run_jobid)
+	  u8run_set_status((is_knapp) ? ("knapp") : ("knox"));
+	kno_decref(result);
+	result = kno_apply(main_proc,n_args,args);}}
     else {
       u8_log(LOGWARN,"BadMain",
 	     "The main procedure for %s (%q) isn't applicable",
@@ -533,6 +571,7 @@ int run(int argc,char **argv,lispval *args,size_t n_args)
 
   if ( ! kno_fast_exit ) {
     kno_decref(result);
+    kno_decref(setup_proc);
     kno_decref(main_proc);}
 
   /* Run registered thread cleanup handlers.
@@ -550,6 +589,7 @@ int main(int argc,char **argv)
 
   u8_log_show_procinfo=1;
   app_main = real_main = kno_intern("main");
+  app_setup = kno_intern("main.setup");
   kno_main_errno_ptr = &errno;
 
   KNO_INIT_STACK_ROOT();

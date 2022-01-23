@@ -220,7 +220,7 @@ static kno_pool open_bigpool(u8_string fname,kno_storage_flags open_flags,
   lispval label;
   struct KNO_BIGPOOL *pool = u8_alloc(struct KNO_BIGPOOL);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
-  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
+  if ( (read_only == 0) && (kno_check_rollbacks) && (u8_file_writablep(fname)) ) {
     if (kno_check_rollback("open_hashindex",fname)<0) {
       /* If we can't apply the rollback, open the file read-only */
       u8_log(LOG_WARN,"RollbackFailed",
@@ -1377,7 +1377,7 @@ static int write_bigpool_load(kno_bigpool bp,
   load = kno_read_4bytes_at(stream,16,KNO_ISLOCKED);
   if (load<0) {
     return -1;}
-  else if (new_load>load) {
+  else if (new_load!=load) {
     int rv = kno_write_4bytes_at(stream,new_load,16);
     if (rv<0) return rv;
     bp->pool_load = new_load;

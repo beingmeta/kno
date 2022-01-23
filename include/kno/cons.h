@@ -136,12 +136,14 @@ KNO_EXPORT void _KNO_SET_REFCOUNT(void *vptr,unsigned int count);
 #if KNO_INLINE_REFCOUNTS
 #define KNO_INIT_CONS(ptr,type)				\
   ((kno_raw_cons)ptr)->conshead = (KNO_HEAD_INIT(type))
-#define KNO_INIT_FRESH_CONS(ptr,type)		\
+#define KNO_INIT_FRESH_CONS(ptr,type)			\
+  KNO_NOT_NULL(ptr);					\
   memset(ptr,0,sizeof(*(ptr)));				\
   ((kno_raw_cons)ptr)->conshead = (KNO_HEAD_INIT(type))
 #define KNO_INIT_STACK_CONS(ptr,type)				\
   ((kno_raw_cons)ptr)->conshead = (KNO_STATIC_INIT(type))
-#define KNO_INIT_STATIC_CONS(ptr,type)		\
+#define KNO_INIT_STATIC_CONS(ptr,type)				\
+  KNO_NOT_NULL(ptr);						\
   memset(ptr,0,sizeof(*(ptr)));					\
   ((kno_raw_cons)ptr)->conshead = (KNO_STATIC_INIT(type))
 #else

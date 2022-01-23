@@ -227,6 +227,8 @@ typedef struct KNO_POOL_COMMITS {
 
 /* Pool handlers */
 
+#define KNO_POOL_READONLYP(p) ( ((p)->pool_flags) & (KNO_STORAGE_READ_ONLY) )
+
 typedef struct KNO_POOL_HANDLER {
   u8_string name; int version, length, n_handlers;
   struct KNO_TYPEINFO *typeinfo;

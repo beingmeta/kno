@@ -1,0 +1,76 @@
+CONTRIBS=@CONTRIBS@
+ALLCONTRIBS=@ALLCONTRIBS@
+shared_suffix=@shared_suffix@
+KNO_BRANCH=@KNO_BRANCH@
+BRANCH=$(cat .branch 2>/dev/null||echo ${KNO_BRANCH})
+
+%/.git:
+	@git clone git@github.com:beingmeta/kno-$(@D).git $(@D)
+	@cd $(@D); git checkout ${BRANCH} || git checkout main;
+	./linkmod $(@D) 
+
+%.@shared_suffix@: %.c
+	cd $(@D); make
+
+%/built: % %/makefile
+	(cd $(@D); make) && touch $@
+
+hyphenate hunspell leveldb rocksdb mongodb mariadb odbc nng zeromq archivetools \
+	sundown tidy ziptools postgres imagetools dataimport mod_knocgi:
+	make $@/.git
+
+# Utility targets
+
+default help:
+	@echo "make checkout to checkout sources"
+	@echo "make *dir*/built to build the module in *dir*"
+	@echo "make all to build all contrib modules"
+
+checkout contribs: ${CONTRIBS}
+allcontribs: ${ALLCONTRIBS}
+
+all:
+	for mod in ${CONTRIBS}; do make $${mod}/built; done
+
+commit:
+	if [ ! -z "${MSG}" ]; then \
+	  for dir in *; do if [ -d $${dir}/.git ]; then \
+	    ("cd" ${dir}; git commit --all -m "$${MSG}"); fi; \
+	  done; \
+	else echo "No MSG specified"; fi
+
+status:
+	./mapgit status -suno
+diff:
+	./mapgit diff
+
+build: contribs
+	./domake ${CONTRIBS}
+testbuild: contribs
+	./submake ${CONTRIBS}
+fresh: contribs
+	./domake ${CONTRIBS} fresh
+clean: contribs
+	./domake ${CONTRIBS} clean
+install: contribs
+	./domake ${CONTRIBS} install
+
+push:
+	./mapgit push
+
+.PHONY: contribs build fresh clean install testbuild
+
+# Making symlinks
+
+symlinks: ${CONTRIBS}
+	@for modname in ${CONTRIBS}; do ./linkmod $${modname} ..; done
+
+.PHONY: symlinks
+
+# Custom checkout/link rules
+
+mod_knocgi: mod_knocgi/.git
+mod_knocgi/.git:
+	git clone git@github.com:beingmeta/$(@D).git $(@D)
+	cd $(@D); git checkout ${BRANCH};
+

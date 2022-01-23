@@ -11,6 +11,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/numbers.h"
+#include "kno/tables.h"
 #include "kno/apply.h"
 #include "kno/storage.h"
 #include "kno/pools.h"
@@ -119,7 +120,7 @@ static int stringvec_len(char **vec)
   return scan-vec;
 }
 
-static int default_subproc_loglevel = LOG_WARN;
+static int default_subproc_loglevel = LOG_INFO;
 
 #define ARG_ESCAPE_SCHEME 1
 #define ARG_ESCAPE_CONFIGS 2
@@ -204,7 +205,9 @@ static void finish_subproc(struct KNO_SUBPROC *p)
 	else errfilename = KNO_CSTRING(err);}
       else if (KNO_TYPEP(err,kno_ioport_type)) {}
       else NO_ELSE;
-      int loglevel  = (normal_exit) ? (p->proc_loglevel) : (LOGERR) ;
+      int loglevel  = (normal_exit) ? 
+	( (p->proc_loglevel>=0) ? (p->proc_loglevel) : (default_subproc_loglevel) ) :
+	(LOGERR);
       if (WIFEXITED(status))
 	u8_log(loglevel,"SubprocFinished","PID=%lld %s status=%d %s%s%s%s",
 	       (long long)(p->proc_pid),p->proc_id,WEXITSTATUS(status),
@@ -686,7 +689,8 @@ static lispval proc_run_prim(int n,kno_argvec args)
   else if (KNO_STRINGP(outfile)) {
     u8_string use_file = u8_abspath(KNO_CSTRING(outfile),out_dir);
     kno_decref(outfile); outfile = kno_init_string(NULL,-1,use_file);
-    int new_stdout = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDOUT_FILE_MODE);
+    int new_stdout = u8_open_fd
+      (use_file,O_WRONLY|O_APPEND|O_CREAT,STDOUT_FILE_MODE);
     if (new_stdout<0) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,"Couldn't open %s as stdout (%s:%s)",
@@ -709,7 +713,8 @@ static lispval proc_run_prim(int n,kno_argvec args)
   else if (KNO_STRINGP(errfile)) {
     u8_string use_file = u8_abspath(KNO_CSTRING(errfile),out_dir);
     kno_decref(errfile); errfile = kno_init_string(NULL,-1,use_file);
-    int new_stderr = u8_open_fd(use_file,O_WRONLY|O_CREAT,STDERR_FILE_MODE);
+    int new_stderr =
+      u8_open_fd(use_file,O_WRONLY|O_APPEND|O_CREAT,STDERR_FILE_MODE);
     if (new_stderr<0) {
       u8_exception ex = u8_current_exception;
       u8_log(LOGCRIT,"Couldn't open %s as stderr (%s:%s)",
@@ -731,7 +736,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
     else err = errpipe;}
 
   lispval wait_opt = kno_getopt(opts,KNOSYM(wait),KNO_FALSE);
-  int nofork = flags&(KNO_NO_FORK);
+   int nofork = flags&(KNO_NO_FORK);
   pid_t pid = (nofork) ? (0) : (fork());
 
   /* Once we have a PID, we can generate stdout/stderr files with the
@@ -808,7 +813,7 @@ static lispval proc_run_prim(int n,kno_argvec args)
       int rv = waitpid(pid,&status,0);
       if (rv>=0) subproc->proc_status = status;
       if (rv<0) {
-	lispval err = kno_err("WaitFailed","proc_run",progname,result);
+	lispval err = kno_err("WaitFailed","proc_run",subproc->proc_id,result);
 	kno_decref(result);
 	result=err;}
       else if ( (WIFEXITED(status)) || (WIFSIGNALED(status)) )
@@ -817,7 +822,8 @@ static lispval proc_run_prim(int n,kno_argvec args)
     errno = 0;}
   else {
     int err = errno; errno=0;
-    result = kno_err(u8_strerror(err),"proc_run/wait",progname,KNO_VOID);}
+    result = kno_err(u8_strerror(err),"proc_run/wait",idstring,KNO_VOID);
+    u8_free(idstring); idstring=NULL;}
 
   /* Clean up any sockets we created */
   /* pair[0] is the read end, pair[1] is the write end */
@@ -843,7 +849,8 @@ static lispval proc_run_prim(int n,kno_argvec args)
   if (KNO_ABORTED(result)) {
     if (cprogname) u8_free(cprogname);}
   if (out_dir) u8_free(out_dir);
-  if (idbase) u8_free(idbase); idbase=NULL;
+  if (idbase) u8_free(idbase);
+  idbase=NULL;
   /* free_stringvec(argv); free_stringvec(envp); */
   kno_decref(infile);
   kno_decref(outfile);
@@ -1201,6 +1208,9 @@ DEFC_PRIM("exit",exit_prim,
 static lispval exit_prim(lispval arg)
 {
   pid_t main_thread = getpid();
+  if (KNO_FIXNUMP(arg)) {
+    int val = KNO_FIX2INT(arg);
+    exit(val);}
   int rv = kill(main_thread,SIGTERM);
   if (rv<0)
     return kno_err("ExitFailed","exit_prim",NULL,VOID);
@@ -1505,6 +1515,14 @@ static lispval proc_stoppedp(lispval arg)
   else return kno_err("NotAProc","proc/running?",NULL,arg);
 }
 
+DEFC_PRIM("all-subprocs",all_subprocs,
+	  KNO_MAX_ARGS(0)|KNO_MIN_ARGS(0),
+	  "Returns a choice of all recorded subpcos")
+static lispval all_subprocs()
+{
+  return kno_hashtable_values(proctable);
+}
+
 /* SUBPROC object */
 
 static lispval cons_subproc(pid_t pid,u8_string id,
@@ -1522,7 +1540,7 @@ static lispval cons_subproc(pid_t pid,u8_string id,
   proc->proc_id = id;
   proc->proc_pid = pid;
   proc->proc_status = 0;
-  proc->proc_loglevel = -1;
+  proc->proc_loglevel = loglevel;
   proc->proc_progname = cprogname;
   proc->proc_argv = argv;
   proc->proc_envp = envp;
@@ -1645,7 +1663,7 @@ KNO_EXPORT void kno_init_procprims_c()
 
 static void link_local_cprims()
 {
-  KNO_LINK_CPRIMN("proc/run",proc_run_prim,procprims_module);
+  KNO_LINK_CPRIMN("%proc/run",proc_run_prim,procprims_module);
   KNO_LINK_CPRIM("proc-pid",proc_pid,1,procprims_module);
   KNO_LINK_CPRIM("proc-id",proc_idstring,1,procprims_module);
   KNO_LINK_CPRIM("proc-progname",proc_progname,1,procprims_module);
@@ -1676,4 +1694,6 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("proc/status",proc_status,1,procprims_module);
   KNO_LINK_CPRIM("proc/info",proc_info,1,procprims_module);
   KNO_LINK_CPRIM("proc/wait",proc_wait,1,procprims_module);
+
+  KNO_LINK_CPRIM("all-subprocs",all_subprocs,0,procprims_module);
 }

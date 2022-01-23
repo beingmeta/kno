@@ -157,7 +157,7 @@ static int write_file_pool_load(kno_file_pool fp)
   else if (load>fp->pool_capacity) {
     u8_seterr("InvalidLoad","write_file_pool_load",u8_strdup(fp->poolid));
     return -1;}
-  else if (fp->pool_load>load) {
+  else if (fp->pool_load!=load) {
     int rv = kno_write_4bytes_at(stream,fp->pool_load,16);
     if (rv<0) return rv;
     return 1;}

@@ -5,7 +5,7 @@
 (module-export! '{packindex main})
 
 (use-module '{varconfig logger text/stringfmts optimize kno/mttools})
-(use-module '{knodb/indexes})
+(use-module '{knodb/filenames knodb/indexes})
 
 (define-init %loglevel (config 'loglevel %notice%))
 (define %optmods '{knodb/actions/packindex
@@ -24,7 +24,7 @@
 	  (parse-arg arg)
 	  (string->symbol (downcase arg)))))
 
-(define (overwriting file)
+(define (overwriting file (opts #f))
   (when (file-exists? (glom file ".part"))
     (remove-file (glom file ".part")))
   (when (file-exists? file)
@@ -33,13 +33,11 @@
 	   (logwarn |FileExists| "Removed existing file " (write file)))
 	  (else
 	   (onerror
-	       (move-file! file (glom file ".bak"))
+	       (knodb/backup! file opts)
 	       (lambda (ex)
 		 (logwarn |FileExists|
-		   "Couldn't back up " file " to " (glom file ".bak"))
-		 (exit)))
-	   (logwarn |FileExists|
-	     "Moved existing file " file " " "to " (glom file ".bak"))))))
+		   "Couldn't back up " file " to " bakfile)
+		 (exit)))))))
 
 (define (get-new-type old opts)
   (getopt opts 'type
@@ -55,7 +53,7 @@
 (define (do-packindex in out)
   (let* ((overwrite (config 'overwrite #f config:boolean))
 	 (restart (config 'restart #f config:boolean))
-	 (input (open-index in #[register #f]))
+	 (input (open-index in #[register #f shared #f]))
 	 (newtype (get-new-type input #f))
 	 (keyslot (->slotid (or (config 'keyslot)
 				(indexctl input 'keyslot))))
@@ -65,6 +63,8 @@
 		 'keyslot (tryif keyslot keyslot)
 		 'mincount (config 'mincount {})
 		 'maxcount (config 'maxcount {})
+		 'checksync (config 'checksync (config 'checklimit 20))
+		 'backup (config 'backup {})
 		 'slotids 
 		 (tryif (and newtype 
 			     (equal? (downcase newtype) "hashindex")
@@ -92,7 +92,7 @@
 		    "Specify RESTART=yes to remove.")
 		  (exit))))
     (when (and overwrite (getopt opts 'tailfile))
-      (overwriting (getopt opts 'tailfile)))
+      (overwriting (getopt opts 'tailfile) opts))
     (config! 'appid (glom "pack(" (basename in) ")"))
     (unless (index/pack! in out opts)
       (error "Pack index failed"))))

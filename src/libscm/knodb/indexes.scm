@@ -5,7 +5,7 @@
 (in-module 'knodb/indexes)
 
 (use-module '{fifo engine text/stringfmts logger varconfig})
-(use-module '{knodb/hashindexes})
+(use-module '{knodb/hashindexes knodb/filenames})
 
 (define-init %loglevel %notice%)
 
@@ -56,7 +56,7 @@
 	 (ok #f))
     (onerror (begin (copier in out #f) (set! ok #t)))
     (when ok
-      (index/install! out outfile))
+      (index/install! out outfile opts))
     ok))
 
 (define (merge-index in out (opts #f) (tail) (mincount))
@@ -117,24 +117,15 @@
 			  maxcount ,(getopt opts 'mincount)]))
     (when ok
       ;; Handle copying of any files in temporary locations
-      (index/install! out outfile)
-      (when tail (index/install! tail tailfile)))
+      (index/install! out outfile opts)
+      (when tail (index/install! tail tailfile opts)))
     ok))
 
-(define (index/install! index file)
+(define (index/install! index file (opts #f))
   (logdebug |Index/Install| index " ==> " file)
   (close-index index)
   (unless (equal? (realpath (index-source index)) (realpath file))
-    (when (file-exists? file)
-      (if (config 'unsafe #f)
-	  (remove-file file)
-	  (move-file! file (glom file ".bak"))))
-    (onerror
-	(move-file! (index-source index) file)
-	(lambda (x)
-	  (logwarn |RenameFailed|
-	    "Couldn't rename " (index-source index) " to " file ", using shell")
-	  (exec/cmd "mv" (index-source index) file)))))
+    (knodb/install! (index-source index) file opts)))
 
 ;;;; Support functions
 
@@ -177,10 +168,14 @@
       (let* ((n-keys (indexctl old 'keycount))
 	     (size (getopt opts 'newsize (get-new-size old opts)))
 	     (type (get-new-type old opts))
+	     (metadata (indexctl old '%metadata))
 	     (new-opts (frame-create #f
 			 'type type 'size size
 			 'register (getopt opts 'register #t)
-			 'keyslot (indexctl old 'metadata 'keyslot)))
+			 'keyslot (indexctl old 'metadata 'keyslot)
+			 'metadata metadata
+			 ;; Don't use rollbacks because you don't need them (and they might be big)
+			 'rollback #f))
 	     (new (make-index (glom filename ".part") (cons new-opts opts))))
 	(logwarn |NewIndex|
 	  "Created new " type " " filename "(.part) "

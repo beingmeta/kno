@@ -28,7 +28,6 @@
 	 (results (getopt opts 'results (make-hashset)))
 	 (fifo (->fifo choices opts))
 	 (threads {}))
-    (%watch fifo)
     (cond ((not n-threads) (set! n-threads 1))
 	  ((> n-threads (|| choices)) (set! n-threads (|| choices)))
 	  ((not (number? n-threads)) (set! n-threads (threadcount #t))))

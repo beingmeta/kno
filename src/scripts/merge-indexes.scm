@@ -33,7 +33,7 @@
 	  (string->symbol (downcase arg)))))
 
 (define (temp-index file)
-  (open-index file #[register #f cachelevel 1]))
+  (open-index file #[register #f shared #f cachelevel 1]))
 
 (define (make-opts outfile in)
   (let* ((out (and (file-exists? outfile) (temp-index outfile)))

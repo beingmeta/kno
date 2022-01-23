@@ -110,6 +110,27 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   else return result;
 }
 
+DEFC_PRIM("config/defined?",config_definedp,
+	  KNO_MAX_ARGS(1)|KNO_NDCALL,
+	  "Gets the configuration setting named *name*, "
+	  "returning *default* if it isn't defined. *valfn*, "
+	  "if provided is either a function to call on the "
+	  "retrieved value or #t to indicate that string "
+	  "values should be parsed as lisp",
+	  {"vars",kno_any_type,KNO_VOID})
+static lispval config_definedp(lispval vars)
+{
+  KNO_DO_CHOICES(var,vars) {
+    if (KNO_SYMBOLP(var)) {
+      if (kno_config_probe(KNO_SYMBOL_NAME(var)))
+	return var;}
+    else if (KNO_STRINGP(var)) {
+      if (kno_config_probe(KNO_CSTRING(var)))
+	return kno_incref(var);}
+    else NO_ELSE;}
+  return KNO_FALSE;
+}
+
 DEFC_EVALFN("#CONFIG",config_read_macro,KNO_EVALFN_DEFAULTS,
 	    "This handles the read macro expansion for `#:CONFIG...` "
 	    "by taking the first argument, without evaluation, as "
@@ -393,6 +414,26 @@ static int reuse_lconfig(struct KNO_CONFIG_HANDLER *e){
     return 1;}
   else return 0;}
 
+DEFC_PRIM("config-alias!",config_def_alias,
+	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(2),
+	  "Makes *target* an alias for the config handler for *source*",
+	  {"target",kno_any_type,KNO_VOID},
+	  {"source",kno_any_type,KNO_VOID})
+static lispval config_def_alias(lispval target,lispval source)
+{
+  u8_string tname, sname;
+  if (SYMBOLP(target)) tname = KNO_SYMBOL_NAME(target);
+  else if (STRINGP(target)) tname = KNO_CSTRING(target);
+  else return kno_err(kno_TypeError,"config_def_alias","string or symbol",target);
+  if (SYMBOLP(source)) sname = KNO_SYMBOL_NAME(source);
+  else if (STRINGP(source)) sname = KNO_CSTRING(source);
+  else return kno_err(kno_TypeError,"config_def_alias","string or symbol",source);
+  int rv = kno_register_config_handler_alias(sname,tname);
+  if (rv<0) return KNO_ERROR;
+  else if (rv) return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 /* From Scheme */
 
 DEFC_PRIM("load-config",lisp_load_config,
@@ -490,6 +531,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("config-default!",set_default_config,2,scheme_module);
   KNO_LINK_CPRIMN("config!",set_config,scheme_module);
   KNO_LINK_CPRIM("config",config_get,3,scheme_module);
+  KNO_LINK_CPRIM("config/defined?",config_definedp,1,scheme_module);
+
+  KNO_LINK_CPRIM("config-alias!",config_def_alias,2,scheme_module);
 
   KNO_LINK_ALIAS("config?",find_configs,scheme_module);
 }

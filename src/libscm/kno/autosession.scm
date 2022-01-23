@@ -8,7 +8,8 @@
 
 (unless (or *session* (config 'quick)
 	    (not (config 'autosession #t config:boolean)))
-  (cond ((file-directory? (abspath ".knoc"))
+  (cond ((config 'session))
+	((file-directory? (abspath ".knoc"))
 	 (config! 'session (abspath ".knoc")))
 	((file-directory? (abspath "_knoc"))
 	 (config! 'session (abspath "_knoc")))))

@@ -53,7 +53,7 @@
 (defambda (mt/call opts fcn . args)
   (let* ((results {})
 	 (add-result (lambda (arg) (set+! results arg)))
-	 (fifo.threads (apply fifo/call [results add-result] fcn args)))
+	 (fifo.threads (apply fifo/call (opt+ [results add-result] opts) fcn args)))
     (thread/wait (cdr fifo.threads))
     results))
 

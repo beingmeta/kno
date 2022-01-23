@@ -49,6 +49,8 @@ static void truncate_failed(int fileno,u8_string file)
 }
 
 
+DEF_KNOSYM(getmap);
+
 /* The in-memory index */
 
 static lispval logindex_fetch(kno_index ix,lispval key)
@@ -333,7 +335,7 @@ static lispval logindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     if (logx->logx_loaded)
       return KNO_INT(3);
     else return KNO_INT(0);}
-  else if (op == kno_getmap_op) {
+  else if (op == KNOSYM(getmap)) {
     if (logx->logx_loaded==0) load_logindex(logx);
     return (lispval) kno_copy_hashtable(NULL,&(logx->logx_map),1);}
   else if (op == kno_preload_op) {

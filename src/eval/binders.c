@@ -76,7 +76,9 @@ static lispval assign_plus_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
     return kno_bad_arg(value,"assign_plus_evalfn",val_expr);
   else if (kno_add_value(var,value,env)>0) {}
   else if (kno_bind_value(var,value,env)>=0) {}
-  else return KNO_ERROR;
+  else {
+    kno_decref(value);
+    return KNO_ERROR;}
   kno_decref(value);
   return VOID;
 }
@@ -159,6 +161,7 @@ static lispval locals_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if ( (env_copy == NULL) && (env->env_copy) &&
 	   (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
 	return KNO_ERROR;
+      if (vals[off]) kno_decref(vals[off]);
       vals[off]=val;}
     else if (KNO_PAIRP(head)) {
       lispval scan = head;

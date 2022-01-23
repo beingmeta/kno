@@ -1,5 +1,5 @@
-source @abs_top_srcdir@/etc/gdbinit
-directory @abs_top_srcdir@:@abs_top_srcdir@/../libu8@extra_gdb_sources@
+source ../etc/gdbinit
+directory ..:@abs_top_srcdir@:@abs_top_srcdir@/../libu8@extra_gdb_sources@
 set env DYLD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env LD_LIBRARY_PATH @abs_top_srcdir@/lib
 set env KNO_INIT_DLOADPATH @abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@

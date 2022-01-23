@@ -72,6 +72,7 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_probe_typeinfo(lispval tag)
   else return NULL;
 }
 
+/* This returns or creates a typeinfo entry for *tag* */
 KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
 {
   if (RARELY( (KNO_TYPEP(tag,kno_ctype_type)) &&
@@ -118,7 +119,24 @@ KNO_EXPORT struct KNO_TYPEINFO *kno_use_typeinfo(lispval tag)
 	if (KNO_TYPEP(useval,kno_typeinfo_type))
 	  return (kno_typeinfo) useval;
 	else return NULL;}}}
+  else if ( (KNO_OIDP(exists)) || (KNO_SYMBOLP(exists)) || (KNO_CTYPEP(exists)) )
+    return kno_use_typeinfo(exists);
   else return (kno_typeinfo) exists;
+}
+
+KNO_EXPORT struct KNO_TYPEINFO *kno_alias_typeinfo(lispval alias_tag,lispval base_tag)
+{
+  struct KNO_TYPEINFO *base = kno_use_typeinfo(base_tag);
+  lispval exists = (KNO_TYPEP(alias_tag,kno_ctype_type)) ? (getctypeinfo(alias_tag)) :
+    (kno_hashtable_get(&typeinfo,alias_tag,KNO_VOID));
+  if (KNO_VOIDP(exists)) {
+    kno_hashtable_store(&typeinfo,alias_tag,base_tag);
+    return base;}
+  else {
+    u8_log(LOG_ERR,"TypeAliasConflict",
+	   "The type %q is already defined as %q, not %q",
+	   alias_tag,exists,base_tag);
+    return NULL;}
 }
 
 static void recycle_typeinfo(struct KNO_RAW_CONS *c)

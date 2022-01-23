@@ -16,7 +16,8 @@
 (varconfig! kno/state:format default-format)
 
 (define (docopy from to)
-  (proc/open "cp" [lookup #t wait #t] from to))
+  (onerror (proc/open "cp" [lookup #t wait #t] from to)
+      (lambda (ex) (logerr |CopyFailed| "Couldn't copy " from " to " to))))
 
 (define (statefile/read file (opts #f) (format) (generator))
   (when (overlaps? opts '{xtype dtype lisp json})

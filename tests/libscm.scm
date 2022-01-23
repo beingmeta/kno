@@ -16,6 +16,7 @@
 		 knodb/hashindexes knodb/indexes
 		 knodb/kb knodb/registry knodb/typeindex
 		 knodb/actions/packpool knodb/actions/packindex knodb/actions/pack
+		 knodb/actions/flexpack knodb/actions/splitindex knodb/actions/pack
 		 ;; Kind of legacy
 		 knodb/slotindex knodb/splitpool
 		 sqldb/oids})

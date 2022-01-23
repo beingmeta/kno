@@ -20,7 +20,7 @@
 (define-init kno-root "/src/kno/")
 
 (define-init source-roots
-  {kno-root (getdirs (mkpath kno-root "src/extmods/"))})
+  {kno-root (getdirs (mkpath kno-root "contrib/"))})
 (define-init source-sigs (make-hashtable))
 
 (define (getsourcepath path)

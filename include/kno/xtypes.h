@@ -16,6 +16,10 @@
 #define KNO_INLINE_XTYPE_REFS 0
 #endif
 
+#ifndef KNO_CHECK_XTYPE_OUTLEN
+#define KNO_CHECK_XTYPE_OUTLEN 0
+#endif
+
 /* DTYPE constants */
 
 #define XT_SCALAR(n)   ((n)+0x80)

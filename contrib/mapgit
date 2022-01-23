@@ -1,6 +1,6 @@
 #!/bin/sh
-EXTMODS=$(cat ./extmods 2>/dev/null)
-for dir in ${EXTMODS}; do
+CONTRIBS=$(cat ./ENABLED 2>/dev/null)
+for dir in ${CONTRIBS}; do
     if [ -f ${dir}/.skip ]; then
 	:;
     elif [ -d ${dir}/.git ]; then

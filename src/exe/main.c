@@ -16,7 +16,8 @@ void write_cmd_file(u8_string cmd_file,u8_condition label,int argc,char **argv)
   while (i<argc) {
     char *arg = argv[i];
     u8_string argstring = u8_fromlibc(arg);
-    if (i>0) u8_putc(&out,' '); i++;
+    if (i>0) u8_putc(&out,' ');
+    i++;
     if (need_escape(argstring)) {
       u8_string scan = argstring;
       int c = u8_sgetc(&scan); u8_putc(&out,'"');

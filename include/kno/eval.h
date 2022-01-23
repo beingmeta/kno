@@ -422,17 +422,59 @@ typedef struct KNO_CONTINUATION *kno_continuation;
 
 /* Delays */
 
+enum KNO_PROMISE_TYPEVAL
+  { kno_bad_promise=0, kno_eval_promise=1, kno_apply_promise=2, kno_async_promise=3 };
+
 typedef struct KNO_PROMISE {
-  KNO_CONS_HEADER;
-  lispval promise_expr;
-  kno_lexenv promise_env;
-  u8_mutex promise_lock;
-  int promise_broken;
+  KNO_ANNOTATED_HEADER;
+  int promise_bits;
   lispval promise_value;
-  lispval promise_consumers;} KNO_PROMISE;
+  lispval promise_callbacks;
+  u8_mutex promise_lock;
+  u8_condvar promise_condition;
+  time_t promise_updated;
+  union {
+    struct {
+      lispval expr;
+      kno_lexenv env;} eval;
+    struct {
+      lispval fcn;
+      lispval *args;
+      int n_args;} apply;
+    struct {
+      lispval source;
+      lispval task;
+      lispval fallback;} async;}
+    promise_body;} KNO_PROMISE;
 typedef struct KNO_PROMISE *kno_promise;
 
+#define KNO_PROMISE_TYPEMASK   0x0003
+
+#define KNO_PROMISE_TYPEOF(p) \
+  ((enum KNO_PROMISE_TYPEVAL)(((p)->promise_bits)&(KNO_PROMISE_TYPEMASK)))
+#define KNO_PROMISE_TYPEP(p,pt)						\
+  (((enum KNO_PROMISE_TYPEVAL)(((p)->promise_bits)&(KNO_PROMISE_TYPEMASK)))==(pt))
+
+#define KNO_PROMISE_FINAL      0x0004
+#define KNO_PROMISE_BROKEN     0x0008
+#define KNO_PROMISE_PARTIAL    0x0010
+/* 'Ignores' errors */
+#define KNO_PROMISE_ROBUST     0x0020
+
+#define KNO_PROMISE_RESOLVEDP(p) (((p)->promise_value)!=(KNO_NULL))
+
+#define KNO_PROMISE_FINALP(p)    (((p)->promise_bits)&(KNO_PROMISE_FINAL))
+#define KNO_PROMISE_BROKENP(p)   (((p)->promise_bits)&(KNO_PROMISE_BROKEN))
+#define KNO_PROMISE_PARTIALP(p)  (((p)->promise_bits)&(KNO_PROMISE_PARTIAL))
+#define KNO_PROMISE_ROBUSTP(p)   (((p)->promise_bits)&(KNO_PROMISE_ROBUST))
+
+#define KNO_PROMISE_SET(p,flag) (p)->promise_bits |= (flag)
+#define KNO_PROMISE_CLEAR(p,flag) (p)->promise_bits &= (~(flag))
+
 KNO_EXPORT lispval kno_force_promise(lispval promise);
+KNO_EXPORT struct KNO_PROMISE *kno_init_promise
+(struct KNO_PROMISE *promise,enum KNO_PROMISE_TYPEVAL type,int flags);
+KNO_EXPORT int kno_promise_resolve(kno_promise p,lispval value,int flags);
 
 /* Basic thread eval/apply functions */
 
@@ -457,6 +499,21 @@ KNO_EXPORT int kno_dump_bug(lispval ex,u8_string dir);
 KNO_EXPORT int kno_record_bug(lispval ex);
 
 KNO_EXPORT u8_string kno_bugdir;
+
+/* Declaring watched evalfns */
+
+#define KNO_DECL_WRAP(name)			\
+  KNO_EXPORT int _kno_in_ ## name;		\
+  KNO_EXPORT lispval _kno_ ## name		\
+  (lispval expr,kno_lexenv env,kno_stack s)
+
+KNO_DECL_WRAP(wrap1);
+KNO_DECL_WRAP(wrap2);
+KNO_DECL_WRAP(wrap3);
+KNO_DECL_WRAP(wrap4);
+KNO_DECL_WRAP(wrap5);
+KNO_DECL_WRAP(wrap6);
+KNO_DECL_WRAP(wrap7);
 
 /* Aliases in KNO_SOURCE */
 

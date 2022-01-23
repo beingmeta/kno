@@ -30,7 +30,7 @@
 	   (logerr |UnknownCommand| op ", the module " modname " doesn't define (main)"))
 	  (else (loginfo |UsingModule| usemain " in " module " from " (get-source module))
 		;; Pass loglevel to module
-		(logctl! module %loglevel)
+		(logctl! module %loglevel 'quiet)
 		(optimize*! module)
 		(apply usemain args)))))
 

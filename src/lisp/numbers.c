@@ -46,6 +46,8 @@
 #define _FILEINFO __FILE__
 #endif
 
+#define U8_INLINE_IO 1
+
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/xtypes.h"
@@ -4057,12 +4059,14 @@ int kno_output_number(u8_output out,lispval num,int base,int sep)
     return 1;}
   else if (FIXNUMP(num)) {
     char buf[64];
-    long long fixnum = FIX2INT(num);
+    long long fixnum = FIX2INT(num), negative = 0;
+    if (fixnum<0) {negative=1; fixnum=-fixnum;}
     u8_string digits = write_fixnum_helper
       (fixnum,buf,base,"0123456789",
        10000000000000000000ULL,sep);
     int place = strlen(digits);
     u8_string scan = digits;
+    if (negative) u8_putc(out,'-');
     while (*scan) {
       if ( (scan>digits) && ((place%3)==0) ) u8_putc(out,sep);
       u8_putc(out,*scan);

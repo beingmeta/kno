@@ -4,11 +4,12 @@
 
 (in-module 'knodb/hashindexes)
 
-(use-module '{reflection logger logctl text/stringfmts kno/mttools fifo engine})
+(use-module '{reflection logger logctl text/stringfmts kno/mttools fifo varconfig engine})
 
 (module-export! '{hashindex/mapkeys
 		  hashindex/counts
 		  hashindex/histogram
+		  hashindex/slotcounts
 		  hashindex/repack!
 		  hashindex/copy-keys!
 		  hashindex/repack-keys
@@ -21,6 +22,9 @@
 (define %loglevel %info%)
 
 (define %optmods '{kno/mttools fifo engine})
+
+(define default-maxchanges 1_000_000)
+(varconfig! knodb:indexop:maxchanges default-maxchanges)
 
 ;;; Mapping over buckets in a hashindex
 
@@ -56,6 +60,18 @@
 
 (define (hashindex/histogram index (opts #f) (table (make-hashtable)))
   (hashindex/mapkeys update-histogram index `#[loop #[histogram ,table]])
+  table)
+
+(define (update-slotcounts span batch-state loop-state task-state)
+  (let* ((index (get loop-state 'index))
+	 (histogram (get loop-state 'histogram))
+	 (info (indexctl index 'buckets (car span) (cdr span))))
+    (do-choices (keyinfo info)
+      (when (pair? (get keyinfo 'key))
+	(hashtable-increment! histogram (car (get keyinfo 'key)) (get keyinfo 'count))))))
+
+(define (hashindex/slotcounts index (opts #f) (table (make-hashtable)))
+  (hashindex/mapkeys update-slotcounts index `#[loop #[histogram ,table]])
   table)
 
 (define (partition-keys span batch-state loop-state task-state)
@@ -140,9 +156,9 @@
   "This processes all of the source keys based on their number of values, skipping keys "
   "with either less then *mincount* or more than *maxcount* values and saving keys with fewer "
   "than *tailcount* values into a separate output table."
-  (let* ((mincount (get loop-state 'mincount))
-	 (tailcount (get loop-state 'tailcount))
-	 (maxcount (get loop-state 'maxcount))
+  (let* ((mincount (try (get loop-state 'mincount) #f))
+	 (tailcount (try (get loop-state 'tailcount) #f))
+	 (maxcount (try (get loop-state 'maxcount) #f))
 	 (tail   (try (get loop-state 'tail) #f))
 	 (input  (get loop-state 'input))
 	 (output (get loop-state 'output))
@@ -200,9 +216,9 @@
 	(while (< i len)
 	  (add! tailout (elt keyvec i) (elt keyvals i))
 	  (set! i (1+ i)))))
-    ;; (%watch output outhash)
+    ;; (always%watch output outhash)
     (index-merge! output headout)
-    ;; (%watch output (modified? output) (indexctl output 'metadata))
+    ;; (always%watch output (modified? output) (indexctl output 'metadata))
     (when tail (index-merge! tail tailout))
     (table-increment! batch-state 'keys key-count)
     (table-increment! batch-state 'drops drop-count)
@@ -240,28 +256,33 @@
 	(while (< i len)
 	  (add! outhash (elt keyvec i) (elt keyvals i))
 	  (set! i (1+ i)))))
-    ;; (%watch output outhash)
+    ;; (always%watch output outhash)
     (index-merge! output outhash)
-    ;; (%watch output (modified? output) (indexctl output 'metadata))
+    ;; (always%watch output (modified? output) (indexctl output 'metadata))
     (table-increment! batch-state 'keys key-count)
     (table-increment! batch-state 'values value-count)))
 
 (define (hashindex/copy-keys! index output opts)
+  (local mincount (getopt opts 'mincount #f))
+  (local tailcount (getopt opts 'tailcount #f))
   (let* ((started (elapsed-time))
 	 (span (getopt opts 'span 1000))
 	 (buckets (if span
 		      (get-spans (indexctl index 'hash) span)
 		      (indexctl index 'buckets)))
 	 (tail (getopt opts 'tail {}))
-	 (using-counts (or (exists? tail)
-			   (testopt opts '{maxcount mincount tailcount})))
+	 (tailcount (and (exists? tail) tail tailcount (> tailcount 1) tailcount))
+	 (mincount  (and mincount (> mincount 1) mincount))
+	 (using-counts (or (and (exists? tail) tail) tailcount mincount
+			   (testopt opts 'maxcount)))
 	 (counters
 	  (vector 'keys 'values
-		  (and (exists? tail) 'tails)
+		  (and tailcount 'tails)
 		  (and (testopt opts '{mincount maxcount}) 'drops)
 		  (and (testopt opts 'maxcount) 'tops))))
     (lognotice |Copying|
-      ($num (choice-size buckets)) 
+      ($num (dbctl index 'keycount) "keys") 
+      " across " ($num (choice-size buckets))
       (if span " bucket spans" " buckets")
       " from " (write (index-source index))
       " to " (write (index-source output)))
@@ -270,21 +291,26 @@
       `#[loop #[input ,index output ,output
 		tail ,(getopt opts 'tail)
 		maxcount ,(getopt opts 'maxcount)
-		tailcount ,(and tail (getopt opts 'maxcount))
-		mincount ,(getopt opts 'mincount)]
+		tailcount ,tailcount
+		mincount ,mincount]
 	 logcontext ,(stringout "Copying " (index-source index))
 	 count-term ,(if span "bucket span" "bucket")
 	 onerror {stopall signal}
+	 branchindexes {output ,(if tail 'tail {})}
+	 branchmerge direct
+	 checksync (getopt opts 'checksync #f)
 	 logcounters ,(remove #f counters)
 	 counters ,(difference (elts counters) #f)
 	 logrates ,(difference (elts counters) #f)
 	 batchsize ,(if span 1 (getopt opts 'batchsize (config 'BATCHSIZE 100)))
 	 batchrange ,(if span 1 (getopt opts 'batchrange (config 'BATCHRANGE 8)))
 	 nthreads ,(getopt opts 'nthreads (config 'NTHREADS (rusage 'ncpus)))
-	 checktests ,(engine/interval (getopt opts 'savefreq (config 'savefreq 60)))
+	 checktests ,{(tryif (or (testopt opts 'savefreq) (config 'savefreq))
+			(engine/interval (getopt opts 'savefreq (config 'savefreq 60))))
+		      (engine/maxchanges (getopt opts 'maxchanges default-maxchanges))}
 	 checkpoint {,output ,(or tail {})}
 	 logfreq ,(getopt opts 'logfreq (config 'LOGFREQ 30))
-	 checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 15))
+	 checkfreq ,(getopt opts 'checkfreq (config 'checkfreq 2))
 	 logchecks #t
 	 started ,started])))
 

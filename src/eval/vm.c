@@ -291,7 +291,8 @@ static lispval do_difference(lispval body,kno_lexenv env,kno_stack stack,int tai
     lispval expr = pop_arg(body);
     lispval arg = doeval(expr,env,stack,0);
     if (result == arg) {
-      kno_decref(result); kno_decref(arg);
+      kno_decref(result);
+      kno_decref(arg);
       return  KNO_EMPTY;}
     else if (KNO_ABORTED(arg)) {
       kno_decref(result);
@@ -306,18 +307,22 @@ static lispval do_difference(lispval body,kno_lexenv env,kno_stack stack,int tai
     else if (KNO_CHOICEP(result)) {
       if ( (KNO_CHOICEP(arg)) || (inchoicep(arg,(kno_choice)result)) ) {
 	lispval new_result = kno_difference(result,arg);
-	kno_decref(result); kno_decref(arg);
-	if (KNO_EMPTYP(new_result)) return new_result;
+	kno_decref(result);
+	kno_decref(arg);
+	if (KNO_EMPTYP(new_result))
+	  return new_result;
 	else result=new_result;}
       else NO_ELSE;}
     else if (CHOICEP(arg)) {
-      if (inchoicep(result,(kno_choice)arg)) {
-	/* result is in choice, so we go empty */
-	kno_decref(result); kno_decref(arg);
+      if (!(inchoicep(result,(kno_choice)arg))) {
+	/* the non-choice result is in choice, so we go empty */
+	kno_decref(result);
+	kno_decref(arg);
 	return KNO_EMPTY;}
-      else NO_ELSE;}
+      else kno_decref(arg);}
     else if (KNO_EQUALP(result,arg)) {
-      kno_decref(result); kno_decref(arg);
+      kno_decref(result);
+      kno_decref(arg);
       return KNO_EMPTY;}
     else {
       /* Doesn't change result, keep going */
@@ -770,7 +775,11 @@ static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack
 	else if ( (RARELY( (env_copy == NULL) && (env->env_copy) )) &&
 		  (RARELY((env_copy=env=copied_env(env,&vals))==NULL)) )
 		 return KNO_ERROR;
-      else vals[offset]=val;}
+	else {
+	  /* Just in case someone is sloppy with using locals */
+	  lispval cur = vals[offset];
+	  if (cur) kno_decref(cur);
+	  vals[offset]=val;}}
       else if (KNO_PAIRP(head)) {
 	lispval clause = head, var = pop_arg(clause), val_expr=pop_arg(clause);
 	lispval type = pop_arg(clause);
@@ -789,7 +798,11 @@ static lispval handle_locals_opcode(lispval expr,kno_lexenv env,kno_stack _stack
 	    u8_string details = u8_bprintf
 	      (buf,"%s != %q",lexref_name(var,env),type);
 	    return kno_err(kno_TypeError,"locals",details,val);}
-	  else vals[offset]=val;}
+	  else {
+	    /* Just in case someone is sloppy with using locals */
+	    lispval cur = vals[offset];
+	    if (cur) kno_decref(cur);
+	    vals[offset]=val;}}
 	else return kno_err("BadLexref","handle_locals_opcode",NULL,expr);}
       else return kno_err(kno_SyntaxError,"handle_locals_opcode",NULL,expr);}}
   else return kno_err
@@ -1846,7 +1859,7 @@ lispval vm_eval(lispval op,lispval expr,
 	      result = r;
 	      break;}
 	    else {KNO_ADD_TO_CHOICE(result,r);}}}
-	result = d1_call(op,arg1);}
+	else result = d1_call(op,arg1);}
       else result = d1_call(op,arg1);
       break;}
     case KNO_D2_OPCODE_CLASS: {

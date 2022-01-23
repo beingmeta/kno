@@ -651,6 +651,7 @@ KNO_EXPORT int kno_hashtable_probe(kno_hashtable ht,lispval key);
 KNO_EXPORT int kno_hashtable_probe_novoid(kno_hashtable ht,lispval key);
 
 KNO_EXPORT lispval kno_hashtable_keys(kno_hashtable ht);
+KNO_EXPORT lispval kno_hashtable_values(kno_hashtable ht);
 KNO_EXPORT struct KNO_KEYVAL *kno_hashtable_keyvals
   (kno_hashtable ht,int *sizep,int lock);
 KNO_EXPORT lispval *kno_hashtable_keyvec(struct KNO_HASHTABLE *ptr,int *len);

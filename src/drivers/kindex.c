@@ -203,6 +203,8 @@ static u8_condition BadHashFn=_("kindex has unknown hash function");
 static lispval set_symbol, drop_symbol, keycounts_symbol, created_upsym;
 static lispval slotids_symbol, baseoids_symbol, buckets_symbol, nkeys_symbol;
 
+DEF_KNOSYM(rollback);
+
 /* Utilities for XTYPE I/O */
 
 #define nobytes(in,nbytes) (RARELY(!(kno_request_bytes(in,nbytes))))
@@ -267,8 +269,8 @@ static kno_index open_kindex(u8_string fname,kno_storage_flags open_flags,
   struct KNO_KINDEX *index = u8_alloc(struct KNO_KINDEX);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
 
-  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
-    if (kno_check_rollback("open_kindex",fname)<0) {
+  if ( (read_only == 0) && (kno_check_rollbacks) && (u8_file_writablep(fname)) ) {
+    if ( (kno_check_rollback("open_kindex",fname)<0) ) {
       /* If we can't apply the rollback, open the file read-only */
       u8_log(LOG_WARN,"RollbackFailed",
 	     "Opening kindex %s as read-only due to failed rollback",
@@ -287,6 +289,13 @@ static kno_index open_kindex(u8_string fname,kno_storage_flags open_flags,
   kno_init_index((kno_index)index,&kindex_handler,
 		 fname,abspath,realpath,
 		 open_flags,KNO_VOID,opts);
+
+  if (kno_testopt(opts,KNOSYM(rollback),KNO_FALSE))
+    index->index_flags |= KNO_KINDEX_NO_ROLLBACK;
+  else if (kno_testopt(opts,KNOSYM(rollback),KNO_VOID)) {}
+  else if (u8_has_suffix(fname,".part",1))
+    index->index_flags |= KNO_KINDEX_NO_ROLLBACK;
+  else NO_ELSE;
 
   int stream_flags =
     KNO_STREAM_CAN_SEEK | KNO_STREAM_NEEDS_LOCK | KNO_STREAM_READ_ONLY;
@@ -1250,6 +1259,15 @@ static int sort_blockrefs_by_off(const void *v1,const void *v2)
   else return 0;
 }
 
+static int sort_bucket_info_by_off(const void *v1,const void *v2)
+{
+  struct KNO_BUCKET_INFO *b1 = (struct KNO_BUCKET_INFO *)v1;
+  struct KNO_BUCKET_INFO *b2 = (struct KNO_BUCKET_INFO *)v2;
+  if (b1->ref.off<b2->ref.off) return -1;
+  else if (b1->ref.off>b2->ref.off) return 1;
+  else return 0;
+}
+
 static lispval *kindex_fetchkeys(kno_index ix,int *n)
 {
   lispval *results = NULL;
@@ -1539,7 +1557,8 @@ static struct KNO_KEY_SIZE *kindex_fetchinfo(kno_index ix,kno_choice filter,int 
 }
 
 static void kindex_getstats(struct KNO_KINDEX *kx,
-			       int *nf,int *max,int *singles,int *n2sum)
+			    ssize_t *nf,ssize_t *max,
+			    ssize_t *singles,ssize_t *n2sum)
 {
   kno_stream s = &(kx->index_stream);
   kno_inbuf ins = kno_readbuf(s);
@@ -2183,9 +2202,9 @@ static int update_kindex_metadata(kno_kindex,lispval,kno_stream,kno_stream);
 static void free_keybuckets(int n,struct KEYBUCKET **keybuckets);
 
 static int kindex_save(struct KNO_KINDEX *kx,
-			 struct KNO_INDEX_COMMITS *commits,
-			 struct KNO_STREAM *stream,
-			 struct KNO_STREAM *head)
+		       struct KNO_INDEX_COMMITS *commits,
+		       struct KNO_STREAM *stream,
+		       struct KNO_STREAM *head)
 {
   struct KNO_CONST_KEYVAL *adds = commits->commit_adds;
   int n_adds = commits->commit_n_adds;
@@ -2428,7 +2447,7 @@ static void release_commit_stream(kno_index ix,struct KNO_INDEX_COMMITS *commit)
 }
 
 static int kindex_commit(kno_index ix,kno_commit_phase phase,
-			    struct KNO_INDEX_COMMITS *commits)
+			 struct KNO_INDEX_COMMITS *commits)
 {
   struct KNO_KINDEX *kx = (kno_kindex) ix;
   int ref_size = get_chunk_ref_size(kx);
@@ -2442,9 +2461,11 @@ static int kindex_commit(kno_index ix,kno_commit_phase phase,
     u8_seterr("BadCommitPhase(commit_none)","kindex_commit",
 	      u8_strdup(ix->indexid));
     return -1;
-  case kno_commit_start:
-    return kno_write_rollback("kindex_commit",ix->indexid,source,
-			     256+(ref_size*n_buckets));
+  case kno_commit_start: {
+    if ( (kx->index_flags) & (KNO_KINDEX_NO_ROLLBACK) )
+      return 0;
+    else return kno_write_rollback("kindex_commit",ix->indexid,source,
+				   256+(ref_size*n_buckets));}
   case kno_commit_write: {
     struct KNO_STREAM *head_stream = NULL;
     if (commits->commit_2phase) {
@@ -2480,23 +2501,28 @@ static int kindex_commit(kno_index ix,kno_commit_phase phase,
     kno_flush_stream(&(kx->index_stream));
     return rv;}
   case kno_commit_rollback: {
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
-    if (u8_file_existsp(rollback_file)) {
-      ssize_t rv = kno_apply_head(rollback_file,source);
-      if (rv<0) {
-	u8_log(LOG_CRIT,"RollbackFailed",
-	       "Couldn't apply rollback %s to %s for %s",
-	       rollback_file,source,ix->indexid);
-	u8_free(rollback_file);
-	return -1; }
-      u8_free(rollback_file);
-      return 1;}
-    else {
+    if ( (kx->index_flags) & (KNO_KINDEX_NO_ROLLBACK) ) {
       u8_seterr("RollbackFailed","kindex_commit",
-		u8_mkstring("The rollback file %s for %s doesn't exist",
-			    rollback_file,ix->indexid));
-      u8_free(rollback_file);
-      return -1;}}
+		u8_mkstring("No rollback for partial file %s",ix->indexid));
+      return -1;}
+    else {
+      u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+      if (u8_file_existsp(rollback_file)) {
+	ssize_t rv = kno_apply_head(rollback_file,source);
+	if (rv<0) {
+	  u8_log(LOG_CRIT,"RollbackFailed",
+		 "Couldn't apply rollback %s to %s for %s",
+		 rollback_file,source,ix->indexid);
+	  u8_free(rollback_file);
+	  return -1; }
+	u8_free(rollback_file);
+	return 1;}
+      else {
+	u8_seterr("RollbackFailed","kindex_commit",
+		  u8_mkstring("The rollback file %s for %s doesn't exist",
+			      rollback_file,ix->indexid));
+	u8_free(rollback_file);
+	return -1;}}}
   case kno_commit_sync: {
     u8_string commit_file = u8_mkstring("%s.commit",source);
     ssize_t rv = kno_apply_head(commit_file,source);
@@ -2521,20 +2547,21 @@ static int kindex_commit(kno_index ix,kno_commit_phase phase,
     return 1;}
   case kno_commit_cleanup: {
     if (commits->commit_stream) release_commit_stream(ix,commits);
-    u8_string rollback_file = u8_string_append(source,".rollback",NULL);
     int rollback_cleanup = 0, commit_cleanup = 0;
-    if (u8_file_existsp(rollback_file))
-      rollback_cleanup = u8_removefile(rollback_file);
-    else u8_log(LOG_WARN,"MissingRollbackFile",
-		"Rollback file %s went missing",rollback_file);
+    if (! ( (kx->index_flags) & (KNO_KINDEX_NO_ROLLBACK) ) ) {
+      u8_string rollback_file = u8_string_append(source,".rollback",NULL);
+      if (u8_file_existsp(rollback_file))
+	rollback_cleanup = u8_removefile(rollback_file);
+      else u8_log(LOG_WARN,"MissingRollbackFile",
+		  "Rollback file %s went missing",rollback_file);
+      u8_free(rollback_file);}
     if (commits->commit_2phase) {
       u8_string commit_file = u8_string_append(source,".commit",NULL);
       if (u8_file_existsp(commit_file))
 	commit_cleanup = u8_removefile(commit_file);
-      else u8_logf(LOG_WARN,"MissingRollbackFile",
+      else u8_logf(LOG_WARN,"MissingCommitFile",
 		   "Commit file %s went missing",commit_file);
       u8_free(commit_file);}
-    u8_free(rollback_file);
     if ( ( rollback_cleanup < 0) || ( commit_cleanup < 0) )
       return -1;
     else return 1;}
@@ -2559,9 +2586,9 @@ static void free_keybuckets(int n,struct KEYBUCKET **keybuckets)
 }
 
 static int update_kindex_metadata(kno_kindex kx,
-				     lispval metadata,
-				     struct KNO_STREAM *stream,
-				     struct KNO_STREAM *head)
+				  lispval metadata,
+				  struct KNO_STREAM *stream,
+				  struct KNO_STREAM *head)
 {
   int error=0;
   u8_logf(LOG_WARN,"WriteMetadata",
@@ -2867,8 +2894,8 @@ static int interpret_kindex_flags(lispval opts)
 }
 
 static kno_index kindex_create(u8_string spec,void *typedata,
-				 kno_storage_flags flags,
-				 lispval opts)
+			       kno_storage_flags flags,
+			       lispval opts)
 {
   int rv = 0;
   lispval metadata_init = kno_getopt(opts,kno_intern("metadata"),KNO_VOID);
@@ -2961,29 +2988,60 @@ KNO_EXPORT int kno_kindexp(struct KNO_INDEX *ix)
   return (ix->index_handler== &kindex_handler);
 }
 
+DEF_KNOSYM(possload);
+
+static void store_float(lispval table,lispval key,double val)
+{
+  lispval flonum = kno_make_flonum(val);
+  kno_store(table,key,flonum);
+  kno_decref(flonum);
+}
+
+static lispval kindex_fast_stats(struct KNO_KINDEX *kx)
+{
+  lispval result = kno_default_indexctl((kno_index)kx,kno_stats_op,0,NULL);
+  ssize_t n_buckets = kx->index_n_buckets, n_keys = kx->table_n_keys;
+  ssize_t poss_inserts = (kx->index_adds.table_n_keys) + (kx->index_stores.table_n_keys);
+  ssize_t n_refs = kx->index_xrefs.xt_n_refs; 
+  double cur_load = ((double)n_keys)/((double)n_buckets);
+  double poss_load = ((double)(n_keys+poss_inserts))/((double)n_buckets);
+  kno_add(result,kno_intern("nbuckets"),KNO_INT(n_buckets));
+  kno_add(result,kno_intern("nxrefs"),KNO_INT(n_refs));
+  kno_add(result,kno_intern("nkeys"),KNO_INT(n_keys));
+  store_float(result,KNOSYM_LOAD,cur_load);
+  store_float(result,KNOSYM(possload),poss_load);
+  return result;
+}
+
 static lispval kindex_stats(struct KNO_KINDEX *kx)
 {
-  lispval result = kno_empty_slotmap();
-  int n_filled = 0, maxk = 0, n_singles = 0, n2sum = 0;
-  kno_add(result,kno_intern("nbuckets"),KNO_INT(kx->index_n_buckets));
-  kno_add(result,kno_intern("nkeys"),KNO_INT(kx->table_n_keys));
-  kno_add(result,kno_intern("nxrefs"),KNO_INT(kx->index_xrefs.xt_n_refs));
+  lispval result = kindex_fast_stats(kx);
+  ssize_t n_buckets = kx->index_n_buckets, n_keys = kx->table_n_keys;
+  ssize_t n_refs = kx->index_xrefs.xt_n_refs, poss_inserts =
+    (kx->index_adds.table_n_keys) + (kx->index_stores.table_n_keys);
+  ssize_t n_filled = 0, maxk = 0, n_singles = 0, n2sum = 0;
+  double cur_load = ((double)n_keys)/((double)n_buckets);
+  double poss_load = ((double)(n_keys+poss_inserts))/((double)n_buckets);
   kindex_getstats(kx,&n_filled,&maxk,&n_singles,&n2sum);
   kno_add(result,kno_intern("nfilled"),KNO_INT(n_filled));
   kno_add(result,kno_intern("nsingles"),KNO_INT(n_singles));
   kno_add(result,kno_intern("maxkeys"),KNO_INT(maxk));
   kno_add(result,kno_intern("n2sum"),KNO_INT(n2sum));
+  kno_add(result,kno_intern("nxrefs"),KNO_INT(n_refs));
+  kno_add(result,kno_intern("nkeys"),KNO_INT(n_keys));
+  kno_add(result,kno_intern("nbuckets"),KNO_INT(n_buckets));
   {
     double avg = (kx->table_n_keys*1.0)/(n_filled*1.0);
     double sd2 = (n2sum*1.0)/(n_filled*n_filled*1.0);
     kno_add(result,kno_intern("mean"),kno_make_flonum(avg));
     kno_add(result,kno_intern("sd2"),kno_make_flonum(sd2));
   }
+  store_float(result,KNOSYM_LOAD,cur_load);
+  store_float(result,KNOSYM(possload),poss_load);
   return result;
 }
 
-KNO_EXPORT ssize_t kno_kindex_bucket(lispval ixarg,lispval key,
-				      lispval mod_arg)
+KNO_EXPORT ssize_t kno_kindex_bucket(lispval ixarg,lispval key,lispval mod_arg)
 {
   struct KNO_INDEX *ix=kno_lisp2index(ixarg);
   ssize_t modulate = (KNO_FIXNUMP(mod_arg)) ? (KNO_FIX2INT(mod_arg)) : (-1);
@@ -2998,7 +3056,56 @@ KNO_EXPORT ssize_t kno_kindex_bucket(lispval ixarg,lispval key,
 
 /* Getting more key/bucket info */
 
-static lispval keyinfo_schema[5];
+#define KEYINFO_LEN         6
+#define KEYINFO_SCHEMAP_FLAGS \
+  ((KNO_SCHEMAP_FIXED_SCHEMA)|(KNO_TABLE_READONLY)|(KNO_SCHEMAP_STATIC_VALUES))
+
+#define KEYINFO_KEY_SLOT    0
+#define KEYINFO_COUNT_SLOT  3
+#define KEYINFO_VALPOS_SLOT 4
+#define KEYINFO_VALUE_SLOT  5
+
+
+static lispval keyinfo_schema[KEYINFO_LEN];
+
+KNO_FASTOP ssize_t read_keyinfo(kno_kindex kx,unsigned int bucket_no,kno_inbuf stream,
+				lispval keyinfo_values[KEYINFO_LEN])
+{
+  size_t key_rep_len = kno_read_varint(stream);
+  const unsigned char *start = stream->bufread;
+  lispval key = read_key(stream,&(kx->index_xrefs));
+  ssize_t n_vals = kno_read_varint(stream);
+  assert(key!=0);
+  int hashval = hash_bytes(start,key_rep_len);
+  keyinfo_values[0] = key;
+  keyinfo_values[1] = KNO_INT(hashval);
+  keyinfo_values[2] = KNO_INT(bucket_no);
+  keyinfo_values[3] = KNO_INT(n_vals);
+  if (n_vals==0) {
+    keyinfo_values[4] = KNO_FALSE;
+    keyinfo_values[5] = KNO_EMPTY_CHOICE;}
+  else if (n_vals==1) {
+    lispval value = read_value(stream,&(kx->index_xrefs));
+    keyinfo_values[4] = KNO_FALSE;
+    keyinfo_values[5]=value;}
+  else {
+    ssize_t block_off = kno_read_varint(stream);
+    ssize_t block_size = kno_read_varint(stream);
+    lispval car = KNO_INT(block_off), cdr = KNO_INT(block_size);
+    keyinfo_values[4]=kno_init_pair(NULL,car,cdr);
+    keyinfo_values[5]=KNO_VOID;}
+  return n_vals;
+}
+
+KNO_FASTOP lispval keyinfo_schemap(int n_vals,lispval values[KEYINFO_LEN])
+{
+  /* If there isn't a values field, don't expose that slot by changing the schemap length */
+  if (n_vals>1)
+    return kno_make_schemap(NULL,KEYINFO_LEN-1,KEYINFO_SCHEMAP_FLAGS,
+			    keyinfo_schema,values);
+  else return kno_make_schemap(NULL,KEYINFO_LEN,KEYINFO_SCHEMAP_FLAGS,
+			       keyinfo_schema,values);
+}
 
 KNO_EXPORT lispval kno_kindex_keyinfo(lispval lix,
 				       lispval min_count,
@@ -3019,7 +3126,6 @@ KNO_EXPORT lispval kno_kindex_keyinfo(lispval lix,
   unsigned int *offdata = kx->index_offdata;
   kno_offset_type offtype = kx->index_offtype;
   kno_inbuf ins = kno_readbuf(s);
-  xtype_refs refs = &(kx->index_xrefs);
   int i = 0, n_buckets = (kx->index_n_buckets), total_keys;
   int n_to_fetch = 0, key_count = 0;
   kno_lock_stream(s);
@@ -3029,17 +3135,16 @@ KNO_EXPORT lispval kno_kindex_keyinfo(lispval lix,
     return KNO_EMPTY_CHOICE;}
   struct KNO_CHOICE *choice = kno_alloc_choice(total_keys);
   lispval *elts	 = (lispval *) KNO_CHOICE_DATA(choice);
-  KNO_CHUNK_REF *buckets = u8_big_alloc_n(total_keys,KNO_CHUNK_REF);
-  int *bucket_no = u8_big_alloc_n(total_keys,unsigned int);
+  KNO_BUCKET_INFO *buckets = u8_big_alloc_n(total_keys,KNO_BUCKET_INFO);
   if (offdata) {
-    /* If we have chunk offsets in memory, we just read them off. */
+    /* If we have chunk offsets in memory, we just read them out */
     kno_unlock_stream(s);
     while (i<n_buckets) {
       KNO_CHUNK_REF ref =
 	kno_get_chunk_ref(offdata,offtype,i,kx->index_n_buckets);
       if (ref.size>0) {
-	bucket_no[n_to_fetch]=i;
-	buckets[n_to_fetch]=ref;
+	buckets[n_to_fetch].ref=ref;
+	buckets[n_to_fetch].bucket=i;
 	n_to_fetch++;}
       i++;}}
   else {
@@ -3048,57 +3153,36 @@ KNO_EXPORT lispval kno_kindex_keyinfo(lispval lix,
     while (i<n_buckets) {
       KNO_CHUNK_REF ref = kno_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
-	bucket_no[n_to_fetch]=i;
-	buckets[n_to_fetch]=ref;
+	buckets[n_to_fetch].ref=ref;
+	buckets[n_to_fetch].bucket=i;
 	n_to_fetch++;}
       i++;}
     kno_unlock_stream(s);}
-  qsort(buckets,n_to_fetch,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
+  qsort(buckets,n_to_fetch,sizeof(KNO_BUCKET_INFO),sort_bucket_info_by_off);
   struct KNO_INBUF keyblkstrm={0};
   i = 0; while (i<n_to_fetch) {
-    int j = 0, n_keys;
-    if (!kno_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+    int j = 0, bucket = buckets[i].bucket, n_keys;
+    if (!kno_open_block(s,&keyblkstrm,buckets[i].ref.off,buckets[i].ref.size,1)) {
       kno_close_inbuf(&keyblkstrm);
       u8_big_free(buckets);
-      u8_big_free(bucket_no);
       kno_decref_elts(elts,key_count);
       return KNO_EMPTY_CHOICE;}
     n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_varint(&keyblkstrm);
-      const unsigned char *start = keyblkstrm.bufread;
-      lispval key = read_key(&keyblkstrm,&(kx->index_xrefs));
-      int n_vals = kno_read_varint(&keyblkstrm);
-      assert(key!=0);
+      lispval keyinfo_values[KEYINFO_LEN];
+      ssize_t n_vals = read_keyinfo(kx,bucket,&keyblkstrm,keyinfo_values);
       if ( ( (min_thresh < 0) || (n_vals > min_thresh) ) &&
 	   ( (max_thresh < 0) || (n_vals < max_thresh) ) ) {
-	lispval *keyinfo_values=u8_alloc_n(4,lispval);
-	int hashval = hash_bytes(start,key_rep_len);
-	keyinfo_values[0] = key;
-	keyinfo_values[1] = KNO_INT(n_vals);
-	keyinfo_values[2] = KNO_INT(bucket_no[i]);
-	keyinfo_values[3] = KNO_INT(hashval);
-	lispval sm =
-	  kno_make_schemap(NULL,4,
-			   KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY,
-			   keyinfo_schema,keyinfo_values);
+	lispval sm = keyinfo_schemap(n_vals,keyinfo_values);
 	elts[key_count++]=(lispval)sm;}
-      else kno_decref(key);
-      if (n_vals==0) {}
-      else if (n_vals==1) {
-	int code = kno_read_varint(&keyblkstrm);
-	if (code==0) {
-	  lispval val=read_value(&keyblkstrm,refs);
-	  kno_decref(val);}
-	else kno_read_varint(&keyblkstrm);}
       else {
-	kno_read_varint(&keyblkstrm);
-	kno_read_varint(&keyblkstrm);}
+	kno_decref(keyinfo_values[KEYINFO_KEY_SLOT]);
+	kno_decref(keyinfo_values[KEYINFO_VALPOS_SLOT]);
+	kno_decref(keyinfo_values[KEYINFO_VALUE_SLOT]);}
       j++;}
     i++;}
   kno_close_inbuf(&keyblkstrm);
   u8_big_free(buckets);
-  u8_big_free(bucket_no);
   return kno_init_choice(choice,key_count,NULL,
 			 KNO_CHOICE_REALLOC|
 			 KNO_CHOICE_ISCONSES|
@@ -3231,10 +3315,8 @@ static lispval hashbucket_info(struct KNO_KINDEX *kx,lispval bucket_nums)
   int n_to_fetch = KNO_CHOICE_SIZE(bucket_nums), n_refs=0;
   init_cache_level((kno_index)kx);
   kno_lock_stream(s);
-  xtype_refs refs = &(kx->index_xrefs);
   lispval keyinfo = KNO_EMPTY;
-  KNO_CHUNK_REF *buckets = u8_big_alloc_n(n_to_fetch,KNO_CHUNK_REF);
-  int *bucket_no = u8_big_alloc_n(n_to_fetch,unsigned int);
+  KNO_BUCKET_INFO *buckets = u8_big_alloc_n(n_to_fetch,KNO_BUCKET_INFO);
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
     kno_unlock_stream(s);
@@ -3245,8 +3327,8 @@ static lispval hashbucket_info(struct KNO_KINDEX *kx,lispval bucket_nums)
 	  KNO_CHUNK_REF ref =
 	    kno_get_chunk_ref(offdata,offtype,bucket_val,n_buckets);
 	  if (ref.size>0) {
-	    bucket_no[n_refs]=i;
-	    buckets[n_refs]=ref;
+	    buckets[n_refs].ref=ref;
+	    buckets[n_refs].bucket=bucket_val;
 	    n_refs++;}}}}}
   else {
     KNO_DO_CHOICES(bucket,bucket_nums) {
@@ -3256,51 +3338,29 @@ static lispval hashbucket_info(struct KNO_KINDEX *kx,lispval bucket_nums)
 	  KNO_CHUNK_REF ref =
 	    kno_fetch_chunk_ref(s,256,offtype,bucket_val,1);
 	  if (ref.size>0) {
-	    bucket_no[n_refs]=bucket_val;
-	    buckets[n_refs]=ref;
-	    n_refs++;}}}}}
-  qsort(buckets,n_refs,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
+	    buckets[n_refs].ref=ref;
+	    buckets[n_refs].bucket=bucket_val;
+	    n_refs++;}}}}
+    kno_unlock_stream(s);}
+  qsort(buckets,n_refs,sizeof(KNO_BUCKET_INFO),sort_bucket_info_by_off);
   struct KNO_INBUF keyblkstrm={0};
   i = 0; while (i<n_refs) {
-    int j = 0, n_keys;
-    if (!kno_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+    int j = 0, bucket = buckets[i].bucket, n_keys;
+    if (!kno_open_block(s,&keyblkstrm,buckets[i].ref.off,buckets[i].ref.size,0)) {
       kno_close_inbuf(&keyblkstrm);
       u8_big_free(buckets);
-      u8_big_free(bucket_no);
       kno_decref(keyinfo);
       return KNO_EMPTY_CHOICE;}
     n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_varint(&keyblkstrm);
-      const unsigned char *start = keyblkstrm.bufread;
-      lispval key = read_key(&keyblkstrm,&(kx->index_xrefs));
-      int n_vals = kno_read_varint(&keyblkstrm);
-      assert(key!=0);
-      int n_slots = (n_vals>1) ? (4) : (5);
-      lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
-      int hashval = hash_bytes(start,key_rep_len);
-      keyinfo_values[0] = key;
-      keyinfo_values[1] = KNO_INT(n_vals);
-      keyinfo_values[2] = KNO_INT(bucket_no[i]);
-      keyinfo_values[3] = KNO_INT(hashval);
-      if (n_vals==0)
-	keyinfo_values[4] = KNO_EMPTY_CHOICE;
-      else if (n_vals==1) {
-	lispval value = read_value(&keyblkstrm,refs);
-	keyinfo_values[4]=value;}
-      else {
-	kno_read_varint(&keyblkstrm);
-	kno_read_varint(&keyblkstrm);}
-      lispval sm =
-	kno_make_schemap(NULL,n_slots,
-			KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY,
-			keyinfo_schema,keyinfo_values);
+      lispval values[KEYINFO_LEN];
+      ssize_t n_vals = read_keyinfo(kx,bucket,&keyblkstrm,values); /* Ignored */
+      lispval sm = keyinfo_schemap(n_vals,values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
   kno_close_inbuf(&keyblkstrm);
   u8_big_free(buckets);
-  u8_big_free(bucket_no);
   return keyinfo;
 }
 
@@ -3311,12 +3371,10 @@ static lispval hashrange_info(struct KNO_KINDEX *kx,
   unsigned int *offdata = kx->index_offdata;
   kno_offset_type offtype = kx->index_offtype;
   int n_to_fetch = end-start, n_refs=0;
-  xtype_refs refs = &(kx->index_xrefs);
   init_cache_level((kno_index)kx);
   kno_lock_stream(s);
   lispval keyinfo = KNO_EMPTY;
-  KNO_CHUNK_REF *buckets = u8_big_alloc_n(n_to_fetch,KNO_CHUNK_REF);
-  int *bucket_no = u8_big_alloc_n(n_to_fetch,unsigned int);
+  KNO_BUCKET_INFO *buckets = u8_big_alloc_n(n_to_fetch,struct KNO_BUCKET_INFO);
   if (offdata) {
     /* If we have chunk offsets in memory, we just read them off. */
     kno_unlock_stream(s);
@@ -3324,62 +3382,39 @@ static lispval hashrange_info(struct KNO_KINDEX *kx,
       KNO_CHUNK_REF ref =
 	kno_get_chunk_ref(offdata,offtype,i,kx->index_n_buckets);
       if (ref.size>0) {
-	bucket_no[n_refs]=i;
-	buckets[n_refs]=ref;
+	buckets[n_refs].ref=ref;
+	buckets[n_refs].bucket=i;
 	n_refs++;}
       i++;}}
   else {
-    /* If we have chunk offsets in memory, we just read them off. */
-    kno_unlock_stream(s);
     int i=start; while (i<end) {
       KNO_CHUNK_REF ref =kno_fetch_chunk_ref(s,256,offtype,i,1);
       if (ref.size>0) {
-	bucket_no[n_refs]=i;
-	buckets[n_refs]=ref;
+	buckets[n_refs].ref=ref;
+	buckets[n_refs].bucket=i;
 	n_refs++;}
-      i++;}}
-  qsort(buckets,n_refs,sizeof(KNO_CHUNK_REF),sort_blockrefs_by_off);
+      i++;}
+    /* If we have chunk offsets in memory, we just read them off. */
+    kno_unlock_stream(s);}
+  qsort(buckets,n_refs,sizeof(KNO_BUCKET_INFO),sort_bucket_info_by_off);
   struct KNO_INBUF keyblkstrm={0};
   int i = 0; while (i<n_refs) {
-    int j = 0, n_keys;
-    if (!kno_open_block(s,&keyblkstrm,buckets[i].off,buckets[i].size,1)) {
+    int j = 0, bucket = buckets[i].bucket, n_keys;
+    if (!kno_open_block(s,&keyblkstrm,buckets[i].ref.off,buckets[i].ref.size,0)) {
       kno_close_inbuf(&keyblkstrm);
       u8_big_free(buckets);
-      u8_big_free(bucket_no);
       kno_decref(keyinfo);
       return KNO_EMPTY_CHOICE;}
     n_keys = kno_read_varint(&keyblkstrm);
     while (j<n_keys) {
-      size_t key_rep_len = kno_read_varint(&keyblkstrm);
-      const unsigned char *start = keyblkstrm.bufread;
-      lispval key = read_key(&keyblkstrm,&(kx->index_xrefs));
-      int n_vals = kno_read_varint(&keyblkstrm);
-      assert(key!=0);
-      int n_slots = (n_vals>1) ? (4) : (5);
-      lispval *keyinfo_values = u8_alloc_n(n_slots,lispval);
-      int hashval = hash_bytes(start,key_rep_len);
-      keyinfo_values[0] = key;
-      keyinfo_values[1] = KNO_INT(n_vals);
-      keyinfo_values[2] = KNO_INT(bucket_no[i]);
-      keyinfo_values[3] = KNO_INT(hashval);
-      if (n_vals==0)
-	keyinfo_values[4] = KNO_EMPTY_CHOICE;
-      else if (n_vals==1) {
-	lispval value = read_value(&keyblkstrm,refs);
-	keyinfo_values[4]=value;}
-      else {
-	kno_read_varint(&keyblkstrm);
-	kno_read_varint(&keyblkstrm);}
-      lispval sm = kno_make_schemap
-	(NULL,n_slots,
-	 KNO_SCHEMAP_FIXED_SCHEMA|KNO_TABLE_READONLY,
-	 keyinfo_schema,keyinfo_values);
+      lispval values[KEYINFO_LEN];
+      ssize_t n_vals = read_keyinfo(kx,bucket,&keyblkstrm,values);
+      lispval sm = keyinfo_schemap(n_vals,values);
       KNO_ADD_TO_CHOICE(keyinfo,sm);
       j++;}
     i++;}
   kno_close_inbuf(&keyblkstrm);
   u8_big_free(buckets);
-  u8_big_free(bucket_no);
   return keyinfo;
 }
 
@@ -3475,16 +3510,20 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       else if (!(KNO_UINTP(arg0)))
 	return kno_type_error("lowerhashbucket","kindex_ctl/buckets",arg1);
       else {
+	u8_condition trouble = NULL;
 	long long lower = kno_getint(arg0);
 	long long upper = kno_getint(arg1);
+	lispval result = KNO_VOID;
 	if (upper==lower)
-	  return tabulate_buckets(hashbucket_info(kx,args[0]),tablep);
+	  result=tabulate_buckets(hashbucket_info(kx,args[0]),tablep);
 	else if (upper < lower)
-	  return kno_err(kno_DisorderedRange,"kindex_ctl",kx->indexid,
-			kno_init_pair(NULL,arg0,arg1));
+	  trouble=kno_DisorderedRange;
 	else if (upper > kx->index_n_buckets)
-	  return kno_err(kno_RangeError,"kindex_ctl",kx->indexid,arg1);
-	else return tabulate_buckets(hashrange_info(kx,lower,upper),tablep);}}
+	  trouble=kno_RangeError;
+	else result=tabulate_buckets(hashrange_info(kx,lower,upper),tablep);
+	if (trouble)
+	  return kno_err(trouble,"kindex_ctl",kx->indexid,kno_init_pair(NULL,arg0,arg1));
+	else return result;}}
     else return kno_err(kno_TooManyArgs,"kindex_ctl",kx->indexid,op);}
   else if ( (op == kno_metadata_op) && (n == 0) ) {
     lispval base = kno_index_base_metadata(ix);
@@ -3520,7 +3559,7 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     lispval val = args[0];
     if ( (KNO_FALSEP(val)) ? (!( (kx->index_flags) & (KNO_STORAGE_READ_ONLY) )) :
 	 ( (kx->index_flags) & (KNO_STORAGE_READ_ONLY) ) )
-      return KNO_FALSE;
+      return KNO_TRUE;
     else if (!(KNO_FALSEP(val))) {
       kx->index_flags |= KNO_STORAGE_READ_ONLY;
       return KNO_TRUE;}
@@ -3528,8 +3567,14 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
       kx->index_flags &= (~KNO_STORAGE_READ_ONLY);
       return KNO_TRUE;}
     else return KNO_FALSE;}
-  else if (op == kno_stats_op)
-    return kindex_stats(kx);
+  else if (op == kno_stats_op) {
+    if (n == 0)
+      return kindex_fast_stats(kx);
+    lispval level = args[0];
+    if ( (KNO_VOIDP(level)) || (KNO_FALSEP(level)) || (KNO_ZEROP(level)) ||
+	 (KNO_DEFAULTP(level)) )
+      return kindex_fast_stats(kx);
+    else return kindex_stats(kx);}
   else if (op == kno_reload_op) {
     reload_offdata(ix);
     kno_index_swapout(ix,((n==0)?(KNO_VOID):(args[0])));
@@ -3543,8 +3588,8 @@ static lispval kindex_ctl(kno_index ix,lispval op,int n,kno_argvec args)
     return KNO_INT(kx->index_n_buckets);
   else if (op == kno_load_op)
     return KNO_INT(kx->table_n_keys);
-  else if (op == kno_keycount_op)
-    return KNO_INT(kx->table_n_keys);
+  else if (op == kno_keycount_op) {
+    return KNO_INT(kx->table_n_keys);}
   else if (op == keycounts_symbol) {
     int n_keys=0;
     kno_choice filter;
@@ -3613,10 +3658,11 @@ KNO_EXPORT void kno_init_kindex_c()
   metadata_readonly_props = kno_intern("_readonly_props");
 
   keyinfo_schema[0] = kno_intern("key");
-  keyinfo_schema[1] = kno_intern("count");
+  keyinfo_schema[1] = kno_intern("hash");
   keyinfo_schema[2] = kno_intern("bucket");
-  keyinfo_schema[3] = kno_intern("hash");
-  keyinfo_schema[4] = kno_intern("value");
+  keyinfo_schema[3] = kno_intern("count");
+  keyinfo_schema[4] = kno_intern("valblock");
+  keyinfo_schema[5] = kno_intern("value");
 
   u8_register_source_file(_FILEINFO);
 

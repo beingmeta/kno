@@ -42,7 +42,7 @@ static lispval byte_symbol, basetype_symbol, typetag_symbol;
 static lispval ffi_result_symbol, time_t_symbol, null_symbol;
 static lispval strlen_symbol, packetlen_symbol, ptrloc_symbol, loclen_symbol;
 static lispval nullable_symbol, ffitype_symbol, intptr_symbol, resultptr_symbol;
-static lispval stringlist_symbol;
+static lispval stringlist_symbol, resultname_symbol, ptrtype_symbol;
 
 static lispval ffi_types = KNO_EMPTY;
 
@@ -230,10 +230,17 @@ static void handle_resultptr(lispval *resultp,int i,
   if (KNO_ABORTED(result)) return;
   lispval spec = specs[i];
   if (scratch[i]) {
-    lispval result_tag = kno_getopt(spec,typetag_symbol,KNO_VOID);
-    ssize_t len = kno_getfixopt(spec,"length",-1);
-    lispval wrapped = kno_wrap_pointer(scratch[i],len,NULL,result_tag,NULL);
-    *resultp=wrapped;}
+    lispval ptrtype = kno_getopt(spec,ptrtype_symbol,KNO_VOID);
+    if ( (KNO_VOIDP(ptrtype)) || (ptrtype==ptr_symbol) ) {
+      lispval result_tag = kno_getopt(spec,typetag_symbol,KNO_VOID);
+      ssize_t len = kno_getfixopt(spec,"length",-1);
+      result = kno_wrap_pointer(scratch[i],len,NULL,result_tag,NULL);}
+    else if (ptrtype == string_symbol) {
+      lispval string = knostring(scratch[i]);
+      if (KNO_STRINGP(string)) *resultp=string;}
+    else NO_ELSE;
+    *resultp=result;
+    return;}
   else *resultp=KNO_FALSE;
 }
 
@@ -311,14 +318,6 @@ static int handle_ffi_arg(lispval arg,lispval spec,int i,
 	    *write++=KNO_SYMBOL_NAME(elt);
 	  /* Error ? */
 	  else NO_ELSE;}}
-      else if (KNO_CHOICEP(arg)) {
-	KNO_DO_CHOICES(elt,arg) {
-	  if (KNO_STRINGP(elt))
-	    *write++=KNO_CSTRING(elt);
-	  else if (KNO_SYMBOLP(elt))
-	    *write++=KNO_SYMBOL_NAME(elt);
-	  /* Error ? */
-	  else NO_ELSE;}}
       else if (KNO_VECTORP(arg)) {
 	int i = 0, len = KNO_VECTOR_LENGTH(arg);
 	lispval *elts = KNO_VECTOR_ELTS(arg);
@@ -336,8 +335,20 @@ static int handle_ffi_arg(lispval arg,lispval spec,int i,
       releasefns[i]=free_mallocd_arg;
       *(valptr++)=list;}}
   else if (ffitype == resultptr_symbol) {
-    scratch[i]=NULL;
-    *(valptr++)=&(scratch[i]);
+    /* Potentially handle arg based on underlying type */
+    void *scratch_ptr = &(scratch[i]);
+    lispval ptrtype = kno_getopt(spec,ptrtype_symbol,KNO_VOID);
+    if (KNO_VOIDP(ptrtype)) {
+      scratch[i]=NULL;
+      *(valptr++)=scratch_ptr;}
+    /* Eventually, we need to interpret arg based on ptrtype */
+#if 0
+    else if (ptrtype == string_symbol) {}
+    else if (ptrtype == stringlist_symbol) {}
+#endif
+    else {
+      scratch[i]=NULL;
+      *(valptr++)=scratch_ptr;}
     releasefns[i]=handle_resultptr;}
   else if (spec == ptr_symbol) {
     if (KNO_PRIM_TYPEP(arg,kno_rawptr_type)) {
@@ -826,11 +837,13 @@ static void init_symbols()
   loclen_symbol = kno_intern("loclen"); KNO_ADD_TO_CHOICE(ffi_types,loclen_symbol);
   intptr_symbol = kno_intern("intptr"); KNO_ADD_TO_CHOICE(ffi_types,intptr_symbol);
   resultptr_symbol = kno_intern("resultptr"); KNO_ADD_TO_CHOICE(ffi_types,resultptr_symbol);
+  resultname_symbol = kno_intern("resultname");
   stringlist_symbol = kno_intern("stringlist"); KNO_ADD_TO_CHOICE(ffi_types,stringlist_symbol);
 
   ffi_types = kno_simplify_choice(ffi_types);
 
   nullable_symbol = kno_intern("nullable");
+  ptrtype_symbol = kno_intern("ptrtype");
   ffitype_symbol = kno_intern("ffitype");
   mallocd_symbol = kno_intern("mallocd");
 

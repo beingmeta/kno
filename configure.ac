@@ -79,7 +79,8 @@ if ${RELOCATABLE}; then
    AC_DEFINE(KNO_RELOCATION_ENABLED,1)
 fi
 
-ALLEXTMODS="hyphenate leveldb rocksdb mongodb postgres mariadb odbc nng zeromq archivetools imagetools mod_knocgi sundown tidy ziptools"
+# These are all contribs we might build
+ALLCONTRIBS="sundown tidy ziptools mongodb leveldb rocksdb postgres mariadb odbc archivetools imagetools hyphenate hunspell nng zeromq dataimport mod_knocgi"
 
 # Override the default value for statedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,statedir=$withval,statedir="${default_statedir}")
@@ -173,7 +174,7 @@ conf_module_dir=""
 default_module_path=""
 module_path=""
 source_dir=""
-EXTMODS=""
+CONTRIBS=""
 CMODULES=""
 TEST_CMODULES=""
 INSTALL_CMODULES=""
@@ -221,7 +222,8 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP=
-CFLAGS="-DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
+CFLAGS="${CFLAGS} -DLIBU8_SOURCE -DKNO_SOURCE -fPIC -I./DIY/include"
+LDFLAGS="${LDFLAGS} -L./DIY/include"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -246,6 +248,39 @@ manually_disabled=""
 auto_disabled=""
 force_enabled=""
 missing=""
+
+AC_CHECK_SIZEOF(void *)
+TRY_LIBNAME=
+
+# Check whether to use an architecture specific libdir
+if test "x${libdir}" != "x\${exec_prefix}/lib"; then
+  echo using explicit libdir ${libdir};
+else case ${target_cpu} in
+     *i386*|*x32*|*armhf*|mips|mipsel)
+	TRY_LIBNAME=lib32;
+	;;
+     *64*|*alpha*)
+	TRY_LIBNAME=lib64;
+	;;
+     esac;	
+  if test -n "${TRY_LIBNAME}"; then
+    :;
+  elif test ${ac_cv_sizeof_void_p} -eq 8; then
+    TRY_LIBNAME=lib64;
+  elif test ${ac_cv_sizeof_void_p} -eq 4; then
+    TRY_LIBNAME=lib32;
+  else
+    TRY_LIBNAME=lib;
+  fi;
+  if test -z "${TRY_LIBNAME}"; then
+    echo using default libdir ${libdir};
+  elif test -d /usr/${TRY_LIBNAME} && test -f /usr/${TRY_LIBNAME}/libc.so; then
+    libdir=\${exec_prefix}/${TRY_LIBNAME};
+    echo using libdir ${libdir};
+  else
+    echo using default libdir ${libdir};
+  fi;	 
+fi
 
 test_env=
 memtest_env="MALLOC_CHECK_=3 "
@@ -410,8 +445,8 @@ AC_SUBST(SUDO)
 AC_SUBST(SUINSTALL)
 AC_SUBST(ZIPCMD)
 AC_SUBST(WWWUSER)
-AC_SUBST(EXTMODS)
-AC_SUBST(ALLEXTMODS)
+AC_SUBST(CONTRIBS)
+AC_SUBST(ALLCONTRIBS)
 AC_SUBST(CMODULES)
 AC_SUBST(TEST_CMODULES)
 AC_SUBST(INSTALL_CMODULES)
@@ -1900,34 +1935,44 @@ if test "$prefix" != "/usr"; then
   LDFLAGS="$LDFLAGS -L$prefix/lib"
 fi
 
-### Figure out extmods
+### Figure out contribs
 
-# These don't have additional dependencies
-EXTMODS="sundown tidy"
+# These don't have additional library dependencies
+CONTRIBS="sundown tidy"
 # These include most of their dependencies
-EXTMODS="${EXTMODS} mongodb nng ziptools"
+CONTRIBS="mongodb nng ziptools ${CONTRIBS}"
 
 AC_CHECK_PROGS(APXS2,"apxs2")
 if test ! -z "${APXS2}"; then
-   EXTMODS="mod_knocgi ${EXTMODS}";
+   CONTRIBS="mod_knocgi ${CONTRIBS}";
 fi;
 
+AC_ARG_WITH(dataimport,"Build data import cmodule and components",with_dataimport=${withval},with_dataimport=none)
 
-if pkg-config libzmq --exists; then EXTMODS="zeromq ${EXTMODS}"; fi
-if pkg-config libpq --exists; then EXTMODS="postgres ${EXTMODS}"; fi
-if pkg-config libarchive --exists; then EXTMODS="archivetools ${EXTMODS}"; fi
-if pkg-config odbc --exists; then EXTMODS="odbc ${EXTMODS}"; fi
-if pkg-config libmariadb --exists; then EXTMODS="mariadb ${EXTMODS}"; fi
+if test -n "${with_dataimport}" && test "${with_dataimport}" != "no"; then
+   CONTRIBS="dataimport ${CONTRIBS}";
+fi;
+
+if pkg-config libzmq --exists; then CONTRIBS="zeromq ${CONTRIBS}"; fi
+if pkg-config libpq --exists; then CONTRIBS="${CONTRIBS} postgres"; fi
+if pkg-config libarchive --exists; then CONTRIBS="${CONTRIBS} archivetools"; fi
+if pkg-config odbc --exists; then CONTRIBS="${CONTRIBS} odbc"; fi
+if pkg-config libmariadb --exists; then CONTRIBS="${CONTRIBS} mariadb"; fi
+if pkg-config hunspell --exists; then
+    CONTRIBS="${CONTRIBS} hunspell";
+else
+    AC_CHECK_LIB(hunspell,Hunspell_create,CONTRIBS="${CONTRIBS} hunspell",auto_disabled="${auto_disabled} hunspell")
+fi
 
 if pkg-config libqrencode --exists &&
-   pkg-config libexif --exists && 
+   pkg-config libexif --exists &&
    pkg-config MagickWand --exists; then
-   EXTMODS="imagetools ${EXTMODS}";
+   CONTRIBS="${CONTRIBS} imagetools";
 fi;
 
-AC_CHECK_LIB(rocksdb,rocksdb_open,EXTMODS="rocksdb ${EXTMODS}",auto_disabled="${auto_disabled} rocksdb")
-AC_CHECK_LIB(leveldb,leveldb_open,EXTMODS="leveldb ${EXTMODS}",auto_disabled="${auto_disabled} leveldb")
-AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,EXTMODS="hyphenate ${EXTMODS}",auto_disabled="${auto_disabled} hyphenate")
+AC_CHECK_LIB(rocksdb,rocksdb_open,CONTRIBS="${CONTRIBS} rocksdb",auto_disabled="${auto_disabled} rocksdb")
+AC_CHECK_LIB(leveldb,leveldb_open,CONTRIBS="${CONTRIBS} leveldb",auto_disabled="${auto_disabled} leveldb")
+AC_CHECK_LIB(hyphen,hnj_hyphen_hyphenate2,CONTRIBS="${CONTRIBS} hyphenate",auto_disabled="${auto_disabled} hyphenate")
 
 ### Setup options
 
@@ -1954,7 +1999,7 @@ fi;
 ### Here's where stuff gets made
 
 AC_CONFIG_FILES([makefile etc/version etc/makefile.include
-                 src/extmods/makefile DIY/makefile 
+                 contrib/makefile DIY/makefile 
 		 tests/makefile tests/libtests/makefile
 	   	 etc/gdbinit
            	 etc/lldbinit
@@ -1974,10 +2019,11 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 tests/runtest tests/memtest
 		 tests/leaktest tests/knoxtest
 		 src/scripts/knopkg.scm
-		 src/extmods/knoconfig
-		 src/extmods/extmods
-		 src/extmods/submake
-		 src/extmods/domake
+		 contrib/ENABLED
+		 contrib/linkmod
+		 contrib/knoconfig
+		 contrib/submake
+		 contrib/domake
 		 etc/logrotate
 		 etc/sysv/kno-rc.d
 		 etc/sysv/ex_servlet-init.d
@@ -1998,7 +2044,8 @@ AC_CONFIG_FILES([makefile etc/version etc/makefile.include
 		 etc/getbuildopt
 		 dist/alpine/APKBUILD
 		 dist/kno.spec.base])
-AC_CONFIG_COMMANDS([default],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test src/extmods/knoconfig src/extmods/*make],[])
+AC_CONFIG_COMMANDS([scripts],[chmod a+x etc/getbuildopt src/shell/kno* tests/*test],[])
+AC_CONFIG_COMMANDS([contribs],[chmod a+x contrib/knoconfig contrib/*make contrib/linkmod],[])
 AC_OUTPUT
 
 if test ! -z "$gperftools"; then
@@ -2028,8 +2075,8 @@ if test "$enable_ipeval" = "yes"; then
    echo "+++ Use of the resulting software may be restricted by patent law. ";
    echo "+++ Contact beingmeta (licensing@beingmeta.com) for more information.";
 fi
-echo "You should be able to build these KNO modules in src/extmods:";
-echo "      ${EXTMODS}";
+echo "You should be able to build these KNO modules in the 'contrib' directory:";
+echo "      ${CONTRIBS}";
 echo "+++ Thanks for using Kno!";
 
 

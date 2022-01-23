@@ -49,6 +49,8 @@ u8_condition kno_UnhandledOperation=_("This pool can't handle this operation");
 u8_condition kno_DataFileOverflow=_("Data file is over implementation limit");
 u8_condition kno_PreallocatedPool=_("PreallocatedPool");
 
+struct KNO_TYPEINFO *kno_default_pool_typeinfo = NULL;
+
 u8_condition kno_PoolCommit=_("Pool/Commit");
 
 int kno_pool_cache_init = KNO_POOL_CACHE_INIT;
@@ -505,10 +507,10 @@ static void pool_conflict(kno_pool upstart,kno_pool holder)
     if (!(holder_id)) holder_id = holder->poolid;
     u8_logf(LOG_WARN,kno_PoolConflict,
 	    "%s (from %s) and existing pool %s (from %s), "
-	    "declaring %s adjunct\n",
+	    "declaring %s (from %s) adjunct\n",
 	    upstart->pool_label,upstart_id,
 	    holder->pool_label,holder_id,
-	    upstart->pool_label);
+	    upstart->pool_label,upstart_id);
     upstart->pool_flags |= KNO_POOL_ADJUNCT;}
 }
 
@@ -2507,7 +2509,8 @@ static void mdstring(lispval md,lispval slot,u8_string s)
   kno_decref(v);
 }
 
-static lispval metadata_readonly_props = KNO_VOID;
+static lispval metadata_readonly_props_prop = KNO_VOID;
+static lispval metadata_readonly_props = KNO_EMPTY;
 
 KNO_EXPORT lispval kno_pool_base_metadata(kno_pool p)
 {
@@ -2571,20 +2574,7 @@ KNO_EXPORT lispval kno_pool_base_metadata(kno_pool p)
   if (KNO_TABLEP(p->pool_opts))
     kno_store(metadata,opts_slot,p->pool_opts);
 
-  kno_add(metadata,metadata_readonly_props,KNOSYM_TYPE);
-  kno_add(metadata,metadata_readonly_props,base_slot);
-  kno_add(metadata,metadata_readonly_props,capacity_slot);
-  kno_add(metadata,metadata_readonly_props,cachelevel_slot);
-  kno_add(metadata,metadata_readonly_props,poolid_slot);
-  kno_add(metadata,metadata_readonly_props,label_slot);
-  kno_add(metadata,metadata_readonly_props,source_slot);
-  kno_add(metadata,metadata_readonly_props,locked_slot);
-  kno_add(metadata,metadata_readonly_props,cached_slot);
-  kno_add(metadata,metadata_readonly_props,flags_slot);
-
-  kno_add(metadata,metadata_readonly_props,KNOSYM_PROPS);
-  kno_add(metadata,metadata_readonly_props,opts_slot);
-  kno_add(metadata,metadata_readonly_props,core_slot);
+  kno_add(metadata,metadata_readonly_props_prop,metadata_readonly_props);
 
   return metadata;
 }
@@ -2629,29 +2619,37 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
       return kno_getopt(opts,args[0],KNO_FALSE);
     else return kno_incref(opts);}
   else if (op == kno_metadata_op) {
-    lispval metadata = (lispval) &(p->pool_metadata);
     lispval slotid = (n>0) ? (args[0]) : (KNO_VOID);
     /* TODO: check that slotid isn't any of the slots returned by default */
     if (n == 0)
       return kno_pool_base_metadata(p);
     else if (n == 1) {
+      lispval v = kno_slotmap_get(&(p->pool_metadata),slotid,KNO_VOID);
+      if (!(KNO_VOIDP(v))) return v;
       lispval extended=kno_pool_ctl(p,kno_metadata_op,0,NULL);
-      lispval v = kno_get(extended,slotid,KNO_EMPTY);
+      v = kno_get(extended,slotid,KNO_EMPTY);
       kno_decref(extended);
       return v;}
-    else if (n == 2) {
-      lispval extended=kno_pool_ctl(p,kno_metadata_op,0,NULL);
-      if (kno_test(extended,KNOSYM_READONLY,slotid)) {
-	kno_decref(extended);
+    else if (n > 3)
+      return kno_err(kno_TooManyArgs,"kno_pool_ctl/metadata",
+		     KNO_SYMBOL_NAME(op),kno_pool2lisp(p));
+    else {
+      if (kno_overlapp(metadata_readonly_props,slotid))
 	return kno_err("ReadOnlyMetadataProperty","kno_default_poolctl",
-		       p->poolid,slotid);}
-      else kno_decref(extended);
-      int rv=kno_store(metadata,slotid,args[1]);
-      if (rv<0)
-	return KNO_ERROR_VALUE;
-      else return kno_incref(args[1]);}
-    else return kno_err(kno_TooManyArgs,"kno_pool_ctl/metadata",
-			KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
+		       p->poolid,slotid);
+      kno_slotmap metadata = &(p->pool_metadata);
+      lispval op = (n==2) ? (KNOSYM_STORE) : (args[2]), result = KNO_VOID;
+      lispval val = args[1];
+      int rv=-1;
+      if (op == KNOSYM_STORE)
+	rv=kno_slotmap_store(metadata,slotid,val);
+      else if (op == KNOSYM_ADD)
+	rv=kno_slotmap_add(metadata,slotid,val);
+      else if (op == KNOSYM_DROP)
+	rv=kno_slotmap_drop(metadata,slotid,val);
+      else kno_seterr(_("BadSlotOp"),"kno_default_poolctl",p->poolid,op);
+      if (rv<0) return KNO_ERROR;
+      else return result;}}
   else if (op == adjuncts_slot) {
     if (n == 0) {
       if (p->pool_n_adjuncts) {
@@ -2692,13 +2690,27 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
       return kno_copier(props,0);
     else if (n == 1)
       return kno_get(props,slotid,KNO_EMPTY);
-    else if (n == 2) {
-      int rv=kno_store(props,slotid,args[1]);
+    else if (n > 3)
+      return kno_err(kno_TooManyArgs,"kno_pool_ctl/props",
+		     KNO_SYMBOL_NAME(op),kno_pool2lisp(p));
+    else {
+      lispval op = (n==2) ? (KNOSYM_STORE) : (args[2]), result = KNO_VOID;
+      int rv=-1;
+      if (op == KNOSYM_STORE)
+	rv=kno_store(props,slotid,args[1]);
+      else if (op == KNOSYM_ADD)
+	rv=kno_add(props,slotid,args[1]);
+      else if (op == KNOSYM_DROP)
+	rv=kno_drop(props,slotid,args[1]);
+      else if (op == KNOSYM_TEST) {
+	rv=kno_drop(props,slotid,args[1]);
+	if (rv==0) result=KNO_FALSE;
+	else if (rv>0) result=KNO_TRUE;
+	else NO_ELSE;}
+      else kno_seterr(_("BadSlotOp"),"kno_default_poolctl",p->poolid,op);
       if (rv<0)
 	return KNO_ERROR_VALUE;
-      else return kno_incref(args[1]);}
-    else return kno_err(kno_TooManyArgs,"kno_pool_ctl/props",
-			KNO_SYMBOL_NAME(op),kno_pool2lisp(p));}
+      else return result;}}
   else if (op == kno_capacity_op)
     return KNO_INT(p->pool_capacity);
   else if (op == KNOSYM_LOGLEVEL) {
@@ -2728,9 +2740,37 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
   else if (op == kno_raw_metadata_op)
     return kno_deep_copy((lispval) &(p->pool_metadata));
   else if (op == KNOSYM_READONLY) {
-    if (U8_BITP((p->pool_flags),KNO_STORAGE_READ_ONLY))
-      return KNO_TRUE;
-    else return KNO_FALSE;}
+    if (n==0) {
+      if (KNO_POOL_READONLYP(p))
+	return KNO_TRUE;
+      else return KNO_FALSE;}
+    else if (n==1) {
+      lispval val = args[0];
+      if (KNO_EMPTYP(val))
+	return KNO_EMPTY;
+      else if (KNO_FALSEP(val)) {
+	if (! ( (p->pool_flags) & KNO_STORAGE_READ_ONLY ) )
+	  return KNO_TRUE;
+	else if (1) {
+	  p->pool_flags &= (~(KNO_STORAGE_READ_ONLY));
+	  return KNO_TRUE;}
+	else return KNO_FALSE;}
+      else {
+	if ( (p->pool_flags) & KNO_STORAGE_READ_ONLY )
+	  return KNO_TRUE;
+	else if (1) {
+	  p->pool_flags |= (KNO_STORAGE_READ_ONLY);
+	  return KNO_TRUE;}
+	else return KNO_FALSE;}}
+    else return kno_err(kno_TooManyArgs,"kno_default_pool/readonly",p->poolid,KNO_VOID);}
+  else if (op == kno_stats_op) {
+    lispval result = kno_make_slotmap(8,0,NULL);
+    lispval idstring = knostring(p->poolid);
+    kno_store(result,KNOSYM_ID,idstring);
+    kno_store(result,KNOSYM_CACHE,KNO_INT2LISP(p->pool_cache.table_n_keys));
+    kno_store(result,KNOSYM_LOCKS,KNO_INT2LISP(p->pool_changes.table_n_keys));
+    kno_decref(idstring);
+    return result;}
   else if (op == KNOSYM_ADJUNCT) {
     if (U8_BITP((p->pool_flags),KNO_POOL_ADJUNCT)) {
       lispval slotid = kno_slotmap_get
@@ -2748,9 +2788,23 @@ KNO_EXPORT lispval kno_default_poolctl(kno_pool p,lispval op,int n,kno_argvec ar
   else {
     lispval lp = (p->pool_serialno<0) ? ((lispval)p) :
       LISPVAL_IMMEDIATE(kno_poolref_type,p->pool_serialno);
-    int flags = n | KNO_DISPATCH_LOOKUP;
     struct KNO_TYPEINFO *info=p->pool_handler->typeinfo;
-    return kno_type_dispatch(NULL,info,lp,op,flags,args);}
+    if ( (info) && (KNO_TABLEP(info->type_props)) ) {
+      lispval props=info->type_props, handler=kno_get(props,op,KNO_VOID);
+      if (KNO_VOIDP(handler))
+	handler=kno_get(kno_default_pool_typeinfo->type_props,op,KNO_VOID);
+      if (KNO_VOIDP(handler))
+	return KNO_EMPTY;
+      else if (!(KNO_APPLICABLEP(handler)))
+	return handler;
+      else {
+	lispval handler_args[n+1];
+	handler_args[0]=lp;
+	memcpy(&(handler_args[1]),args,n*sizeof(lispval));
+	lispval result = kno_dcall(NULL,handler,n+1,handler_args);
+	kno_decref(handler);
+	return result;}}
+    else return KNO_EMPTY;}
 }
 
 static lispval copy_consed_pool(lispval x,int deep)
@@ -2970,7 +3024,21 @@ KNO_EXPORT void kno_init_pools_c()
   virtual_flag=kno_intern("virtual");
   nolocks_flag=kno_intern("nolocks");
 
-  metadata_readonly_props = kno_intern("_readonly_props");
+  metadata_readonly_props_prop = kno_intern("_readonly_props");
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,KNOSYM_TYPE);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,base_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,capacity_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,cachelevel_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,poolid_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,label_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,source_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,locked_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,cached_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,flags_slot);
+
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,KNOSYM_PROPS);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,opts_slot);
+  KNO_ADD_TO_CHOICE(metadata_readonly_props,core_slot);
 
   memset(&kno_top_pools,0,sizeof(kno_top_pools));
   memset(&kno_pools_by_serialno,0,sizeof(kno_pools_by_serialno));
@@ -2979,9 +3047,10 @@ KNO_EXPORT void kno_init_pools_c()
   consed_pools = u8_malloc(64*sizeof(kno_pool));
   consed_pools_len=64;
 
-  {
-    struct KNO_TYPEINFO *e = kno_use_typeinfo(kno_intern("pool"));
-    e->type_consfn = pool_parsefn;}
+  kno_default_pool_typeinfo = kno_use_typeinfo(KNO_CTYPE(kno_pool_type));
+  kno_alias_typeinfo(KNOSYM_POOL,KNO_CTYPE(kno_pool_type));
+  kno_default_pool_typeinfo->type_consfn = pool_parsefn;
+  kno_default_pool_typeinfo->type_usetag = KNOSYM_POOL;
 
   KNO_INIT_STATIC_CONS(&poolid_table,kno_hashtable_type);
   kno_make_hashtable(&poolid_table,-1);

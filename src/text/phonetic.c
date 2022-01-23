@@ -41,19 +41,21 @@ static int soundex_class(int c)
     return 0;}
 }
 
+#define get_base_char(c) ( ((c)>0x80) ? (u8_base_char(c)) : (c) )
+
 KNO_EXPORT u8_string kno_soundex(u8_string string)
 {
   struct U8_OUTPUT out; int c, lastc;
   const u8_byte *s = string; u8_byte buf[8];
   U8_INIT_FIXED_OUTPUT(&out,8,buf);
   c = u8_sgetc(&s);
-  c = u8_toupper(u8_base_char(c));
+  c = u8_toupper(get_base_char(c));
   u8_putc(&out,c);
   lastc = c; c = u8_sgetc(&s);
   while (c>=0) {
     if ((out.u8_write-out.u8_outbuf)>=4)
       return u8_strdup(out.u8_outbuf);
-    c = soundex_class(u8_toupper(u8_base_char(c)));
+    c = soundex_class(u8_toupper(get_base_char(c)));
     if ((c>0) && (c!=lastc)) u8_putc(&out,c);
     if (c>=0) lastc = c;
     c = u8_sgetc(&s);}
@@ -85,7 +87,7 @@ KNO_EXPORT u8_string kno_metaphone(u8_string string,int sep)
   while (c>=0)  {
     int gc;
     if (u8_isspace(c)) gc=' ';
-    else gc = u8_toupper(u8_base_char(c));
+    else gc = u8_toupper(get_base_char(c));
     if ((gc<0x80) && (gc!=lastc)) {
       *scan++=gc; *capscan++=u8_isupper(c);}
     lastc = gc;
@@ -106,101 +108,165 @@ KNO_EXPORT u8_string kno_metaphone(u8_string string,int sep)
     case ' ': case 'F': case 'J': case 'L': case 'M': case 'N': case 'R': 
       if (*capscan) lc = *scan; else lc = tolower(((int)(*scan)));
       u8_putc(&out,lc); break;
-    case 'Q': if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); break;
-    case 'V': if (*capscan) u8_putc(&out,'F'); else u8_putc(&out,'f'); break;
-    case 'Z': if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s'); break;
-    case 'B':
+    case 'Q': {
+      if (*capscan) u8_putc(&out,'K');
+      else u8_putc(&out,'k');
+      break;}
+    case 'V': {
+      if (*capscan) u8_putc(&out,'F');
+      else u8_putc(&out,'f');
+      break;}
+    case 'Z': {
+      if (*capscan) u8_putc(&out,'S');
+      else u8_putc(&out,'s');
+      break;}
+    case 'B': {
       if ((scan>start) && (scan[1]=='\0') && (scan[-1]!='M')) s++;
-      else {if (*capscan) u8_putc(&out,'B'); else u8_putc(&out,'b'); s++;}
-      break;
-    case 'C':
+      else {if (*capscan) u8_putc(&out,'B');
+	else {u8_putc(&out,'b');}
+	s++;}
+      break;}
+    case 'C': {
       if (strncmp(scan,"CIA",3)==0) {
 	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
-	scan = scan+3; capscan = capscan+3;
+	capscan = capscan+3;
+	scan = scan+3;
 	continue;}
       else if (strncmp(scan,"CH",2)==0) {
-	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
-	scan = scan+2; capscan = capscan+2;
+	if (*capscan) u8_putc(&out,'X');
+	else u8_putc(&out,'x');
+	capscan = capscan+2;
+	scan = scan+2; 
 	continue;}
       else if ((strncmp(scan,"CI",3)==0) ||
                (strncmp(scan,"CE",2)==0) ||
                (strncmp(scan,"CY",2)==0)) {
-	if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s');
-	scan = scan+2; capscan = capscan+2;
+	if (*capscan) u8_putc(&out,'S');
+	else u8_putc(&out,'s');
+	capscan = capscan+2;
+	scan = scan+2;
 	continue;}
       else if ((scan>start) &&
 	       ((strncmp(scan-1,"SCI",3)==0) ||
                 (strncmp(scan-1,"SCE",3)==0) ||
                 (strncmp(scan-1,"SCY",3)==0))) {
-	scan = scan+2; capscan = capscan+2; continue;}
+	capscan = capscan+2;
+	scan = scan+2;
+	continue;}
       else if ((scan>start) && (strncmp(scan-1,"SCH",3)==0)) {
-	if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k');
-	scan = scan+2; capscan = capscan+2;
+	if (*capscan) u8_putc(&out,'K');
+	else u8_putc(&out,'k');
+	capscan = capscan+2;
+	scan = scan+2;
 	continue;}
       else {
-	if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); break;}
-    case 'D':
-      if ((strncasecmp(scan,"DGY",3)) || (strncasecmp(scan,"DGI",3)) || (strncasecmp(scan,"DGE",3))) {
-	if (*capscan) u8_putc(&out,'J'); else u8_putc(&out,'j'); 
-	scan = scan+3; capscan = capscan+3; continue;}
-      else if (*capscan) u8_putc(&out,'T'); else u8_putc(&out,'t'); 
-      break;
-    case 'G':
-      if ((strncmp(scan,"GN",2)==0) || (strncmp(scan,"GNED",4)==0)) break;
-      else if ((strncmp(scan,"GH",2)==0) && (scan[2]!='\0') && (strchr(VOWELS,scan[2]) == NULL)) break;
-      else if (((scan[1]=='I') || (scan[1]=='E') || (scan[1]=='Y')) && (scan>start) && (scan[-1]!='G'))
-	if (*capscan) u8_putc(&out,'J'); else u8_putc(&out,'j'); 
-      else if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k'); 
-      break;
-    case 'H':
-      if ((scan>start) && (strchr(VOWELS,scan[-1])) && (strchr(VOWELS,scan[1]) == NULL)) {}
-      else if (*capscan) u8_putc(&out,'H'); else u8_putc(&out,'h'); 
-      break;
-    case 'K':
-      if ((scan>start) && (scan[-1]=='C')) {}
-      else if (*capscan) u8_putc(&out,'K'); else u8_putc(&out,'k');
-      break;
-    case 'P':
+	if (*capscan) u8_putc(&out,'K');
+	else u8_putc(&out,'k');
+	break;}}
+    case 'D': {
+      if ((strncasecmp(scan,"DGY",3)==0) || 
+	  (strncasecmp(scan,"DGI",3)==0) || 
+	  (strncasecmp(scan,"DGE",3)==0)) {
+	if (*capscan) u8_putc(&out,'J');
+	else u8_putc(&out,'j'); 
+	capscan = capscan+3;
+	scan = scan+3;
+	continue;}
+      else if (*capscan) u8_putc(&out,'T');
+      else u8_putc(&out,'t'); 
+      break;}
+    case 'G': {
+      if ((strncmp(scan,"GN",2)==0) || (strncmp(scan,"GNED",4)==0))
+	break;
+      else if ((strncmp(scan,"GH",2)==0) && (scan[2]!='\0') && 
+	       (strchr(VOWELS,scan[2]) == NULL))
+	break;
+      else if (((scan[1]=='I') || (scan[1]=='E') || (scan[1]=='Y')) && 
+	       (scan>start) && (scan[-1]!='G')) {
+	if (*capscan) u8_putc(&out,'J');
+	else u8_putc(&out,'j');}
+      else if (*capscan) u8_putc(&out,'K');
+      else u8_putc(&out,'k'); 
+      break;}
+    case 'H': {
+      if ((scan>start) && (strchr(VOWELS,scan[-1])) && 
+	  (strchr(VOWELS,scan[1]) == NULL))
+	{}
+      else if (*capscan) u8_putc(&out,'H');
+      else u8_putc(&out,'h'); 
+      break;}
+    case 'K': {
+      if ((scan>start) && (scan[-1]=='C'))
+	{}
+      else if (*capscan)
+	u8_putc(&out,'K');
+      else u8_putc(&out,'k');
+      break;}
+    case 'P': {
       if (scan[1]=='H') {
-	if (*capscan) u8_putc(&out,'F'); else u8_putc(&out,'f'); 
-	scan = scan+2; capscan = capscan+2; continue;}
-      else if (*capscan) u8_putc(&out,'P'); else u8_putc(&out,'p'); 
-      break;
-    case 'S':
+	if (*capscan)
+	  u8_putc(&out,'F');
+	else u8_putc(&out,'f'); 
+	capscan = capscan+2;
+	scan = scan+2;
+	continue;}
+      else if (*capscan)
+	u8_putc(&out,'P');
+      else u8_putc(&out,'p'); 
+      break;}
+    case 'S': {
       if (scan[1]=='H') {
-	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
-	scan = scan+2; capscan = capscan+2; continue;}
+	if (*capscan) u8_putc(&out,'X');
+	else u8_putc(&out,'x');
+	capscan = capscan+2;
+	scan = scan+2;
+	continue;}
       else if (((scan>start) &&
-		((strncmp(scan,"sio",3)==0) || (strncmp(scan,"sia",3)==0))))
-	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
-      else if (*capscan) u8_putc(&out,'S'); else u8_putc(&out,'s');
-      break;
-    case 'T':
+		((strncmp(scan,"sio",3)==0) ||
+		 (strncmp(scan,"sia",3)==0))))
+	if (*capscan)
+	  u8_putc(&out,'X');
+	else u8_putc(&out,'x');
+      else if (*capscan)
+	u8_putc(&out,'S');
+      else u8_putc(&out,'s');
+      break;}
+    case 'T': {
       if ((scan>start) &&
 	  ((strncmp(scan,"tia",3)==0) || (strncmp(scan,"tio",3)==0)))
-	if (*capscan) u8_putc(&out,'X'); else u8_putc(&out,'x');
+	if (*capscan)
+	  u8_putc(&out,'X');
+	else u8_putc(&out,'x');
       else if (scan[1]=='H') {
-	if (*capscan) u8_putc(&out,'O'); else u8_putc(&out,'o');
-	scan = scan+2; capscan = capscan+2; continue;}
-      else if (*capscan) u8_putc(&out,'T'); else u8_putc(&out,'t');
-      break;
-    case 'W': case 'Y':
+	if (*capscan) u8_putc(&out,'O');
+	else u8_putc(&out,'o');
+	capscan = capscan+2;
+	scan = scan+2;
+	continue;}
+      else if (*capscan) u8_putc(&out,'T');
+      else u8_putc(&out,'t');
+      break;}
+    case 'W': case 'Y': {
       if (strchr(VOWELS,scan[1])) {
-	if (*capscan) lc = *scan; else lc = tolower(((int)(*scan)));
+	if (*capscan) lc = *scan;
+	else lc = tolower(((int)(*scan)));
 	u8_putc(&out,lc);}
       else {}
-      break;
-    case 'X':
-      if (*capscan) u8_puts(&out,"KS"); else u8_puts(&out,"ks");
-      break;
+      break;}
+    case 'X': {
+      if (*capscan) u8_puts(&out,"KS");
+      else u8_puts(&out,"ks");
+      break;}
     default: if (scan == start)  {
-	if (*capscan) lc = *scan; else lc = tolower(((int)(*scan)));
+	if (*capscan) lc = *scan;
+	else lc = tolower(((int)(*scan)));
 	u8_putc(&out,lc);}}
     if ((sep) && (lenout) && (lenout == (out.u8_write-out.u8_outbuf)) &&
 	(out.u8_outbuf[lenout-1]!='.'))
       u8_putc(&out,'.');
     lenout = out.u8_write-out.u8_outbuf;
-    scan++; capscan++;}
+    capscan++;
+    scan++;}
   if (start!=buf) u8_free(start);
   if (capstart!=capbuf) u8_free(capstart);
   return out.u8_outbuf;

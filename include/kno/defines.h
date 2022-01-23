@@ -20,6 +20,8 @@
 #define KNO_INLINE 0
 #endif
 
+#define KNO_NOT_NULL(ptr) assert((ptr)!=NULL)
+
 #ifndef KNO_USE_MMAP
 #if HAVE_MMAP
 #if KNO_WITHOUT_MMAP
@@ -603,6 +605,7 @@ typedef double kno_double;
 #define ITER_CHOICES       KNO_ITER_CHOICES
 #define lspcpy             kno_lspcpy
 #define lspset             kno_lspset
+#define NOT_NULL           KNO_NOT_NULL
 #endif
 
 #endif /* KNO_DEFINES_H */

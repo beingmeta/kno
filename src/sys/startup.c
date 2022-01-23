@@ -173,7 +173,8 @@ KNO_EXPORT lispval *kno_handle_argv(int argc,char **argv,
       u8_string arg = u8_fromlibc(carg), eq = strchr(arg,'=');
       int skip_parse = 0;
       u8_printf(&cmdargs,"(%d)\t%s\n",i,arg);
-      if (i>0) u8_putc(&cmdline,' '); u8_puts(&cmdline,arg);
+      if (i>0) u8_putc(&cmdline,' ');
+      u8_puts(&cmdline,arg);
       KNO_VECTOR_SET(raw_args,i,kno_mkstring(arg));
       /* Don't include argv[0] in the arglists */
       if ( (i==0) || (arg_mask[i]) ) {
@@ -1104,6 +1105,11 @@ void kno_init_startup_c()
   atexit(doexit_atexit);
   atexit(remove_pidfile);
 
+  if ( (runbase == NULL) && (runbase_config == NULL) )
+    runbase_config=u8_getenv("U8_RUNBASE");
+
+  if (getenv("KNO_SUPPRESS_BANNERS")) kno_be_vewy_quiet=1;
+
   boot_config();
 
   u8_string given_pidfile = u8_getenv("U8RUNPIDFILE");
@@ -1163,12 +1169,9 @@ void kno_init_startup_c()
                       kno_lconfig_get,NULL,&exec_arg);
 
 
-
   kno_register_config("LOGCMD",
                       _("Whether to display command line args on entry and exit"),
                       kno_boolconfig_get,kno_boolconfig_set,&kno_logcmd);
-
-
 
   kno_register_config("SESSIONID",_("unique session identifier"),
                       config_getsessionid,config_setsessionid,NULL);
@@ -1265,7 +1268,8 @@ void kno_init_startup_c()
 #endif
 
   if (!(kno_rundir)) {
-    u8_string use_rundir = kno_syspath(KNO_RUN_DIR);
+    u8_string use_rundir = u8_getenv("U8_RUNDIR");
+    if (use_rundir == NULL) use_rundir = kno_syspath(KNO_RUN_DIR);
     if ( (u8_directoryp(use_rundir)) &&
 	 (u8_file_writablep(use_rundir)) )
       kno_rundir = use_rundir;
@@ -1311,7 +1315,8 @@ void kno_init_startup_c()
 		      kno_sconfig_get,kno_sconfig_set,&kno_rundir);
 
   if (!(kno_logdir)) {
-    u8_string use_logdir = kno_syspath(KNO_LOG_DIR);
+    u8_string use_logdir = u8_getenv("U8_LOGDIR");
+    if (use_logdir == NULL) use_logdir = kno_syspath(KNO_LOG_DIR);
     if ( (u8_directoryp(use_logdir)) &&
 	 (u8_file_writablep(use_logdir)) )
       kno_logdir = use_logdir;

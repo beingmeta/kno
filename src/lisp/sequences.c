@@ -774,7 +774,8 @@ KNO_EXPORT lispval kno_reverse(lispval sequence)
 	result = kno_makeseq(kno_vector_type,len,tmp);}}
     else result = kno_makeseq(KNO_TYPEOF(sequence),len,tmp);
     i = 0; while (i<len) {kno_decref(elts[i]); i++;}
-    if (elts) u8_free(elts); if (tmp) u8_free(tmp);
+    if (elts) u8_free(elts);
+    if (tmp) u8_free(tmp);
     return result;}
 }
 

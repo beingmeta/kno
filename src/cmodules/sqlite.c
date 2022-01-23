@@ -236,11 +236,11 @@ static lispval sqlite_reopen_prim(lispval db)
 static void close_knosqlite(struct KNO_SQLITE *dbp,int lock)
 {
   u8_log(LOG_WARN,"close_knosqlite","Closing SQLITE db %s",dbp->sqlconn_spec);
-  if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
-    sqlite3 *db = dbp->sqlitedb;
-    dbp->sqlitedb = NULL;
-    closedb(db);}
-  if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));
+  {if (lock) u8_lock_mutex(&(dbp->sqlite_lock)); {
+      sqlite3 *db = dbp->sqlitedb;
+      dbp->sqlitedb = NULL;
+      closedb(db);}
+    if (lock) u8_unlock_mutex(&(dbp->sqlite_lock));}
 }
 
 

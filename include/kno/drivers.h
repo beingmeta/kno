@@ -16,6 +16,7 @@ KNO_EXPORT size_t kno_driver_writesize;
 KNO_EXPORT ssize_t kno_get_bufsize(lispval,ssize_t,int);
 
 KNO_EXPORT int kno_acid_files;
+KNO_EXPORT int kno_check_rollbacks;
 
 KNO_EXPORT int kno_init_drivers(void) KNO_LIBINIT_FN;
 
@@ -23,11 +24,12 @@ KNO_EXPORT kno_compress_type kno_compression_type(lispval,kno_compress_type);
 
 /* These are common pool/index ops (for use with kno_poolctl/kno_indexctl) */
 
-KNO_EXPORT lispval kno_cachelevel_op, kno_bufsize_op, kno_mmap_op, kno_preload_op;
-KNO_EXPORT lispval kno_metadata_op, kno_raw_metadata_op, kno_reload_op;
-KNO_EXPORT lispval kno_stats_op, kno_label_op, kno_source_op, kno_populate_op, kno_swapout_op;
-KNO_EXPORT lispval kno_getmap_op, kno_xrefs_op, kno_slotids_op, kno_baseoids_op, kno_keys_op;
-KNO_EXPORT lispval kno_load_op, kno_capacity_op, kno_keycount_op, kno_partitions_op;
+KNO_EXPORT lispval kno_cachelevel_op, kno_bufsize_op;
+KNO_EXPORT lispval kno_metadata_op, kno_raw_metadata_op, kno_stats_op, kno_partitions_op;
+KNO_EXPORT lispval kno_load_op, kno_capacity_op, kno_keycount_op, kno_livecount_op;
+KNO_EXPORT lispval kno_label_op, kno_source_op;
+KNO_EXPORT lispval kno_xrefs_op, kno_slotids_op, kno_baseoids_op, kno_keys_op;
+KNO_EXPORT lispval kno_preload_op, kno_reload_op, kno_swapout_op, kno_rollback_symbol;
 
 KNO_EXPORT u8_condition kno_InvalidOffsetType;
 KNO_EXPORT u8_condition kno_BadMetaData, kno_FutureMetaData;
@@ -56,6 +58,10 @@ struct KNO_POOL_TYPEINFO {
 typedef struct KNO_POOL_TYPEINFO *kno_pool_typeinfo;
 KNO_EXPORT kno_pool_typeinfo kno_get_pool_typeinfo(u8_string string);
 KNO_EXPORT kno_pool_typeinfo kno_pool_typeinfo_by_handler(kno_pool_handler handler);
+
+/* This is for generic typeinfo, rather than pool/index specific typeinfo */
+KNO_EXPORT struct KNO_TYPEINFO *kno_default_pool_typeinfo;
+KNO_EXPORT struct KNO_TYPEINFO *kno_default_index_typeinfo;
 
 KNO_EXPORT
 void kno_register_pool_type

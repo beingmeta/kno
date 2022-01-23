@@ -53,6 +53,8 @@ static int kpool_max_xrefs = XTYPE_MAX_XREFS;
 static lispval load_symbol, xrefs_symbol, compression_symbol, maxrefs_symbol;
 static lispval offmode_symbol, created_upsym, oidrefs_symbol, symrefs_symbol;
 
+DEF_KNOSYM(rollback);
+
 static void kpool_setcache(kno_kpool p,int level);
 static int update_offdata_cache(kno_kpool kp,int level,int chunk_ref_size);
 
@@ -230,8 +232,8 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
   struct KNO_KPOOL *pool = u8_alloc(struct KNO_KPOOL);
   ssize_t bufsize = kno_get_bufsize(opts,kno_driver_bufsize,0);
   int read_only = U8_BITP(open_flags,KNO_STORAGE_READ_ONLY);
-  if ( (read_only == 0) && (u8_file_writablep(fname)) ) {
-    if (kno_check_rollback("open_hashindex",fname)<0) {
+  if ( (read_only == 0) && (kno_check_rollbacks) && (u8_file_writablep(fname)) ) {
+    if (kno_check_rollback("open_kpool",fname)<0) {
       /* If we can't apply the rollback, open the file read-only */
       u8_log(LOG_WARN,"RollbackFailed",
 	     "Opening kpool %s as read-only due to failed rollback",
@@ -400,8 +402,16 @@ static kno_pool open_kpool(u8_string fname,kno_storage_flags open_flags,
   u8_free(realpath);
   u8_free(abspath);
 
+  if (kno_testopt(opts,KNOSYM(rollback),KNO_FALSE)) {}
+  else if (kno_testopt(opts,KNOSYM(rollback),KNO_VOID))
+    pool->pool_flags |= KNO_KPOOL_NO_ROLLBACK;
+  else if (u8_has_suffix(fname,".part",1))
+    pool->pool_flags |= KNO_KPOOL_NO_ROLLBACK;
+  else NO_ELSE;
+
   /* Get open flags which might have been modified by kno_init_pool */
   open_flags = pool->pool_flags;
+
   kno_decref(metadata);
   if (metadata_modified) {
     KNO_XTABLE_SET_MODIFIED(&(pool->pool_metadata),1);}
@@ -1189,11 +1199,15 @@ static int kpool_commit(kno_pool p,kno_commit_phase phase,
 	      u8_strdup(p->poolid));
     return -1;
   case kno_commit_start: {
-    size_t cap = p->pool_capacity;
-    size_t recovery_size = 256+(chunk_ref_size*cap);
-    int rv = kno_write_rollback("kpool_commit",p->poolid,fname,recovery_size);
-    if (rv>=0) commits->commit_phase = kno_commit_write;
-    return rv;}
+    if ( (kp->pool_flags) & (KNO_KPOOL_NO_ROLLBACK) ) {
+      commits->commit_phase = kno_commit_write;
+      return 0;}
+    else {
+      size_t cap = p->pool_capacity;
+      size_t recovery_size = 256+(chunk_ref_size*cap);
+      int rv = kno_write_rollback("kpool_commit",p->poolid,fname,recovery_size);
+      if (rv>=0) commits->commit_phase = kno_commit_write;
+      return rv;}}
   case kno_commit_write: {
     struct KNO_STREAM *head_stream = NULL;
     if (commits->commit_2phase) {
@@ -1233,20 +1247,24 @@ static int kpool_commit(kno_pool p,kno_commit_phase phase,
       return 1;}
     else return -1;}
   case kno_commit_rollback: {
-    u8_string rollback = u8_mkstring("%s.rollback",fname);
-    ssize_t rv = kno_apply_head(rollback,fname);
-    u8_free(rollback);
-    if (rv<0) return -1; else return 1;}
+    if ( (kp->pool_flags) & (KNO_KPOOL_NO_ROLLBACK) ) {
+      return 0;}
+    else {
+      u8_string rollback = u8_mkstring("%s.rollback",fname);
+      ssize_t rv = kno_apply_head(rollback,fname);
+      u8_free(rollback);
+      if (rv<0) return -1; else return 1;}}
   case kno_commit_flush: {
     return 1;}
   case kno_commit_cleanup: {
     if (commits->commit_stream) release_commit_stream(p,commits);
-    u8_string rollback = u8_mkstring("%s.rollback",fname);
-    if (u8_file_existsp(rollback)) {
-      if ( (u8_removefile(rollback)) < 0) {
-	u8_logf(LOG_WARN,"PoolCleanupFailed",
-		"Couldn't remove file %s for %s",rollback,fname);}}
-    u8_free(rollback);
+    if (! ( (kp->pool_flags) & (KNO_KPOOL_NO_ROLLBACK) ) ) {
+      u8_string rollback = u8_mkstring("%s.rollback",fname);
+      if (u8_file_existsp(rollback)) {
+	if ( (u8_removefile(rollback)) < 0) {
+	  u8_logf(LOG_WARN,"PoolCleanupFailed",
+		  "Couldn't remove file %s for %s",rollback,fname);}}
+      u8_free(rollback);}
     if (commits->commit_2phase) {
       u8_string commit = u8_mkstring("%s.commit",fname);
       if (u8_file_existsp(commit)) {
@@ -1322,7 +1340,7 @@ static int write_kpool_load(kno_kpool kp,
   load = kno_read_4bytes_at(stream,16,KNO_ISLOCKED);
   if (load<0) {
     return -1;}
-  else if (new_load>load) {
+  else if (new_load!=load) {
     int rv = kno_write_4bytes_at(stream,new_load,16);
     if (rv<0) return rv;
     kp->pool_load = new_load;
@@ -2114,7 +2132,7 @@ static lispval kpool_ctl(kno_pool p,lispval op,int n,kno_argvec args)
     lispval val = args[0];
     if ( (KNO_FALSEP(val)) ? (!( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) )) :
 	 ( (kp->pool_flags) & (KNO_STORAGE_READ_ONLY) ) )
-      return KNO_FALSE;
+      return KNO_TRUE;
     else if (!(KNO_FALSEP(val))) {
       kp->pool_flags |= KNO_STORAGE_READ_ONLY;
       return KNO_TRUE;}
@@ -2231,12 +2249,12 @@ static kno_pool kpool_create(u8_string spec,void *type_data,
     int capval = kno_getint(capacity_arg);
     if (capval<=0) {
       kno_seterr("Not a valid capacity","kpool_create",
-		spec,capacity_arg);
+		 spec,capacity_arg);
       rv = -1;}
     else capacity = capval;}
   else {
     kno_seterr("Not a valid capacity","kpool_create",
-	      spec,capacity_arg);
+	       spec,capacity_arg);
     rv = -1;}
   if (rv<0) {}
   else if (KNO_ISINT(load_arg)) {
@@ -2316,11 +2334,10 @@ static kno_pool kpool_create(u8_string spec,void *type_data,
     flags |= KNO_KPOOL_SYMREFS;
 
   if (rv<0) return NULL;
-  else rv = make_kpool(spec,
-			 ((STRINGP(label)) ? (CSTRING(label)) : (spec)),
-			 KNO_OID_ADDR(base_oid),capacity,load,flags,
-			 metadata,xrefs,
-			 ctime,mtime,generation);
+  else rv = make_kpool(spec,((STRINGP(label)) ? (CSTRING(label)) : (spec)),
+		       KNO_OID_ADDR(base_oid),capacity,load,flags,
+		       metadata,xrefs,
+		       ctime,mtime,generation);
   kno_decref(base_oid);
   kno_decref(capacity_arg);
   kno_decref(load_arg);

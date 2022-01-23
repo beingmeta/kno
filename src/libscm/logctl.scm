@@ -34,27 +34,30 @@
       (set+! saved-levels (cons modname level)))))
 
 
-(define (logctl! id (level #f) (mod #f))
-  (cond ((module? id) (set! mod id))
-	((symbol? id) (set! mod (get-module id)))
-	((string? id)
-	 (set! mod (or (get-module id) (get-module (string->lisp id))))))
-  (unless (module? mod)
-    (error "No module from " id ": " mod))
-  (if level
-      (logwarn LOGCTL "Setting loglevel of " id " to " level)
-      (logwarn LOGCTL "Resetting loglevel of " id " to "
-	       (get saved-levels id)))
-  (set! id (try (pick (get mod '%moduleid) symbol?)
-		(get mod '%moduleid)))
+(define (logctl! id (level #f) (quiet #f))
+  (local module
+	 (cond ((module? id) id)
+	       ((symbol? id) (get-module id))
+	       ((string? id)
+		(or (get-module id) (get-module (string->lisp id))))
+	       (else #f)))
+  (unless (module? module)
+    (error "No module from " id ": " module))
+  (unless quiet
+    (if level
+	(logwarn LOGCTL "Setting loglevel of " id " to " level)
+	(logwarn LOGCTL "Resetting loglevel of " id " to "
+		 (get saved-levels id))))
+  (set! id (try (pick (get module '%moduleid) symbol?)
+		(get module '%moduleid)))
   (when level
-    (save-loglevel! id (get mod '%loglevel))
-    (store! mod '%loglevel level)
+    (save-loglevel! id (get module '%loglevel))
+    (store! module '%loglevel level)
     (record-loglevel! id level))
   (unless level
     (let ((restore-level (get saved-levels id)))
       (when (exists? restore-level)
-	(store! mod '%loglevel restore-level)
+	(store! module '%loglevel restore-level)
 	(record-loglevel! id restore-level)))))
 
 (define (log/deluge! id) (logctl! id %deluge%))

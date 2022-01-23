@@ -15,10 +15,20 @@
 (define-init debug-width 120)
 (varconfig! kno:debug:width debug-width)
 
-(define (set-debug! (arg (req/get '_debug #f)))
+(define (set-debug! (arg #f))
   (unless arg
-    (set! arg (or (req/get '_err #f)
-		  (req/get '_debug (req/get '_err #f)))))
+    (let ((debugging (req/get '_debug #f))
+	  (last-set (req/get '_debug_set #f))
+	  (lasterr (req/get '_err #f)))
+      (cond ((not debugging) (set! arg lasterr))
+	    ((not lasterr) (set! arg debugging))
+	    ((eq? lasterr debugging) (set! arg debugging))
+	    ((and last-set (> (exception-moment lasterr) last-set))
+	     (logwarn |NewDebug|
+	       "Switching to new error " ($histval lasterr) " @" (exception-moment lasterr) "\n"
+	       "Previously debugging " ($histval debugging) " @" (exception-moment debugging))
+	     (set! arg lasterr))
+	    (else (set! arg debugging)))))
   (cond ((not arg)
 	 (logwarn |NoException| "No current or past exception to debug!"))
 	((req/test '_debug arg))
@@ -28,6 +38,7 @@
 		  " (elapsed=" (exception-moment arg) ")"
 		  "\nthread #" (exception-threadno arg) " in session " (exception-sessionid arg))
 	 (req/set! '_debug arg)
+	 (req/set! '_debug_set (elapsed-time))
 	 (req/set! '_debug_stack (exception-stack arg))
 	 (req/set! '_debug_stack_entry (first (exception-stack arg)))))
   arg)
@@ -44,7 +55,8 @@
 	(else #f)))
 
 (define (debug.command (arg (req/get '_debug (req/get '_err #f))))
-  (if arg (set-debug! arg)
+  (if arg
+      (set-debug! arg)
       (logwarn |NoError| "Nothing to debug")))
 
 (define (display-stackframe frame (label #f))
