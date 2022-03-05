@@ -1,24 +1,22 @@
 [submodule "docs/wiki"]
 	path = docs/wiki
 	url = ../kno.wiki.git
-[submodule "tests"]
-	path = src/tests
-	url = ../kno-tests.git
-	update = merge
+	branch = master
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = ../stdmods.git
-	update = merge
+	branch = main
 [submodule "src/brico"]
 	path = src/brico
 	url = ../brico.git
-	update = merge
+	branch = main
 [submodule "src/textmods"]
 	path = src/textmods
 	url = ../textmods
-	update = merge
+	branch = main
 [submodule "src/webmods"]
 	path = src/webmods
 	url = ../webmods
-	update = merge
+	branch = main
+
 
