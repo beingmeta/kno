@@ -211,7 +211,7 @@ typedef enum KNO_LISP_TYPE {
   kno_macro_type = KNO_CONS_TYPECODE(27),
   kno_stackframe_type = KNO_CONS_TYPECODE(28),
   kno_exception_type = KNO_CONS_TYPECODE(29),
-  kno_promise_type = KNO_CONS_TYPECODE(30),
+  kno_future_type = KNO_CONS_TYPECODE(30),
   kno_thread_type = KNO_CONS_TYPECODE(31),
   kno_synchronizer_type = KNO_CONS_TYPECODE(32),
 
@@ -925,7 +925,7 @@ KNO_EXPORT int _KNO_ERRORP(lispval x);
 #define KNO_MACRO_TYPE KNO_CTYPE(kno_macro_type)
 #define KNO_STACKFRAME_TYPE KNO_CTYPE(kno_stackframe_type)
 #define KNO_EXCEPTION_TYPE KNO_CTYPE(kno_exception_type)
-#define KNO_PROMISE_TYPE KNO_CTYPE(kno_promise_type)
+#define KNO_FUTURE_TYPE KNO_CTYPE(kno_future_type)
 #define KNO_THREAD_TYPE KNO_CTYPE(kno_thread_type)
 #define KNO_SYNCHRONIZER_TYPE KNO_CTYPE(kno_synchronizer_type)
 #define KNO_CONSBLOCK_TYPE KNO_CTYPE(kno_consblock_type)

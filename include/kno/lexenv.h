@@ -30,6 +30,7 @@ KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env);
 KNO_EXPORT void _kno_free_lexenv(struct KNO_LEXENV *env);
 KNO_EXPORT kno_lexenv kno_dynamic_lexenv(kno_lexenv env);
 KNO_EXPORT int kno_recycle_lexenv(kno_lexenv env);
+KNO_EXPORT lispval kno_env2lisp(kno_lexenv env);
 
 KNO_EXPORT kno_lexenv kno_find_binding(kno_lexenv env,lispval symbol,int any);
 
