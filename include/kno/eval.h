@@ -19,6 +19,7 @@
 
 #include "kno/lexenv.h"
 #include "kno/apply.h"
+#include "kno/futures.h"
 #include "kno/threads.h"
 
 #include <libu8/u8printf.h>

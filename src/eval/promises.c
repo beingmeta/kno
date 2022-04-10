@@ -25,7 +25,7 @@
 
 /* Promises, Delays, etc */
 
-static int eval_futurefn(kno_future,lispval,int);
+static int force_eval_promise(kno_future,lispval,int);
 
 static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
@@ -33,61 +33,37 @@ static lispval delay_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
   if (KNO_VOIDP(delay_expr))
     return kno_err(kno_SyntaxError,"delay_evalfn",NULL,expr);
   else if (KNO_EVALP(delay_expr)) {
+    lispval source = kno_init_pair(NULL,kno_incref(delay_expr),kno_env2lisp(env));
     return (lispval) kno_init_future
-      (NULL,KNO_NULL,kno_incref(delay_expr),kno_env2lisp(env),
-       delay_futurefn,
-       0);}
-  else return kno_init_future
-	 (NULL,kno_incref(delay_expr),kno_incref(delay_expr),kno_env2lisp(env),
-	  NULL,KNO_FUTURE_FINAL);
+      (NULL,KNO_NULL,source,force_eval_promise,
+       KNO_FUTURE_COMPUTABLE|KNO_FUTURE_MONOTONIC);}
+  else return (lispval) kno_init_future
+	 (NULL,kno_incref(delay_expr),kno_incref(delay_expr),NULL,
+	  KNO_FUTURE_COMPUTABLE|KNO_FUTURE_FINALIZED|KNO_FUTURE_MONOTONIC);
 }
 
-static int eval_futurefn(kno_future f,lispval arg,int flags)
+static int force_eval_promise(kno_future f,lispval curval,int flags)
 {
-  
-}
-
-KNO_EXPORT lispval kno_force_promise(lispval promise)
-{
-  if (KNO_TYPEP(promise,kno_promise_type)) {
-    struct KNO_PROMISE *p = (kno_promise) promise;
-    if (p->promise_value)
-      return kno_incref(p->promise_value);
-    else {
-      u8_lock_mutex(&p->promise_lock);
-      /* Handle race conditions */
-      if (p->promise_value) {
-        u8_unlock_mutex(&p->promise_lock);
-        return kno_incref(p->promise_value);}
-      lispval result = KNO_VOID;
-      int resolve_flags = KNO_PROMISE_FINAL;
-      switch (KNO_PROMISE_TYPEOF(p)) {
-      case kno_eval_promise: {
-	lispval expr = p->promise_body.eval.expr;
-	kno_lexenv env = p->promise_body.eval.env;
-	result = kno_eval(expr,env,NULL);
-	break;}
-      case kno_apply_promise: {
-	lispval fn = p->promise_body.apply.fcn;
-	lispval *args = p->promise_body.apply.args;
-	int n_args = p->promise_body.apply.n_args;
-	result = kno_apply(fn,n_args,args);
-	break;}
-      case kno_async_promise: {
-	lispval fallback = p->promise_body.async.fallback;
-	result = kno_incref(fallback);
-	resolve_flags = KNO_PROMISE_PARTIAL;
-	break;}
-      default:
-	result = kno_err("CorruptPromise","kno_force_promise",NULL,KNO_VOID);
-	break;}
-      if (KNO_ABORTED(result)) {
-	u8_exception ex = u8_current_exception;
-	lispval exo = kno_simple_exception(ex);
-	kno_promise_resolve(p,exo,KNO_PROMISE_BROKEN|KNO_PROMISE_FINAL);}
-      else kno_promise_resolve(p,result,resolve_flags);
-      return result;}}
-  else return kno_incref(promise);
+  lispval result = KNO_VOID;
+  if (curval) return 0;
+  lispval source = f->future_source;
+  if ( (KNO_PAIRP(source)) &&
+       (KNO_LEXENVP(KNO_CDR(source))) ) {
+    lispval expr = KNO_CAR(source);
+    kno_lexenv env = (kno_lexenv) KNO_CDR(source);
+    result = kno_eval(expr,env,NULL);}
+  else result = kno_err("BadEvalPromise","kno_force_promise",NULL,source);
+  if (KNO_ABORTED(result)) {
+    u8_exception ex = u8_current_exception;
+    lispval exo = kno_simple_exception(ex);
+    f->future_value=exo;
+    KNO_FUTURE_SET(f,KNO_FUTURE_EXCEPTION);
+    KNO_FUTURE_SET(f,KNO_FUTURE_FINALIZED);
+    return -1;}
+  else {
+    f->future_value=result;
+    KNO_FUTURE_SET(f,KNO_FUTURE_FINALIZED);
+    return 1;}
 }
 
 DEFC_PRIM("force",force_promise_prim,
@@ -99,9 +75,9 @@ DEFC_PRIM("force",force_promise_prim,
 	  {"promise",kno_any_type,KNO_VOID})
 static lispval force_promise_prim(lispval promise)
 {
-  if (KNO_TYPEP(promise,kno_promise_type)) {
-    struct KNO_PROMISE *p = (kno_promise) promise;
-    return kno_force_promise(promise);}
+  if ( (KNO_TYPEP(promise,kno_future_type)) &&
+       ((((kno_future)promise)->future_bits)&(KNO_FUTURE_COMPUTABLE)) )
+    return kno_force_future((kno_future)promise,KNO_VOID);
   else return kno_incref(promise);
 }
 
@@ -115,15 +91,20 @@ DEFC_PRIM("promise/probe",probe_promise_prim,
 	  {"marker",kno_any_type,KNO_VOID})
 static lispval probe_promise_prim(lispval promise,lispval marker)
 {
-  if (KNO_TYPEP(promise,kno_promise_type)) {
-    struct KNO_PROMISE *p = (kno_promise) promise;
-    if (p->promise_value)
-      return kno_incref(p->promise_value);
-    else if ( (KNO_PROMISE_TYPEP(p,kno_async_promise)) && (KNO_VOIDP(marker)) ) {
-      return kno_incref(p->promise_body.async.fallback);}
-    else if (KNO_VOIDP(marker))
-      return KNO_FALSE;
-    else return kno_incref(marker);}
+  if (KNO_TYPEP(promise,kno_future_type)) {
+    struct KNO_FUTURE *f = (kno_future) promise;
+    if ( (f->future_value) && (KNO_FUTURE_FINALP(f)) )
+      return kno_incref(f->future_value);
+    else if ( (f->future_value == KNO_NULL) && (!(KNO_VOIDP(marker))) )
+      return kno_incref(marker);
+    else {
+      u8_lock_mutex(&f->future_lock);
+      lispval retval = (f->future_value == KNO_NULL) ? (kno_incref(marker)) :
+	(KNO_PRECHOICEP(f->future_value)) ?
+	(kno_make_simple_choice(f->future_value)) :
+	(kno_incref(f->future_value));
+      u8_unlock_mutex(&f->future_lock);
+      return retval;}}
   else return kno_incref(promise);
 }
 
@@ -134,13 +115,60 @@ DEFC_PRIM("make-promise",make_promise_prim,
 	  {"value",kno_any_type,KNO_VOID})
 static lispval make_promise_prim(lispval value)
 {
-  struct KNO_PROMISE *promise = kno_init_promise(NULL,kno_eval_promise,0);
-  promise->promise_body.eval.expr = kno_incref(value);
-  promise->promise_body.eval.env = NULL;
-  if (KNO_VOIDP(value))
-    promise->promise_value = KNO_NULL;
-  else promise->promise_value = kno_incref(value);
-  return (lispval) promise;
+  return (lispval) kno_init_future
+    (NULL,value,KNO_VOID,NULL,
+     KNO_FUTURE_COMPUTABLE|KNO_FUTURE_MONOTONIC|KNO_FUTURE_FINALIZED);
+}
+
+DEFC_PRIM("promise?",promisep_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a promise (a computable future).",
+	  {"value",kno_any_type,KNO_VOID})
+static lispval promisep_prim(lispval value)
+{
+  if ( (KNO_TYPEP(value,kno_future_type)) &&
+       (KNO_FUTURE_BITP(value,KNO_FUTURE_COMPUTABLE)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("promise/broken?",promise_brokenp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a promise which has yielded an error.",
+	  {"value",kno_any_type,KNO_VOID})
+static lispval promise_brokenp_prim(lispval value)
+{
+  if ( (KNO_TYPEP(value,kno_future_type)) &&
+       (KNO_FUTURE_BITP(value,KNO_FUTURE_EXCEPTION)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("promise/resolved?",promise_resolvedp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a promise which has yielded a result or an error.",
+	  {"value",kno_any_type,KNO_VOID})
+static lispval promise_resolvedp_prim(lispval value)
+{
+  if ( (KNO_TYPEP(value,kno_future_type)) &&
+       (KNO_FUTURE_RESOLVEDP((kno_future)value)) &&
+       (KNO_FUTURE_FINALIZEDP((kno_future)value)) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("promise/satisfied?",promise_satisfiedp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a promise which has yielded a result or an error.",
+	  {"value",kno_any_type,KNO_VOID})
+static lispval promise_satisfiedp_prim(lispval value)
+{
+  if ( (KNO_TYPEP(value,kno_future_type)) &&
+       (KNO_FUTURE_RESOLVEDP((kno_future)value)) &&
+       (KNO_FUTURE_FINALIZEDP((kno_future)value)) &&
+       (!(KNO_FUTURE_EXCEPTIONP((kno_future)value))) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
 }
 
 /* Initialization */
@@ -166,7 +194,11 @@ KNO_EXPORT int kno_init_promises_c()
 
 static void link_local_cprims()
 {
+  KNO_LINK_CPRIM("promise?",promisep_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("make-promise",make_promise_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("promise/probe",probe_promise_prim,2,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/broken?",promise_brokenp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/resolved?",promise_resolvedp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("promise/satisfied?",promise_satisfiedp_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("force",force_promise_prim,1,kno_scheme_module);
 }

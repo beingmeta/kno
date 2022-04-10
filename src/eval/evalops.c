@@ -20,6 +20,7 @@
 #include "kno/numbers.h"
 #include "kno/support.h"
 #include "kno/cprims.h"
+#include "kno/futures.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -660,7 +661,7 @@ static lispval future_brokenp_prim(lispval value)
 {
   struct KNO_FUTURE *future = (kno_future) value;
   if ( (future->future_value) &&
-       ((future->future_bits)&KNO_FUTURE_BROKEN) )
+       ((future->future_bits)&KNO_FUTURE_EXCEPTION) )
     return KNO_TRUE;
   else return KNO_FALSE;
 }
@@ -674,7 +675,7 @@ static lispval future_satisfiedp_prim(lispval value)
 {
   struct KNO_FUTURE *future = (kno_future) value;
   if ( (future->future_value) &&
-       (! (KNO_FUTURE_BROKENP(future)) ) )
+       (! (KNO_FUTURE_EXCEPTIONP(future)) ) )
     return KNO_TRUE;
   else return KNO_FALSE;
 }

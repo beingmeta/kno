@@ -680,6 +680,7 @@ void kno_init_ffi_c(void);
 void kno_init_exec_c(void);
 void kno_init_dispatch_c(void);
 void kno_init_services_c(void);
+void kno_init_futures_c(void);
 void kno_init_sql_c(void);
 
 /* PROFILED functions config */
@@ -1007,6 +1008,7 @@ KNO_EXPORT void kno_init_apply_c()
   kno_init_exec_c();
   kno_init_dispatch_c();
   kno_init_services_c();
+  kno_init_futures_c();
   kno_init_sql_c();
 }
 
