@@ -25,49 +25,73 @@
 
 KNO_EXPORT struct KNO_FUTURE *kno_init_future
 (struct KNO_FUTURE *future,
- lispval init,lispval source,lispval context,
+ lispval init,lispval source,
  future_updatefn updatefn,
- int bits)
+ unsigned int bits)
 {
   int do_alloc = (future == NULL);
   if (do_alloc) future = u8_alloc(struct KNO_FUTURE);
   KNO_INIT_FRESH_CONS(future,kno_future_type);
   future->future_bits = bits;
+  future->future_value = init;
   future->future_callbacks = KNO_EMPTY;
   future->future_source=source;
-  future->future_context=context;
   future->future_updatefn=updatefn;
+  future->future_updated=-1;
   u8_init_mutex(&future->future_lock);
   u8_init_condvar(&future->future_condition);
   return future;
 }
 
-static void run_future_callbacks(kno_future p,lispval callbacks,lispval vals);
+static void run_future_callbacks(kno_future f,lispval callbacks,lispval vals);
 
-KNO_EXPORT int kno_future_update(kno_future p,lispval value,int flags)
+KNO_EXPORT lispval kno_future_update(kno_future f,lispval value,unsigned int flags)
 {
-  lispval cur = p->future_value;
   u8_lock_mutex(&(p->future_lock));
-  lispval callbacks = p->future_callbacks;
-  p->future_value = value;
-  if (flags&KNO_FUTURE_BROKEN) {
-    KNO_FUTURE_SET(p,KNO_FUTURE_BROKEN);}
+  lispval cur = f->future_value;
+  unsigned int cflags = f->future_bits;
+  if (KNO_ABORTED(value)) {
+    u8_exception ex = u8_pop_exception();
+    if (KNO_FUTURE_ROBUSTP(f)) {
+      u8_condition c = (ex) ? (ex->u8x_cond) ? ("MysteriousError");
+      u8_log(LOGERR,"Ignoring error %s for %q: %s",c,(lispval)f);
+      value=kno_exception_object(ex);
+      if (ex) u8_free_exception(ex);}
+    else {
+      KNO_FUTURE_SET(p,KNO_FUTURE_EXCEPTION);
+      f->future_value=kno_exception_object(ex);}}
   else {
-    KNO_FUTURE_CLEAR(p,KNO_FUTURE_BROKEN);}
-  KNO_FUTURE_SET(p,KNO_FUTURE_FINAL);
-  KNO_FUTURE_CLEAR(p,KNO_FUTURE_PARTIAL);
-  p->future_updated = time(NULL);
-  p->future_callbacks=KNO_EMPTY;
-  u8_condvar_broadcast(&(p->future_condition));
-  u8_unlock_mutex(&(p->future_lock));
+    if (f->future_updatefn)
+      f->future_updatefn(f,value,flags);
+    else {
+      p->future_value = kno_incref(value);
+      if (cur) kno_decref(cur);}
+    if (flags&KNO_FUTURE_EXCEPTION) {
+      KNO_FUTURE_SET(f,KNO_FUTURE_EXCEPTION);}
+    else {
+      KNO_FUTURE_CLEAR(f,KNO_FUTURE_EXCEPTION);}}
+  f->future_updated = time(NULL);
+  int monotonic = ( (cflags) && (KNO_FUTURE_MONOTONIC) );
+  lispval callbacks = (monotonic) ? (f->future_callbacks) : (kno_incref(f->future_callbacks));
+  if (monotonic) f->future_callbacks=KNO_EMPTY;
+  u8_condvar_broadcast(&(f->future_condition));
+  u8_unlock_mutex(&(f->future_lock));
   if (!(KNO_EMPTYP(callbacks))) {
-    run_future_callbacks(p,callbacks,value);
+    run_future_callbacks(f,callbacks,value);
     kno_decref(callbacks);}
   return 1;
 }
 
-KNO_EXPORT int kno_future_value(kno_future p,int flags)
+KNO_EXPORT lispval kno_future_value(kno_future f,unsigned int flags,lispval dflt)
 {
+  if (KNO_FUTURE_BITP(f,KNO_FUTURE_FINALIZED)) {
+    if (f->future_value)
+      return kno_incref(f->future_value);
+    else return kno_incref(dflt);}
+  else if (f->future_value == KNO_NULL) {
+    int rv = f->future_update(f,KNO_NULL,flags);
+    if (f->future_value)
+      return kno_incref(f->future_value);}
   lispval cur = p->future_value;
   u8_lock_mutex(&(p->future_lock));
   lispval callbacks = p->future_callbacks;
