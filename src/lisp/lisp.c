@@ -408,7 +408,7 @@ struct typeinfo_initializer init_typeinfo[]=
    { kno_macro_type,_("macro"),_("macro")},
    { kno_stackframe_type,_("stackframe"),_("stackframe")},
    { kno_exception_type,_("exception"),_("exception")},
-   { kno_promise_type,_("promise"),_("promise")},
+   { kno_future_type,_("future"),_("future")},
    { kno_thread_type,_("thread"),_("thread")},
    { kno_synchronizer_type,_("synchronizer"),_("synchronizer")},
 

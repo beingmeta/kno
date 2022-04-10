@@ -14,4 +14,4 @@
 [submodule "src/stdmods"]
 	path = src/stdmods
 	url = ../stdmods.git
-	branch = main
+

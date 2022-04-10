@@ -1088,7 +1088,7 @@ KNO_EXPORT lispval kno_make_schemap
   if (vec == NULL) vec = u8_alloc_n(size,lispval);
   KNO_INIT_STRUCT(ptr,struct KNO_SCHEMAP);
   KNO_INIT_CONS(ptr,kno_schemap_type);
-  ptr->schemap_template=KNO_VOID;
+  ptr->schemap_source=KNO_VOID;
   ptr->schema_length=size;
   ptr->table_bits = flags;
   if (flags&KNO_SCHEMAP_PRIVATE) {
@@ -1172,7 +1172,7 @@ static lispval copy_schemap(lispval schemap,int flags)
     unlock=1;}
   KNO_INIT_STRUCT(nptr,struct KNO_SCHEMAP);
   KNO_INIT_CONS(nptr,kno_schemap_type);
-  nptr->schemap_template=KNO_VOID;
+  nptr->schemap_source=KNO_VOID;
   if (KNO_XTABLE_BITP(ptr,KNO_SCHEMAP_STATIC_SCHEMA)) {
     nptr->table_schema=nschema=u8_alloc_n(size,lispval);
     bits |= KNO_SCHEMAP_PRIVATE;}
@@ -1224,7 +1224,7 @@ KNO_EXPORT lispval kno_init_schemap
     KNO_SET_CONS_TYPE(ptr,kno_schemap_type);
     new_vals = u8_alloc_n(size,lispval);}
   new_schema=u8_alloc_n(size,lispval);
-  ptr->schemap_template=KNO_VOID;
+  ptr->schemap_source=KNO_VOID;
   ptr->table_values=new_vals;
   ptr->schema_length=size;
   ptr->table_bits = KNO_TABLE_USELOCKS;
@@ -1277,9 +1277,9 @@ KNO_EXPORT int kno_schemap_store
   slotno=__kno_get_slotno(key,sm->table_schema,size,
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
-    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES)) {
       kno_incref_elts(sm->table_values,size);
-      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_ALIASED_VALUES,0);}
     kno_decref(sm->table_values[slotno]);
     sm->table_values[slotno]=kno_incref(value);
     KNO_XTABLE_SET_MODIFIED(sm,1);
@@ -1316,9 +1316,9 @@ KNO_EXPORT int kno_schemap_add
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
     kno_incref(value);
-    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES)) {
       kno_incref_elts(sm->table_values,size);
-      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_ALIASED_VALUES,0);}
     CHOICE_ADD(sm->table_values[slotno],value);
     KNO_XTABLE_SET_MODIFIED(sm,1);
     if (unlock) kno_unlock_table(sm);
@@ -1353,9 +1353,9 @@ KNO_EXPORT int kno_schemap_drop
   slotno=__kno_get_slotno(key,sm->table_schema,size,
 			  (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_SORTED)));
   if (slotno>=0) {
-    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)) {
+    if (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES)) {
       kno_incref_elts(sm->table_values,size);
-      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_STACK_VALUES,0);}
+      KNO_XTABLE_SET_BIT(sm,KNO_SCHEMAP_ALIASED_VALUES,0);}
     lispval oldval=sm->table_values[slotno];
     lispval newval=((VOIDP(value)) ? (EMPTY) :
                     (kno_difference(oldval,value)));
@@ -1485,12 +1485,12 @@ static void recycle_schemap(struct KNO_RAW_CONS *c)
     kno_write_lock_table(sm);
     unlock = 1;}
   else {}
-  lispval template = sm->schemap_template;
+  lispval template = sm->schemap_source;
   if ( (template) && (KNO_CONSP(template)) ) {
     kno_decref(template);
-    sm->schemap_template=KNO_VOID;}
+    sm->schemap_source=KNO_VOID;}
   int schemap_size=KNO_XSCHEMAP_SIZE(sm);
-  int stack_vals = (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES));
+  int stack_vals = (KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES));
   if ( (sm->table_values) && (stack_vals == 0) ) {
     lispval *scan=sm->table_values;
     lispval *limit=sm->table_values+schemap_size;
@@ -1564,6 +1564,26 @@ KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap)
     keyvals[i].kv_val=kno_incref(values[i]);
     i++;}
   return result;
+}
+
+/* Dataframes */
+
+#define DATAFRAME_FLAGS \
+  (KNO_SCHEMAP_STATIC_SCHEMA|KNO_SCHEMAP_STATIC_VALUES|KNO_SCHEMAP_FIXED_SCHEMA|KNO_DATAFRAME_SCHEMAP)
+
+KNO_EXPORT lispval kno_make_dataframe(lispval template,lispval values)
+{
+  if (!(KNO_SCHEMAPP(template)))
+    return kno_err("NotASchemap","kno_make_data_frame",NULL,template);
+  struct KNO_SCHEMAP *tmpl = (kno_schemap) template;
+  int i=0, n = tmpl->schema_length;
+  lispval vals[n], *schema=tmpl->table_schema;
+  while (i<n) {
+    lispval slotid = schema[i];
+    lispval slotval = kno_get(values,slotid,KNO_EMPTY);
+    vals[i]=slotval;
+    i++;}
+  return kno_make_schemap(NULL,n,DATAFRAME_FLAGS,schema,vals);
 }
 
 /* Hash functions */

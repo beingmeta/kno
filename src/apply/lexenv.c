@@ -99,6 +99,14 @@ KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env)
     return fresh;}
 }
 
+KNO_EXPORT lispval kno_env2lisp(kno_lexenv env)
+{
+  kno_lexenv dynamic = (env->env_copy) ? (env->env_copy) :
+    (kno_dynamic_lexenv(env));
+  lispval envref = (lispval) dynamic;
+  return kno_incref(envref);
+}
+
 static void recycle_lexenv(struct KNO_RAW_CONS *envp)
 {
   struct KNO_LEXENV *env = (struct KNO_LEXENV *)envp;

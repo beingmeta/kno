@@ -80,7 +80,7 @@ if ${RELOCATABLE}; then
 fi
 
 # These are all contribs we might build
-ALLCONTRIBS="sundown tidy ziptools mongodb leveldb rocksdb postgres mariadb odbc archivetools imagetools hyphenate hunspell nng zeromq dataimport mod_knocgi"
+ALLCONTRIBS="sundown tidy ziptools mongodb leveldb rocksdb postgres mariadb odbc archivetools imagetools hyphenate hunspell nng zeromq readstat mod_knocgi"
 
 # Override the default value for statedir
 AC_ARG_WITH(statedir,--with-statedir where to keep local state e.g. /var,statedir=$withval,statedir="${default_statedir}")
@@ -222,8 +222,8 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP=
-CFLAGS="${CFLAGS} -DLIBU8_SOURCE -DKNO_SOURCE -fPIC -I./DIY/include"
-LDFLAGS="${LDFLAGS} -L./DIY/include"
+CFLAGS="${CFLAGS} -DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
+LDFLAGS="${LDFLAGS}"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -1947,10 +1947,11 @@ if test ! -z "${APXS2}"; then
    CONTRIBS="mod_knocgi ${CONTRIBS}";
 fi;
 
-AC_ARG_WITH(dataimport,"Build data import cmodule and components",with_dataimport=${withval},with_dataimport=none)
+# THe readstat contrib includes libreadstat and libcsv as submodules, so we don't have to check for them
+AC_ARG_WITH(readstat,"Build readstat cmodule and components",with_readstat=${withval},with_readstat=none)
 
-if test -n "${with_dataimport}" && test "${with_dataimport}" != "no"; then
-   CONTRIBS="dataimport ${CONTRIBS}";
+if test -n "${with_readstat}" && test "${with_readstat}" != "no"; then
+   CONTRIBS="readstat ${CONTRIBS}";
 fi;
 
 if pkg-config libzmq --exists; then CONTRIBS="zeromq ${CONTRIBS}"; fi

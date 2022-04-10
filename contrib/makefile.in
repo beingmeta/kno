@@ -16,31 +16,27 @@ BRANCH=$(cat .branch 2>/dev/null||echo ${KNO_BRANCH})
 	(cd $(@D); make) && touch $@
 
 hyphenate hunspell leveldb rocksdb mongodb mariadb odbc nng zeromq archivetools \
-	sundown tidy ziptools postgres imagetools dataimport mod_knocgi:
+	sundown tidy ziptools postgres imagetools readstat mod_knocgi:
 	make $@/.git
 
 # Utility targets
 
 default help:
 	@echo "make checkout to checkout sources"
+	@echo "make update to update sources"
 	@echo "make *dir*/built to build the module in *dir*"
 	@echo "make all to build all contrib modules"
-
-checkout contribs: ${CONTRIBS}
-allcontribs: ${ALLCONTRIBS}
 
 all:
 	for mod in ${CONTRIBS}; do make $${mod}/built; done
 
-commit:
-	if [ ! -z "${MSG}" ]; then \
-	  for dir in *; do if [ -d $${dir}/.git ]; then \
-	    ("cd" ${dir}; git commit --all -m "$${MSG}"); fi; \
-	  done; \
-	else echo "No MSG specified"; fi
-
+checkout: ${CONTRIBS}
+update contribs: checkout
+	if [ -z "${BRANCH}" ]; then ./mapgit checkout ${BRANCH}; fi; ./mapgit pull else
 status:
 	./mapgit status -suno
+push:
+	./mapgit push
 diff:
 	./mapgit diff
 
@@ -55,10 +51,16 @@ clean: contribs
 install: contribs
 	./domake ${CONTRIBS} install
 
-push:
-	./mapgit push
+allcontribs: ${ALLCONTRIBS}
 
 .PHONY: contribs build fresh clean install testbuild
+
+commit:
+	if [ ! -z "${MSG}" ]; then \
+	  for dir in *; do if [ -d $${dir}/.git ]; then \
+	    ("cd" ${dir}; git commit --all -m "$${MSG}"); fi; \
+	  done; \
+	else echo "No MSG specified"; fi
 
 # Making symlinks
 

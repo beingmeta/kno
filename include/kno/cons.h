@@ -1156,10 +1156,9 @@ KNO_FASTOP int __KNO_XTYPEP(lispval x,int type)
 	       ( ( (KNO_CONS_TYPEOF(x)) == kno_slotmap_type) ||
 		 ( (KNO_CONS_TYPEOF(x)) == kno_schemap_type) ) );
     case kno_opts_type:
-      if (KNO_CONSP(x)) {
-	kno_lisp_type ctype = KNO_CONS_TYPEOF(x);
-	return ( (ctype == kno_pair_type) &&
-		 ( (ctype & kno_table_type) == ctype ) );}
+      if (KNO_CONSP(x))
+	return ( (KNO_PAIRP(x)) ||
+		 (KNO_XXCONS_TYPEP((x),kno_coretable_type)) );
       else if ( (x == KNO_FALSE) || (x == KNO_EMPTY_LIST) ||
 		(x == KNO_EMPTY_CHOICE) || (x == KNO_VOID) )
 	return 1;

@@ -14,6 +14,7 @@
 #include "kno/eval.h"
 #include "kno/cprims.h"
 #include "kno/knoregex.h"
+#include "kno/futures.h"
 
 #include <libu8/u8logging.h>
 
@@ -269,17 +270,10 @@ KNO_EXPORT int kno_init_testcapi()
   return 1;
 }
 
-DEFC_PRIM("api/force-promise",kno_force_promise,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "Run various tests of the module C API which are "
-	  "difficult to do directly from scheme",
-	  {"promise",kno_any_type,KNO_VOID});
-
 static void link_local_cprims()
 {
   KNO_LINK_CPRIM("eval/testcapi",eval_testcapi,0,testcapi_module);
   KNO_LINK_CPRIM("modules/testcapi",modules_testcapi,0,testcapi_module);
   KNO_LINK_CPRIM("regex/rawop",regex_rawop,4,testcapi_module);
   KNO_LINK_CPRIM("regex/testcapi",regex_testcapi,0,testcapi_module);
-  KNO_LINK_CPRIM("api/force-promise",kno_force_promise,1,testcapi_module);
 }

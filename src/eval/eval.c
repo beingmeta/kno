@@ -380,7 +380,7 @@ lispval eval_schemap(lispval expr,kno_lexenv env,
     result = kno_make_schemap(NULL,n,KNO_SCHEMAP_STATIC_VALUES,schema,new_vals);
     /* Set the template, which allows the new schemap to share the schema */
     struct KNO_SCHEMAP *newmap = (kno_schemap) result;
-    newmap->schemap_template=expr; kno_incref(expr);}
+    newmap->schemap_source=expr; kno_incref(expr);}
   kno_pop_stack(keyval_stack);
   return result;
 }

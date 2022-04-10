@@ -24,3 +24,13 @@ else
 	if [ -n "${mod}" ]; then
 	    ln -sf ${link_root}/${contrib}/${MODNAME}/${mod}.${shared_suffix} ${BUILD}/lib/kno; fi; done;
 fi;
+SCHEMEMODS=$(cat ${SRCDIR}/SCHEMEMODS 2> /dev/null || echo ${MODNAME})
+for mod in ${SCHEMEMODS}; do
+    if [ -z "${mod}" ]; then
+	:;
+    elif [ -d ${MODNAME}/scheme/${mod} ]; then
+	ln -sf ../${MODNAME}/scheme/${mod} scheme/${mod};
+    elif [ -f ${MODNAME}/scheme/${mod}.scm ]; then
+	ln -sf ../${MODNAME}/scheme/${mod}.scm scheme/${mod}.scm;
+    fi;
+done;

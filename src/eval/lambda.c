@@ -256,7 +256,7 @@ lispval lambda_call(kno_stack stack,
   KNO_INIT_STATIC_CONS(&body_env,kno_lexenv_type);
   bindings.table_bits = KNO_SCHEMAP_STATIC_SCHEMA | KNO_SCHEMAP_STATIC_VALUES;
   bindings.table_values = args;
-  bindings.schemap_template = KNO_VOID;
+  bindings.schemap_source = KNO_VOID;
   lspset(args,KNO_VOID,n_vars);
 
   body_env.env_bindings = (lispval) &bindings;

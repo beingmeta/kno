@@ -58,6 +58,17 @@ static lispval schemapp(lispval x)
   else return KNO_FALSE;
 }
 
+DEFC_PRIM("dataframe?",dataframep_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *obj* is a slotmap, #f otherwise.",
+	  {"x",kno_any_type,KNO_VOID})
+static lispval dataframep_prim(lispval x)
+{
+  if (KNO_DATAFRAMEP(x))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 DEFC_PRIM("hashtable?",hashtablep,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "returns #t if *obj* is a slotmap, #f otherwise.",
@@ -219,7 +230,7 @@ static lispval schemap2slotmap_prim(lispval in)
 DEFC_PRIM("slotmap->schemap",slotmap2schemap_prim,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "converts a schemap to a slotmap.",
-	  {"map",kno_schemap_type,KNO_VOID})
+	  {"map",kno_slotmap_type,KNO_VOID})
 static lispval slotmap2schemap_prim(lispval map)
 {
   struct KNO_SLOTMAP *slotmap = (kno_slotmap) map;
@@ -260,6 +271,20 @@ static lispval table2schemap_prim(lispval tbl)
   kno_decref(keys);
   struct KNO_SCHEMAP *schemap = u8_alloc(struct KNO_SCHEMAP);
   return kno_make_schemap(schemap,n,0,schema,values);
+}
+
+DEFC_PRIM("schemap-source",schemap_source_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "Returns the source template for a schemap",
+	  {"map",kno_schemap_type,KNO_VOID})
+static lispval schemap_source_prim(lispval map)
+{
+  struct KNO_SCHEMAP *schemap = (kno_schemap) map;
+  if (KNO_CONSP(schemap->schemap_source))
+    return kno_incref(schemap->schemap_source);
+  else if (KNO_VOIDP(schemap->schemap_source))
+    return KNO_FALSE;
+  else return schemap->schemap_source;
 }
 
 /* Support for some iterated operations */
@@ -1189,6 +1214,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("SCHEMAP->SLOTMAP",schemap2slotmap_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("SLOTMAP->SCHEMAP",slotmap2schemap_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("->SCHEMAP",table2schemap_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("SCHEMAP-SOURCE",schemap_source_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("DATAFRAME?",dataframep_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("TABLE-INCREMENT!",table_increment,3,kno_scheme_module);
   KNO_LINK_CPRIM("TABLE-INCREMENT-EXISTING!",table_increment_existing,3,
                 kno_scheme_module);

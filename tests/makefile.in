@@ -4,7 +4,7 @@
 
 MAKEFLAGS = -s
 export KNO_LIBSCM_DIR=../src/libscm/
-export KNO_LOADPATH=../src/brico/:../src/stdmods/:../src/webmods:../src/textmods
+export KNO_LOADPATH=../src/brico/:../src/stdmods/:../src/webmods:../src/textmods:../contrib/scheme
 export KNO_DLOADPATH=../lib/kno
 export LD_LIBRARY_PATH=../lib
 export DYLD_LIBRARY_PATH=../lib

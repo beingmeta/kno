@@ -18,8 +18,8 @@ CC		= @CC@
 XCFLAGS		=
 CFLAGS          = -I../../include @CFLAGS@ @PROFILING@ @GCOV_CFLAGS@ \
 		  @DREENTRANT@ @dynamic_cflag@ 		\
-		  -I../../include $(XCFLAGS)
-LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ @GCOV_LDFLAGS@ -L../../lib
+		  -I../../include -I../../DIY/include $(XCFLAGS)
+LDFLAGS         =-L../../lib @LDFLAGS@ $(EFENCE) @TESTLDFLAGS@ @GCOV_LDFLAGS@ -L../../lib -L../../DIY/lib
 RPATH           = @rpath@
 RPATHFLAGS      = @RPATHFLAGS@
 BASELIBS        = @LIBS@ -lm -lz

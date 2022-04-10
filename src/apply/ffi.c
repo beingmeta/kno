@@ -775,6 +775,9 @@ KNO_EXPORT int ffitest_chr(u8_string s,int off)
   else return s[off];
 }
 
+/* Wrapper utilities */
+
+
 
 /* Initializations */
 

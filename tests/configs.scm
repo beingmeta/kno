@@ -221,7 +221,6 @@
 
 (applytest pair? config 'loadpath)
 
-(dbg #t)
 (do-choices (setting '{LOCAL_MODULES INSTALLED_MODULES STDLIB_MODULES})
   (applytest string? config setting))
 

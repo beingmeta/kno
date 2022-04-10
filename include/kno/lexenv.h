@@ -30,6 +30,7 @@ KNO_EXPORT kno_lexenv kno_copy_env(kno_lexenv env);
 KNO_EXPORT void _kno_free_lexenv(struct KNO_LEXENV *env);
 KNO_EXPORT kno_lexenv kno_dynamic_lexenv(kno_lexenv env);
 KNO_EXPORT int kno_recycle_lexenv(kno_lexenv env);
+KNO_EXPORT lispval kno_env2lisp(kno_lexenv env);
 
 KNO_EXPORT kno_lexenv kno_find_binding(kno_lexenv env,lispval symbol,int any);
 
@@ -56,7 +57,7 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
       struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
       int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
       lispval *vals = sm->table_values;
-      if (!(KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)))
+      if (!(KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES)))
 	while (i < n) {
 	  lispval val = vals[i++];
 	  if ((KNO_CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {
@@ -67,7 +68,7 @@ void kno_free_lexenv(struct KNO_LEXENV *env)
     struct KNO_SCHEMAP *sm = KNO_XSCHEMAP(env->env_bindings);
     int i = 0, n = KNO_XSCHEMAP_SIZE(sm);
     lispval *vals = sm->table_values;
-    if (!(KNO_XTABLE_BITP(sm,KNO_SCHEMAP_STACK_VALUES)))
+    if (!(KNO_XTABLE_BITP(sm,KNO_SCHEMAP_ALIASED_VALUES)))
       while (i < n) {
 	lispval val = vals[i++];
 	if ((KNO_CONSP(val))&&(KNO_MALLOCD_CONSP((kno_cons)val))) {

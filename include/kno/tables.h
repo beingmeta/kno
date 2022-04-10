@@ -105,9 +105,9 @@ KNO_EXPORT int _KNO_TABLEP(lispval x);
 #endif
 /* #define KNO_TABLEP(x) ( ((kno_tablefns[KNO_TYPEOF(x)])!=NULL)  */
 
-#define KNO_TABLE_HEADER \
-  KNO_CONS_HEADER;	     \
-  unsigned short table_bits; \
+#define KNO_TABLE_HEADER			\
+  KNO_CONS_HEADER;				\
+  unsigned int table_bits;			\
   U8_RWLOCK_DECL(table_rwlock)
 
 typedef struct KNO_TABLE {
@@ -393,15 +393,16 @@ typedef struct KNO_SCHEMAP {
   KNO_TABLE_HEADER;
   int schema_length;
   lispval *table_schema, *table_values;
-  lispval schemap_template;} KNO_SCHEMAP;
+  lispval schemap_source;} KNO_SCHEMAP;
 
 #define KNO_SCHEMAP_SORTED         0x0100
-#define KNO_SCHEMAP_STACK_VALUES   0x0200
+#define KNO_SCHEMAP_ALIASED_VALUES 0x0200
 #define KNO_SCHEMAP_PRIVATE        0x0400
 #define KNO_SCHEMAP_STATIC_SCHEMA  0x0800
 #define KNO_SCHEMAP_STATIC_VALUES  0x1000
 #define KNO_SCHEMAP_FIXED_SCHEMA   0x2000
-#define KNO_SCHEMAP_TAGGED_SCHEMA  0x4000
+#define KNO_SCHEMAP_DATAFRAME      0x4000
+#define KNO_DATAFRAME_SCHEMAP      0x4000
 
 #define KNO_SCHEMAP_COPY_SCHEMA    0x10000
 #define KNO_SCHEMAP_STACK_SCHEMA KNO_SCHEMAP_STATIC
@@ -542,6 +543,12 @@ static U8_MAYBE_UNUSED lispval __kno_schemap_test
 #endif
 
 KNO_EXPORT lispval kno_schemap2slotmap(lispval schemap);
+
+#define KNO_DATAFRAMEP(x) \
+  ( (KNO_TYPEP((x),kno_schemap_type)) && \
+    (KNO_XTABLE_BITP(((kno_schemap)x),KNO_DATAFRAME_SCHEMAP)) )
+
+KNO_EXPORT lispval kno_make_dataframe(lispval template,lispval values);
 
 /* Generic predicate for keymaps */
 

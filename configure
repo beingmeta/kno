@@ -983,7 +983,7 @@ with_parseltongue
 with_sudo
 with_bootsystem
 with_systemd
-with_dataimport
+with_readstat
 with_setup
 '
       ac_precious_vars='build_alias
@@ -1716,7 +1716,7 @@ Optional Packages:
 --with/out-sudo use sudo with install
 --with-bootsystem Setup boot method
 --with-systemd Specify systemd install directory
-"Build data import cmodule and components"
+"Build readstat cmodule and components"
 --with-setup how to setup the system on installation
 
 Some influential environment variables:
@@ -4267,7 +4267,7 @@ if ${RELOCATABLE}; then
 fi
 
 # These are all contribs we might build
-ALLCONTRIBS="sundown tidy ziptools mongodb leveldb rocksdb postgres mariadb odbc archivetools imagetools hyphenate hunspell nng zeromq dataimport mod_knocgi"
+ALLCONTRIBS="sundown tidy ziptools mongodb leveldb rocksdb postgres mariadb odbc archivetools imagetools hyphenate hunspell nng zeromq readstat mod_knocgi"
 
 # Override the default value for statedir
 
@@ -4416,8 +4416,8 @@ with_crypto_default="yes"
 use_dtblock_default="yes"
 default_bootsystem="none"
 BOOTSETUP=
-CFLAGS="${CFLAGS} -DLIBU8_SOURCE -DKNO_SOURCE -fPIC -I./DIY/include"
-LDFLAGS="${LDFLAGS} -L./DIY/include"
+CFLAGS="${CFLAGS} -DLIBU8_SOURCE -DKNO_SOURCE -fPIC"
+LDFLAGS="${LDFLAGS}"
 PKG_CFLAGS="-fPIC"
 OPTFLAGS=
 XOPTFLAGS=
@@ -13892,17 +13892,18 @@ if test ! -z "${APXS2}"; then
    CONTRIBS="mod_knocgi ${CONTRIBS}";
 fi;
 
+# THe readstat contrib includes libreadstat and libcsv as submodules, so we don't have to check for them
 
-# Check whether --with-dataimport was given.
-if test "${with_dataimport+set}" = set; then :
-  withval=$with_dataimport; with_dataimport=${withval}
+# Check whether --with-readstat was given.
+if test "${with_readstat+set}" = set; then :
+  withval=$with_readstat; with_readstat=${withval}
 else
-  with_dataimport=none
+  with_readstat=none
 fi
 
 
-if test -n "${with_dataimport}" && test "${with_dataimport}" != "no"; then
-   CONTRIBS="dataimport ${CONTRIBS}";
+if test -n "${with_readstat}" && test "${with_readstat}" != "no"; then
+   CONTRIBS="readstat ${CONTRIBS}";
 fi;
 
 if pkg-config libzmq --exists; then CONTRIBS="zeromq ${CONTRIBS}"; fi

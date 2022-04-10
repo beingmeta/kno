@@ -20,6 +20,7 @@
 #include "kno/numbers.h"
 #include "kno/support.h"
 #include "kno/cprims.h"
+#include "kno/futures.h"
 
 #include <libu8/libu8io.h>
 #include <libu8/u8filefns.h>
@@ -636,6 +637,60 @@ static lispval choiceref_prim(lispval arg,lispval off)
   else return kno_type_error("fixnum","choiceref_prim",off);
 }
 
+/* Operations on futures */
+
+DEFC_PRIM("future/resolved?",future_resolvedp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *future* has had its value "
+	  "computed and cached (or generated an error).",
+	  {"value",kno_future_type,KNO_VOID})
+static lispval future_resolvedp_prim(lispval value)
+{
+  struct KNO_FUTURE *future = (kno_future) value;
+  if (future->future_value)
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("future/broken?",future_brokenp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *future* generated an error when "
+	  "evaluated.",
+	  {"value",kno_future_type,KNO_VOID})
+static lispval future_brokenp_prim(lispval value)
+{
+  struct KNO_FUTURE *future = (kno_future) value;
+  if ( (future->future_value) &&
+       ((future->future_bits)&KNO_FUTURE_EXCEPTION) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("future/satisfied?",future_satisfiedp_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns #t if *future* has been computed and "
+	  "cached without error.",
+	  {"value",kno_future_type,KNO_VOID})
+static lispval future_satisfiedp_prim(lispval value)
+{
+  struct KNO_FUTURE *future = (kno_future) value;
+  if ( (future->future_value) &&
+       (! (KNO_FUTURE_EXCEPTIONP(future)) ) )
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
+DEFC_PRIM("future?",futurep_prim,
+	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+	  "returns true if *value* is a future.",
+	  {"value",kno_any_type,KNO_VOID})
+static lispval futurep_prim(lispval value)
+{
+  if (KNO_TYPEP(value,kno_future_type))
+    return KNO_TRUE;
+  else return KNO_FALSE;
+}
+
 /* Checking version numbers */
 
 static int check_num(lispval arg,int num)
@@ -861,5 +916,9 @@ static void link_local_cprims()
   KNO_LINK_CPRIMN("require-version",require_version_prim,kno_scheme_module);
   KNO_LINK_CPRIM("%buildinfo",kno_get_build_info,0,kno_scheme_module);
 
+  KNO_LINK_CPRIM("future?",futurep_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("future/satisfied?",future_satisfiedp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("future/broken?",future_brokenp_prim,1,kno_scheme_module);
+  KNO_LINK_CPRIM("future/resolved?",future_resolvedp_prim,1,kno_scheme_module);
 }
 

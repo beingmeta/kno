@@ -2,7 +2,7 @@ KNO_LIBSCM_DIR=@abs_top_srcdir@/src/libscm/
 export KNO_LIBSCM_DIR
 KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@abs_top_srcdir@/../lingo/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
 export KNO_INIT_DLOADPATH
-KNO_INIT_LOADPATH=@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/textmods/,@abs_top_srcdir@/src/webmods/
+KNO_INIT_LOADPATH=,@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/textmods/,@abs_top_srcdir@/src/webmods/,@abs_top_srcdir@/contrib/scheme/
 export KNO_INIT_LOADPATH
 export KNO_INIT_SAFELOADPATH
 KNO_KNOX=@abs_top_srcdir@/tests/testknox

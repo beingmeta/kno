@@ -104,8 +104,8 @@ static lispval config_get(lispval vars,lispval dflt,lispval valfn)
   if ( (VOIDP(result)) || (EMPTYP(result)) )
     if (VOIDP(dflt))
       return KNO_FALSE;
-    else if (TYPEP(dflt,kno_promise_type))
-      return kno_force_promise(dflt);
+    else if (TYPEP(dflt,kno_future_type))
+      return kno_force_future((kno_future)dflt,KNO_EMPTY);
     else return kno_incref(dflt);
   else return result;
 }
@@ -283,8 +283,8 @@ static lispval set_config(int n,kno_argvec args)
   if (n%2) return kno_err(kno_SyntaxError,"set_config",NULL,VOID);
   while (i<n) {
     lispval var = args[i++], val = args[i++], use_val = val;
-    if (TYPEP(val,kno_promise_type))
-      use_val = kno_force_promise(val);
+    if (TYPEP(val,kno_future_type))
+      use_val = kno_force_future((kno_future)val,KNO_VOID);
     if (SYMBOLP(var))
       retval = kno_set_config(SYMBOL_NAME(var),use_val);
     else if (STRINGP(var))
@@ -308,8 +308,8 @@ DEFC_PRIM("config-default!",set_default_config,
 static lispval set_default_config(lispval var,lispval val)
 {
   int retval; lispval use_val = val;
-  if (TYPEP(val,kno_promise_type))
-    use_val = kno_force_promise(val);
+  if (TYPEP(val,kno_future_type))
+    use_val = kno_force_future((kno_future)val,KNO_VOID);
   if (STRINGP(var))
     retval = kno_set_default_config(CSTRING(var),use_val);
   else if (SYMBOLP(var))

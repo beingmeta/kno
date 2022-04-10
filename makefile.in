@@ -11,12 +11,12 @@ ARCHFLAGS	  = @archflags@
 WARNFLAGS	  = -Wno-unused-label -Wno-multichar
 EXECFLAGS	  = @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} @MALLOC_FLAGS@ @DREENTRANT@ \
 		    @PROFILING@ @GCOV_CFLAGS@ \
-		    -I./include $(XCFLAGS) $(ARCHFLAGS)
+		    -I./include -I./DIY/include $(XCFLAGS) $(ARCHFLAGS)
 DYNAMIC_CFLAG	  = @dynamic_cflag@
-CFLAGS		  = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} -I./DIY/include \
+CFLAGS		  = -I./include @CFLAGS@ ${WARNFLAGS} ${OPTFLAGS} -Ikno_root/DIY/include \
 		    @MALLOC_FLAGS@ @PROFILING@ @GCOV_CFLAGS@ @DREENTRANT@ \
 		    @PTHREAD_LIBS@ $(DYNAMIC_CFLAG) \
-		    -I./include $(XCFLAGS)  $(ARCHFLAGS)
+		    -I./include -I./DIY/include $(XCFLAGS)  $(ARCHFLAGS)
 RPATH		  = @rpath@
 RPATHFLAGS	  = @RPATHFLAGS@
 LDFLAGS		  = -L./ -L./lib -L./DIY/lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
@@ -26,9 +26,9 @@ DYLIB_FLAGS	  = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version 
 EXEFLAGS	  = @EXEFLAGS@
 EXELIBS		  = @EXELIBS@
 STATIC_CFLAGS	  = -I./include @CFLAGS@ @PROFILING@ @DREENTRANT@ -DKNO_STATIC \
-		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS)
+		    $(DYNAMIC_CFLAG) -I./include $(XCFLAGS) -I./DIY/include
 DEBUG_CFLAGS	  = -DKNO_TESTCONFIG=1 -DKNO_DEFAULT_LIBSCM="\"@abs_top_srcdir@/src/libscm\"" ${STATIC_CFLAGS}
-STATIC_LDFLAGS	  = -L./lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
+STATIC_LDFLAGS	  = -L./lib -I./DIY/lib @LDFLAGS@ $(EFENCE) @GCOV_LDFLAGS@ \
 		    @STATICLDFLAGS@ -L./lib
 TEST_LDFLAGS	  = ${STATIC_LDFLAGS} @TESTLDFLAGS@
 TEST_EXEFLAGS	  = @EXEFLAGS@
@@ -128,6 +128,7 @@ LISP_HEADERS=\
  include/kno/getsource.h
 APPLY_HEADERS=\
  include/kno/apply.h   \
+ include/kno/futures.h   \
  include/kno/cprims.h	\
  include/kno/stacks.h  \
  include/kno/lexenv.h  \
@@ -195,7 +196,7 @@ APPLY_OBJS=\
 	src/apply/ffi.o src/apply/cprims.o			\
 	src/apply/lexenv.o src/apply/exec.o			\
 	src/apply/dispatch.o src/apply/sql.o 			\
-	src/apply/services.o
+	src/apply/services.o src/apply/futures.o
 
 VERSION_H   =include/kno/kno_version.h
 CONFIG_H     =include/kno/config.h
@@ -354,8 +355,8 @@ KNO_SOURCES=									\
 	src/sys/errobjs.c src/sys/logging.c src/sys/getopt.c			\
 	src/sys/startup.c src/sys/fluid.c src/sys/signals.c			\
 	src/apply/apply.c src/apply/stacks.c src/apply/lexenv.c			\
-	src/apply/ffi.c src/apply/sql.c src/apply/exec.c src/apply/dispatch.c \
-	src/apply/apply_internals.h						\
+	src/apply/ffi.c src/apply/sql.c src/apply/exec.c src/apply/dispatch.c 	\
+	src/apply/apply_internals.h src/apply/futures.c				\
 	src/storage/storage.c src/storage/streams.c src/storage/hashdtype.c	\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c	src/storage/frames.c src/storage/slotindexes.c	\
@@ -1051,6 +1052,7 @@ pull:
 # Custom dependencies
 
 src/apply/apply.o: src/apply/apply_internals.h
+src/apply/futures.o: include/kno/futures.h
 src/eval/binders.o src/eval/conditionals.o src/eval/iterators.o: \
 	src/eval/eval_internals.h
 src/eval/eval.o src/eval/vm.o: src/eval/eval_internals.h src/eval/opcode_info.h
