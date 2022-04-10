@@ -3,7 +3,7 @@ export KNO_LIBSCM_DIR
 KNO_INIT_DLOADPATH=@abs_top_srcdir@/lib/kno/%.@shared_suffix@:@abs_top_srcdir@/lib/libkno%.@shared_suffix@:@abs_top_srcdir@/../ofsm/%.@shared_suffix@:@prefix@/lib/kno/%.@shared_suffix@
 export KNO_INIT_DLOADPATH
 KNO_INIT_LOADPATH=,@abs_top_srcdir@/src/stdmods/,@abs_top_srcdir@/src/textmods/,@abs_top_srcdir@/src/webmods/,@abs_top_srcdir@/contrib/scheme/
-export KNO_LOADPATH
+export KNO_INIT_LOADPATH
 KNO_DLOADPATH=@abs_top_srcdir@/lib/kno
 export KNO_DLOADPATH
 LD_LIBRARY_PATH=@abs_top_srcdir@/lib/kno:@abs_top_srcdir@/lib

@@ -40,9 +40,21 @@
 
 (define random-input (random-packet 2048))
 
+(define test-rc4
+  (onerror (applytest #B"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
+		      encrypt sample key16 "RC4")
+      #f))
+(define test-blowfish
+  (onerror (encrypt sample key16 "BF" iv8)
+      #f))
+(define test-cast
+  (onerror (encrypt sample key16 "BF" iv8)
+      #f))
+
 ;; openssl enc -rc4 -in sample -K `cat key16.hex` -a
-(applytest #B"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
-	   encrypt sample key16 "RC4")
+(when test-rc4
+  (applytest #B"T9OM7k4y8+mlD8CASAVVqkKpE6pxJgCNMHBFIg=="
+	     encrypt sample key16 "RC4"))
 
 (applytest aes-encrypted-sample16 encrypt sample key16 "AES128" iv16)
 (applytest sample decrypt->string aes-encrypted-sample16 key16 "AES128" iv16)
@@ -50,14 +62,18 @@
 (applytest aes-encrypted-sample32 encrypt sample key32 "AES256" iv16)
 (applytest sample decrypt->string aes-encrypted-sample32 key32 "AES256" iv16)
 
-(applytest bf-encrypted-sample16 encrypt sample key16 "BF" iv8)
-(applytest sample decrypt->string bf-encrypted-sample16 key16 "BF" iv8)
+(when test-blowfish
+  (applytest bf-encrypted-sample16 encrypt sample key16 "BF" iv8)
+  (applytest sample decrypt->string bf-encrypted-sample16 key16 "BF" iv8))
 
 (define (test-algorithm name (usekey key32) (iv (random-packet 8)))
   (when (and iv (number? iv)) (set! iv (random-packet iv)))
-  (evaltest random-input 
-	    (decrypt (encrypt random-input usekey name iv)
-		     usekey name iv)))
+  (when (onerror (encrypt random-input usekey name iv)
+	    (begin (logerr |UnsupportedCipher| "Couldn't use " name) #f))
+    (logwarn |TestingCipher| name)
+    (evaltest random-input 
+	      (decrypt (encrypt random-input usekey name iv)
+		       usekey name iv))))
 
 (test-algorithm "RC4" key16)
 (test-algorithm "CAST" key16)
