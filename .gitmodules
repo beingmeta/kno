@@ -2,9 +2,6 @@
 	path = docs/wiki
 	url = ../kno.wiki.git
 	branch = master
-[submodule "src/stdmods"]
-	path = src/stdmods
-	url = ../stdmods.git
 [submodule "src/brico"]
 	path = src/brico
 	url = ../brico.git
