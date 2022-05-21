@@ -59,6 +59,8 @@
 
 #include "main.h"
 
+static enum KNO_WEB_PROTOCOL default_knocgi_protocol = knocgi_dtype;
+
 static lispval make_cprim0(u8_string pname,kno_cprim0 fn)
 {
   struct KNO_CPRIM *prim =
@@ -125,13 +127,6 @@ static struct U8_XTIME boot_time;
 /* This is how old a socket file needs to be to be deleted as 'leftover' */
 #define KNO_LEFTOVER_AGE 30
 static int ignore_leftovers = 0;
-
-typedef struct KNO_WEBCONN {
-  U8_CLIENT_FIELDS;
-  lispval cgidata;
-  struct KNO_STREAM in;
-  struct U8_OUTPUT out;} KNO_WEBCONN;
-typedef struct KNO_WEBCONN *kno_webconn;
 
 #ifndef DEFAULT_POLL_TIMEOUT
 #define DEFAULT_POLL_TIMEOUT 1000
@@ -809,9 +804,9 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata = VOID;
+  consed->conn_protocol = default_knocgi_protocol;
   u8_log(LOG_INFO,"Servlet/open","Created web client (#%lx) %s",
-         consed,
-         ((consed->idstring == NULL)?((u8_string)""):(consed->idstring)));
+         consed,((consed->idstring == NULL)?((u8_string)""):(consed->idstring)));
   return (u8_client) consed;
 }
 
@@ -926,7 +921,7 @@ static int webservefn(u8_client ucl)
     if (details) u8_free(details);
     kno_decref(irritant);
     setup_time = u8_elapsed_time();
-    cgidata = kno_read_dtype(inbuf);}
+    cgidata = kno_read_cgidata(client);}
   else if (update_preloads()<0) {
     u8_condition c; u8_context cxt; u8_string details = NULL;
     lispval irritant;
@@ -937,14 +932,14 @@ static int webservefn(u8_client ucl)
     if (details) u8_free(details);
     kno_decref(irritant);
     setup_time = u8_elapsed_time();
-    cgidata = kno_read_dtype(inbuf);}
+    cgidata = kno_read_cgidata(client);}
   else {
     /* This is where we usually end up, when all the updates
        and preloads go without a hitch. */
     setup_time = u8_elapsed_time();
     /* Now we extract arguments and figure out what we're going to
        run to respond to the request. */
-    cgidata = kno_read_dtype(inbuf);
+    cgidata = kno_read_cgidata(client);
     if (cgidata == KNO_EOD) {
       if (traceweb>0)
         u8_log(LOG_NOTICE,"Servlet/webservefn",
@@ -1095,6 +1090,17 @@ static int webservefn(u8_client ucl)
     /* If environment sets threadcache to #t, use a threadcache */
     threadcache = checkthreadcache(base_env);
     result = kno_cgiexec(proc,cgidata);}
+  else if ((KNO_PAIRP(proc)) && (KNO_APPLICABLEP(KNO_CAR(proc)))) {
+    lispval handler = KNO_CAR(proc);
+    if ((forcelog)||(traceweb>1))
+      u8_log(LOG_NOTICE,"START",
+             "Handling %q (%q) with lambda procedure %q (#%lx)",
+             uri,path,handler,(unsigned long)ucl);
+    base_env = KNO_LAMBDA_ENV(handler);
+    /* If environment sets threadcache to #t, use a threadcache */
+    threadcache = checkthreadcache(base_env);
+    result = kno_cgiexec(handler,cgidata);}
+
   else if (KNO_PAIRP(proc)) {
     /* This is handling KNOML */
     lispval setup_proc = VOID;
@@ -1605,7 +1611,9 @@ static int webservefn(u8_client ucl)
   kno_swapcheck();
   /* Task is done */
   if (return_code<=0) {
-    if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}}
+    if (ucl->status) {u8_free(ucl->status); ucl->status = NULL;}
+    if (client->conn_protocol==knocgi_scgi) {
+      u8_close_client(ucl);}}
   return return_code;
 }
 
@@ -1827,6 +1835,9 @@ static void register_servlet_configs()
 {
   init_webcommon_configs();
 
+  kno_register_config("PROTOCOL",_("Use SCGI protocol"),
+                     knocgi_protocol_get,knocgi_protocol_set,
+                      &default_knocgi_protocol);
   kno_register_config("OVERTIME",_("Trace web transactions over N seconds"),
                      kno_dblconfig_get,kno_dblconfig_set,&overtime);
   kno_register_config("BACKLOG",
@@ -1998,10 +2009,14 @@ int main(int argc,char **argv)
 
   if ( (geteuid()) == 0)
     u8_log(LOGCRIT,"RootUser","Running as root, probably a bad idea");
-    
+
   u8_init_mutex(&server_port_lock);
 
-  if (!(socket_spec)) {}
+  if (!(socket_spec)) socket_spec=server_id;
+  if (!socket_spec) {
+    u8_log(LOG_CRIT,"USAGE","knocgi <socket> [config]*");
+    fprintf(stderr,"Usage: knocgi <socket> [config]*\n");
+    exit(1);}
   else if ((strchr(socket_spec,':'))||(strchr(socket_spec,'@')))
     socket_spec = u8_strdup(socket_spec);
   else {
@@ -2012,7 +2027,7 @@ int main(int argc,char **argv)
       socket_spec = u8_mkpath(sockets_dir,socket_spec);
       u8_free(sockets_dir);}
     kno_setapp(socket_spec,NULL);}
-  
+
   kno_boot_message();
   u8_now(&boot_time);
 
@@ -2054,7 +2069,7 @@ int main(int argc,char **argv)
   kno_version = kno_init_scheme();
 
   if (kno_version<0) {
-    u8_log(LOG_WARN,ServletAbort,"Couldn't initialize Kno");
+    u8_log(LOG_ERR,ServletAbort,"Couldn't initialize Kno");
     exit(EXIT_FAILURE);}
 
   /* INITIALIZING MODULES */
@@ -2116,13 +2131,6 @@ int main(int argc,char **argv)
 
   if (!(KNO_VOIDP(default_notfoundpage)))
     u8_log(LOG_NOTICE,"SetPageNotFound","Handler=%q",default_notfoundpage);
-
-  if (!(socket_spec)) socket_spec=server_id;
-
-  if (!socket_spec) {
-    u8_log(LOG_CRIT,"USAGE","knocgi <socket> [config]*");
-    fprintf(stderr,"Usage: knocgi <socket> [config]*\n");
-    exit(1);}
 
   if (!(server_id)) {
     u8_uuid tmp = u8_getuuid(NULL);

@@ -38,9 +38,10 @@ static lispval http_headers, html_headers, cookiedata_symbol;
 static lispval outcookies_symbol, incookies_symbol, bad_cookie;
 static lispval doctype_slotid, xmlpi_slotid, html_attribs_slotid;
 static lispval body_attribs_slotid, body_classes_slotid, html_classes_slotid;
-static lispval class_symbol;
+static lispval class_symbol, transfer_encoding;
 static lispval content_slotid, content_type, cgi_content_type;
 static lispval content_length, incoming_content_length, incoming_content_type;
+static lispval _content_length, _content_type;
 static lispval remote_user_symbol, remote_host_symbol, remote_addr_symbol;
 static lispval remote_info_symbol, remote_agent_symbol, remote_ident_symbol;
 static lispval parts_slotid, name_slotid, filename_slotid, mapurlfn_symbol;
@@ -200,7 +201,7 @@ static void convert_accept(kno_slotmap c,lispval slotid)
 
 /* Converting query arguments */
 
-static lispval post_data_slotid, multipart_form_data, www_form_urlencoded;
+static lispval post_data_slotid, multipart_form_data, www_form_urlencoded, http_body_slotid;
 
 /* Setting this to zero might be slightly more secure, and it's the
    CONFIG option QUERYWITHPOST (boolean) */
@@ -233,7 +234,9 @@ static void get_form_args(kno_slotmap c)
         parse_query_string(c,KNO_STRING_DATA(qval),KNO_STRING_LENGTH(qval));
       kno_decref(qval);}
     if (kno_test((lispval)c,cgi_content_type,multipart_form_data)) {
-      lispval postdata = kno_slotmap_get(c,post_data_slotid,VOID);
+      lispval postdata = kno_slotmap_get(c,http_body_slotid,VOID);
+      if (KNO_VOIDP(postdata))
+        postdata = kno_slotmap_get(c,post_data_slotid,VOID);
       lispval parts = NIL;
       /* Parse the MIME data into parts */
       if (STRINGP(postdata))
@@ -285,7 +288,9 @@ static void get_form_args(kno_slotmap c)
           kno_decref(namestring);}}
       kno_decref(parts);}
     else if (kno_test((lispval)c,cgi_content_type,www_form_urlencoded)) {
-      lispval qval = kno_slotmap_get(c,post_data_slotid,VOID);
+      lispval qval = kno_slotmap_get(c,http_body_slotid,VOID);
+      if (KNO_VOIDP(qval))
+        qval = kno_slotmap_get(c,post_data_slotid,VOID);
       u8_string data; unsigned int len;
       if (STRINGP(qval)) {
         data = CSTRING(qval); len = KNO_STRING_LENGTH(qval);}
@@ -497,6 +502,256 @@ static void convert_cookie_arg(kno_slotmap c)
     u8_free(buf);}
 }
 
+DEF_KNOSYM(scgi); DEF_KNOSYM(dtype); DEF_KNOSYM(xtype); DEF_KNOSYM(http);
+
+KNO_EXPORT lispval knocgi_protocol_get(lispval name,void *data)
+{
+  enum KNO_WEB_PROTOCOL protocol = *((enum KNO_WEB_PROTOCOL *)data);
+  switch (protocol) {
+  case knocgi_dtype:
+    return KNOSYM(dtype);
+  case knocgi_xtype:
+    return KNOSYM(dtype);
+  case knocgi_scgi:
+    return KNOSYM(scgi);
+  case knocgi_http:
+    return KNOSYM(http);
+  default:
+    return kno_err("BadKnoCGIProtocol","config_get_protocol",NULL,VOID);}
+}
+
+KNO_EXPORT int knocgi_protocol_set(lispval name,lispval val,void *data)
+{
+  enum KNO_WEB_PROTOCOL *cur = (enum KNO_WEB_PROTOCOL *)data;
+  if (KNO_STRINGP(val))
+    val = kno_getsym(KNO_CSTRING(val));
+  static enum KNO_WEB_PROTOCOL protocol;
+  if (val==KNOSYM(dtype))
+    protocol=knocgi_dtype;
+  else if (val==KNOSYM(xtype))
+    protocol=knocgi_xtype;
+  else if (val==KNOSYM(scgi))
+    protocol=knocgi_scgi;
+  else if (val==KNOSYM(http))
+    protocol=knocgi_http;
+  else {
+    kno_seterr("BadKNoCGIProtocol","config_set_protocol",NULL,val);
+    return -1;}
+  if (*cur == protocol)
+    return 0;
+  *cur=protocol;
+  return 1;
+}
+
+/* Reading CGI data */
+
+KNO_EXPORT lispval kno_dtype_cgidata(kno_inbuf inbuf)
+{
+  return kno_read_dtype(inbuf);
+}
+
+static char *read_netstring(kno_inbuf inbuf,ssize_t *lenp)
+{
+  ssize_t len = 0; int len_digits = 0; *lenp=-1;
+  int c = kno_read_byte(inbuf);
+  while ( (isdigit(c)) && (len_digits<10) ) {
+    int weight = c - '0';
+    len=len*10+weight;
+    len_digits++;
+    c = kno_read_byte(inbuf);}
+  if (len_digits>=10) {
+    u8_seterr("huge_netstring","read_netstring",NULL);
+    return NULL;}
+  if (RARELY(c != ':')) {
+    u8_seterr("bad_netstring","read_netstring",NULL);
+    return NULL;}
+  unsigned char *bytes=u8_malloc(len);
+  if (bytes == NULL) {
+    u8_seterr("bufalloc_failed","read_netstring",NULL);
+    return NULL;}
+  int rv = kno_read_bytes(bytes,inbuf,len);
+  if (rv<0) {
+    u8_seterr("netstring_read_failed","read_netstring",NULL);
+    return NULL;}
+  c = kno_read_byte(inbuf);
+  if (c == ',') {
+    *lenp = len;
+    return bytes;}
+  else {
+    u8_seterr("missing_terminator","read_netstring",NULL);
+    return NULL;}
+}
+
+KNO_EXPORT lispval kno_read_http_request(kno_inbuf inbuf)
+{
+  ssize_t reqhead_len = kno_find_crlf(inbuf);
+  if (reqhead_len<=0)
+    return kno_err("BadHTTPRequest","kno_http_read_cgidata",inbuf->buffer,KNO_VOID);
+  unsigned char reqhead[reqhead_len];
+  kno_read_bytes(reqhead,inbuf,reqhead_len);
+  reqhead[reqhead_len-4]='\0';
+  unsigned char *method = NULL, *uri = NULL, *version = NULL;
+  unsigned char *start = reqhead, *scan = reqhead; while (*scan) {
+    if (*scan == ' ') {
+      *scan='\0'; scan++;
+      if (method==NULL) method=start;
+      else if (uri==NULL) uri=start;
+      else if (version==NULL) version=start;
+      else {
+        u8_log(LOGWARN,"WeirdHTTPRequest",
+               "Ignorning funny stuff after method=%s uri=%s, version=%s: %s",
+               method,uri,version,start);
+        break;}
+      start=scan;}
+    else scan++;}
+  if ( (method == NULL) || (uri == NULL) ) /* Check version? */
+    return kno_err("BadHTTPRequest","kno_http_read_cgidata",reqhead,KNO_VOID);
+  unsigned char *head_end = NULL;
+ got_request_line:
+  while ( (head_end=strstr(inbuf->bufread,"\r\n\r\n")) == NULL) {
+    ssize_t rv = kno_request_bytes(inbuf,1);
+    if (rv<=0)
+      return kno_err("BadHTTPRequest","kno_http_read_cgidata",inbuf->bufread,KNO_VOID);}
+ found_body:
+  head_end+=4;
+  lispval reqdata = kno_make_slotmap(24,0,NULL);
+  kno_store(reqdata,request_method,kno_getsym(method));
+  unsigned char *body_start = kno_parse_mime_headers(reqdata,inbuf->bufread,head_end);
+  /* Handle the body here */
+  return reqdata;
+}
+
+KNO_EXPORT lispval kno_scgidata(kno_inbuf inbuf)
+{
+  ssize_t headers_len = 0;
+  u8_byte *headers = read_netstring(inbuf,&headers_len);
+  if (headers_len<0) return KNO_ERROR;
+  lispval slotmap = kno_make_slotmap(23,0,NULL);
+  u8_byte *scan = headers, *limit = headers+headers_len;
+  lispval content_type_val = KNO_VOID;
+  ssize_t content_len = -1;
+  while (scan<limit) {
+    ssize_t key_len = strlen(scan);
+    if (RARELY((scan+key_len)>limit)) {
+      kno_seterr("SCGIDataKeyOverflow","kno_scgidata","after",slotmap);
+      u8_free(headers);
+      kno_decref(slotmap);
+      return KNO_ERROR;}
+    lispval key = kno_getsym(scan);
+    scan=scan+key_len+1;
+    ssize_t value_len = strlen(scan);
+    if (RARELY((scan+value_len)>limit)) {
+      kno_seterr("SCGIDataValueOverflow","kno_scgidata",
+                 KNO_SYMBOL_NAME(key),slotmap);
+      u8_free(headers);
+      kno_decref(slotmap);
+      return KNO_ERROR;}
+    char *endptr = NULL;
+    if ( (key == _content_length) &&
+         ((content_len=strtoll(scan,&endptr,10))>=0) &&
+         (endptr!=NULL) )
+      scan=endptr+1;
+    else if (value_len>0) {
+      lispval val = kno_extract_string(NULL,scan,scan+value_len);
+      scan=scan+value_len+1;
+      if (key == _content_type)
+        content_type_val=val;
+      else {
+        kno_store(slotmap,key,val);
+        kno_decref(val);}}
+    else {
+      kno_store(slotmap,key,KNO_EMPTY_CHOICE);
+      scan++;}}
+  if (!(KNO_VOIDP(content_type_val)))
+    kno_store(slotmap,_content_type,content_type_val);
+  if ( (content_len<0) || (content_len >= LLONG_MAX) ) {
+    kno_seterr("BadContentLength","kno_scgidata",NULL,slotmap);
+    kno_decref(slotmap);
+    return KNO_ERROR;}
+  else if ( (content_len>0) || (!(KNO_VOIDP(content_type_val))) ) {
+    lispval t_encoding = kno_get(slotmap,transfer_encoding,KNO_VOID);
+    int chunked =
+      ( (KNO_STRINGP(t_encoding)) && (strcmp(CSTRING(t_encoding),"chunked")==0) );
+    kno_decref(t_encoding);
+    lispval content = kno_read_http_body(slotmap,inbuf,chunked,content_len);
+    lispval content_length_val = KNO_INT(content_len);
+    kno_store(slotmap,content_length,content_length_val);
+    kno_decref(content_length_val);
+    kno_store(slotmap,http_body_slotid,content);
+    kno_decref(content);}
+  return slotmap;
+}
+
+KNO_EXPORT lispval kno_read_http_body(lispval req,kno_inbuf inbuf,int chunked,ssize_t clen)
+{
+  int rv = -1;
+  unsigned char *content = NULL;
+  if (chunked==0) {
+    if (clen>=0) {
+      if ( (content = u8_malloc(clen)) ) {
+        if ( (rv = kno_read_bytes(content,inbuf,clen)) < 0) {
+          u8_free(content);
+          return kno_err("ReadContentFailed","kno_read_http_body",NULL,KNO_VOID);}}
+      else return kno_err("ContentMallocFailed","kno_read_http_body",NULL,KNO_VOID);}
+    else return kno_err("CantDetermineContentLength","kno_read_http_body",NULL,KNO_VOID);}
+  else {
+    ssize_t init_size = (clen>0) ? (clen) : (1024);
+    struct KNO_OUTBUF out; KNO_INIT_BYTE_OUTPUT(&out,init_size);
+    while (1) {
+      ssize_t header_len = kno_find_crlf(inbuf);
+      if ( ( header_len <= 0 ) || (*(inbuf->bufread) != '1') ) {
+        u8_free(out.buffer);
+        return kno_err("BadChunkHeader","kno_read_http_body",inbuf->bufread,req);}
+      unsigned char header[header_len];
+      kno_read_bytes(header,inbuf,header_len);
+      header[header_len-4]='\0';
+      unsigned char *hexend = header+1; while (isxdigit(*hexend)) hexend++;
+      if (hexend == header+1) {
+        u8_free(out.buffer);
+        return kno_err("BadChunkHeader","kno_read_http_body",header,req);}
+      *hexend='\0';
+      ssize_t chunk_size = strtoll(header+1,NULL,16);
+      if (chunk_size==0) {
+        /* Read entity headers here */
+        break;}
+      /* Read a chunk of data here */
+      unsigned char *chunk = u8_malloc(chunk_size);
+      int rv = kno_read_bytes(chunk,inbuf,chunk_size);
+      if (rv<0) {
+        u8_free(out.buffer);
+        goto chunked_error;}
+      rv = kno_write_bytes(&out,chunk,chunk_size);
+      if (rv<0) {
+        u8_free(out.buffer);
+        goto chunked_error;}}
+    content=out.buffer;
+    clen=out.bufwrite-out.buffer;}
+  if (content)
+    return kno_make_packet(NULL,clen,content);
+  else return kno_err("FailedRead","kno_read_http_body",NULL,KNO_VOID);
+ chunked_error:
+  kno_seterr("Invalid chunked body","kno_read_http_body",NULL,req);
+  return KNO_ERROR;
+}
+
+/* Reading CGI data */
+
+KNO_EXPORT lispval kno_read_cgidata(kno_webconn conn)
+{
+  kno_stream stream = &(conn->in);
+  kno_inbuf inbuf = kno_readbuf(stream);
+  switch (conn->conn_protocol) {
+  case knocgi_dtype:
+    return kno_read_dtype(inbuf);
+  case knocgi_xtype:
+    return kno_read_xtype(inbuf,(xtype_refs)(conn->conn_state));
+  case knocgi_scgi:
+    return kno_scgidata(inbuf);
+  case knocgi_http:
+    return kno_read_http_request(inbuf);}
+  return KNO_EMPTY;
+}
+
 /* Parsing CGI data */
 
 static lispval cgi_prepfns = EMPTY;
@@ -604,9 +859,9 @@ static lispval httpheader(lispval expr,kno_lexenv env,kno_stack _stack)
 }
 
 DEFC_PRIM("httpheader!",addhttpheader,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"header",kno_any_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"header",kno_any_type,KNO_VOID})
 static lispval addhttpheader(lispval header)
 {
   kno_req_add(http_headers,header);
@@ -690,14 +945,14 @@ static int handle_cookie(U8_OUTPUT *out,lispval cgidata,lispval cookie)
 }
 
 DEFC_PRIM("set-cookie!",setcookie,
-	  KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
-	  "**undocumented**",
-	  {"var",kno_any_type,KNO_VOID},
-	  {"val",kno_any_type,KNO_VOID},
-	  {"domain",kno_any_type,KNO_VOID},
-	  {"path",kno_any_type,KNO_VOID},
-	  {"expires",kno_any_type,KNO_VOID},
-	  {"secure",kno_any_type,KNO_VOID})
+          KNO_MAX_ARGS(6)|KNO_MIN_ARGS(2),
+          "**undocumented**",
+          {"var",kno_any_type,KNO_VOID},
+          {"val",kno_any_type,KNO_VOID},
+          {"domain",kno_any_type,KNO_VOID},
+          {"path",kno_any_type,KNO_VOID},
+          {"expires",kno_any_type,KNO_VOID},
+          {"secure",kno_any_type,KNO_VOID})
 static lispval setcookie
 (lispval var,lispval val,
  lispval domain,lispval path,
@@ -732,12 +987,12 @@ static lispval setcookie
 }
 
 DEFC_PRIM("clear-cookie!",clearcookie,
-	  KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"var",kno_any_type,KNO_VOID},
-	  {"domain",kno_any_type,KNO_VOID},
-	  {"path",kno_any_type,KNO_VOID},
-	  {"secure",kno_any_type,KNO_VOID})
+          KNO_MAX_ARGS(4)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"var",kno_any_type,KNO_VOID},
+          {"domain",kno_any_type,KNO_VOID},
+          {"path",kno_any_type,KNO_VOID},
+          {"secure",kno_any_type,KNO_VOID})
 static lispval clearcookie
 (lispval var,lispval domain,lispval path,lispval secure)
 {
@@ -762,10 +1017,10 @@ static lispval clearcookie
 /* HTML Header functions */
 
 DEFC_PRIM("stylesheet!",add_stylesheet,
-	  KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"stylesheet",kno_string_type,KNO_VOID},
-	  {"type",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(2)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"stylesheet",kno_string_type,KNO_VOID},
+          {"type",kno_string_type,KNO_VOID})
 static lispval add_stylesheet(lispval stylesheet,lispval type)
 {
   lispval header_string = VOID;
@@ -782,9 +1037,9 @@ static lispval add_stylesheet(lispval stylesheet,lispval type)
 }
 
 DEFC_PRIM("javascript!",add_javascript,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"url",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"url",kno_string_type,KNO_VOID})
 static lispval add_javascript(lispval url)
 {
   lispval header_string = VOID;
@@ -829,7 +1084,7 @@ static lispval jsout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-	result = kno_eval(x,env,_stack);
+        result = kno_eval(x,env,_stack);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -864,7 +1119,7 @@ static lispval cssout_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
       if (STRINGP(x))
         u8_puts(&_out,CSTRING(x));
       else if ((SYMBOLP(x))||(PAIRP(x))) {
-	result = kno_eval(x,env,_stack);
+        result = kno_eval(x,env,_stack);
         if (KNO_ABORTP(result)) break;
         else if ((VOIDP(result))||(FALSEP(result))||
                  (EMPTYP(result))) {}
@@ -975,7 +1230,7 @@ static lispval attrib_merge_classes(lispval attribs,lispval classes)
       if (!(STRINGP(car))) {}
       else {
         if (i) u8_puts(&classout," ");
-	i++;
+        i++;
         u8_puts(&classout,CSTRING(car));}
       classes = KNO_CDR(classes);}
     {lispval old = KNO_CAR(class_cons);
@@ -1059,8 +1314,8 @@ int kno_output_xml_preface(U8_OUTPUT *out,lispval cgidata)
 }
 
 DEFC_PRIMN("body!",set_body_attribs,
-	   KNO_VAR_ARGS|KNO_MIN_ARGS(1),
-	   "**undocumented**")
+           KNO_VAR_ARGS|KNO_MIN_ARGS(1),
+           "**undocumented**")
 static lispval set_body_attribs(int n,kno_argvec args)
 {
   if ((n==1)&&(args[0]==KNO_FALSE)) {
@@ -1074,9 +1329,9 @@ static lispval set_body_attribs(int n,kno_argvec args)
 }
 
 DEFC_PRIM("bodyclass!",add_body_class,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"classname",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"classname",kno_string_type,KNO_VOID})
 static lispval add_body_class(lispval classname)
 {
   kno_req_push(body_classes_slotid,classname);
@@ -1084,9 +1339,9 @@ static lispval add_body_class(lispval classname)
 }
 
 DEFC_PRIM("htmlclass!",add_html_class,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"classname",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"classname",kno_string_type,KNO_VOID})
 static lispval add_html_class(lispval classname)
 {
   kno_req_push(html_classes_slotid,classname);
@@ -1217,7 +1472,7 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 #endif
     if (!(ipeval))
       value = kno_xapply_lambda(proc,(void *)cgidata,
-				(lispval (*)(void *,lispval))cgigetvar);
+                                (lispval (*)(void *,lispval))cgigetvar);
 #if KNO_IPEVAL_ENABLED
     else {
       struct U8_OUTPUT *out = u8_current_output;
@@ -1232,9 +1487,9 @@ KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata)
 /* Parsing query strings */
 
 DEFC_PRIM("urldata/parse",urldata_parse,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"qstring",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"qstring",kno_string_type,KNO_VOID})
 static lispval urldata_parse(lispval qstring)
 {
   lispval smap = kno_empty_slotmap();
@@ -1287,9 +1542,9 @@ lispval kno_mapurl(lispval uri)
 }
 
 DEFC_PRIM("mapurl",mapurl,
-	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "**undocumented**",
-	  {"uri",kno_string_type,KNO_VOID})
+          KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
+          "**undocumented**",
+          {"uri",kno_string_type,KNO_VOID})
 static lispval mapurl(lispval uri)
 {
   lispval result = kno_mapurl(uri);
@@ -1372,12 +1627,12 @@ KNO_EXPORT void kno_init_cgiexec_c()
   u8_init_mutex(&protected_cgi_lock);
 
   kno_def_evalfn(module,"HTTPHEADER",httpheader,
-		 "*undocumented*");
+                 "*undocumented*");
 
   link_local_cprims();
 
   kno_def_evalfn(module,"WITH/REQUEST/OUT",withreqout_evalfn,
-		 "*undocumented*");
+                 "*undocumented*");
   kno_defalias(module,"WITHCGIOUT","WITH/REQUEST/OUT");
 
   kno_defalias2(module,"WITHCGI",kno_scheme_module,"WITH/REQUEST");
@@ -1394,13 +1649,13 @@ KNO_EXPORT void kno_init_cgiexec_c()
      "*undocumented*"); */
 
   kno_def_evalfn(xhtml_module,"HTMLHEADER",htmlheader,
-		 "*undocumented*");
+                 "*undocumented*");
   kno_def_evalfn(xhtml_module,"TITLE!",title_evalfn,
-		 "*undocumented*");
+                 "*undocumented*");
   kno_def_evalfn(xhtml_module,"JSOUT",jsout_evalfn,
-		 "*undocumented*");
+                 "*undocumented*");
   kno_def_evalfn(xhtml_module,"CSSOUT",cssout_evalfn,
-		 "*undocumented*");
+                 "*undocumented*");
 
   tail_symbol = kno_intern("%tail");
   browseinfo_symbol = kno_intern("browseinfo");
@@ -1439,10 +1694,12 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   content_type = kno_intern("content-type");
   cgi_content_type = kno_intern("content_type");
-  incoming_content_type = kno_intern("incoming-content-type");
   content_slotid = kno_intern("content");
   content_length = kno_intern("content-length");
+  incoming_content_type = kno_intern("incoming-content-type");
   incoming_content_length = kno_intern("incoming-content-length");
+  _content_length = kno_intern("content_length");
+  _content_type = kno_intern("content_type");
 
   doctype_slotid = kno_intern("doctype");
   xmlpi_slotid = kno_intern("xmlpi");
@@ -1452,6 +1709,7 @@ KNO_EXPORT void kno_init_cgiexec_c()
   html_classes_slotid = kno_intern("%htmlclasses");
   class_symbol = kno_intern("class");
 
+  http_body_slotid = kno_intern("http_body");
   post_data_slotid = kno_intern("post_data");
   multipart_form_data = kno_mkstring("multipart/form-data");
   www_form_urlencoded = kno_mkstring("application/x-www-form-urlencoded");
@@ -1476,6 +1734,8 @@ KNO_EXPORT void kno_init_cgiexec_c()
   protected_params[n_protected_params++] = kno_intern("script_filename");
   protected_params[n_protected_params++] = kno_intern("request_method");
   protected_params[n_protected_params++] = kno_intern("document_root");
+
+  transfer_encoding = kno_intern("transfer-encoding");
 
   kno_register_config
     ("CGIPREP",

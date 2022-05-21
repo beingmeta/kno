@@ -25,6 +25,10 @@
 #define KNO_DEBUG_BUFIO 0
 #endif
 
+#ifndef KNO_CRLF_INIT_BUFLEN
+#define KNO_CRLF_INIT_BUFLEN 512
+#endif
+
 size_t kno_zlib_level = KNO_DEFAULT_ZLEVEL;
 
 u8_condition kno_IsWriteBuf=_("Reading from a write buffer");
@@ -357,8 +361,8 @@ KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf)
   else return KNO_ERR1(0,kno_UnexpectedEOD);
 }
 
-KNO_EXPORT int
-_kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,int len)
+KNO_EXPORT ssize_t
+_kno_read_bytes(unsigned char *bytes,struct KNO_INBUF *buf,size_t len)
 {
   if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
@@ -374,6 +378,18 @@ KNO_EXPORT int _kno_read_varint(struct KNO_INBUF *buf)
   if (RARELY(KNO_ISWRITING(buf)))
     return kno_iswritebuf(buf);
   else return kno_read_varint(buf);
+}
+
+/* Reading lines */
+
+KNO_EXPORT ssize_t kno_find_crlf(kno_inbuf inbuf)
+{
+  unsigned char *head_end = NULL;
+  while ( (head_end=strstr(inbuf->bufread,"\r\n")) == NULL) {
+    ssize_t rv = kno_request_bytes(inbuf,1);
+    if (rv<=0)
+      return kno_err("NoCRLF","kno_read_to_crlf",inbuf->bufread,KNO_VOID);}
+  return (head_end+4)-(inbuf->bufread);
 }
 
 /* Compression functions */

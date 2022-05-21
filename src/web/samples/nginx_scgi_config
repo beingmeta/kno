@@ -1,0 +1,31 @@
+# -*- Mode: Javascript; -*-
+# Not really, but close enough
+
+server {
+    location /knotest {
+        include scgi_params;
+        scgi_param SCRIPT_FILENAME /src/kno/src/web/qinfo.knocgi;
+        scgi_pass localhost:8888;
+#           scgi_pass unix:/tmp/scgi.sock;
+    }
+
+
+    location ~ \.knocgi$ {
+        include scgi_params;
+        fastcgi_split_path_info       ^(.+\.knocgi)(.*)$;
+        scgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        scgi_param PATH_INFO $fastcgi_path_info;
+        scgi_pass localhost:8888;
+#           scgi_pass unix:/tmp/scgi.sock;
+    }
+# pass PHP scripts to FastCGI server
+#
+#location ~ \.php$ {
+#	include snippets/fastcgi-php.conf;
+#
+#	# With php-fpm (or other unix sockets):
+#	fastcgi_pass unix:/var/run/php/php7.4-fpm.sock;
+#	# With php-cgi (or other tcp sockets):
+#	fastcgi_pass 127.0.0.1:9000;
+#}
+}

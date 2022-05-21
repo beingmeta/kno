@@ -1,0 +1,11 @@
+# -*- Mode: Javascript; -*-
+# Not really, but close enough
+
+scgi_param REALPATH_ROOT $realpath_root;
+scgi_param REQUEST_FILENAME $request_filename if_not_empty;
+scgi_param REALPATH_ROOT $realpath_root if_not_empty;
+scgi_param REMOTE_USER $remote_user if_not_empty;
+scgi_param SSL_SERVER_NAME $ssl_server_name if_not_empty;
+scgi_param JWT_CLAIM $jwt_claim if_not_empty;
+scgi_param JWT_HEADER $jwt_header if_not_empty;
+scgi_param JWT_PAYLOAD $jwt_header if_not_empty;

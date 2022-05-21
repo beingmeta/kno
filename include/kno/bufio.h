@@ -419,8 +419,8 @@ KNO_EXPORT int _kno_probe_byte(struct KNO_INBUF *buf);
 KNO_EXPORT int _kno_unread_byte(struct KNO_INBUF *buf,int byte);
 KNO_EXPORT long long _kno_read_4bytes(struct KNO_INBUF *buf);
 KNO_EXPORT kno_8bytes _kno_read_8bytes(struct KNO_INBUF *buf);
-KNO_EXPORT int _kno_read_bytes
-  (unsigned char *bytes,struct KNO_INBUF *buf,int len);
+KNO_EXPORT ssize_t _kno_read_bytes
+  (unsigned char *bytes,struct KNO_INBUF *buf,size_t len);
 KNO_EXPORT int _kno_read_varint(struct KNO_INBUF *buf);
 
 KNO_EXPORT size_t _kno_raw_closebuf(struct KNO_RAWBUF *buf);
@@ -491,7 +491,7 @@ KNO_FASTOP kno_8bytes kno_read_8bytes(struct KNO_INBUF *buf)
   else return _kno_read_8bytes(buf);
 }
 
-KNO_FASTOP int kno_read_bytes
+KNO_FASTOP ssize_t kno_read_bytes
   (unsigned char *bytes,struct KNO_INBUF *buf,size_t len)
 {
   if (KNO_RARELY(KNO_ISWRITING(buf)))
@@ -527,6 +527,10 @@ KNO_FASTOP kno_8bytes kno_read_varint(struct KNO_INBUF *s)
   if (kno_write_4bytes(out,w)<0) return -1; else {}
 #define kno_output_bytes(out,bytes,n)                    \
   if (kno_write_bytes(out,bytes,n)<0) return -1; else {}
+
+/* Reading to CRLFs */
+
+KNO_EXPORT ssize_t kno_find_crlf(kno_inbuf inbuf);
 
 /* Compress and decompress */
 

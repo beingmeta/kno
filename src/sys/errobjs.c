@@ -104,7 +104,7 @@ int kno_notice_error(u8_condition c,u8_context caller,
   int flags = 0, harderr = 0;
   cur_ex = u8_current_exception;
   curstack = kno_stackptr;
-  flags = curstack->stack_flags;
+  if (curstack) flags = curstack->stack_flags;
 
   if (flags & (KNO_STACK_ERR_CATCH|KNO_STACK_ERR_CATCHALL)) {
   soft:

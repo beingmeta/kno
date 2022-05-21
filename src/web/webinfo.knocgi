@@ -32,10 +32,11 @@
   (htmlheader
    (xmlblock STYLE ((type "text/css"))
      "\n"
-     "body {font-family: arial,sans; margin: 0px;}\n"
+     "body {font-family: arial,sans; margin: 0px; margin-bottom: 3em;}\n"
      "div#BODY {margin-left: 32px;}\n"
      "h1 {text-align: right; font-variant: small-caps; margin: 0px; padding: 1ex; background-color: silver; border-bottom: solid black 2px;}\n"
      "h1 .smaller {display: block; clear: both; font-size: 10px; text-align: right; font-weight: normal; font-variant: normal;}\n"
+     "table.fdjtdata th,table.fdjtdata td {text-align: left; vertical-align: top;}\n"
      "p,div {text-align: left; margin-right: 2em;;}\n"))
   (req/set! 'syshost (gethostname))
   (h1 "This is " (gethostname)

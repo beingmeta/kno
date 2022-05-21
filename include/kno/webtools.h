@@ -10,6 +10,10 @@
 #define KNO_WEBTOOLS_H_INFO "include/kno/webtools.h"
 #endif
 
+#include <libu8/u8netfns.h>
+#include <libu8/u8srvfns.h>
+#include <kno/streams.h>
+
 KNO_EXPORT void kno_init_webtools(void) KNO_LIBINIT_FN;
 
 /* XML input */
@@ -144,6 +148,7 @@ KNO_EXPORT void kno_lisp2html(u8_output s,lispval v,u8_string tag,u8_string cl);
 
 /* CGIEXEC stuff */
 
+KNO_EXPORT lispval kno_scgidata(kno_inbuf inbuf);
 KNO_EXPORT int kno_parse_cgidata(lispval data);
 KNO_EXPORT lispval kno_cgiexec(lispval proc,lispval cgidata);
 KNO_EXPORT void kno_urify(u8_output out,lispval val);
@@ -184,6 +189,31 @@ KNO_EXPORT lispval kno_parse_uri(u8_string uri,lispval base);
 KNO_EXPORT lispval kno_parse_multipart_mime(lispval,const char *,const char *);
 KNO_EXPORT lispval kno_parse_mime(const char *,const char *);
 KNO_EXPORT lispval kno_handle_compound_mime_field(lispval,lispval,lispval);
+KNO_EXPORT const u8_byte *kno_parse_mime_headers(lispval s,
+                                                 const u8_byte *start,
+                                                 const u8_byte *end);
+
+/* Server structs */
+
+enum KNO_WEB_PROTOCOL
+  { knocgi_dtype, knocgi_xtype, knocgi_scgi, knocgi_http };
+
+typedef struct KNO_WEBCONN {
+  U8_CLIENT_FIELDS;
+  enum KNO_WEB_PROTOCOL conn_protocol;
+  void *conn_state;
+  lispval cgidata;
+  struct KNO_STREAM in;
+  struct U8_OUTPUT out;} KNO_WEBCONN;
+typedef struct KNO_WEBCONN *kno_webconn;
+
+KNO_EXPORT lispval kno_read_cgidata(kno_webconn conn);
+KNO_EXPORT lispval kno_read_http_body(lispval req,kno_inbuf inbuf,int chunked,ssize_t clen);
+
+/* Server protocol config handlers */
+
+KNO_EXPORT lispval knocgi_protocol_get(lispval name,void *data);
+KNO_EXPORT int knocgi_protocol_set(lispval name,lispval val,void *data);
 
 /* Init functions */
 

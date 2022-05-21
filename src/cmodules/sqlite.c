@@ -65,7 +65,7 @@ static lispval merge_symbol, sorted_symbol;
 
 /* Utility functions */
 
-static unsigned char *_memdup(unsigned char *data,int len)
+static U8_MAYBE_UNUSED unsigned char *_memdup(unsigned char *data,int len)
 {
   unsigned char *duplicate = u8_alloc_n(len,unsigned char);
   memcpy(duplicate,data,len);
