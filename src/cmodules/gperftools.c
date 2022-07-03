@@ -163,7 +163,7 @@ static lispval heapsize_sensor()
   size_t heap_size=0;
   MallocExtension_GetNumericProperty("generic.heap_size",&heap_size);
   /* Other properties: */
-  /* "tcmalloc.current_total_thread_cache_bytes" */
+  /* "tcmalloc.current_total_dbcache_bytes" */
   /* "tcmalloc.pageheap_free_bytes" */
   /* "tcmalloc.pageheap_unmapped_bytes" */
   return KNO_INT(heap_size);

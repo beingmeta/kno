@@ -343,9 +343,9 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
 {
   lispval cached = KNO_VOID, cache = KNO_VOID;
 #if KNO_USE_THREADCACHE
-  KNOTC *knotc = kno_threadcache;
-  if (knotc) {
-    cache = kno_slotmap_get(&(knotc->indexes),kno_index2lisp(ix),KNO_VOID);
+  KNOCACHE *knocache = kno_threadcache;
+  if (knocache) {
+    cache = kno_slotmap_get(&(knocache->indexes),kno_index2lisp(ix),KNO_VOID);
     if (KNO_HASHTABLEP(cache)) {
       cached = kno_hashtable_get((kno_hashtable)cache,key,KNO_VOID);}
     else {
@@ -357,7 +357,7 @@ KNO_FASTOP lispval kno_index_get(kno_index ix,lispval key)
   else cached = kno_hashtable_get(&(ix->index_cache),key,KNO_VOID);
   if (KNO_VOIDP(cached)) cached = kno_index_fetch(ix,key);
 #if KNO_USE_THREADCACHE
-  if (knotc) knotc_cache_index_key(knotc,kno_index2lisp(ix),key,cached);
+  if (knocache) knocache_cache_index_key(knocache,kno_index2lisp(ix),key,cached);
 #endif
   return cached;
 }
@@ -365,7 +365,7 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
 {
   int rv = -1;
 #if KNO_USE_THREADCACHE
-  KNOTC *knotc = (KNO_WRITETHROUGH_THREADCACHE)?(kno_threadcache):(NULL);
+  KNOCACHE *knocache = (KNO_WRITETHROUGH_THREADCACHE)?(kno_threadcache):(NULL);
 #endif
   kno_index ix = kno_get_writable_index(ix_arg);
   if (ix == NULL) /* This will handle the underlying error */
@@ -394,7 +394,7 @@ KNO_FASTOP int kno_index_add(kno_index ix_arg,lispval key,lispval value)
     else NO_ELSE;}
 
 #if KNO_USE_THREADCACHE
-  if ( (rv>=0) && (knotc) ) {}
+  if ( (rv>=0) && (knocache) ) {}
 #endif
 
   if ((rv >= 0) &&

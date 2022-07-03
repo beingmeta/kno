@@ -774,7 +774,7 @@ static void register_header_files()
 KNO_EXPORT void kno_init_streams_c(void);
 KNO_EXPORT void kno_init_alcor_c(void);
 KNO_EXPORT void kno_init_hashdtype_c(void);
-KNO_EXPORT void kno_init_threadcache_c(void);
+KNO_EXPORT void kno_init_dbcache_c(void);
 KNO_EXPORT void kno_init_pools_c(void);
 KNO_EXPORT void kno_init_compress_c(void);
 KNO_EXPORT void kno_init_indexes_c(void);
@@ -796,7 +796,7 @@ KNO_EXPORT int kno_init_storage()
   register_header_files();
   u8_register_source_file(_FILEINFO);
 
-  kno_init_threadcache_c();
+  kno_init_dbcache_c();
   kno_init_streams_c();
   kno_init_alcor_c();
   kno_init_hashdtype_c();

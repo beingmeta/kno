@@ -663,7 +663,7 @@ static lispval getcontent(lispval path)
 
 /* Check threadcache */
 
-static MU struct KNO_THREAD_CACHE *checkthreadcache(kno_lexenv env)
+static MU struct KNO_CACHE *checkthreadcache(kno_lexenv env)
 {
   lispval tcval = kno_symeval(threadcache_symbol,env);
   if (KNO_FALSEP(tcval)) return NULL;

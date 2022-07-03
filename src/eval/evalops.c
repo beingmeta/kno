@@ -485,7 +485,7 @@ static lispval tcachecall(int n,kno_argvec args)
 
 static lispval with_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  struct KNO_THREAD_CACHE *tc = kno_push_threadcache(NULL);
+  struct KNO_CACHE *tc = kno_push_threadcache(NULL);
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
     kno_decref(value);
@@ -499,7 +499,7 @@ static lispval with_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _st
 
 static lispval using_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  struct KNO_THREAD_CACHE *tc = kno_use_threadcache();
+  struct KNO_CACHE *tc = kno_use_threadcache();
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
     kno_decref(value);
@@ -522,7 +522,7 @@ static lispval use_threadcache_prim(lispval arg)
     while (kno_threadcache) kno_pop_threadcache(kno_threadcache);
     return KNO_TRUE;}
   else {
-    struct KNO_THREAD_CACHE *tc = kno_use_threadcache();
+    struct KNO_CACHE *tc = kno_use_threadcache();
     if (tc) return KNO_TRUE;
     else return KNO_FALSE;}
 }

@@ -533,11 +533,11 @@ KNO_EXPORT kno_pool _kno_oid2pool(lispval oid)
 lispval get_oid_value(lispval oid,kno_pool p)
 {
   if (RARELY(!(OIDP(oid)))) return kno_type_error("oid","get_oid_value",oid);
-  KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+  KNOCACHE *knocache = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
   lispval value = KNO_VOID;
-  if (knotc) {
-    value = ((knotc->oids.table_n_keys)?
-	     (kno_hashtable_get(&(knotc->oids),oid,VOID)):
+  if (knocache) {
+    value = ((knocache->oids.table_n_keys)?
+	     (kno_hashtable_get(&(knocache->oids),oid,VOID)):
 	     (VOID));
     if (!(VOIDP(value))) return value;}
   if (p == NULL) p = kno_oid2pool(oid);
@@ -545,7 +545,7 @@ lispval get_oid_value(lispval oid,kno_pool p)
   else if (p == kno_zero_pool)
     value = kno_zero_pool_value(oid);
   else value = kno_pool_get(p,oid);
-  if (knotc) kno_hashtable_store(&(knotc->oids),oid,value);
+  if (knocache) kno_hashtable_store(&(knocache->oids),oid,value);
   return value;
 }
 
@@ -733,8 +733,8 @@ KNO_EXPORT lispval kno_pool_fetch(kno_pool p,lispval oid)
 
 KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
 {
-  KNOTC *knotc = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
-  struct KNO_HASHTABLE *oidcache = ((knotc!=NULL)?(&(knotc->oids)):(NULL));
+  KNOCACHE *knocache = ((KNO_USE_THREADCACHE)?(kno_threadcache):(NULL));
+  struct KNO_HASHTABLE *oidcache = ((knocache!=NULL)?(&(knocache->oids)):(NULL));
   struct KNO_HASHTABLE *cache = &(p->pool_cache);
   struct KNO_HASHTABLE *changes = &(p->pool_changes);
   int decref_oids = 0, cachelevel;
@@ -823,7 +823,7 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
 	    modify_readonly(v,1);
 	    kno_hashtable_op(cache,kno_table_store,oid,v);}
 	  else modify_readonly(v,0);
-	  if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oid,v);
+	  if (knocache) kno_hashtable_op(&(knocache->oids),kno_table_store,oid,v);
 	  /* We decref it since it would have been incref'd when stored. */
 	  kno_decref(values[j]);
 	  j++;}}
@@ -833,7 +833,7 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
 	  lispval v=values[j];
 	  modify_readonly(v,1);
 	  j++;}
-	if (knotc) kno_hashtable_iter(oidcache,kno_table_store,n,oidv,values);
+	if (knocache) kno_hashtable_iter(oidcache,kno_table_store,n,oidv,values);
 	/* Store them all in the cache */
 	kno_hashtable_iter(cache,kno_table_store_noref,n,oidv,values);}}
     else {
@@ -858,7 +858,7 @@ KNO_EXPORT int kno_pool_prefetch(kno_pool p,lispval oids)
 	      ( ! ( (p->pool_flags) & (KNO_STORAGE_VIRTUAL) ) ) )
       kno_hashtable_store(&(p->pool_cache),oids,v);
     else {}
-    if (knotc) kno_hashtable_op(&(knotc->oids),kno_table_store,oids,v);
+    if (knocache) kno_hashtable_op(&(knocache->oids),kno_table_store,oids,v);
     kno_decref(v);
     return 1;}
   else return 0;

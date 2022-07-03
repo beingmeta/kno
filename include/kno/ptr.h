@@ -240,6 +240,8 @@ typedef enum KNO_LISP_TYPE {
 
   kno_subproc_type = KNO_CONS_TYPECODE(46),
 
+  kno_dbcache_type = KNO_CONS_TYPECODE(47),
+
   /* Extended types */
 
   kno_empty_type = KNO_EXTENDED_TYPECODE(0),
@@ -269,7 +271,7 @@ typedef enum KNO_LISP_TYPE {
 
 } kno_lisp_type;
 
-#define KNO_BUILTIN_CONS_TYPES 47
+#define KNO_BUILTIN_CONS_TYPES 48
 #define KNO_BUILTIN_IMMEDIATE_TYPES 14
 #define KNO_BUILTIN_EXTENDED_TYPES 11
 

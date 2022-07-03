@@ -260,8 +260,9 @@ KNO_EXPORT int kno_xcachecall_probe(kno_hashtable,lispval fcn,int,kno_argvec);
 #define KNO_THREAD_KEYCACHE_SIZE 128
 #endif
 
-typedef struct KNO_THREAD_CACHE {
-  int threadcache_inuse; u8_string threadcache_id;
+typedef struct KNO_CACHE {
+  KNO_TAGGED_HEAD;
+  int knocache_inuse; u8_string knocache_id;
   struct KNO_INDEX *background;
   struct KNO_HASHTABLE oids;
   struct KNO_HASHTABLE background_cache;
@@ -269,30 +270,30 @@ typedef struct KNO_THREAD_CACHE {
   struct KNO_SLOTMAP adjuncts;
   struct KNO_SLOTMAP indexes;
   struct KNO_SLOTMAP index_adds;
-  struct KNO_THREAD_CACHE *threadcache_prev;} KNO_THREAD_CACHE;
-typedef struct KNO_THREAD_CACHE *kno_thread_cache;
-typedef struct KNO_THREAD_CACHE KNOTC;
+  struct KNO_CACHE *knocache_prev;} KNO_CACHE;
+typedef struct KNO_CACHE *kno_cache;
+typedef struct KNO_CACHE KNOCACHE;
 
 #if (KNO_USE__THREAD)
-KNO_EXPORT __thread struct KNO_THREAD_CACHE *kno_threadcache;
+KNO_EXPORT __thread struct KNO_CACHE *kno_threadcache;
 #elif (KNO_USE_TLS)
 KNO_EXPORT u8_tld_key kno_threadcache_key;
-#define kno_threadcache ((struct KNO_THREAD_CACHE *)u8_tld_get(kno_threadcache_key))
+#define kno_threadcache ((struct KNO_CACHE *)u8_tld_get(kno_threadcache_key))
 #else
-KNO_EXPORT struct KNO_THREAD_CACHE *kno_threadcache;
+KNO_EXPORT struct KNO_CACHE *kno_threadcache;
 #endif
 
-KNO_EXPORT int kno_free_thread_cache(struct KNO_THREAD_CACHE *tc);
-KNO_EXPORT int kno_pop_threadcache(struct KNO_THREAD_CACHE *tc);
+KNO_EXPORT int kno_free_dbcache(struct KNO_CACHE *tc);
+KNO_EXPORT int kno_pop_threadcache(struct KNO_CACHE *tc);
 
-KNO_EXPORT kno_thread_cache kno_new_thread_cache(void);
-KNO_EXPORT kno_thread_cache kno_cons_thread_cache(int oids_size,int bg_size);
+KNO_EXPORT kno_cache kno_new_dbcache(void);
+KNO_EXPORT kno_cache kno_cons_dbcache(int oids_size,int bg_size);
 
-KNO_EXPORT kno_thread_cache kno_push_threadcache(kno_thread_cache);
-KNO_EXPORT kno_thread_cache kno_set_threadcache(kno_thread_cache);
-KNO_EXPORT kno_thread_cache kno_use_threadcache(void);
+KNO_EXPORT kno_cache kno_push_threadcache(kno_cache);
+KNO_EXPORT kno_cache kno_set_threadcache(kno_cache);
+KNO_EXPORT kno_cache kno_use_threadcache(void);
 
-KNO_EXPORT int knotc_cache_index_key(KNOTC *cache,lispval ix_arg,lispval key,lispval oids);
+KNO_EXPORT int knocache_cache_index_key(KNOCACHE *cache,lispval ix_arg,lispval key,lispval oids);
 
 /* Include other stuff */
 
@@ -300,8 +301,8 @@ KNO_EXPORT int knotc_cache_index_key(KNOTC *cache,lispval ix_arg,lispval key,lis
 #include "indexes.h"
 #include "frames.h"
 
-KNO_EXPORT int knotc_cache_adjunct_value(KNOTC *cache,lispval oid,lispval slotid,lispval val);
-KNO_EXPORT int knotc_cache_oid_value(KNOTC *cache,lispval oid,lispval val);
+KNO_EXPORT int knocache_cache_adjunct_value(KNOCACHE *cache,lispval oid,lispval slotid,lispval val);
+KNO_EXPORT int knocache_cache_oid_value(KNOCACHE *cache,lispval oid,lispval val);
 
 KNO_EXPORT lispval (*kno_get_oid_name)(kno_pool,lispval);
 

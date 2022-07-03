@@ -209,7 +209,7 @@ STORAGE_OBJS=\
 	src/storage/aggregates.o				\
 	src/storage/bloom.o src/storage/alcor.o			\
 	src/storage/methods.o src/storage/oidstore.o		\
-	src/storage/cachecall.o src/storage/threadcache.o	\
+	src/storage/cachecall.o src/storage/dbcache.o	\
 	src/storage/extindex.o src/storage/extpool.o		\
 	src/storage/procpool.o src/storage/procindex.o		\
 	src/storage/mempool.o src/storage/tempindex.o		\
@@ -361,7 +361,7 @@ KNO_SOURCES=									\
 	src/storage/drivers.c src/storage/indexes.c src/storage/pools.c		\
 	src/storage/oidstore.c	src/storage/frames.c src/storage/slotindexes.c	\
 	src/storage/aggregates.c src/storage/cachecall.c src/storage/methods.c	\
-	src/storage/alcor.c src/storage/compress.c src/storage/threadcache.c	\
+	src/storage/alcor.c src/storage/compress.c src/storage/dbcache.c	\
 	src/storage/bloom.c src/storage/ipeval.c				\
 	src/drivers/builtin_drivers.c						\
 	src/drivers/filepool.c src/drivers/kpool.c src/drivers/zipsource.c	\

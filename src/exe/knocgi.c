@@ -841,7 +841,7 @@ static int webservefn(u8_client ucl)
   u8_server server = client->server;
   int write_headers = 1, close_html = 0, forcelog = 0;
   double start_time, setup_time, parse_time, exec_time, write_time;
-  struct KNO_THREAD_CACHE *threadcache = NULL;
+  struct KNO_CACHE *threadcache = NULL;
   struct rusage start_usage, end_usage;
   double start_load[]={-1,-1,-1}, end_load[]={-1,-1,-1};
   ssize_t retval = 0, http_len = 0, head_len = 0, content_len = 0;

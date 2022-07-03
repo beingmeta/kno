@@ -74,7 +74,7 @@ KNO_EXPORT int kno_ipeval_call(int (*fcn)(void *),void *data)
 {
   int state, saved_state, ipeval_count = 1, retval = 0, gave_up = 0;
   /* This will be NULL if a thread cache is already in force. */
-  struct KNO_THREAD_CACHE *tc = kno_use_threadcache();
+  struct KNO_CACHE *tc = kno_use_threadcache();
   double start, point;
 #if KNO_GLOBAL_IPEVAL
   if (kno_ipeval_status()>0) {
@@ -140,7 +140,7 @@ KNO_EXPORT int kno_tracked_ipeval_call(int (*fcn)(void *),void *data,
 {
   int state, saved_state, ipeval_count = 1, n_records = 16, delays, retval = 0, gave_up = 0;
   /* This will be NULL if a thread cache is already in force. */
-  struct KNO_THREAD_CACHE *tc = kno_use_threadcache();
+  struct KNO_CACHE *tc = kno_use_threadcache();
   /* This keeps track of execution. */
   struct KNO_IPEVAL_RECORD *records = u8_alloc_n(16,struct KNO_IPEVAL_RECORD);
   double start, point, exec_time, fetch_time;
