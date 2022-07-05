@@ -710,14 +710,28 @@ KNO_EXPORT lispval kno_interpret_config(lispval expr)
         return kno_wrapstring(str);}
       else return kno_incref(expr);}
     else if (head == config_macro) {
-      if (KNO_FALSEP(arg)) return kno_incref(expr);
+      if (KNO_FALSEP(arg))
+        return kno_incref(expr);
       else if (KNO_SYMBOLP(arg)) {
         lispval v = kno_config_get(KNO_SYMBOL_NAME(arg));
 	if (KNO_VOIDP(v))
 	  return expr;
 	else return v;}
+      else if (KNO_STRINGP(arg)) {
+        lispval v = kno_config_get(CSTRING(arg));
+	if (KNO_VOIDP(v))
+	  return expr;
+	else return v;}
       else if ( (KNO_PAIRP(arg)) && (KNO_SYMBOLP(KNO_CAR(arg))) ) {
 	lispval v = kno_config_get(KNO_SYMBOL_NAME(KNO_CAR(arg)));
+	if (!(KNO_VOIDP(v)))
+	  return v;
+	else if (KNO_PAIRP(KNO_CDR(v))) {
+	  lispval dflt = KNO_CADR(v);
+	  return kno_incref(dflt);}
+	else return kno_incref(expr);}
+      else if ( (KNO_PAIRP(arg)) && (KNO_STRINGP(KNO_CAR(arg))) ) {
+	lispval v = kno_config_get(CSTRING(KNO_CAR(arg)));
 	if (!(KNO_VOIDP(v)))
 	  return v;
 	else if (KNO_PAIRP(KNO_CDR(v))) {
@@ -753,6 +767,13 @@ KNO_EXPORT lispval kno_interpret_config(lispval expr)
       if (KNO_SYMBOLP(arg)) {
         lispval now = kno_make_timestamp(NULL);
         lispval v = kno_get(now,arg,KNO_VOID);
+        kno_decref(now);
+        if (KNO_VOIDP(v))
+          return expr;
+        else return v;}
+      else if (KNO_STRINGP(arg)) {
+        lispval now = kno_make_timestamp(NULL);
+        lispval v = kno_get(now,kno_getsym(CSTRING(arg)),KNO_VOID);
         kno_decref(now);
         if (KNO_VOIDP(v))
           return expr;

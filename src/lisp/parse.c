@@ -74,7 +74,7 @@ int kno_interpret_pointers = 1;
 
 static lispval comment_symbol;
 static lispval quasiquote_symbol, unquote_symbol, unquotestar_symbol;
-static lispval opaque_tag, struct_eval_symbol;
+static lispval opaque_tag, struct_eval_symbol, atsign_qmark;
 
 kno_history_resolvefn kno_resolve_histref = NULL;
 static int skip_block_comment(u8_input in);
@@ -118,6 +118,80 @@ KNO_EXPORT int kno_skip_whitespace(u8_input s)
 }
 
 static lispval parse_histref(u8_input in);
+
+static int label_endp(int ch)
+{
+  if ( (u8_isspace(ch)) || (strchr("{(\":;'`#",ch)) )
+    return 1;
+  else return 0;
+}
+
+static lispval read_named_macro(u8_input in,int prefix)
+{
+  int ch = u8_getc(in);
+  int label_length = 0;
+  U8_STATIC_OUTPUT(label,200);
+  u8_putc(labelout,prefix);
+  if (ch == ':') ch = u8_getc(in);
+  while ( ( ch >= 0 ) && (label_length < 42) &&
+          (!(u8_isspace(ch))) &&
+          (strchr("{([\":'`#",ch) == NULL) ) {
+    int uch = u8_tolower(ch);
+    u8_putc(labelout,uch);
+    ch = u8_getc(in);
+    label_length++;}
+  if ( (label_length >= 42) || (!(label_endp(ch))) ) {
+    u8_seterr("Unclosed Reader Macro","kno_parser",NULL);
+    return KNO_PARSE_ERROR;}
+  lispval sym = kno_getsym(label.u8_outbuf);
+  int nextch;
+  if (u8_isspace(ch))
+    return kno_init_pair(NULL,sym,KNO_EMPTY_LIST);
+  else if (ch == ':')
+    nextch=u8_probec(in);
+  else {
+    u8_ungetc(in,ch);
+    nextch=ch;}
+  if ( (nextch<0) || (u8_isspace(nextch)) ||
+       ( (nextch<128) && (strchr("]})",nextch))) ) {
+    return kno_make_list(2,sym,KNO_FALSE);}
+  else if (strchr("({[\"#",nextch)) {
+    lispval next = kno_parser(in);
+    return kno_make_list(2,sym,next);}
+  else {
+    U8_STATIC_OUTPUT(str,200);
+    ch=u8_getc(in);
+    while ( (u8_isalnum(ch)) || (strchr(".-_",ch)) ) {
+      u8_putc(strout,ch);
+      ch=u8_getc(in);}
+    if (ch>=0) u8_ungetc(in,ch);
+    return kno_make_list(2,sym,kno_stream2string(strout));}
+}
+
+static int good_macro_char(int c)
+{
+  return ( (u8_ispunct(c)) &&
+           ( (c>=128) || (strchr("\"([{}])#'`\\,",c)==NULL) ) );
+}
+
+static lispval read_char_macro(u8_input in,int prefix,int first_char)
+{
+  u8_byte buf[16]; struct U8_OUTPUT out;
+  int ch = (first_char>0) ? (first_char) : (u8_getc(in)), nch = -1;
+  U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
+  u8_putc(&out,prefix); u8_putc(&out,ch); nch = u8_getc(in);
+  while (good_macro_char(nch)) {
+    u8_putc(&out,nch);
+    if ((out.u8_write-out.u8_outbuf)>11) {
+      kno_seterr(kno_ParseError,"kno_parser","invalid %c character macro prefix",
+                 kno_stream2string(&out));
+      return KNO_PARSE_ERROR;}
+    else nch = u8_getc(in);}
+  u8_ungetc(in,nch);
+  if (strchr("}])",nch)!=NULL)
+    return kno_err(kno_ParseError,"read_char_macro",buf,KNO_VOID);
+  return kno_intern(buf);
+}
 
 /* Tables */
 
@@ -451,49 +525,144 @@ void kno_set_oid_parser(lispval (*parsefn)(u8_string start,int len))
   oid_parser = parsefn;
 }
 
+static kno_oid_resolvefn oid_resolver = NULL;
+static kno_oid_lookupfn oid_lookup = NULL;
+
+KNO_EXPORT
+void kno_set_oid_resolvers(kno_oid_resolvefn resolver,kno_oid_lookupfn lookup)
+{
+  if (resolver) oid_resolver = resolver;
+  if (lookup) oid_lookup = lookup;
+}
+
 typedef unsigned long long ull;
 
-static lispval default_parse_oid(u8_string start,int len)
+static lispval resolve_numeric_oid(u8_string start,int len)
 {
-  u8_byte buf[64];
+  if (*start == '@') start++;
   KNO_OID oid = KNO_NULL_OID_INIT;
-  unsigned int hi, lo;
-  if (len>64) {
-    kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
-    return KNO_PARSE_ERROR;}
-  strncpy(buf,start,len); buf[len]='\0';
-  if (buf[1] == '/') {
-    if (buf[2] == '/') {
-      unsigned long long addr = 0;
-      int items = sscanf(buf,"@//%llx",&addr);
-      if (items!=1) {
-	kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
-	return KNO_PARSE_ERROR;}
-      hi = ((addr>>32)&((ull)0xFFFFFFFF));
-      lo = (addr&((ull)0xFFFFFFFF));}
-    else {
-      kno_seterr("BadOIDReference","default_parse_oid(nodbs)",start,VOID);
-      return KNO_PARSE_ERROR;}}
-  else if (strchr(buf,'/')) {
-    int items = sscanf(buf,"@%x/%x",&hi,&lo);
-    if (items!=2) {
-      kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
-      return KNO_PARSE_ERROR;}}
-  else {
-    unsigned long long addr;
-    int items = sscanf(buf,"@%llx",&addr);
-    if (items!=1) {
-      kno_seterr("BadOIDReference","default_parse_oid",start,VOID);
-      return KNO_PARSE_ERROR;}
+  unsigned char *end = NULL;
+  unsigned long long addr = strtoull(start,(char **)&end,16);
+  unsigned int hi = 0, lo = 0;
+  if (end == NULL) return KNO_PARSE_ERROR;
+  else if (*end == '/') {
+    hi = addr;
+    lo = strtoull(end+1,(char **)&end,16);
+    if (*end != '\0') return KNO_PARSE_ERROR;}
+  else if (*end=='\0') {
     hi = ((addr>>32)&((ull)0xFFFFFFFF));
     lo = (addr&((ull)0xFFFFFFFF));}
+  else return KNO_PARSE_ERROR;
   KNO_SET_OID_HI(oid,hi); KNO_SET_OID_LO(oid,lo);
   return kno_make_oid(oid);
 }
 
+static lispval parse_numeric_oid(u8_input in)
+{
+  u8_byte buf[64], *write=buf, *slash = NULL; int len = 0;
+  int c = u8_getc(in);
+  if (c == '@') c = u8_getc(in);
+  while ( (c>=0) && (len<64) ) {
+    if (isxdigit(c)) { *write++=c; len++; }
+    else if (c == '/') {
+      if (slash) return KNO_PARSE_ERROR;
+      slash=write; *write++=c;}
+    else if ( (c == ':') || (c == '.') ) {}
+    else if ( (u8_isspace(c)) || (strchr("\"([{}])'#",c)) ) {
+        u8_ungetc(in,c);
+        break;}
+    else return KNO_PARSE_ERROR;
+    c=u8_getc(in);}
+  *write++='\0';
+  return resolve_numeric_oid(buf,len);
+}
+
 KNO_EXPORT lispval kno_parse_oid_addr(u8_string string,int len)
 {
-  return default_parse_oid(string,len);
+  return resolve_numeric_oid(string,len);
+}
+
+#define free_stream(s) \
+  if (s->u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(s->u8_outbuf); else {}
+
+static unsigned long long read_ref_offset(u8_input in,ssize_t *lenp)
+{
+  u8_byte buf[64], *write=buf, *limit=buf+63;
+  int c = u8_getc(in);
+  while ( (c>=0) && (write<limit) ) {
+    if (isxdigit(c)) *write++=c;
+    else if ( (c == ':') || (c == '.') ) {}
+    else if ( (u8_isspace(c)) || ( (c<128) && (strchr("}])",c)) ) ) {
+      u8_ungetc(in,c);
+      break;}
+    else return KNO_PARSE_ERROR;
+    c=u8_getc(in);}
+  if (write>=limit) {
+    *lenp = -1;
+    return 0;}
+  else {
+    *lenp = write-buf;
+    *write++='\0';
+    char *end = NULL;
+    unsigned long long off = strtoull(buf,&end,16);
+    if ( (end) && (*end == '\0') )
+      return off;
+    else *lenp=-1;
+    return off;}
+}
+
+static lispval parse_domain_ref(u8_input in)
+{
+  U8_STATIC_OUTPUT(domain,64);
+  lispval result = KNO_PARSE_ERROR;
+  int c = u8_getc(in);
+  /* Ignore the leading / */
+  if (c=='/') c = u8_getc(in);
+  while (c>=0) {
+    if (u8_isalnum(c))
+      u8_putc(&domain,c);
+    else if ( (c == '.') || (c == '-') || (c == '_') )
+      u8_putc(&domain,c);
+    else if (c == '/') {
+      ssize_t len = -1;
+      unsigned long long offset = read_ref_offset(in,&len);
+      if (len<=0) {}
+      else if (oid_resolver)
+        result = oid_resolver(u8_outstring(domainout),offset);
+      else result=kno_err
+             ("NoOIDresolvefn","resolve_domain_ref",u8_outstring(domainout),KNO_VOID);
+      break;}
+    else if (c == '?') {
+      lispval id = kno_parser(in);
+      if (ABORTED(id))
+        result=id;
+      else if (oid_lookup)
+        result = oid_lookup(u8_outstring(domainout),id);
+      else result=kno_err
+             ("NoOIDresolvefn","resolve_domain_ref",u8_outstring(domainout),KNO_VOID);
+      break;}
+    else {
+      u8_putc(&domain,c);
+      kno_seterr("Bad DomainID","resolve_domain_ref",u8_outstring(domainout),KNO_VOID);
+      free_stream(domainout);
+      return KNO_ERROR;}
+    c = u8_getc(in);}
+  free_stream(domainout);
+  return result;
+}
+
+static lispval ignore_oid_name(u8_input in,lispval oid)
+{
+  if (KNO_ABORTED(oid)) return oid;
+  int nc = u8_probec(in);
+  if ( (nc<0) || (u8_isspace(nc)) || (strchr("}])",nc)) )
+    return oid;
+  lispval name = kno_parser(in);
+  if (name == KNO_EOF) return oid;
+  else if (ABORTED(name)) return name;
+  else NO_ELSE;
+  kno_decref(name);
+  return oid;
 }
 
 static int copy_string(u8_input s,u8_output a);
@@ -501,30 +670,30 @@ static int copy_string(u8_input s,u8_output a);
 /* This is the function called from the main parser loop. */
 static lispval parse_oid(U8_INPUT *in)
 {
-  struct U8_OUTPUT tmpbuf; char buf[128]; int c; lispval result;
-  U8_INIT_STATIC_OUTPUT_BUF(tmpbuf,128,buf);
-  /* First, copy the data into a buffer.
-     The buffer will almost never grow, but it might
-     if we have a really long prefix id. */
-  c = copy_atom(in,&tmpbuf,0);
-  if ( (c=='"') &&( (tmpbuf.u8_write-tmpbuf.u8_outbuf)==2) &&
-       (buf[0]=='@') && (ispunct(buf[1])) &&
-       (strchr("(){}[]<>",buf[1]) == NULL) ) {
-    copy_string(in,&tmpbuf); c='@';}
-  if (tmpbuf.u8_write<=tmpbuf.u8_outbuf)
-    return KNO_EOX;
-  else if (oid_parser)
-    result = oid_parser(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-  else result = default_parse_oid(u8_outstring(&tmpbuf),u8_outlen(&tmpbuf));
-  if (KNO_ABORTP(result))
-    return result;
-  if (strchr("({\"#[",c)) {
-    /* If an object starts immediately after the OID (no whitespace)
-       it is the OID's label, so we read it and discard it. */
-    lispval label = kno_parser(in);
-    kno_decref(label);}
-  if (tmpbuf.u8_streaminfo&U8_STREAM_OWNS_BUF) u8_free(tmpbuf.u8_outbuf);
-  return result;
+  int c = u8_getc(in);
+  if (c != '@') return kno_err("MissingOIDPrefix","parse_oid",NULL,VOID);
+  int ch = u8_probec(in);
+  if (isxdigit(ch)) {
+    lispval result = parse_numeric_oid(in);
+    return ignore_oid_name(in,result);}
+  else if (ch == '/') {
+    lispval result = parse_domain_ref(in);
+    return ignore_oid_name(in,result);}
+  else if (ch == ':')
+    return read_named_macro(in,'@');
+  else if (good_macro_char(ch)) {
+    /* This introduces a hash-punct sequence which is used
+       for other kinds of character macros. */
+    lispval macro_sym = read_char_macro(in,'@',-1);
+    if (ABORTED(macro_sym)) return macro_sym;
+    lispval macro_arg = kno_parser(in);
+    if (ABORTED(macro_arg)) return macro_arg;
+    if ( (macro_sym == atsign_qmark) && (oid_lookup) ) {
+      lispval result=oid_lookup(NULL,macro_arg);
+      kno_decref(macro_arg);
+      return result;}
+    else return kno_make_list(2,macro_sym,macro_arg);}
+  else return KNO_PARSE_ERROR;
 }
 
 KNO_EXPORT lispval kno_parse_oid(u8_input in)
@@ -1172,13 +1341,6 @@ static lispval parse_record(U8_INPUT *in)
 
 static lispval parse_atom(u8_input in,int ch1,int ch2,int upcase);
 
-static int label_endp(int ch)
-{
-  if ( (u8_isspace(ch)) || (strchr("{(\":;'`#",ch)) )
-    return 1;
-  else return 0;
-}
-
 KNO_EXPORT
 /* kno_parser:
    Arguments: a U8 input stream and a memory pool
@@ -1271,31 +1433,8 @@ lispval kno_parser(u8_input in)
              doesn't read as anything. */
           return kno_parser(in);
         case '<': return parse_opaque(in);
-        case ':': {
-          int label_length = 0;
-          U8_STATIC_OUTPUT(label,200);
-          u8_putc(labelout,'#');
-          ch = u8_getc(in);
-          while ( ( ch >= 0 ) && (label_length < 42) &&
-		  (!(u8_isspace(ch))) &&
-		  (strchr("{([\":'`#",ch) == NULL) ) {
-            int uch = u8_tolower(ch);
-            u8_putc(labelout,uch);
-            ch = u8_getc(in);
-            label_length++;}
-	  if ( (label_length >= 42) || (!(label_endp(ch))) ) {
-            u8_seterr("Unclosed Reader Macro","kno_parser",NULL);
-            return KNO_PARSE_ERROR;}
-          if (! (ch == ':') ) u8_ungetc(in,ch);
-          lispval sym = kno_intern(label.u8_outbuf);
-	  if (u8_isspace(ch)) return kno_init_pair(NULL,sym,KNO_EMPTY_LIST);
-          int nextch = u8_probec(in);
-          if ( (u8_isspace(nextch)) ||
-               ( (nextch<128) && (strchr("]})",nextch))) ) {
-            return kno_make_list(2,sym,KNO_FALSE);}
-          else {
-            lispval next = kno_parser(in);
-            return kno_make_list(2,sym,next);}}
+        case ':':
+          return read_named_macro(in,'#');
         case ';': {
           lispval content = kno_parser(in);
           if (PARSE_ABORTP(content))
@@ -1357,26 +1496,16 @@ lispval kno_parser(u8_input in)
 	default: {
           /* This introduced a hash-punct sequence which is used
              for other kinds of character macros. */
-          u8_byte buf[16]; struct U8_OUTPUT out; int nch;
-          lispval punct_code, punct_code_arg;
-          U8_INIT_OUTPUT_X(&out,16,buf,U8_FIXED_STREAM);
-          u8_putc(&out,'#'); u8_putc(&out,ch); nch = u8_getc(in);
-          while ((u8_ispunct(nch))&&
-                 ((nch>128)||(strchr("\"([{",nch) == NULL))) {
-            u8_putc(&out,nch);
-            if ((out.u8_write-out.u8_outbuf)>11) {
-              kno_seterr(kno_ParseError,"kno_parser","invalid hash # prefix",
-                         kno_stream2string(&out));
-              return KNO_PARSE_ERROR;}
-            else nch = u8_getc(in);}
-          u8_ungetc(in,nch);
-          punct_code = kno_intern(buf);
-          punct_code_arg = kno_parser(in);
-          return kno_make_list(2,punct_code,punct_code_arg);}}
+          lispval macro_sym = read_char_macro(in,'#',ch);
+          if (ABORTED(macro_sym)) return macro_sym;
+          lispval macro_arg = kno_parser(in);
+          if (ABORTED(macro_arg)) return macro_arg;
+          return kno_make_list(2,macro_sym,macro_arg);}}
       else switch (ch) {
         case 'U': return parse_atom(in,inchar,ch,0); /* UUID */
         case 'T': return parse_atom(in,inchar,ch,0); /* TIMESTAMP */
         case 'X': case 'B': case 'x': case 'b': {
+          /* Possibly a binary or hex packet */
           int probec = u8_probec(in);
           if (probec == '"')
             return parse_packet(in,ch);
@@ -1614,7 +1743,6 @@ lispval kno_parse(u8_string s)
   else return result;
 }
 
-
 KNO_EXPORT
 /* kno_read_arg:
    Arguments: a string
@@ -1832,6 +1960,5 @@ KNO_EXPORT void kno_init_parse_c()
   comment_symbol = kno_intern("comment");
   opaque_tag = kno_intern("%opaque");
   struct_eval_symbol = kno_intern("#.");
+  atsign_qmark = kno_intern("@?");
 }
-
-

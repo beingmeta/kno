@@ -1936,7 +1936,23 @@ KNO_EXPORT kno_pool kno_find_pool_by_prefix(u8_string prefix)
     if (( (p->pool_prefix) && ((strcasecmp(prefix,p->pool_prefix)) == 0) ) ||
 	( (p->pool_label) && ((strcasecmp(prefix,p->pool_label)) == 0) ))
       return p;}
-  return NULL;
+  /* If it doesn't appear literally, try finding pools for which the prefix is a prefix of its
+     label */
+  kno_pool found = NULL;
+  ssize_t prefix_len = strlen(prefix);
+  i=0; n=kno_n_pools; while (i<n) {
+    kno_pool p = kno_pools_by_serialno[i++];
+    u8_string label = p->pool_label;
+    if ( (label) && ((strncasecmp(prefix,label,prefix_len)) == 0) &&
+         /* This test rules out adjuncts based on their normal labels */
+         (strchr(label,'/')==NULL) &&
+         /* This test checks that the prefix is on a label dot-boundary. */
+         (label[prefix_len] == '.') ) {
+      if (found)
+        /* Ambiguous prefix */
+        return NULL;
+      else found = p;}}
+  return found;
 }
 
 /* Operations over all pools */

@@ -1066,7 +1066,10 @@ int main(int argc,char **argv)
     start_icache = kno_index_cache_load();
     u8_flush(out);
     expr = console_read(in,env);
-    expr = kno_eval_histrefs(expr,history);
+    if (KNO_CONSP(expr)) {
+      lispval expanded = kno_eval_histrefs(expr,history);
+      kno_decref(expr);
+      expr=expanded;}
     if (KNO_COMPOUND_TYPEP(expr,command_tag)) {
       /* Handle commands */
       lispval head = KNO_COMPOUND_REF(expr,0);

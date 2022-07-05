@@ -127,6 +127,71 @@ kno_get_dbflags(lispval opts,kno_storage_flags init_flags)
     else return init_flags;}
 }
 
+static lispval db_resolve_oid(u8_string poolid,unsigned long long off)
+{
+  KNO_OID base = KNO_NULL_OID_INIT, result = KNO_NULL_OID_INIT;
+  kno_pool p = kno_find_pool_by_prefix(poolid);
+  if (p == NULL)
+    return kno_err(kno_ParseError,"db_resolve_oid",poolid,KNO_VOID);
+  else base = p->pool_base;
+  result = KNO_OID_PLUS(base,off);
+  return kno_make_oid(result);
+}
+
+DEF_KNOSYM(indexes);
+
+static lispval db_lookup_oid(u8_string poolid,lispval name)
+{
+  if (poolid) {
+    kno_pool p = kno_find_pool_by_prefix(poolid);
+    if (p == NULL)
+      return kno_err("UnknownDomain(pool)","db_lookup_oid",poolid,name);
+    lispval index = kno_slotmap_get(&(p->pool_props),KNOSYM_INDEX,KNO_VOID);
+    if (KNO_VOIDP(index))
+      index = kno_slotmap_get(&(p->pool_props),KNOSYM(indexes),KNO_VOID);
+    if (KNO_VOIDP(index))
+      return kno_err("UnindexedDomain(pool)","db_lookup_oid",poolid,name);
+    lispval item = kno_find_frames(index,id_symbol,name,KNO_VOID);
+    kno_decref(index);
+    if (OIDP(item)) return item;
+    else if (CHOICEP(item)) {
+      kno_decref(item);
+      return kno_err(kno_AmbiguousObjectName,"db_lookup_oid",poolid,name);}
+    else return kno_err(kno_UnknownObjectName,"db_lookup_oid",poolid,name);}
+  else if (kno_default_background) {
+    lispval item = kno_find_frames((lispval)kno_default_background,id_symbol,name,KNO_VOID);
+    if (OIDP(item)) return item;
+    else if (CHOICEP(item)) {
+      kno_decref(item);
+      return kno_err(kno_AmbiguousObjectName,"db_lookup_oid",NULL,name);}
+    else if (!((EMPTYP(item))||(FALSEP(item)))) {
+      kno_decref(item);
+      return kno_type_error("oid","db_lookup_oid",item);}}
+  else NO_ELSE;
+  if (lookupfns!=NIL) {
+    KNO_DOLIST(method,lookupfns) {
+      if ((SYMBOLP(method))||(OIDP(method))) {
+        lispval key = kno_conspair(method,kno_incref(name));
+        lispval item = kno_index_get((kno_index)kno_default_background,key);
+        kno_decref(key);
+        if (OIDP(item)) return item;
+        else if (!((EMPTYP(item))||
+                   (FALSEP(item))||
+                   (VOIDP(item)))) continue;
+        else return kno_type_error("oid","dbparse_oid",item);}
+      else if (KNO_APPLICABLEP(method)) {
+        lispval item = kno_apply(method,1,&name);
+        if (KNO_ABORTP(item)) return item;
+        else if (OIDP(item)) return item;
+        else if ((EMPTYP(item))||
+                 (FALSEP(item))||
+                 (VOIDP(item))) continue;
+        else return kno_type_error("oid","dbparse_oid",item);}
+      else return kno_type_error("lookup method","dbparse_oid",method);}
+    return kno_err(kno_UnknownObjectName,"dbparse_oid",NULL,name);}
+  else return kno_err(kno_UnknownObjectName,"dbparse_oid",NULL,name);
+}
+
 static lispval dbparse_oid(u8_string start,int len)
 {
   if (start[1]=='?') {
@@ -293,25 +358,29 @@ static int print_oid_name(u8_output out,lispval name,int top)
     KNO_OID addr = KNO_OID_ADDR(name);
     unsigned int hi = KNO_OID_HI(addr), lo = KNO_OID_LO(addr);
     return u8_printf(out,"@%x/%x",hi,lo);}
-  else if ((SYMBOLP(name)) ||
-           (NUMBERP(name)) ||
-           (KNO_CONSTANTP(name)))
+  if ((SYMBOLP(name)) ||
+      (NUMBERP(name)) ||
+      (KNO_CONSTANTP(name))) {
+    u8_putc(out,'?');
     if (top) {
       int retval = -1;
       u8_puts(out,"{"); retval = kno_unparse(out,name);
       if (retval<0) return retval;
       else retval = u8_puts(out,"}");
       return retval;}
-    else return kno_unparse(out,name);
-  else if (STRINGP(name))
-    return kno_unparse(out,name);
+    else return kno_unparse(out,name);}
+  else if (STRINGP(name)) {
+    u8_putc(out,'?');
+    return kno_unparse(out,name);}
   else if ((CHOICEP(name)) || (PRECHOICEP(name))) {
+    u8_putc(out,'?');
     int i = 0; u8_putc(out,'{'); {
       DO_CHOICES(item,name) {
         if (i++>0) u8_putc(out,' ');
         if (print_oid_name(out,item,0)<0) return -1;}}
     return u8_putc(out,'}');}
   else if (PAIRP(name)) {
+    u8_putc(out,'?');
     lispval scan = name; u8_putc(out,'(');
     if (print_oid_name(out,KNO_CAR(scan),0)<0) return -1;
     else scan = KNO_CDR(scan);
@@ -326,6 +395,7 @@ static int print_oid_name(u8_output out,lispval name,int top)
       print_oid_name(out,scan,0);
       return u8_putc(out,')');}}
   else if (VECTORP(name)) {
+    u8_putc(out,'?');
     int i = 0, len = VEC_LEN(name);
     u8_puts(out,"#(");
     while (i< len) {
@@ -334,8 +404,10 @@ static int print_oid_name(u8_output out,lispval name,int top)
         return -1;
       i++;}
     return u8_puts(out,")");}
-  else if (top) return 0;
-  else return kno_unparse(out,name);
+  if (top) return 0;
+  else {
+    u8_putc(out,'?');
+    return kno_unparse(out,name);}
 }
 
 static int db_unparse_oid(u8_output out,lispval x)
@@ -756,9 +828,10 @@ KNO_EXPORT int kno_init_storage()
   virtual_symbol = kno_intern("virtual");
   fixsyms_symbol = kno_intern("fixsyms");
 
-  kno_set_oid_parser(dbparse_oid);
   kno_unparsers[kno_oid_type]=db_unparse_oid;
   oid_name_slotids = kno_make_list(2,kno_intern("%id"),kno_intern("obj-name"));
+
+  kno_set_oid_resolvers(db_resolve_oid,db_lookup_oid);
 
   u8_init_mutex(&kno_swapcheck_lock);
   u8_init_mutex(&onsave_handlers_lock);

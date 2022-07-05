@@ -102,6 +102,11 @@ KNO_EXPORT lispval kno_parse_oid_addr(u8_string string,int len);
 KNO_EXPORT lispval kno_parse_oid(u8_input in);
 KNO_EXPORT kno_hashfn kno_hashfns[];
 
+typedef lispval (*kno_oid_resolvefn)(u8_string start,unsigned long long off);
+typedef lispval (*kno_oid_lookupfn)(u8_string start,lispval id);
+KNO_EXPORT
+void kno_set_oid_resolvers(kno_oid_resolvefn resolver,kno_oid_lookupfn lookup);
+
 KNO_EXPORT int kno_add_constname(u8_string s,lispval value);
 KNO_EXPORT lispval kno_lookup_constname(u8_string s);
 

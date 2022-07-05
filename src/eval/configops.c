@@ -150,7 +150,7 @@ static lispval config_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
       return KNO_FALSE;
     else return config_val;}
   else if ( (KNO_PAIRP(var)) &&
-	    ( (KNO_SYMBOLP(KNO_CAR(var))) || (KNO_STRINGP(KNO_CDR(var))) ) ) {
+	    ( (KNO_SYMBOLP(KNO_CAR(var))) || (KNO_STRINGP(KNO_CAR(var))) ) ) {
     lispval spec = KNO_CAR(var);
     u8_string name = (KNO_SYMBOLP(spec)) ? (KNO_SYMBOL_NAME(spec)) :
       (KNO_CSTRING(spec));
@@ -218,6 +218,8 @@ static lispval now_read_macro(lispval expr,kno_lexenv env,kno_stack ptr)
   lispval field = kno_get_arg(expr,1);
   lispval now = kno_make_timestamp(NULL);
   lispval v = ( (FALSEP(field)) || (VOIDP(field)) ) ? (kno_incref(now)) :
+    (KNO_STRINGP(field)) ?
+    (kno_get(now,kno_getsym(CSTRING(field)),KNO_VOID)) :
     (kno_get(now,field,KNO_VOID));
   kno_decref(now);
   if ( (KNO_VOIDP(v)) || (KNO_EMPTYP(v)) )
