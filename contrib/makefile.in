@@ -32,7 +32,7 @@ all:
 
 checkout: ${CONTRIBS}
 update contribs: checkout
-	if [ -z "${BRANCH}" ]; then ./mapgit checkout ${BRANCH}; fi; ./mapgit pull else
+	if [ -z "${BRANCH}" ]; then ./mapgit checkout ${BRANCH}; fi; ./mapgit pull
 status:
 	./mapgit status -suno
 push:
