@@ -13,6 +13,7 @@
 #include "kno/knosource.h"
 #include "kno/lisp.h"
 #include "kno/tables.h"
+#include "kno/numbers.h"
 #include "kno/eval.h"
 #include "kno/storage.h"
 #include "kno/ports.h"
@@ -616,9 +617,41 @@ KNO_EXPORT lispval kno_read_http_request(kno_inbuf inbuf)
   head_end+=4;
   lispval reqdata = kno_make_slotmap(24,0,NULL);
   kno_store(reqdata,request_method,kno_getsym(method));
-  unsigned char *body_start = kno_parse_mime_headers(reqdata,inbuf->bufread,head_end);
+  u8_string body_start = kno_parse_mime_headers(reqdata,inbuf->bufread,head_end);
+  if (body_start==NULL) {
+    kno_seterr("MimeParseFailed","kno_handle_http_request",NULL,reqdata);
+    kno_decref(reqdata);
+    return KNO_ERROR;}
+  lispval ctype_val = kno_get(reqdata,content_type,KNO_VOID);
+  lispval clen_val = kno_get(reqdata,content_length,KNO_VOID);
   /* Handle the body here */
-  return reqdata;
+  if ( (KNO_VOIDP(ctype_val)) && (KNO_VOIDP(clen_val)) )
+    return reqdata;
+  else {
+    ssize_t clen = (KNO_FIXNUMP(clen_val)) ? (KNO_FIX2INT(clen_val)) :
+      (KNO_BIGINTP(clen_val)) ? (kno_bigint2int64((kno_bigint)clen_val)) :
+      (-1);
+    lispval t_encoding = kno_get(reqdata,transfer_encoding,KNO_VOID);
+    int chunked = ( (KNO_STRINGP(t_encoding)) && (strcmp(CSTRING(t_encoding),"chunked")==0) );
+    lispval content = kno_read_http_body(reqdata,inbuf,chunked,clen);
+    if (KNO_STRINGP(content)) {
+      ssize_t stringlen = KNO_STRLEN(content);
+      lispval stringlen_val = KNO_INT(stringlen);
+      kno_store(reqdata,incoming_content_length,stringlen_val);
+      kno_decref(stringlen_val);}
+    else if (KNO_PACKETP(content)) {
+      ssize_t packetlen = KNO_PACKET_LENGTH(content);
+      lispval packetlen_val = KNO_INT(packetlen);
+      kno_store(reqdata,incoming_content_length,packetlen_val);
+      kno_decref(packetlen_val);}
+    else NO_ELSE; /* Never reached */
+    kno_store(reqdata,incoming_content_type,ctype_val);
+    kno_store(reqdata,http_body_slotid,content);
+    kno_decref(clen_val);
+    kno_decref(ctype_val);
+    kno_decref(t_encoding);
+    kno_decref(content);
+    return reqdata;}
 }
 
 KNO_EXPORT lispval kno_scgidata(kno_inbuf inbuf)
