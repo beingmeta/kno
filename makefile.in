@@ -312,17 +312,17 @@ CMODULE_OBJS=src/cmodules/crypto.o	\
 EXECUTABLES=${SHAREDEXE}/knox@suffix@ ${SHAREDEXE}/knoc@suffix@ ${SHAREDEXE}/knocgi@suffix@
 STATIC_EXECUTABLES=${STATICEXE}/kno@suffix@ ${STATICEXE}/knoc@suffix@ ${STATICEXE}/knocgi@suffix@
 DEBUG_EXECUTABLES=dbg/knox dbg/knoc dbg/knocgi
-SHELL_SCRIPTS=src/shell/knosetconfig src/shell/knogetconfig src/shell/knoconfig src/shell/knolaunch \
-	      src/shell/knostart src/shell/knostop src/shell/knostartall src/shell/knostopall \
-	      src/shell/kno_start_daemons src/shell/kno_start_servlets src/shell/kno_stop_jobs \
-	      src/shell/knosignal src/shell/knoinject src/shell/knostatus src/shell/knolog  \
-	      src/shell/knorestart src/shell/knoctl src/shell/knogdb src/shell/knodbgexec \
-	      src/shell/knocleanup src/shell/knojob src/shell/knobuild \
-	      src/shell/flexsplit
 SCHEME_SCRIPTS=exe/scripts/knodb exe/scripts/knocall exe/scripts/knoserver \
-	       exe/scripts/pack-pool exe/scripts/pack-index exe/scripts/split-index \
-	       exe/scripts/merge-indexes exe/scripts/merge-index \
-	       exe/scripts/knopkg
+	       exe/scripts/knopkg exe/scripts/pack-pool exe/scripts/pack-index
+SHELL_SCRIPTS=src/shell/knobuild src/shell/knoconfig \
+		src/shell/knogdb src/shell/knodbgexec \
+	      	src/shell/knosetconfig src/shell/knogetconfig 
+JOB_SCRIPTS=src/shell/knolaunch src/shell/knostart src/shell/knostop \
+	      src/shell/knostartall src/shell/knostopall \
+	      src/shell/kno_start_daemons src/shell/kno_start_servlets \
+	      src/shell/kno_stop_jobs src/shell/knosignal src/shell/knoinject \
+	      src/shell/knostatus src/shell/knolog src/shell/knorestart \
+	      src/shell/knoctl src/shell/knocleanup src/shell/knojob
 
 CONFDIRS=$(DESTDIR)@config_dir@ $(DESTDIR)@config_dir@/config \
 	 $(DESTDIR)@share_dir@ \
@@ -832,7 +832,7 @@ shared-libs: $(SHARED_LIBS)
 exe: $(EXECUTABLES) exe/.gdbinit
 static static-exe: $(STATIC_EXECUTABLES)
 debug-exe: $(DEBUG_EXECUTABLES) dbg/.gdbinit
-shell-scripts: $(SHELL_SCRIPTS)
+shell-scripts: $(SHELL_SCRIPTS) $(JOB_SCRIPTS)
 scheme-scripts: $(SCHEME_SCRIPTS)
 scripts: shell-scripts scheme-scripts
 zips: src/libscm.zip src/stdlib.zip
@@ -1345,7 +1345,7 @@ install-static-exe: $(BININSTALLDIR) $(EXECUTABLES)
 
 install-scripts: install-shell-scripts install-scheme-scripts
 install-shell-scripts:
-	@$(SYSINSTALLEXE) $(SHELL_SCRIPTS) $(BININSTALLDIR)
+	@$(SYSINSTALLEXE) $(SHELL_SCRIPTS) ${JOB_SCRIPTS} $(BININSTALLDIR)
 install-scheme-scripts: $(BININSTALLDIR) $(SCHEME_SCRIPTS)
 	@$(SYSINSTALL) @install_exe_opts@ $(SCHEME_SCRIPTS) $(BININSTALLDIR)
 
