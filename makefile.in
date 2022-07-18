@@ -22,6 +22,7 @@ RPATHFLAGS	  = @RPATHFLAGS@
 LDFLAGS		  = -L./ -L./lib -L./DIY/lib @LDFLAGS@ @PTHREAD_LIBS@ @GCOV_LDFLAGS@ \
 		    $(XLDFLAGS)
 KNOVERSION	 := $(shell cat ./etc/base_version)
+PATCHVERSION     := $(cat VERSION 2>/dev/NULL || @U8BIN@u8_gitversion etc/base_version 2>/dev/null || echo ${KNOVERSION})
 DYLIB_FLAGS	  = -compatibility_version @KNO_MAJOR@.@KNO_MINOR@ -current_version ${KNOVERSION}
 EXEFLAGS	  = @EXEFLAGS@
 EXELIBS		  = @EXELIBS@
@@ -1294,9 +1295,9 @@ $(DESTDIR)@config_dir@/daemons \
 		$(DESTDIR)@config_dir@/servlets \
 		$(DESTDIR)@config_dir@/config_files: $(DESTDIR)@config_dir@
 	@$(SYSINSTALLDIR) $@
-$(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@:
+$(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION}:
 	@$(SYSINSTALLDIR) $@
-	@$(SUINSTALL) ln -sf kno-@KNO_PATCHVERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
+	@$(SUINSTALL) ln -sf kno-${PATCHVERSION} $(DESTDIR)@share_dir@/libscm/kno-@KNO_VERSION@
 	@$(SUINSTALL) ln -sf kno-@KNO_VERSION@ $(DESTDIR)@share_dir@/libscm/kno-@KNO_MAJOR@
 
 install-static-libs: static-libs $(LIBINSTALLDIR)
@@ -1475,13 +1476,13 @@ install-support: $(DESTDIR)@share_dir@
 	$(SYSINSTALL) @install_file_opts@ src/web/webinfo.knocgi $(DESTDIR)@share_dir@
 
 install-libscm: src/libscm.zip \
-		$(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@ \
+		$(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION} \
 		$(DESTDIR)@share_dir@/libscm
-	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip;
-	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@;
-	@cd $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@; unzip -f ../kno-@KNO_PATCHVERSION@.zip;
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION}.zip;
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION};
+	@cd $(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION}; unzip -f ../kno-${PATCHVERSION}.zip;
 install-libscm.zip: src/libscm.zip $(DESTDIR)@share_dir@/libscm
-	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-@KNO_PATCHVERSION@.zip
+	@$(SYSINSTALL) src/libscm.zip $(DESTDIR)@share_dir@/libscm/kno-${PATCHVERSION}.zip
 install-libscm.skip: src/libscm.zip
 	@echo "Skipping libscm install, using runtime specified ${LIBSCM}"
 
@@ -1854,7 +1855,7 @@ staging/kno-@KNO_VERSION@: VERSION FULL_VERSION staging/kno dist/kno.spec.base
 			> staging/kno/debian/changelog;
 	cd staging/kno/debian; \
 	  for file in kno-core.dirs kno-postgres.install; do \
-	    u8_xsubst $${file} inplace KNO_VERSION @KNO_VERSION@ KNO_MAJOR @KNO_MAJOR@  KNO_PATCHVERSION @KNO_PATCHVERSION@; done;
+	    u8_xsubst $${file} inplace KNO_VERSION @KNO_VERSION@ KNO_MAJOR @KNO_MAJOR@  KNO_PATCHVERSION ${PATCHVERSION}; done;
 	if [ -d staging/kno-@KNO_VERSION@ ]; then rm -rf staging/kno-@KNO_VERSION@; fi
 	cd staging; mv kno kno-@KNO_VERSION@;
 staging/kno-@KNO_VERSION@.tar.gz: staging/kno-@KNO_VERSION@
