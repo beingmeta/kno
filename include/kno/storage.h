@@ -261,16 +261,18 @@ KNO_EXPORT int kno_xcachecall_probe(kno_hashtable,lispval fcn,int,kno_argvec);
 #endif
 
 typedef struct KNO_CACHE {
-  KNO_TAGGED_HEAD;
-  int knocache_inuse; u8_string knocache_id;
+  KNO_ANNOTATED_HEADER;
+  u8_string knocache_id;
+  unsigned int knocache_flags;
+  long long knocache_threadid;
+  pthread_t knocache_pthread_t;
   struct KNO_INDEX *background;
   struct KNO_HASHTABLE oids;
   struct KNO_HASHTABLE background_cache;
   struct KNO_SLOTMAP calls;
   struct KNO_SLOTMAP adjuncts;
   struct KNO_SLOTMAP indexes;
-  struct KNO_SLOTMAP index_adds;
-  struct KNO_CACHE *knocache_prev;} KNO_CACHE;
+  struct KNO_SLOTMAP index_adds;} KNO_CACHE;
 typedef struct KNO_CACHE *kno_cache;
 typedef struct KNO_CACHE KNOCACHE;
 
@@ -283,13 +285,9 @@ KNO_EXPORT u8_tld_key kno_threadcache_key;
 KNO_EXPORT struct KNO_CACHE *kno_threadcache;
 #endif
 
-KNO_EXPORT int kno_free_dbcache(struct KNO_CACHE *tc);
-KNO_EXPORT int kno_pop_threadcache(struct KNO_CACHE *tc);
-
 KNO_EXPORT kno_cache kno_new_dbcache(void);
 KNO_EXPORT kno_cache kno_cons_dbcache(int oids_size,int bg_size);
 
-KNO_EXPORT kno_cache kno_push_threadcache(kno_cache);
 KNO_EXPORT kno_cache kno_set_threadcache(kno_cache);
 KNO_EXPORT kno_cache kno_use_threadcache(void);
 

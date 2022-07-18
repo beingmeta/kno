@@ -79,7 +79,7 @@ KNO_EXPORT int kno_ipeval_call(int (*fcn)(void *),void *data)
 #if KNO_GLOBAL_IPEVAL
   if (kno_ipeval_status()>0) {
     retval = fcn(data);
-    if (tc) kno_pop_threadcache(tc);
+    if (tc) kno_set_threadcache(NULL);
     return retval;}
   u8_lock_mutex(&global_ipeval_lock);
 #endif
@@ -130,7 +130,7 @@ KNO_EXPORT int kno_ipeval_call(int (*fcn)(void *),void *data)
 #if KNO_GLOBAL_IPEVAL
   u8_unlock_mutex(&global_ipeval_lock);
 #endif
-  if (tc) kno_pop_threadcache(tc);
+  if (tc) kno_set_threadcache(NULL);
   return retval;
 }
 

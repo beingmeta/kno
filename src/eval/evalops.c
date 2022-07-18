@@ -481,24 +481,25 @@ static lispval tcachecall(int n,kno_argvec args)
 {
   return kno_tcachecall(args[0],n-1,args+1);
 }
-#endif
 
 static lispval with_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
-  struct KNO_CACHE *tc = kno_push_threadcache(NULL);
+  struct KNO_CACHE *cur = kno_threadcache;
+  struct KNO_CACHE *tc = kno_use_threadcache();
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
     kno_decref(value);
     value = kno_eval(each,env,_stack);
     if (KNO_ABORTED(value)) {
-      kno_pop_threadcache(tc);
+      kno_set_threadcache(cur);
       return value;}}
-  kno_pop_threadcache(tc);
+  kno_set_threadcache(cur);
   return value;
 }
 
 static lispval using_threadcache_evalfn(lispval expr,kno_lexenv env,kno_stack _stack)
 {
+  struct KNO_CACHE *cur = kno_threadcache;
   struct KNO_CACHE *tc = kno_use_threadcache();
   lispval value = VOID;
   KNO_DOLIST(each,KNO_CDR(expr)) {
@@ -526,6 +527,8 @@ static lispval use_threadcache_prim(lispval arg)
     if (tc) return KNO_TRUE;
     else return KNO_FALSE;}
 }
+
+#endif
 
 /* FFI */
 
@@ -847,6 +850,7 @@ KNO_EXPORT void kno_init_evalops_c()
 {
   u8_register_source_file(_FILEINFO);
 
+#if 0
   /* This pushes a new threadcache */
   kno_def_evalfn(kno_scheme_module,"WITH-THREADCACHE",with_threadcache_evalfn,
 		 "*undocumented*");
@@ -854,6 +858,7 @@ KNO_EXPORT void kno_init_evalops_c()
      needed or using the current one if it exists. */
   kno_def_evalfn(kno_scheme_module,"USING-THREADCACHE",using_threadcache_evalfn,
 		 "*undocumented*");
+#endif
 
   link_local_cprims();
 }
@@ -903,9 +908,10 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIMN("apply",apply_lexpr,kno_scheme_module);
 
-  KNO_LINK_CPRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
   KNO_LINK_CPRIM("clear-callcache!",clear_callcache,1,kno_scheme_module);
+
 #if 0
+  KNO_LINK_CPRIM("use-threadcache",use_threadcache_prim,1,kno_scheme_module);
   KNO_LINK_CPRIMN("thread/cachecall",tcachecall,kno_scheme_module);
 #endif
   KNO_LINK_CPRIMN("cachecall",cachecall,kno_scheme_module);

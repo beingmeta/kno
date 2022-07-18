@@ -48,47 +48,24 @@ u8_tld_key kno_threadcache_key;
 struct KNO_CACHE *kno_threadcache = NULL;
 #endif
 
-KNO_EXPORT int kno_free_dbcache(struct KNO_CACHE *tc)
+KNO_EXPORT void recycle_dbcache(struct KNO_RAW_CONS *c)
 {
+  struct KNO_CACHE *tc = (struct KNO_CACHE *)c;
   KNO_INTPTR ptrval = (KNO_INTPTR) tc;
-  if (tc->knocache_inuse) {
-    if (tc->knocache_id)
+  if (tc->knocache_threadid>=0) {
+    if (tc->knocache_id != NULL)
       u8_logf(LOG_WARN,FreeingInUseThreadCache,
               "Freeing in-use threadcache: %llx (%s)",ptrval,tc->knocache_id);
     else u8_logf(LOG_WARN,FreeingInUseThreadCache,
-                 "Freeing in-use threadcache: %llx",ptrval);}
+                 "Freeing in-use threadcache: %llx",ptrval);
+    return;}
   kno_recycle_hashtable(&(tc->oids));
   kno_recycle_hashtable(&(tc->background_cache));
   kno_free_slotmap(&(tc->calls));
   kno_free_slotmap(&(tc->adjuncts));
   kno_free_slotmap(&(tc->indexes));
-  tc->knocache_inuse = 0;
+  tc->knocache_threadid = -1;
   u8_free(tc);
-  return 1;
-}
-
-KNO_EXPORT void recycle_dbcache(struct KNO_RAW_CONS *c)
-{
-  kno_free_dbcache((struct KNO_CACHE *)c);
-}
-
-KNO_EXPORT int kno_pop_threadcache(struct KNO_CACHE *tc)
-{
-  if (tc == NULL) return 0;
-  else if (tc!=kno_threadcache) {
-    u8_seterr(FreeingForeignThreadCache,"kno_pop_threadcache",
-              ((tc->knocache_id)?(u8_strdup(tc->knocache_id)):(NULL)));
-    return -1;}
-  else {
-    struct KNO_CACHE *prev = tc->knocache_prev;
-#if KNO_USE_TLS
-    u8_tld_set(kno_threadcache_key,prev);
-#else
-    kno_threadcache = prev;
-#endif
-    tc->knocache_inuse--;
-    if (tc->knocache_inuse<=0) kno_free_dbcache(tc);
-    return 1;}
 }
 
 /* Making DB caches */
@@ -99,7 +76,7 @@ KNO_EXPORT kno_cache kno_cons_dbcache(int oids_size,int bg_size)
 
   KNO_INIT_CONS(tc,kno_dbcache_type);
 
-  tc->knocache_inuse = 0; tc->knocache_id = NULL;
+  tc->knocache_threadid = -1; tc->knocache_id = NULL;
 
   if (oids_size <= 0) oids_size=1000;
   if (bg_size <= 0) bg_size=1000;
@@ -119,7 +96,6 @@ KNO_EXPORT kno_cache kno_cons_dbcache(int oids_size,int bg_size)
   KNO_INIT_STATIC_CONS(&(tc->indexes),kno_slotmap_type);
   kno_init_slotmap(&(tc->indexes),7,NULL);
 
-  tc->knocache_prev = NULL;
   return tc;
 }
 
@@ -132,67 +108,40 @@ KNO_EXPORT kno_cache kno_new_dbcache()
 static int unparse_dbcache(u8_output out,lispval x)
 {
   struct KNO_CACHE *dbc = (struct KNO_CACHE *) x;
-  u8_printf(out,"#<dbcache '%s' (%d)",dbc->knocache_id,dbc->knocache_inuse);
+  u8_printf(out,"#<dbcache '%s' (%s)",
+            dbc->knocache_id,(dbc->knocache_threadid>=0)?("inuse"):("free"));
   u8_printf(out," #!%p>",dbc);
   return 1;
-}
-
-KNO_EXPORT kno_cache kno_push_threadcache(struct KNO_CACHE *tc)
-{
-  KNO_INTPTR ptrval = (KNO_INTPTR) tc;
-  if ((tc)&&(tc->knocache_inuse)) {
-    if (tc->knocache_id)
-      u8_logf(LOG_WARN,PushingInUseThreadCache,
-              "Pushing in-use threadcache: %llx (%s)",ptrval,tc->knocache_id);
-    else u8_logf(LOG_WARN,PushingInUseThreadCache,
-                 "Pushing in-use threadcache: %llx",ptrval);}
-  if (tc == NULL) tc = kno_new_dbcache();
-  if (tc == kno_threadcache) return tc;
-  tc->knocache_prev = kno_threadcache;
-#if KNO_USE_TLS
-  u8_tld_set(kno_threadcache_key,tc);
-#else
-  kno_threadcache = tc;
-#endif
-  tc->knocache_inuse++;
-  return tc;
 }
 
 KNO_EXPORT kno_cache kno_set_threadcache(struct KNO_CACHE *tc)
 {
   KNO_INTPTR ptrval = (KNO_INTPTR) tc;
-  if ((tc)&&(tc->knocache_inuse)) {
+  if ((tc)&&(tc->knocache_threadid>=0)) {
     if (tc->knocache_id)
       u8_logf(LOG_WARN,SettingInUseThreadCache,
               "Setting in-use threadcache: %llx (%s)",ptrval,tc->knocache_id);
     else u8_logf(LOG_WARN,SettingInUseThreadCache,
-                 "Setting in-use threadcache: %llx",ptrval);}
-  if (tc == NULL) tc = kno_new_dbcache();
-  if (kno_threadcache) {
-    struct KNO_CACHE *oldtc = kno_threadcache;
-    oldtc->knocache_inuse--;
-    if (oldtc->knocache_inuse<=0) kno_free_dbcache(oldtc);}
-  tc->knocache_inuse++;
+                 "Setting in-use threadcache: %llx",ptrval);
+    return NULL;}
+  if (tc) kno_incref((lispval)tc);
+  struct KNO_CACHE *cur = kno_threadcache;
 #if KNO_USE_TLS
   u8_tld_set(kno_threadcache_key,tc);
 #else
   kno_threadcache = tc;
 #endif
+  if (cur) kno_decref((lispval)cur);
   return tc;
 }
 
 KNO_EXPORT kno_cache kno_use_threadcache()
 {
-  if (kno_threadcache) return NULL;
-  else {
-    struct KNO_CACHE *tc = kno_new_dbcache();
-    tc->knocache_prev = NULL; tc->knocache_inuse++;
-#if KNO_USE_TLS
-    u8_tld_set(kno_threadcache_key,tc);
-#else
-    kno_threadcache = tc;
-#endif
-    return tc;}
+  struct KNO_CACHE *cur = kno_threadcache;
+  if (cur) return cur;
+  struct KNO_CACHE *tc = kno_new_dbcache();
+  kno_set_threadcache(tc);
+  return tc;
 }
 
 /* Operations */

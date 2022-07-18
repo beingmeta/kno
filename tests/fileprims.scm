@@ -51,9 +51,9 @@
 (evaltest #[foo 3 bar 8] (car (read inport)))
 
 (define intext (filestring text-file))
-(applytest intext (filestring text-file))
+(applytest intext filestring text-file)
 (define indata (filedata dtype-file))
-(applytest indata (filedata dtype-file))
+(applytest indata filedata dtype-file)
 
 (let ((obj (read (open-input-file text-file))))
   (when (file-exists? temp-dtype-file) (remove-file temp-dtype-file))

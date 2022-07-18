@@ -1512,7 +1512,7 @@ static int webservefn(u8_client ucl)
       lispval cleanup_val = kno_apply(cleanup,0,NULL);
       kno_decref(cleanup_val);}}
   run_postflight();
-  if (threadcache) kno_pop_threadcache(threadcache);
+  if (threadcache) kno_set_threadcache(NULL);
   u8_set_default_output(NULL);
   kno_use_reqinfo(EMPTY);
   kno_reqlog(-1);
