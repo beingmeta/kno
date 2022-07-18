@@ -1,29 +1,23 @@
 [comment]: # ( -*- Mode: markdown; -*- )
-knox(1) -- run a non-interactive Kno script
+knapp(1) -- launch a Kno application based on a config file
 =========================================
 
 ## SYNOPSIS
 
-`knox` [config=val]... <source> [config=val|arg]...
+`knapp` [config=val]... config_file [config=val|arg]...
 
 ## DESCRIPTION
 
-This invokes Kno to load and run a program (indicated by *source*)
-after processing any provided config entries. Config entries have the
-form **setting**=*value* and may trigger the execution of procedural
-*config handlers*.
+This invokes Kno to launch a configured application. `knapp`loads the
+the config file *config_file* after processing any provided config
+entries (which have priority of the contents of *config_file*). Config
+entries on the command line have the form **setting**=*value* and may
+trigger the execution of procedural *config handlers*.
 
-If *source* is a filename, the file is opened and expressions are read
-and evaluated; if *source* is the string '-', expressions are read and
-evaluated from the standard input. If those expressions define a
-function `main`, `main` is called on the command line *args*
-(excluding config entries).
+The *config_file* normally specifies an `APPMODULE` which is used to
+launch the application. This uses the function `main` defined in the
+module.
 
-**exec modules**: if *source* starts with a colon (`:`), it refers to
-a Scheme module which will be loaded into the `knox` session using the
-normal search paths as modified by the config entries. If the loaded
-module exports a `main` procedure, that procedure is applied to the
-command line *args* (excluding config entries).
 
 Some config entries may generate useful side-effects defined by either
 the Kno core or loaded modules. Some useful built-in config
@@ -60,18 +54,13 @@ preamble on starting and reports its time and memory usage on exit.
 
 ## IMPLEMENTING SCRIPTS
 
-On Unix systems, `knox` can be used with a *shebang* in executable
-script files, so that Kno source file is executable and starts with:
+`knapp` is often used as the *shebang* handler for a config file which
+specifies a particular application and its parameters, e.g.
 
-`#!/usr/bin/knox LOGLEVEL=5`
-
-or
-
-`#!/usr/bin/env knox LOGLEVEL=5`
-
-knox will read the file after processing the arguments in the
-initial line (such as loglevel).
-
+```
+#!/usr/bin/knapp LOGLEVEL=5`
+(APPMODULE kno/samples/listprimes)
+```
 
 ## FILES
 

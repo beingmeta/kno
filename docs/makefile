@@ -1,7 +1,7 @@
 RONN_MANUAL       = Kno
 RONN_ORGANIZATION = beingmeta.com
 
-PAGES=knoc.1 knox.1 kno_config.8
+PAGES=knoc.1 knox.1 knapp.1 kno_config.8
 
 man/%: ronn/%.ronn
 	ronn --roff < $< > $@
