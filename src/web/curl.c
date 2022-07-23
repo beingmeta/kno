@@ -27,6 +27,7 @@
 
 #include <curl/curl.h>
 
+#include <limits.h>
 #include <ctype.h>
 #include <math.h>
 
@@ -675,8 +676,10 @@ static lispval set_curlopt
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
       if (max_redirects > 0)
 	curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,max_redirects);}
-    else if ( (KNO_FIXNUMP(val)) && ((KNO_FIX2INT(val))>0) ) {
-      long long count = KNO_FIX2INT(val);
+    else if ( (KNO_FIXNUMP(val)) &&
+              ((KNO_FIX2INT(val))>0) &&
+              ((KNO_FIX2INT(val))<LONG_MAX) ) {
+      long count = KNO_FIX2INT(val);
       curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,1);
       curl_easy_setopt(ch->handle,CURLOPT_MAXREDIRS,count);}
     else curl_easy_setopt(ch->handle,CURLOPT_FOLLOWLOCATION,0);}
