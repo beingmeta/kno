@@ -203,12 +203,16 @@ typedef struct KNO_WEBCONN {
   enum KNO_WEB_PROTOCOL conn_protocol;
   void *conn_state;
   lispval cgidata;
+  lispval handler;
   struct KNO_STREAM in;
   struct U8_OUTPUT out;} KNO_WEBCONN;
 typedef struct KNO_WEBCONN *kno_webconn;
 
 KNO_EXPORT lispval kno_read_cgidata(kno_webconn conn);
 KNO_EXPORT lispval kno_read_http_body(lispval req,kno_inbuf inbuf,int chunked,ssize_t clen);
+KNO_EXPORT lispval knocgi_get_handler(lispval cgidata,lispval info);
+
+KNO_EXPORT lispval knocgi_server_info;
 
 /* Server protocol config handlers */
 

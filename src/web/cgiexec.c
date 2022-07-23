@@ -25,6 +25,7 @@
 #include <libu8/libu8.h>
 #include <libu8/libu8io.h>
 #include <libu8/u8xfiles.h>
+#include <libu8/u8pathfns.h>
 #include <libu8/u8stringfns.h>
 #include <libu8/u8streamio.h>
 
@@ -39,6 +40,8 @@ static lispval http_headers, html_headers, cookiedata_symbol;
 static lispval outcookies_symbol, incookies_symbol, bad_cookie;
 static lispval doctype_slotid, xmlpi_slotid, html_attribs_slotid;
 static lispval body_attribs_slotid, body_classes_slotid, html_classes_slotid;
+static lispval hostname_symbol, document_root, script_filename;
+static lispval knocgi_handler, webmain_symbol, main_symbol;
 static lispval class_symbol, transfer_encoding;
 static lispval content_slotid, content_type, cgi_content_type;
 static lispval content_length, incoming_content_length, incoming_content_type;
@@ -767,22 +770,158 @@ KNO_EXPORT lispval kno_read_http_body(lispval req,kno_inbuf inbuf,int chunked,ss
   return KNO_ERROR;
 }
 
+/* Resolving handlers */
+
+static lispval lookup_web_handler(lispval mod);
+static lispval string2module(u8_string spec,u8_string docroot);
+
+static u8_string default_docroot = NULL;
+static lispval default_handler = KNO_VOID;
+lispval knocgi_server_info = KNO_EMPTY;
+
+KNO_EXPORT lispval knocgi_get_handler(lispval cgidata,lispval info)
+{
+  lispval handler = KNO_VOID;
+  lispval hostname = kno_get(cgidata,hostname_symbol,KNO_EMPTY);
+  lispval hostinfo = KNO_EMPTY, docroot = KNO_EMPTY;
+  lispval scriptname = KNO_VOID;
+  u8_string root_path = NULL;
+  if ( (KNO_VOIDP(info)) || (KNO_EMPTYP(info)) ) info = knocgi_server_info;
+
+  if (KNO_STRINGP(info))
+    docroot = kno_incref(info);
+  else if (KNO_TABLEP(info)) {
+    hostinfo = kno_get(info,hostname,KNO_EMPTY);
+    if (KNO_TABLEP(hostinfo))
+      docroot = kno_get(hostinfo,document_root,KNO_EMPTY);
+    else if (KNO_STRINGP(hostinfo)) {
+      docroot=hostinfo;
+      hostinfo=KNO_EMPTY;}
+    else {}}
+  else {}
+  if (KNO_STRINGP(docroot)) {
+    root_path = KNO_CSTRING(docroot);
+    lispval incoming_docroot = kno_get(cgidata,document_root,KNO_VOID);
+    if (KNO_STRINGP(incoming_docroot)) {
+      scriptname = kno_get(cgidata,script_filename,KNO_VOID);
+      if ((KNO_STRINGP(scriptname))&&
+          ((strncmp(KNO_CSTRING(scriptname),KNO_CSTRING(incoming_docroot),
+                    KNO_STRLEN(incoming_docroot)))==0)) {
+        u8_string local_scriptname = u8_string_append
+          (root_path,KNO_CSTRING(scriptname)+KNO_STRLEN(incoming_docroot),NULL);
+        lispval new_scriptname = kno_init_string(NULL,-1,local_scriptname);
+        kno_store(cgidata,script_filename,new_scriptname);
+        kno_decref(scriptname);
+        scriptname=new_scriptname;}}
+    kno_store(cgidata,document_root,docroot);
+    kno_decref(incoming_docroot);}
+  lispval handler_spec = kno_get(cgidata,knocgi_handler,KNO_EMPTY);
+  if ( (KNO_EMPTYP(handler_spec)) && (KNO_TABLEP(hostinfo)) )
+    handler_spec=kno_get(hostinfo,knocgi_handler,KNO_EMPTY);
+  if ( (KNO_EMPTYP(handler_spec)) && (KNO_STRINGP(scriptname)) )
+    handler_spec=kno_incref(scriptname);
+#if 0
+  if (KNO_EMPTYP(handler_spec)) {
+    /* Try to figure out the handler spec from the request */
+    lispval requrl = kno_get(cgidata,);
+    if ( (KNO_STRINGP(requrl)) && (root_path) ) {
+      u8_string probe_path = u8_mkpath(root_path,KNO_CSTRING(requrl));
+      if (u8_file_existsp(probe_path)) {}}
+  }
+#endif
+  if (KNO_APPLICABLEP(handler_spec))
+    handler = kno_incref(handler_spec);
+  else if (KNO_SYMBOLP(handler_spec)) {
+    lispval module = kno_find_module(handler_spec,1);
+    if (KNO_ABORTED(module)) handler=module;
+    else {
+      handler=lookup_web_handler(module);
+      kno_decref(module);}}
+  else if (KNO_STRINGP(handler_spec)) {
+    u8_string spec = KNO_CSTRING(handler_spec);
+    u8_string hash = strchr(spec,'#');
+    lispval module = KNO_VOID;
+    if (hash == NULL)
+      module = string2module(spec,root_path);
+    else {
+      ssize_t mod_spec_len = (hash-spec);
+      u8_byte mod_spec[mod_spec_len+1];
+      strncpy(mod_spec,spec,mod_spec_len); mod_spec[mod_spec_len]='\0';
+      module = string2module(mod_spec,root_path);}
+    if (KNO_ABORTED(module)) handler=module;
+    else if (hash) {
+      lispval main = kno_intern(hash);
+      if (KNO_HASHTABLEP(module))
+        handler = kno_get(module,main,KNO_EMPTY);
+      else if (KNO_LEXENVP(module))
+        handler = kno_eval(main,(kno_lexenv)module,NULL);
+      else handler = KNO_EMPTY;
+      kno_decref(module);}
+    else {
+      handler=lookup_web_handler(module);
+      kno_decref(module);}}
+  else if ( (KNO_EMPTYP(handler_spec)) || (KNO_DEFAULTP(handler_spec)) )
+    handler = kno_incref(default_handler);
+  else handler = kno_err("BadHandlerSpec","kno_get_knocgi_handler",NULL,handler_spec);
+  kno_decref(scriptname);
+  kno_decref(handler_spec);
+  return handler;
+}
+
+static lispval string2module(u8_string spec,u8_string docroot)
+{
+  if ( spec[0]==':' )
+    return kno_find_module(kno_intern(spec+1),1);
+  else if ( ( spec[0]=='.' ) && ( spec[1]=='/' ) ) {
+    u8_string abspath = u8_mkpath(docroot,spec+2);
+    lispval string_spec = kno_init_string(NULL,-1,abspath);
+    lispval module = kno_find_module(string_spec,1);
+    kno_decref(string_spec);
+    return module;}
+  else if ( (spec[0]=='/') || (strchr(spec,':')) ) {
+    lispval string_spec = knostring(spec);
+    lispval module = kno_find_module(string_spec,1);
+    kno_decref(string_spec);
+    return module;}
+  else return kno_find_module(kno_intern(spec),1);
+}
+
+static lispval lookup_web_handler(lispval mod)
+{
+ lispval handler = kno_get(mod,webmain_symbol,KNO_VOID);
+ if ( (KNO_DEFAULTP(handler)) ||
+      (KNO_VOIDP(handler))    ||
+      (KNO_UNBOUNDP(handler)) ||
+      (KNO_ABORTP(handler)) )
+   handler = kno_get(mod,main_symbol,KNO_VOID);
+ if (!(KNO_APPLICABLEP(handler))) {
+   u8_log(LOG_CRIT,"ServletMainNotApplicable",
+          "From default environment: %q",handler);
+   return kno_err("ServletMainNotApplicable","get_web_handler",
+                  NULL,handler);}
+ else return handler;
+}
+
 /* Reading CGI data */
 
 KNO_EXPORT lispval kno_read_cgidata(kno_webconn conn)
 {
   kno_stream stream = &(conn->in);
   kno_inbuf inbuf = kno_readbuf(stream);
+  lispval cgidata = KNO_EMPTY;
   switch (conn->conn_protocol) {
   case knocgi_dtype:
-    return kno_read_dtype(inbuf);
+    cgidata=kno_read_dtype(inbuf); break;
   case knocgi_xtype:
-    return kno_read_xtype(inbuf,(xtype_refs)(conn->conn_state));
+    cgidata=kno_read_xtype(inbuf,(xtype_refs)(conn->conn_state)); break;
   case knocgi_scgi:
-    return kno_scgidata(inbuf);
+    cgidata=kno_scgidata(inbuf); break;
   case knocgi_http:
-    return kno_read_http_request(inbuf);}
-  return KNO_EMPTY;
+    cgidata=kno_read_http_request(inbuf); break;}
+  kno_decref(conn->cgidata);
+  conn->cgidata=cgidata;
+  conn->handler=knocgi_get_handler(cgidata,knocgi_server_info);
+  return cgidata;
 }
 
 /* Parsing CGI data */
@@ -1762,6 +1901,13 @@ KNO_EXPORT void kno_init_cgiexec_c()
 
   ipeval_symbol = kno_intern("_ipeval");
 
+  hostname_symbol = kno_intern("hostname");
+  document_root = kno_intern("document_root");
+  webmain_symbol = kno_intern("webmain");
+  main_symbol = kno_intern("main");
+  script_filename = kno_intern("script_filename");
+  knocgi_handler = kno_intern("knocgi_handler");
+
   protected_params[n_protected_params++] = kno_intern("status");
   protected_params[n_protected_params++] = kno_intern("authorization");
   protected_params[n_protected_params++] = kno_intern("script_filename");
@@ -1792,6 +1938,15 @@ KNO_EXPORT void kno_init_cgiexec_c()
   kno_register_config
     ("CGI:PROTECT",_("Fields to avoid binding directly for CGI requests"),
      protected_cgi_get,protected_cgi_set,NULL);
+  kno_register_config
+    ("CGI:DOCROOT",_("Default docroot for handling knocgi requests"),
+     kno_sconfig_get,kno_sconfig_set,&default_docroot);
+  kno_register_config
+    ("CGI:HANDLER",_("Default handler for knocgi requests"),
+     kno_lconfig_get,kno_lconfig_set,&default_handler);
+  kno_register_config
+    ("CGI:CONFIG",_("Default configuration table for knocgi requests"),
+     kno_lconfig_get,kno_lconfig_set,&default_handler);
 
   u8_register_source_file(_FILEINFO);
 }

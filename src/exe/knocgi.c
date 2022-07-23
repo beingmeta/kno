@@ -804,6 +804,7 @@ static u8_client simply_accept(u8_server srv,u8_socket sock,
   U8_INIT_STATIC_OUTPUT((consed->out),8192);
   u8_set_nodelay(sock,1);
   consed->cgidata = VOID;
+  consed->handler = VOID;
   consed->conn_protocol = default_knocgi_protocol;
   u8_log(LOG_INFO,"Servlet/open","Created web client (#%lx) %s",
          consed,((consed->idstring == NULL)?((u8_string)""):(consed->idstring)));
@@ -989,6 +990,7 @@ static int webservefn(u8_client ucl)
     kno_store(cgidata,loadtime_symbol,ltime);
     kno_decref(etime); kno_decref(ltime); kno_decref(tickval);
 
+    /* This is where we extract the CGI variables */
     kno_parse_cgidata(cgidata);
     forcelog = kno_req_test(forcelog_slotid,VOID);
     if ((forcelog)||(traceweb>0)) {
@@ -1025,11 +1027,14 @@ static int webservefn(u8_client ucl)
         ucl->status = u8_strdup(CSTRING(uri));}
 
     /* This is what we'll execute, be it a procedure or KNOML */
-    proc = getcontent(path);}
+    if (KNO_APPLICABLEP(client->handler))
+      proc = kno_incref(client->handler);
+    else proc = getcontent(path);}
 
   u8_set_default_output(outstream);
   init_cgidata = kno_deep_copy(cgidata);
-  kno_use_reqinfo(cgidata); kno_reqlog(1);
+  kno_use_reqinfo(cgidata);
+  kno_reqlog(1); /* Opens the reqlog output stream */
   kno_thread_set(browseinfo_symbol,EMPTY);
   parse_time = u8_elapsed_time();
   if ((KNO_ABORTP(proc))&&(u8_current_exception!=NULL)) {
@@ -1623,6 +1628,7 @@ static int close_webclient(u8_client ucl)
   u8_log(LOG_INFO,"Servlet/close","Closing web client %s (#%lx#%d.%d)",
          ucl->idstring,ucl,ucl->clientid,ucl->socket);
   kno_decref(client->cgidata); client->cgidata = VOID;
+  kno_decref(client->handler); client->handler = VOID;
   /* kno_close_stream(&(client->in),KNO_STREAM_NOCLOSE); */
   kno_close_stream(&(client->in),0);
   u8_close((u8_stream)&(client->out));
@@ -1632,10 +1638,11 @@ static int close_webclient(u8_client ucl)
 static int reuse_webclient(u8_client ucl)
 {
   kno_webconn client = (kno_webconn)ucl;
-  lispval cgidata = client->cgidata;
+  lispval cgidata = client->cgidata, handler = client->handler;
   u8_log(LOG_INFO,"Servlet/reuse","Reusing web client %s (#%lx)",
          ucl->idstring,ucl);
-  kno_decref(cgidata); client->cgidata = VOID;
+  client->cgidata = VOID; kno_decref(cgidata);
+  client->handler = VOID; kno_decref(handler);
   return 1;
 }
 
