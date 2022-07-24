@@ -663,7 +663,11 @@ KNO_EXPORT u8_string kno_runbase_filename(u8_string suffix)
 
 static lispval config_getrunbase(lispval var,void *data)
 {
-  if (runbase == NULL) return KNO_FALSE;
+  if (runbase == NULL) {
+    if (runbase_config) {
+      runbase = u8_strdup(runbase_config);
+      return kno_mkstring(runbase);}
+    else return KNO_FALSE;}
   else return kno_mkstring(runbase);
 }
 

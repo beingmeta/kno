@@ -1446,7 +1446,7 @@ static lispval label_symbol, width_symbol, depth_symbol, output_symbol;
 DEFC_PRIM("listdata",lisp_listdata,
 	  KNO_MAX_ARGS(3)|KNO_MIN_ARGS(1)|KNO_NDCALL,
 	  "output a formatted textual representation of "
-	  "*object* to *port*, controlled by *opts*.",
+	  "*object* to *stream*, controlled by *opts*.",
 	  {"object",kno_any_type,KNO_VOID},
 	  {"opts",kno_any_type,KNO_VOID},
 	  {"stream",kno_any_type,KNO_VOID})
