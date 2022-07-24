@@ -10,6 +10,9 @@
 		  profile-module!
 		  module-getprocs module-getcalls
 		  profile/report})
+(module-export! '{profile->table  profiles->table})
+(module-export! '{profile/user% profile/sys% profile/run% profile/idle%
+                  profile/runsecs profile/idlesecs})
 
 (define-init profile-root #f)
 (varconfig! profile:root profile-root)
@@ -18,18 +21,53 @@
   (for-choices (sym (module-binds (get-module module)))
     (pick (importvar module sym) applicable?)))
 
-(define profilefns
-  [nsecs profile/nsecs
-   time profile/nsecs
+(define (profile/runsecs profile)
+  (+ (profile/utime profile) (profile/stime profile)))
+(define (profile/idlesecs profile)
+  (- (profile/time profile) (+ (profile/utime profile) (profile/stime profile))))
+
+(define (profile/user% profile)
+  (* 100 (/~ (profile/utime profile) (profile/time profile))))
+(define (profile/sys% profile)
+  (* 100 (/~ (profile/stime profile) (profile/time profile))))
+(define (profile/run% profile)
+  (* 100 (/~ (+ (profile/stime profile) (profile/utime profile))
+             (profile/time profile))))
+(define (profile/idle% profile)
+  (* 100 (/~ (- (profile/time profile) 
+                (+ (profile/stime profile) (profile/utime profile)))
+             (profile/time profile))))
+
+(define (invert-table table)
+  (let ((result (make-hashtable)))
+    (do-choices (key (getkeys table))
+      (add! result (get table key) key))
+    result))
+
+(define-init profilefns
+  [time profile/time
+   etime profile/etime
    stime profile/stime
    utime profile/utime
    secs  profile/time
+   runsecs profile/runsecs
+   idlesecs profile/idlesecs
+   run% profile/run%
+   idle% profile/idle%
+   user% profile/user%
+   sys% profile/sys%
    calls profile/ncalls
    ndcalls profile/nitems
    waits profile/waits
    pauses profile/pauses
    faults profile/faults
-   #t profile/nsecs])
+   #t profile/time])
+
+(define-init profilefn-names (invert-table profilefns))
+(store! profilefn-names profile/time 'time)
+
+(define (profname x)
+  (try (get profilefn-names x) (or (procedure-name x) (lisp->string x))))
 
 (define (module-getcalls module (sort #f))
   (if sort
@@ -50,11 +88,12 @@
   (when (and (symbol? profilefn) (test profilefns profilefn))
     (set! profilefn (get profilefns profilefn)))
   (when (and root (not (profile/getcalls root)))
-    (logwarn |Profiling|
+    (loginfo |Profiling|
       "The " (if (eq? root profile-root) "default ") "root " root
       " was not profiled! Ignoring it.")
     (set! root #f))
   (let* ((ranks (make-hashtable))
+         (fn-names (invert-table profilefns))
 	 (rootinfo (and root (profile/getcalls root)))
 	 (rootval (and rootinfo (profilefn rootinfo)))
 	 (rootvals (and rootinfo (pair? morefns) #[])))
@@ -69,17 +108,38 @@
 	(unless (or (fail? val) (not (number? val)) (zero? val))
 	  (store! ranks fcn val))))
     (lineout "================================================================")
+    (lineout (if rootval (profname profilefn)) (if rootval "%") "\t" (profname profilefn)
+      (dolist (fn morefns) (printout "\t" (profname fn))))
+    (lineout "================================================================")
     (doseq (fcn (rsorted (getkeys ranks) ranks))
       (let ((info (profile/getcalls fcn)))
-	(if rootval
-	    (lineout (show% (profilefn info) rootval) 
-	      "\t" (procedure-name fcn) " ("  (profilefn info) ")"
-	      (dolist (fn morefns)
-		(when (test rootvals fn)
-		  (printout "\t" (procedure-name fn) "=" (show% (fn info) (get rootvals fn)) 
-		    " (" (fn info) ")"))))
-	    (lineout (profilefn info) "\t" (procedure-name fcn)
-	      (dolist (fn morefns) (printout "\t" (fn info)))))))))
+	(lineout (procedure-name fcn) "\t"
+          (if rootval (printout "\t" (profname profilefn) "%" "=" (show% (profilefn info) rootval))) 
+	  "\t" (profname profilefn) "=" (profilefn info)
+	  (dolist (fn morefns)
+            (printout "\t" (profname fn) "=" (fn info)))))
+      (lineout "----------------------------------------------------------------"))))
+
+;;; Profile function
 
 (define (profile! fcn)
   (config! 'profiled fcn))
+
+;;;; Profiles to tables
+
+(define (profile->table profile)
+  (let ((result (deep-copy profilefns)))
+    (do-choices (key (getkeys profilefns))
+      (store! result key ((get profilefns key) profile)))
+    result))
+
+(defambda (profiles->table (fcns (config 'profiled)))
+  (let ((results (frame-create #f)))
+    (do-choices (fcn fcns)
+      (store! results
+          (if (procedure? fcn)
+              (or (procedure-name fcn) (lisp->string fcn))
+              fcn)
+          (profile->table (profile/getcalls fcn))))
+    results))
+

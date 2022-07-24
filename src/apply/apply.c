@@ -799,7 +799,7 @@ KNO_EXPORT void kno_profile_update
   long long stime = 0, utime = 0;
   long long n_waits = 0, n_pauses = 0, n_faults = 0;
 #if HAVE_CLOCK_GETTIME
-  struct timespec end;
+  struct timespec end = { 0 };
   clock_gettime(CLOCK_MONOTONIC,&end);
   nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
     ((start->tv_sec*1000000000)+(start->tv_nsec));
@@ -809,9 +809,9 @@ KNO_EXPORT void kno_profile_update
     struct rusage after = { 0 };
     getrusage(RUSAGE_THREAD,&after);
     utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-      (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
+          (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
     stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-      (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
+          (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
 #if HAVE_STRUCT_RUSAGE_RU_NVCSW
     n_waits = after.ru_nvcsw - before->ru_nvcsw;
 #endif

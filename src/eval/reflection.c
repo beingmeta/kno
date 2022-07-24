@@ -1402,7 +1402,7 @@ static lispval call_profile_symbol;
 static int getprofile_info(lispval fcn,int err,
 			   long long *calls_ptr,long long *items_ptr,
 			   long long *nsecs_ptr,
-			   double *etime,double *utime,double *stime,
+                           double *etime,double *utime,double *stime,
 			   long long *waits_ptr,long long *pauses_ptr,
 			   long long *faults_ptr)
 {
@@ -1430,9 +1430,9 @@ static int getprofile_info(lispval fcn,int err,
     long long n_pauses = prof_n_pauses;
     long long n_faults = p->prof_n_faults;
 #endif
-    double exec_time = ((double)((nsecs)|(calls)))/1000000000.0;
-    double user_time = ((double)((user_nsecs)|(calls)))/1000000000.0;
-    double system_time = ((double)((system_nsecs)|(calls)))/1000000000.0;
+    double exec_time = ((double)(nsecs))/1000000000.0;
+    double user_time = ((double)(user_nsecs))/1000000000.0;
+    double system_time = ((double)(system_nsecs))/1000000000.0;
     if (nsecs_ptr) *nsecs_ptr = nsecs;
     if (calls_ptr) *calls_ptr = calls;
     if (items_ptr) *items_ptr = items;
@@ -1641,12 +1641,12 @@ static lispval profile_getfaults(lispval profile)
   else return kno_type_error("call profile","profile_getfaults",profile);
 }
 
-DEFC_PRIM("profile/nsecs",profile_nsecs,
+DEFC_PRIM("profile/etime",profile_etime,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
-	  "returns the number of nanoseconds spent in the "
-	  "profiled function",
+	  "returns the number of seconds  spent in the profiled function. "
+          " This returns a flonum with as much precision as is available.",
 	  {"profile",kno_any_type,KNO_VOID})
-static lispval profile_nsecs(lispval profile)
+static lispval profile_etime(lispval profile)
 {
   if (KNO_QONSTP(profile)) profile = kno_qonst_val(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1662,7 +1662,7 @@ static lispval profile_nsecs(lispval profile)
     if (rv)
       return KNO_INT(nsecs);
     else return KNO_FALSE;}
-  else return kno_type_error("call profile","profile_nsecs",profile);
+  else return kno_type_error("call profile","profile_etime",profile);
 }
 
 DEFC_PRIM("profile/ncalls",profile_ncalls,
@@ -1847,10 +1847,10 @@ static void link_local_cprims()
 
   KNO_LINK_CPRIM("profile/nitems",profile_nitems,1,profiling);
   KNO_LINK_CPRIM("profile/ncalls",profile_ncalls,1,profiling);
-  KNO_LINK_CPRIM("profile/nsecs",profile_nsecs,1,profiling);
   KNO_LINK_CPRIM("profile/faults",profile_getfaults,1,profiling);
   KNO_LINK_CPRIM("profile/pauses",profile_getpauses,1,profiling);
   KNO_LINK_CPRIM("profile/waits",profile_getwaits,1,profiling);
+  KNO_LINK_CPRIM("profile/etime",profile_etime,1,profiling);
   KNO_LINK_CPRIM("profile/stime",profile_getstime,1,profiling);
   KNO_LINK_CPRIM("profile/utime",profile_getutime,1,profiling);
   KNO_LINK_CPRIM("profile/time",profile_gettime,1,profiling);
@@ -1860,6 +1860,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("profile/reset!",profile_reset_prim,1,profiling);
   KNO_LINK_CPRIM("profiled?",profiledp_prim,1,profiling);
   KNO_LINK_CPRIM("profile!",profile_fcn_prim,2,profiling);
+  KNO_LINK_ALIAS("profile/nsecs",profile_etime,profiling);
+
   KNO_LINK_ALIAS("reflect/profiled?",profiledp_prim,profiling);
   KNO_LINK_ALIAS("reflect/profile!",profile_fcn_prim,profiling);
 
