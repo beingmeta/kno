@@ -11,7 +11,7 @@
 
 (use-module '{reflection text/stringfmts varconfig logger fifo/call})
 
-(module-export! '{threadcount mt/call})
+(module-export! '{threadcount check-threadcount mt/call})
 
 ;;; Thread count utilities
 
