@@ -638,6 +638,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		       (overlaps? (procedure-arity logfn) {0 1 3 7}))
 	    (irritant logfn |ENGINE/InvalidLogfn| engine/run))))
 
+      (store! loop-state 'runstats (cons (elapsed-time) (rusage)))
+
       (cond ((and (<= init-items 0) (not fillfn)))
 	    ((and nthreads (> nthreads 1))
 	     (dotimes (i nthreads)
@@ -1116,6 +1118,9 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (store! loop-state 'taskstate new-task-state)
     new-task-state))
 
+(define (rdiff slot before after)
+  (- (get after slot) (get before slot)))
+
 (define (engine/checkpoint loop-state (fifo) (reason #t) (force #f))
   (default! fifo (get loop-state 'fifo))
   (let ((%loglevel (getopt loop-state 'loglevel %loglevel))
@@ -1127,7 +1132,8 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
     (if (or force (check/start! loop-state))
 	(unwind-protect 
 	    (begin 
-	      (logdebug |Engine/Checkpoint| 
+              (when (test loop-state 'runstats) (report-run-stats loop-state))
+              (logdebug |Engine/Checkpoint| 
 		"For " reason " for " fifo " when "
 		"loop state=\n  " (void (pprint loop-state)))
 	      ;; (when (and fifo (getopt loop-state 'checkpause #t))
@@ -1149,7 +1155,6 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 
 	      (set! runtime (elapsed-time (try (get loop-state 'checkdone)
 					       (get loop-state 'started))))
-
 	      (unless (getopt opts 'dryrun)
 		(engine-commit loop-state (get loop-state 'checkpoint) reason))
 
@@ -1173,10 +1178,36 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 		(logwarn |Checkpoint/Failed| 
 		  "After " (secs->string (elapsed-time started)) " for " fifo))
 	    (when fifo (fifo/pause! fifo #f))
-	    (when (getconfopt opts 'swapout) (engine-swapout loop-state))))
+	    (when (getconfopt opts 'swapout) (engine-swapout loop-state))
+            (store! loop-state 'runstats (cons (elapsed-time) (rusage)))))
 	(logwarn |BadCheck| 
 	  "Declining to checkpoint because check/start! failed: state =\n  "
 	  (pprint loop-state)))))
+
+(define (report-run-stats loop-state)
+  (when (test loop-state 'runstats)
+    (let* ((after (rusage))
+           (now (elapsed-time))
+           (ncpus (get after 'maxcpus))
+           (nthreads (get loop-state 'nthreads))
+           (runstart (get loop-state 'runstats))
+           (started (car runstart))
+           (before (cdr runstart))
+           (utime (rdiff 'utime before after))
+           (stime (rdiff 'stime before after))
+           (etime (+ utime stime))
+           (waits (rdiff 'waits before after))
+           (faults (rdiff 'faults before after))
+           (pauses (rdiff 'switches before after))
+           (memu (rdiff 'memusage before after))
+           (vmemu (rdiff 'vmemusage before after)))
+      (lognotice |Engine/RunStats|
+        (compact-interval-string (- now started)) " elapsed time and "
+        (compact-interval-string etime) " CPU time over " ($count nthreads "thread")
+        " (" (compact-interval-string (round (/ etime nthreads))) " per cpu, "
+        (show% utime etime 0) " user, " (show% stime etime 0) " system).\n"
+        "There were " waits " waits, " pauses " pauses, and " faults " faults.\n"
+        "Resident memory increased by " memu " and virtual memory increased by " vmemu))))
 
 ;;; Saving databases
 
