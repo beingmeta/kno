@@ -60,6 +60,7 @@
    ndcalls profile/nitems
    waits profile/waits
    pauses profile/pauses
+   switches profile/pauses
    faults profile/faults
    #t profile/time])
 
@@ -133,13 +134,29 @@
       (store! result key ((get profilefns key) profile)))
     result))
 
-(defambda (profiles->table (fcns (config 'profiled)))
-  (let ((results (frame-create #f)))
+(defambda (profiles->table (fcns (config 'profiled)) (root #f))
+  (let ((results (frame-create #f))
+        (root (and root (profile/getcalls root))))
     (do-choices (fcn fcns)
-      (store! results
-          (if (procedure? fcn)
-              (or (procedure-name fcn) (lisp->string fcn))
-              fcn)
-          (profile->table (profile/getcalls fcn))))
+      (let* ((profile (profile/getcalls fcn))
+             (table (profile->table profile)))
+        (when root
+          (store! profile '%time (/ (* 100.0 (profile/time profile))
+                                    (profile/time root)))
+          (store! profile '%etime (/ (* 100.0 (profile/etime profile))
+                                     (profile/etime root)))
+          (store! profile '%calls (/ (* 100.0 (profile/ncalls profile))
+                                     (profile/ncalls root)))
+          (store! profile '%waits (/ (* 100.0 (profile/waits profile))
+                                     (profile/waits root)))
+          (store! profile '%pauses (/ (* 100.0 (profile/pauses profile))
+                                      (profile/pauses root)))
+          (store! profile '%faults (/ (* 100.0 (profile/faults profile))
+                                      (profile/faults root))))
+        (store! results
+            (if (procedure? fcn)
+                (or (procedure-name fcn) (lisp->string fcn))
+                fcn)
+          (profile->table (profile/getcalls fcn)))))
     results))
 
