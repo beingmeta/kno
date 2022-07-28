@@ -57,9 +57,6 @@ u8_condition kno_ProfilingDisabled=_("profiling not built");
 u8_condition kno_VoidArgument=_("VOID result passed as argument");
 u8_condition kno_SyntaxError=_("SCHEME expression syntax error");
 
-/* Whether to always use extended apply profiling */
-int kno_extended_profiling = 0;
-
 #if KNO_STACKCHECK
 static int stackcheck()
 {
@@ -202,7 +199,7 @@ static lispval profiled_call(kno_stack stack,
   lispval result = KNO_VOID;
 
   struct rusage before; struct timespec start;
-  if (profile) kno_profile_start(&before,&start);
+  if (profile) kno_profile_start(profile,&before,&start);
 
   /* Here's where we actually apply the function */
   result = core_call(stack,fn,f,n,argvec);
@@ -271,7 +268,7 @@ static lispval profiled_dcall
     if ( (profile) &&
 	 ( (profile->prof_disabled) ||
 	   ( KNO_CONS_TYPEOF(f) == kno_lambda_type ) ) )
-      /* lambda calls handle their own profiling too */
+      /* lambda calls handle their own profiling */
       profile=NULL;
     KNO_STACK_SET_CALLER(&stack,caller);
     KNO_PUSH_STACK(&stack);
@@ -775,15 +772,14 @@ KNO_EXPORT struct KNO_PROFILE *kno_make_profile(u8_string name)
 #if HAVE_STDATOMIC_H
   result->prof_calls        = ATOMIC_VAR_INIT(0);
   result->prof_items        = ATOMIC_VAR_INIT(0);
-  result->prof_nsecs        = ATOMIC_VAR_INIT(0);
-#if KNO_EXTENDED_PROFILING
+  result->prof_nsecs_clock        = ATOMIC_VAR_INIT(0);
   result->prof_nsecs_user   = ATOMIC_VAR_INIT(0);
   result->prof_nsecs_system = ATOMIC_VAR_INIT(0);
   result->prof_n_waits      = ATOMIC_VAR_INIT(0);
   result->prof_n_pauses      = ATOMIC_VAR_INIT(0);
   result->prof_n_faults     = ATOMIC_VAR_INIT(0);
-#endif
 #else
+  memset(result,0,sizeof(struct KNO_PROFILE));
   u8_init_mutex(&(result->prof_lock));
 #endif
   return result;
@@ -801,17 +797,24 @@ KNO_EXPORT void kno_profile_update
 #if HAVE_CLOCK_GETTIME
   struct timespec end = { 0 };
   clock_gettime(CLOCK_MONOTONIC,&end);
+#elif HAVE_GETTIMEOFDAY
+  struct timeval tv = { 0 };
+  gettimeofday(&tv,NULL);
+  end.tv_sec=tv.tv_sec;
+  end.tv_nsecs=tv.tv_usec*1000;
+#else
+  end.tv_sec=time(NULL);
+  end.tv_nsecs=0;
+#endif
   nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
     ((start->tv_sec*1000000000)+(start->tv_nsec));
-#endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  if (kno_extended_profiling) {
-    struct rusage after = { 0 };
+#if (HAVE_DECL_RUSAGE_THREAD)
+  {struct rusage after = { 0 };
     getrusage(RUSAGE_THREAD,&after);
     utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-          (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
+      (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
     stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-          (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
+      (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
 #if HAVE_STRUCT_RUSAGE_RU_NVCSW
     n_waits = after.ru_nvcsw - before->ru_nvcsw;
 #endif
@@ -821,9 +824,8 @@ KNO_EXPORT void kno_profile_update
 #if HAVE_STRUCT_RUSAGE_RU_NIVCSW
     n_pauses = after.ru_nivcsw - before->ru_nivcsw;
 #endif
-  }
 #endif
-
+  }
   kno_profile_record(profile,0,nsecs,utime,stime,
 		     n_waits,n_pauses,n_faults,
 		     calls);
@@ -833,26 +835,24 @@ KNO_EXPORT void kno_profile_update
 #if HAVE_STDATOMIC_H
 KNO_EXPORT void kno_profile_record
 (struct KNO_PROFILE *p,long long items,
- long long nsecs,long long nsecs_user,long long nsecs_system,
+ long long nsecs_clock,long long nsecs_user,long long nsecs_system,
  long long n_waits,long long n_pauses,long long n_faults,
  int calls)
 {
   if (p->prof_disabled) return;
   if (items) atomic_fetch_add(&(p->prof_items),items);
   if (calls) atomic_fetch_add(&(p->prof_calls),calls);
-  atomic_fetch_add(&(p->prof_nsecs),nsecs);
-#if KNO_EXTENDED_PROFILING
+  atomic_fetch_add(&(p->prof_nsecs_clock),nsecs_clock);
   atomic_fetch_add(&(p->prof_nsecs_user),nsecs_user);
   atomic_fetch_add(&(p->prof_nsecs_system),nsecs_system);
   atomic_fetch_add(&(p->prof_n_waits),n_waits);
   atomic_fetch_add(&(p->prof_n_pauses),n_pauses);
   atomic_fetch_add(&(p->prof_n_faults),n_faults);
-#endif
 }
 #else
 KNO_EXPORT void kno_profile_record
 (struct KNO_PROFILE *p,long long items,
- long long nsecs,long long nsecs_user,long long nsecs_system,
+ long long nsecs_clock,long long nsecs_user,long long nsecs_system,
  long long n_waits,long long n_pauses,long long n_faults,
  int calls)
 {
@@ -860,29 +860,33 @@ KNO_EXPORT void kno_profile_record
   u8_lock_mutex(&(p->prof_lock));
   if (items) p->prof_items += items;
   p->prof_calls += calls;
-  p->prof_nsecs += nsecs;
-#if KNO_EXTENDED_PROFILING
+  p->prof_nsecs_clock += nsecs_clock;
   p->prof_nsecs_user += nsecs_user;
   p->prof_nsecs_system += nsecs_system;
   p->prof_n_waits += n_waits;
   p->prof_n_pauses += n_pauses;
   p->prof_n_nfaults += n_faults;
-#endif
   u8_lock_mutex(&(p->prof_lock));
 }
 #endif
 
-KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
+KNO_EXPORT void kno_profile_start(kno_profile p,struct rusage *before,struct timespec *start)
 {
 #if HAVE_CLOCK_GETTIME
   clock_gettime(CLOCK_MONOTONIC,start);
-#endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  if (kno_extended_profiling) getrusage(RUSAGE_THREAD,before);
-#elif (KNO_EXTENDED_PROFILING)
-  if (kno_extended_profiling) getrusage(RUSAGE_SELF,before);
+#elif HAVE_GETTIMEOFDAY
+  struct timeval tv = { 0 };
+  gettimeofday(&tv,NULL);
+  start->tv_sec=tv.tv_sec;
+  start->tv_nsecs=tv.tv_usec*1000;
 #else
-  return;
+  start->tv_sec=time(NULL);
+  start->tv_nsecs=0;
+#endif
+#if (HAVE_DECL_RUSAGE_THREAD)
+  getrusage(RUSAGE_THREAD,before);
+#else
+  getrusage(RUSAGE_SELF,before);
 #endif
 }
 
@@ -992,10 +996,6 @@ KNO_EXPORT void kno_init_apply_c()
 #endif
 
   u8_init_mutex(&profiled_lock);
-
-  kno_register_config
-    ("XPROFILING",_("Whether to use extended apply profiling"),
-     kno_boolconfig_get,kno_boolconfig_set,&kno_extended_profiling);
 
   kno_register_config
     ("PROFILED",_("Functions declared for profiling"),

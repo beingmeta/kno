@@ -1593,10 +1593,11 @@ static lispval parse_histref(u8_input in)
   if (c>0) u8_ungetc(in,c);
   if (kno_resolve_histref) {
     lispval resolved = kno_resolve_histref(KNO_CDR(elts));
-    if (KNO_ABORTP(resolved)) {
+    if (KNO_ABORTED(resolved)) {
       kno_clear_errors(1);}
     else if (KNO_VOIDP(resolved)) {}
     else {
+      KNO_SETCDR(elts,KNO_EMPTY_LIST);
       kno_decref(elts);
       return resolved;}}
   lispval ref = kno_init_compound

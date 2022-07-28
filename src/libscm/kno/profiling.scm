@@ -129,7 +129,7 @@
 	(if (and (symbol? fn) (get profilefns fn))
 	    (store! rootvals fn ((get profilefns fn) rootinfo))
 	    (store! rootvals fn (fn rootinfo)))))
-    (do-choices (fcn (config 'profiled))
+    (do-choices (fcn fcns)
       (let* ((info (profile/getcalls fcn))
 	     (val (profilefn info)))
 	(unless (or (fail? val) (not (number? val)) (zero? val))

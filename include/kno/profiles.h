@@ -18,7 +18,7 @@ typedef struct KNO_PROFILE {
   int prof_disabled;
   _Atomic long long prof_calls;
   _Atomic long long prof_items;
-  _Atomic long long prof_nsecs;
+  _Atomic long long prof_nsecs_clock;
   _Atomic long long prof_nsecs_user;
   _Atomic long long prof_nsecs_system;
   _Atomic long long prof_n_waits;
@@ -30,7 +30,7 @@ typedef struct KNO_PROFILE {
   int prof_disabled;
   long long prof_calls;
   long long prof_items;
-  long long prof_nsecs;
+  long long prof_nsecs_clock;
   long long prof_nsecs_user;
   long long prof_nsecs_system;
   long long prof_n_waits;
@@ -51,7 +51,8 @@ KNO_EXPORT void kno_profile_update(struct KNO_PROFILE *p,
 				   struct rusage *before,
 				   struct timespec *start,
 				   int calls);
-KNO_EXPORT void kno_profile_start(struct rusage *before,
+KNO_EXPORT void kno_profile_start(struct KNO_PROFILE *p,
+                                  struct rusage *before,
 				  struct timespec *start);
 
 #endif /* KNO_PROFILES_H */

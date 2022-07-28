@@ -1368,12 +1368,22 @@ static lispval profile_reset_prim(lispval fcn)
 #if HAVE_STDATOMIC_H
     profile->prof_calls = ATOMIC_VAR_INIT(0);
     profile->prof_items = ATOMIC_VAR_INIT(0);
-    profile->prof_nsecs = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs_clock = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs_user = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs_system = ATOMIC_VAR_INIT(0);
+    profile->prof_n_waits = ATOMIC_VAR_INIT(0);
+    profile->prof_n_pauses = ATOMIC_VAR_INIT(0);
+    profile->prof_n_faults = ATOMIC_VAR_INIT(0);
 #else
     u8_lock_mutex(&(profile->prof_lock));
     profile->prof_calls = 0;
     profile->prof_items = 0;
-    profile->prof_nsecs = 0;
+    profile->prof_nsecs_clock = 0;
+    profile->prof_nsecs_user = 0;
+    profile->prof_nsecs_system = 0;
+    profile->prof_n_waits = 0;
+    profile->prof_n_pauses = 0;
+    profile->prof_n_faults = 0;
     u8_unlock_mutex(&(profile->prof_lock));
 #endif
     return KNO_TRUE;}
@@ -1414,7 +1424,7 @@ static int getprofile_info(lispval fcn,int err,
 #if HAVE_STDATOMIC_H
     long long calls = atomic_load(&(p->prof_calls));
     long long items = atomic_load(&(p->prof_items));
-    long long nsecs = atomic_load(&(p->prof_nsecs));
+    long long clock_nsecs = atomic_load(&(p->prof_nsecs_clock));
     long long user_nsecs = atomic_load(&(p->prof_nsecs_user));
     long long system_nsecs = atomic_load(&(p->prof_nsecs_system));
     long long n_waits = atomic_load(&(p->prof_n_waits));
@@ -1423,7 +1433,7 @@ static int getprofile_info(lispval fcn,int err,
 #else
     long long calls = p->prof_calls;
     long long items = p->prof_items;
-    long long nsecs = p->prof_nsecs;
+    long long clock_nsecs = p->prof_nsecs_clock;
     long long user_nsecs = p->prof_nsecs_user;
     long long system_nsecs = p->prof_nsecs_system;
     long long n_waits = prof_n_waits;
@@ -1433,7 +1443,7 @@ static int getprofile_info(lispval fcn,int err,
     double user_time = ((double)(user_nsecs))/1000000000.0;
     double system_time = ((double)(system_nsecs))/1000000000.0;
     double exec_time = user_time + system_time;
-    if (clocktime_ptr) *clocktime_ptr = nsecs;
+    if (clocktime_ptr) *clocktime_ptr = clock_nsecs;
     if (calls_ptr) *calls_ptr = calls;
     if (items_ptr) *items_ptr = items;
     if (etime) *etime = exec_time;
@@ -1462,11 +1472,11 @@ DEFC_PRIM("profile/getcalls",getcalls_prim,
 static lispval getcalls_prim(lispval fcn,lispval errp)
 {
   if (KNO_FUNCTIONP(fcn)) {
-    long long calls = 0, items = 0, nsecs = 0;
+    long long calls = 0, items = 0, clock_time = 0;
     double exec_time = 0, user_time = 0, system_time = 0;
     long long n_waits = 0, n_pauses = 0, n_faults = 0;
     int rv = getprofile_info(fcn,(!(KNO_FALSEP(errp))),
-			     &calls,&items,&nsecs,
+			     &calls,&items,&clock_time,
 			     &exec_time,&user_time,&system_time,
 			     &n_waits,&n_pauses,&n_faults);
     if (rv < 0)
@@ -1479,7 +1489,7 @@ static lispval getcalls_prim(lispval fcn,lispval errp)
 	 kno_make_flonum(user_time),
 	 kno_make_flonum(system_time),
 	 KNO_INT(n_waits),KNO_INT(n_pauses),KNO_INT(n_faults),
-	 KNO_INT(nsecs),KNO_INT(calls),KNO_INT(items));}
+	 KNO_INT(clock_time),KNO_INT(calls),KNO_INT(items));}
     else return KNO_FALSE;}
   else if (KNO_FALSEP(errp))
     return KNO_FALSE;
