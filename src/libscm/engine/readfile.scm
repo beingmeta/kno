@@ -70,34 +70,34 @@
 	   (bytes-total (try (get task 'maxbytes) (get loop-state 'maxbytes)))
 	   (%loglevel (getopt loop-state 'loglevel %loglevel)))
       (lognotice |Engine/Readfile/Progress|
-	"Read " ($count delta-read "byte") " in " (secs->string elapsed) 
-	", averaging " ($rate delta-read elapsed) " bytes/sec")
+	"Read " ($bytes delta-read) " in " (secs->string elapsed) 
+	", averaging " ($bytes/sec delta-read elapsed))
       (when (exists? bytes-total)
 	(let* ((total-items (+ (try (get task 'items) 0) (get loop-state 'items)))
 	       (clocktime (try (+ (try (get task 'clocktime) 0) elapsed)
 			       (difftime (get task 'started))))
 	       (count-term (try (get loop-state 'count-term) "item")))
 	  (lognotice |Engine/Readfile/Overall|
-	    "Read " ($count total-read "byte") 
+	    "Read " ($bytes total-read) 
 	    " (" (show% total-read bytes-total) ") "
 	    "comprising "
 	    ($count total-items count-term) 
 	    " in " (secs->string clocktime) 
 	    " since "  (get (get task 'started) 'string)
-	    " effectively " ($rate total-read clocktime) " bytes/second")
+	    " effectively " ($bytes/sec total-read clocktime))
 	  (let* ((current-rate (/~ delta-read elapsed))
 		 (bytes-to-go (- bytes-total total-read))
 		 (secs-to-go (/ bytes-to-go current-rate)))
 	    (lognotice |Engine/Readfile/Projection|
-	      "At the current rate of " ($rate delta-read elapsed) " bytes/sec, "
-	      "reading the remaining " ($count bytes-to-go "byte")
+	      "At the current rate of " ($bytes/sec delta-read elapsed)
+	      "reading the remaining " ($bytes bytes-to-go)
 	      " should take " (secs->string secs-to-go) " finishing " 
 	      "around " (get (timestamp+ secs-to-go) 'string)))
 	  (let* ((overall-rate (/~ total-read clocktime))
 		 (bytes-to-go (- bytes-total total-read))
 		 (secs-to-go (/ bytes-to-go overall-rate)))
 	    (lognotice |Engine/Readfile/Projection|
-	      "At the overall rate of " ($rate total-read clocktime) " bytes/sec, "
-	      "reading the remaining " ($count bytes-to-go "byte")
+	      "At the overall rate of " ($bytes/sec total-read clocktime)
+	      "reading the remaining " ($bytes bytes-to-go)
 	      " should take " (secs->string secs-to-go) " finishing " 
 	      "around " (get (timestamp+ secs-to-go) 'string))))))))

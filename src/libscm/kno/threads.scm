@@ -20,7 +20,7 @@
 
 (define (threadcount (arg default-threadcount)
 		     (maxval (config 'maxthreads #f))
-		     (ncpus (get (rusage) 'ncpus)))
+		     (ncpus (get (rusage) 'maxcpus)))
   (cond ((flonum? maxval) (set! maxval (threadcount maxval)))
 	((eq? maxval #t) (set! maxval ncpus)))
   (cond ((not arg) #f)

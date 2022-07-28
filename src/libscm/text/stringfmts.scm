@@ -15,6 +15,7 @@
    short-interval-string
    minimal-interval-string
    compact-interval-string
+   compact-interval-string+
    padnum printnum numstring
    xround $xround
    $count $countstring
@@ -43,7 +44,7 @@
 ;; Percentages
 
 (defexport (get% num (den #f) (prec 2))
-  (cond ((zero? den) den)
+  (cond ((zero? den) 0)
 	(den (inexact->string (/ (* num 100.0) den) prec))
 	(else (inexact->string (* num 100.0) prec))))
 
@@ -322,8 +323,8 @@
 	(else
 	 (stringout (xround (/~ secs (* 365 24 3600))) " years"))))
 
-(define (compact-interval-string total (precise #t) (started #f) (secs))
-  (default! secs (->exact (floor total)))
+(define (compact-interval-string total (precise #t) (started #f))
+  (local secs (->exact (floor total)))
   (stringout
     (when (> secs (* 7 24 3600))
       (printout (quotient secs (* 7 24 3600)) "w")
@@ -346,6 +347,33 @@
 	(if (< total 60)
 	    (printout (inexact->string total 1) "s")
 	    (printout secs "s")))))
+
+(define (compact-interval-string+ total (precise #t) (started #f))
+  "Displays an interval as a compact string XhXmXs (Ys) in both broken down and simple form"
+  (local secs (->exact total -1))
+  (stringout
+    (when (> secs (* 7 24 3600))
+      (printout (quotient secs (* 7 24 3600)) "w")
+      (set! secs (remainder secs (* 7 24 3600)))
+      (set! started #t))
+    (when (or started (> secs (* 24 3600)))
+      (printout (quotient secs (* 24 3600)) "d")
+      (set! secs (remainder secs (* 24 3600)))
+      (set! started #t))
+    (when (or started (> secs 3600))
+      (printout (quotient secs 3600) "h")
+      (set! secs (remainder secs 3600))
+      (set! started #t))
+    (when (or started (> secs 60))
+      (printout (quotient secs 60) "m")
+      (set! secs (remainder secs 60))
+      (set! started #t))
+    (if (< total 15) 
+	(printout total "s")
+	(if (< total 60)
+	    (printout (inexact->string total 1) "s")
+	    (printout secs "s")))
+    (when (> total 60) (printout " (" (->exact total -1) "s)"))))
 
 ;;; Mutli-line output
 

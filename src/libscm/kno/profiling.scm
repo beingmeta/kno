@@ -12,6 +12,9 @@
 		  profile/report})
 (module-export! '{profile->table  profiles->table})
 (module-export! '{profile/user% profile/sys% profile/run% profile/idle%
+                  profile/clocktime% profile/runtime% profile/utime% profile/stime%
+                  profile/waits% profile/faults% profile/pauses%
+                  profile/calls%
                   profile/runsecs profile/idlesecs})
 
 (define-init profile-root #f)
@@ -24,7 +27,7 @@
 (define (profile/runsecs profile)
   (+ (profile/utime profile) (profile/stime profile)))
 (define (profile/idlesecs profile)
-  (- (profile/time profile) (+ (profile/utime profile) (profile/stime profile))))
+  (- (profile/clocktime profile) (+ (profile/utime profile) (profile/stime profile))))
 
 (define (profile/user% profile)
   (* 100 (/~ (profile/utime profile) (profile/time profile))))
@@ -32,11 +35,28 @@
   (* 100 (/~ (profile/stime profile) (profile/time profile))))
 (define (profile/run% profile)
   (* 100 (/~ (+ (profile/stime profile) (profile/utime profile))
-             (profile/time profile))))
+             (profile/clocktime profile))))
 (define (profile/idle% profile)
-  (* 100 (/~ (- (profile/time profile) 
+  (* 100 (/~ (- (profile/clocktime profile) 
                 (+ (profile/stime profile) (profile/utime profile)))
-             (profile/time profile))))
+             (profile/clocktime profile))))
+
+(define (profile/clocktime% profile parent)
+  (* 100 (/~ (profile/clocktime profile) (profile/clocktime parent))))
+(define (profile/runtime% profile parent)
+  (* 100 (/~ (profile/etime profile) (profile/etime parent))))
+(define (profile/utime% profile parent)
+  (* 100 (/~ (profile/utime profile) (profile/utime parent))))
+(define (profile/stime% profile parent)
+  (* 100 (/~ (profile/stime profile) (profile/stime parent))))
+(define (profile/calls% profile parent)
+  (* 100 (/~ (profile/ncalls profile) (profile/ncalls parent))))
+(define (profile/waits% profile parent)
+  (* 100 (/~ (profile/waits profile) (profile/waits parent))))
+(define (profile/faults% profile parent)
+  (* 100 (/~ (profile/faults profile) (profile/faults parent))))
+(define (profile/pauses% profile parent)
+  (* 100 (/~ (profile/pauses profile) (profile/pauses parent))))
 
 (define (invert-table table)
   (let ((result (make-hashtable)))
@@ -45,8 +65,8 @@
     result))
 
 (define-init profilefns
-  [time profile/time
-   etime profile/etime
+  [clocktime profile/time
+   runtime profile/runtime
    stime profile/stime
    utime profile/utime
    secs  profile/time
@@ -62,13 +82,20 @@
    pauses profile/pauses
    switches profile/pauses
    faults profile/faults
+   clocktime% profile/clocktime%
+   runtime% profile/runtime%
+   utime% profile/utime%
+   stime% profile/stime%
+   waits% profile/waits%
+   faults% profile/faults%
+   pauses% profile/pauses%
    #t profile/time])
 
 (define-init profilefn-names (invert-table profilefns))
-(store! profilefn-names profile/time 'time)
+(store! profilefn-names profile/clocktime 'time)
 
 (define (profname x)
-  (try (get profilefn-names x) (or (procedure-name x) (lisp->string x))))
+  (try (pick-one (get profilefn-names x)) (or (procedure-name x) (lisp->string x))))
 
 (define (module-getcalls module (sort #f))
   (if sort
@@ -98,7 +125,7 @@
 	 (rootinfo (and root (profile/getcalls root)))
 	 (rootval (and rootinfo (profilefn rootinfo)))
 	 (rootvals (and rootinfo (pair? morefns) #[])))
-    (when rootvals 
+    (when rootvals
       (dolist (fn morefns)
 	(if (and (symbol? fn) (get profilefns fn))
 	    (store! rootvals fn ((get profilefns fn) rootinfo))
@@ -109,16 +136,16 @@
 	(unless (or (fail? val) (not (number? val)) (zero? val))
 	  (store! ranks fcn val))))
     (lineout "================================================================")
-    (lineout (if rootval (profname profilefn)) (if rootval "%") "\t" (profname profilefn)
-      (dolist (fn morefns) (printout "\t" (profname fn))))
+    (lineout (if rootval (profname profilefn)) (if rootval "%") " " (profname profilefn)
+      (dolist (fn morefns) (printout " " (profname fn))))
     (lineout "================================================================")
     (doseq (fcn (rsorted (getkeys ranks) ranks))
       (let ((info (profile/getcalls fcn)))
-	(lineout (procedure-name fcn) "\t"
-          (if rootval (printout "\t" (profname profilefn) "%" "=" (show% (profilefn info) rootval))) 
-	  "\t" (profname profilefn) "=" (profilefn info)
+	(lineout (procedure-name fcn) " "
+          (if rootval (printout " " (profname profilefn) "%" "=" (show% (profilefn info) rootval))) 
+	  " " (profname profilefn) "=" (profilefn info)
 	  (dolist (fn morefns)
-            (printout "\t" (profname fn) "=" (fn info)))))
+            (printout " " (profname fn) "=" (fn info)))))
       (lineout "----------------------------------------------------------------"))))
 
 ;;; Profile function
@@ -128,10 +155,15 @@
 
 ;;;; Profiles to tables
 
-(define (profile->table profile)
+(define (profile->table profile (root #f))
   (let ((result (deep-copy profilefns)))
     (do-choices (key (getkeys profilefns))
-      (store! result key ((get profilefns key) profile)))
+      (let ((fn (get profilefns key)))
+        (cond ((= (procedure-arity fn) 1)
+               (store! result key (fn profile)))
+              ((not root))
+              (else
+               (store! result key (fn profile root))))))
     result))
 
 (defambda (profiles->table (fcns (config 'profiled)) (root #f))
@@ -139,24 +171,11 @@
         (root (and root (profile/getcalls root))))
     (do-choices (fcn fcns)
       (let* ((profile (profile/getcalls fcn))
-             (table (profile->table profile)))
-        (when root
-          (store! profile '%time (/ (* 100.0 (profile/time profile))
-                                    (profile/time root)))
-          (store! profile '%etime (/ (* 100.0 (profile/etime profile))
-                                     (profile/etime root)))
-          (store! profile '%calls (/ (* 100.0 (profile/ncalls profile))
-                                     (profile/ncalls root)))
-          (store! profile '%waits (/ (* 100.0 (profile/waits profile))
-                                     (profile/waits root)))
-          (store! profile '%pauses (/ (* 100.0 (profile/pauses profile))
-                                      (profile/pauses root)))
-          (store! profile '%faults (/ (* 100.0 (profile/faults profile))
-                                      (profile/faults root))))
+             (result (profile->table profile root)))
         (store! results
             (if (procedure? fcn)
                 (or (procedure-name fcn) (lisp->string fcn))
                 fcn)
-          (profile->table (profile/getcalls fcn)))))
+          result)))
     results))
 

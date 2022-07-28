@@ -693,6 +693,7 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
 	    (when (getopt opts 'finalcommit #f) (commit)))
 	  (begin
 	    (lognotice |Engine| "Skipping final checkpoint for ENGINE/RUN")
+            (when (test loop-state 'runstats) (report-run-stats loop-state))
 	    (save-task-state! loop-state)
 	    (engine-logger (qc) batchsize 0 (elapsed-time (get loop-state 'started))
 			   #[] loop-state task)))
@@ -1202,12 +1203,12 @@ The monitors can stop the loop by storing a value in the 'stopped slot of the lo
            (memu (rdiff 'memusage before after))
            (vmemu (rdiff 'vmemusage before after)))
       (lognotice |Engine/RunStats|
-        (compact-interval-string (- now started)) " elapsed time and "
-        (compact-interval-string etime) " CPU time over " ($count nthreads "thread")
-        " (" (compact-interval-string (round (/ etime nthreads))) " per cpu, "
+        (compact-interval-string+ (- now started)) " elapsed and "
+        (compact-interval-string+ etime) " CPU over " ($count nthreads "thread")
+        " (" (compact-interval-string+ (->exact (/ etime nthreads) 0)) " per cpu, "
         (show% utime etime 0) " user, " (show% stime etime 0) " system).\n"
-        "There were " waits " waits, " pauses " pauses, and " faults " faults.\n"
-        "Resident memory increased by " memu " and virtual memory increased by " vmemu))))
+        "There were " waits " waits, " pauses " pauses, and " faults " faults. "
+        "Resident memory increased by " ($bytes memu) ", virtual memory by " ($bytes vmemu)))))
 
 ;;; Saving databases
 
