@@ -1401,7 +1401,7 @@ static lispval call_profile_symbol;
 
 static int getprofile_info(lispval fcn,int err,
 			   long long *calls_ptr,long long *items_ptr,
-			   long long *nsecs_ptr,
+			   long long *clocktime_ptr,
                            double *etime,double *utime,double *stime,
 			   long long *waits_ptr,long long *pauses_ptr,
 			   long long *faults_ptr)
@@ -1430,10 +1430,10 @@ static int getprofile_info(lispval fcn,int err,
     long long n_pauses = prof_n_pauses;
     long long n_faults = p->prof_n_faults;
 #endif
-    double exec_time = ((double)(nsecs))/1000000000.0;
     double user_time = ((double)(user_nsecs))/1000000000.0;
     double system_time = ((double)(system_nsecs))/1000000000.0;
-    if (nsecs_ptr) *nsecs_ptr = nsecs;
+    double exec_time = user_time + system_time;
+    if (clocktime_ptr) *clocktime_ptr = nsecs;
     if (calls_ptr) *calls_ptr = calls;
     if (items_ptr) *items_ptr = items;
     if (etime) *etime = exec_time;
@@ -1524,12 +1524,12 @@ static lispval profile_clocktime(lispval profile)
   else return kno_type_error("call profile","profile_clocktime",profile);
 }
 
-DEFC_PRIM("profile/utime",profile_getutime,
+DEFC_PRIM("profile/usertime",profile_getusertime,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "returns the number of seconds of user time spent "
 	  "in the profiled function",
 	  {"profile",kno_any_type,KNO_VOID})
-static lispval profile_getutime(lispval profile)
+static lispval profile_getusertime(lispval profile)
 {
   if (KNO_QONSTP(profile)) profile = kno_qonst_val(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1544,15 +1544,15 @@ static lispval profile_getutime(lispval profile)
     if (rv)
       return kno_make_flonum(time);
     else return KNO_FALSE;}
-  else return kno_type_error("call profile","profile_getutime",profile);
+  else return kno_type_error("call profile","profile_getusertime",profile);
 }
 
-DEFC_PRIM("profile/stime",profile_getstime,
+DEFC_PRIM("profile/systime",profile_getsystime,
 	  KNO_MAX_ARGS(1)|KNO_MIN_ARGS(1),
 	  "returns the number of seconds of system time "
 	  "spent in the profiled function",
 	  {"profile",kno_any_type,KNO_VOID})
-static lispval profile_getstime(lispval profile)
+static lispval profile_getsystime(lispval profile)
 {
   if (KNO_QONSTP(profile)) profile = kno_qonst_val(profile);
   if (KNO_COMPOUND_TYPEP(profile,call_profile_symbol)) {
@@ -1567,7 +1567,7 @@ static lispval profile_getstime(lispval profile)
     if (rv)
       return kno_make_flonum(time);
     else return KNO_FALSE;}
-  else return kno_type_error("call profile","profile_getstime",profile);
+  else return kno_type_error("call profile","profile_getsystime",profile);
 }
 
 DEFC_PRIM("profile/waits",profile_getwaits,
@@ -1715,8 +1715,8 @@ static lispval profile_nitems(lispval profile)
 }
 
 static u8_string profile_schema_init[10] =
-  { "fcn", "time", "utime", "stime", "waits", "pauses",
-    "faults", "nsecs", "ncalls", "nitems" };
+  { "fcn", "exectime", "usertime", "systime", "waits", "pauses",
+    "faults", "clocktime", "ncalls", "nitems" };
 static lispval profile_schema[10];
 
 #define PROFILE_SCHEMAP_FLAGS \
@@ -1852,8 +1852,8 @@ static void link_local_cprims()
   KNO_LINK_CPRIM("profile/pauses",profile_getpauses,1,profiling);
   KNO_LINK_CPRIM("profile/waits",profile_getwaits,1,profiling);
   KNO_LINK_CPRIM("profile/runtime",profile_runtime,1,profiling);
-  KNO_LINK_CPRIM("profile/stime",profile_getstime,1,profiling);
-  KNO_LINK_CPRIM("profile/utime",profile_getutime,1,profiling);
+  KNO_LINK_CPRIM("profile/systime",profile_getsystime,1,profiling);
+  KNO_LINK_CPRIM("profile/usertime",profile_getusertime,1,profiling);
   KNO_LINK_CPRIM("profile/clocktime",profile_clocktime,1,profiling);
   KNO_LINK_CPRIM("profile/fcn",profile_getfcn,1,profiling);
   KNO_LINK_CPRIM("profile/getcalls",getcalls_prim,2,profiling);
@@ -1864,6 +1864,8 @@ static void link_local_cprims()
   KNO_LINK_ALIAS("profile/etime",profile_runtime,profiling);
   KNO_LINK_ALIAS("profile/nsecs",profile_runtime,profiling);
   KNO_LINK_ALIAS("profile/time",profile_clocktime,profiling);
+  KNO_LINK_ALIAS("profile/stime",profile_getsystime,profiling);
+  KNO_LINK_ALIAS("profile/utime",profile_getusertime,profiling);
 
   KNO_LINK_ALIAS("reflect/profiled?",profiledp_prim,profiling);
   KNO_LINK_ALIAS("reflect/profile!",profile_fcn_prim,profiling);

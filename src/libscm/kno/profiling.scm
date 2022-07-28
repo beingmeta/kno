@@ -92,7 +92,6 @@
    #t profile/time])
 
 (define-init profilefn-names (invert-table profilefns))
-(store! profilefn-names profile/clocktime 'time)
 
 (define (profname x)
   (try (pick-one (get profilefn-names x)) (or (procedure-name x) (lisp->string x))))
