@@ -271,7 +271,7 @@ static lispval profiled_dcall
     if ( (profile) &&
 	 ( (profile->prof_disabled) ||
 	   ( KNO_CONS_TYPEOF(f) == kno_lambda_type ) ) )
-      /* lambda calls handle their own profiling too */
+      /* lambda calls handle their own profiling */
       profile=NULL;
     KNO_STACK_SET_CALLER(&stack,caller);
     KNO_PUSH_STACK(&stack);
@@ -803,6 +803,14 @@ KNO_EXPORT void kno_profile_update
   clock_gettime(CLOCK_MONOTONIC,&end);
   nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
     ((start->tv_sec*1000000000)+(start->tv_nsec));
+#elif HAVE_GETTIMEOFDAY
+  struct timeval tv = { 0 };
+  gettimeofday(&tv,NULL);
+  end.tv_sec=tv.tv_sec;
+  end.tv_nsecs=tv.tv_usec*1000;
+#else
+  end.tv_sec=time(NULL);
+  end.tv_nsecs=0;
 #endif
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
   if (kno_extended_profiling) {
@@ -876,6 +884,14 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
 {
 #if HAVE_CLOCK_GETTIME
   clock_gettime(CLOCK_MONOTONIC,start);
+#elif HAVE_GETTIMEOFDAY
+  struct timeval tv = { 0 };
+  gettimeofday(&tv,NULL);
+  start->tv_sec=tv.tv_sec;
+  start->tv_nsecs=tv.tv_usec*1000;
+#else
+  start->tv_sec=time(NULL);
+  start->tv_nsecs=0;
 #endif
 #if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
   if (kno_extended_profiling) getrusage(RUSAGE_THREAD,before);
