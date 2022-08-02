@@ -476,8 +476,6 @@ KNO_EXPORT kno_function _KNO_GETFUNCTION(lispval x);
 KNO_EXPORT lispval kno_get_backtrace(struct KNO_STACK *stack);
 KNO_EXPORT void kno_html_backtrace(u8_output out,lispval rep);
 
-KNO_EXPORT int kno_extended_profiling;
-
 /* Closures */
 
 typedef kno_pair kno_closure;

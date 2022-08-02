@@ -1435,13 +1435,6 @@ else
   AC_DEFINE(KNO_FILECONFIG_DEFAULTS,0)
 fi
 
-AC_ARG_ENABLE(xprofiling,--enable-xprofiling use xprofiling information,enable_xprofiling=$withval,enable_xprofiling="yes")
-if test "${enable_xprofiling}" != "no"; then
-   AC_DEFINE(KNO_EXTENDED_PROFILING,1)
-else
-   AC_DEFINE(KNO_EXTENDED_PROFILING,0)
-fi;
-
 ### Scheme Module search paths
 
 AC_ARG_WITH(installed_module_dir,--with-installed-module-dir location,installed_module_dir=$withval,installed_module_dir=$share_dir/modules/installed)

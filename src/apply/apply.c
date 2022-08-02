@@ -57,9 +57,6 @@ u8_condition kno_ProfilingDisabled=_("profiling not built");
 u8_condition kno_VoidArgument=_("VOID result passed as argument");
 u8_condition kno_SyntaxError=_("SCHEME expression syntax error");
 
-/* Whether to always use extended apply profiling */
-int kno_extended_profiling = 0;
-
 #if KNO_STACKCHECK
 static int stackcheck()
 {
@@ -776,14 +773,13 @@ KNO_EXPORT struct KNO_PROFILE *kno_make_profile(u8_string name)
   result->prof_calls        = ATOMIC_VAR_INIT(0);
   result->prof_items        = ATOMIC_VAR_INIT(0);
   result->prof_nsecs        = ATOMIC_VAR_INIT(0);
-#if KNO_EXTENDED_PROFILING
   result->prof_nsecs_user   = ATOMIC_VAR_INIT(0);
   result->prof_nsecs_system = ATOMIC_VAR_INIT(0);
   result->prof_n_waits      = ATOMIC_VAR_INIT(0);
   result->prof_n_pauses      = ATOMIC_VAR_INIT(0);
   result->prof_n_faults     = ATOMIC_VAR_INIT(0);
-#endif
 #else
+  memset(result,0,sizeof(struct KNO_PROFILE));
   u8_init_mutex(&(result->prof_lock));
 #endif
   return result;
@@ -812,14 +808,13 @@ KNO_EXPORT void kno_profile_update
   end.tv_sec=time(NULL);
   end.tv_nsecs=0;
 #endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  if (kno_extended_profiling) {
-    struct rusage after = { 0 };
+#if (HAVE_DECL_RUSAGE_THREAD)
+  {struct rusage after = { 0 };
     getrusage(RUSAGE_THREAD,&after);
     utime = (after.ru_utime.tv_sec*1000000000+after.ru_utime.tv_usec*1000)-
-          (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
+      (before->ru_utime.tv_sec*1000000000+before->ru_utime.tv_usec*1000);
     stime = (after.ru_stime.tv_sec*1000000000+after.ru_stime.tv_usec*1000)-
-          (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
+      (before->ru_stime.tv_sec*1000000000+before->ru_stime.tv_usec*1000);
 #if HAVE_STRUCT_RUSAGE_RU_NVCSW
     n_waits = after.ru_nvcsw - before->ru_nvcsw;
 #endif
@@ -829,9 +824,8 @@ KNO_EXPORT void kno_profile_update
 #if HAVE_STRUCT_RUSAGE_RU_NIVCSW
     n_pauses = after.ru_nivcsw - before->ru_nivcsw;
 #endif
-  }
 #endif
-
+  }
   kno_profile_record(profile,0,nsecs,utime,stime,
 		     n_waits,n_pauses,n_faults,
 		     calls);
@@ -849,13 +843,11 @@ KNO_EXPORT void kno_profile_record
   if (items) atomic_fetch_add(&(p->prof_items),items);
   if (calls) atomic_fetch_add(&(p->prof_calls),calls);
   atomic_fetch_add(&(p->prof_nsecs),nsecs);
-#if KNO_EXTENDED_PROFILING
   atomic_fetch_add(&(p->prof_nsecs_user),nsecs_user);
   atomic_fetch_add(&(p->prof_nsecs_system),nsecs_system);
   atomic_fetch_add(&(p->prof_n_waits),n_waits);
   atomic_fetch_add(&(p->prof_n_pauses),n_pauses);
   atomic_fetch_add(&(p->prof_n_faults),n_faults);
-#endif
 }
 #else
 KNO_EXPORT void kno_profile_record
@@ -869,13 +861,11 @@ KNO_EXPORT void kno_profile_record
   if (items) p->prof_items += items;
   p->prof_calls += calls;
   p->prof_nsecs += nsecs;
-#if KNO_EXTENDED_PROFILING
   p->prof_nsecs_user += nsecs_user;
   p->prof_nsecs_system += nsecs_system;
   p->prof_n_waits += n_waits;
   p->prof_n_pauses += n_pauses;
   p->prof_n_nfaults += n_faults;
-#endif
   u8_lock_mutex(&(p->prof_lock));
 }
 #endif
@@ -893,12 +883,10 @@ KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
   start->tv_sec=time(NULL);
   start->tv_nsecs=0;
 #endif
-#if ( (KNO_EXTENDED_PROFILING) && (HAVE_DECL_RUSAGE_THREAD) )
-  if (kno_extended_profiling) getrusage(RUSAGE_THREAD,before);
-#elif (KNO_EXTENDED_PROFILING)
-  if (kno_extended_profiling) getrusage(RUSAGE_SELF,before);
+#if (HAVE_DECL_RUSAGE_THREAD)
+  getrusage(RUSAGE_THREAD,before);
 #else
-  return;
+  getrusage(RUSAGE_SELF,before);
 #endif
 }
 
@@ -1008,10 +996,6 @@ KNO_EXPORT void kno_init_apply_c()
 #endif
 
   u8_init_mutex(&profiled_lock);
-
-  kno_register_config
-    ("XPROFILING",_("Whether to use extended apply profiling"),
-     kno_boolconfig_get,kno_boolconfig_set,&kno_extended_profiling);
 
   kno_register_config
     ("PROFILED",_("Functions declared for profiling"),

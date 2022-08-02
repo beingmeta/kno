@@ -94,9 +94,6 @@
 /* Define if you have <sys/resource.h> declares struct tm.  */
 #undef HAVE_RESOURCE_H
 
-/* Whether we have extended profiling */
-#undef KNO_EXTENDED_PROFILING
-
 /* Define if you have rusage.ru_inblock.  */
 #undef HAVE_STRUCT_RUSAGE_RU_INBLOCK
 
