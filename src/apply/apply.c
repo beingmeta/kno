@@ -199,7 +199,7 @@ static lispval profiled_call(kno_stack stack,
   lispval result = KNO_VOID;
 
   struct rusage before; struct timespec start;
-  if (profile) kno_profile_start(&before,&start);
+  if (profile) kno_profile_start(profile,&before,&start);
 
   /* Here's where we actually apply the function */
   result = core_call(stack,fn,f,n,argvec);
@@ -797,8 +797,6 @@ KNO_EXPORT void kno_profile_update
 #if HAVE_CLOCK_GETTIME
   struct timespec end = { 0 };
   clock_gettime(CLOCK_MONOTONIC,&end);
-  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
-    ((start->tv_sec*1000000000)+(start->tv_nsec));
 #elif HAVE_GETTIMEOFDAY
   struct timeval tv = { 0 };
   gettimeofday(&tv,NULL);
@@ -808,6 +806,8 @@ KNO_EXPORT void kno_profile_update
   end.tv_sec=time(NULL);
   end.tv_nsecs=0;
 #endif
+  nsecs = ((end.tv_sec*1000000000)+(end.tv_nsec)) -
+    ((start->tv_sec*1000000000)+(start->tv_nsec));
 #if (HAVE_DECL_RUSAGE_THREAD)
   {struct rusage after = { 0 };
     getrusage(RUSAGE_THREAD,&after);
@@ -870,7 +870,7 @@ KNO_EXPORT void kno_profile_record
 }
 #endif
 
-KNO_EXPORT void kno_profile_start(struct rusage *before,struct timespec *start)
+KNO_EXPORT void kno_profile_start(kno_profile p,struct rusage *before,struct timespec *start)
 {
 #if HAVE_CLOCK_GETTIME
   clock_gettime(CLOCK_MONOTONIC,start);

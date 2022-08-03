@@ -37,18 +37,17 @@
 ;; use the stack frame. Keeping this in case, we ever restore the
 ;; previous functionality.
 
-;;(applytest #t > (profile/time (profile/getcalls fib-iter)) (profile/time (profile/getcalls fibi)) )
 ;; "More" time is spent in fib-iter than fibi, because fibi is tail recursive
-;;(applytest #t < (profile/nsecs (profile/getcalls fibi)) (profile/nsecs (profile/getcalls fib-iter)) )
-;;(applytest #t > (profile/ncalls (profile/getcalls fib-iter)) (profile/ncalls (profile/getcalls +)) )
+(applytest #t < (profile/nsecs (profile/getcalls fibi))
+	   (profile/nsecs (profile/getcalls fib-iter)) )
+(applytest #t > (profile/ncalls (profile/getcalls fib-iter))
+	   (profile/ncalls (profile/getcalls +)) )
 
 (profile/reset! profiled)
 
 (applytest 0.0 (profile/time (profile/getcalls +)))
 (applytest 0 (profile/nsecs (profile/getcalls +)))
 (applytest 0 (profile/ncalls (profile/getcalls +)))
-
-(set-procedure-tailable! fibi #f)
 
 (dotimes (i 10) (fibi 1000))
 

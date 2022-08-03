@@ -102,7 +102,7 @@ int lambda_setup(kno_stack stack,kno_stack origin,
   struct rusage init_usage; struct timespec start_time;
   if (profile) {
     if (profile->prof_disabled) profile=NULL;
-    else kno_profile_start(&init_usage,&start_time);}
+    else kno_profile_start(profile,&init_usage,&start_time);}
 
   u8_string label = (proc->fcn_name) ? (proc->fcn_name) : (U8S("lambda"));
   u8_string filename = (proc->fcn_filename) ? (proc->fcn_filename) : (NULL);
@@ -280,14 +280,15 @@ lispval lambda_call(kno_stack stack,
     lispval lambda = lambda_stack->stack_op;
     struct KNO_LAMBDA *proc = KNO_LAMBDA_INFO(lambda);
     int synchronized = proc->lambda_synchronized, ok = 0;
-    int tailable = !( (synchronized) || ( (proc->fcn_call) & KNO_CALL_NOTAIL) );
     stack->eval_source = stack->eval_context = proc->lambda_body;
     U8_PAUSEPOINT();
     struct rusage init_usage; struct timespec start_time;
     kno_profile profile = proc->fcn_profile;
     if (profile) {
       if (profile->prof_disabled) profile=NULL;
-      else kno_profile_start(&init_usage,&start_time);}
+      else kno_profile_start(profile,&init_usage,&start_time);}
+    int tailable = ( (!synchronized) &&
+                     (( (proc->fcn_call) & KNO_CALL_NOTAIL)==0) );
 
     if (ok>=0) {
       lispval start = proc->lambda_entry;

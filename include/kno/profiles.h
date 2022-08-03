@@ -51,7 +51,8 @@ KNO_EXPORT void kno_profile_update(struct KNO_PROFILE *p,
 				   struct rusage *before,
 				   struct timespec *start,
 				   int calls);
-KNO_EXPORT void kno_profile_start(struct rusage *before,
+KNO_EXPORT void kno_profile_start(struct KNO_PROFILE *p,
+                                  struct rusage *before,
 				  struct timespec *start);
 
 #endif /* KNO_PROFILES_H */

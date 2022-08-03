@@ -1369,11 +1369,21 @@ static lispval profile_reset_prim(lispval fcn)
     profile->prof_calls = ATOMIC_VAR_INIT(0);
     profile->prof_items = ATOMIC_VAR_INIT(0);
     profile->prof_nsecs = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs_user = ATOMIC_VAR_INIT(0);
+    profile->prof_nsecs_system = ATOMIC_VAR_INIT(0);
+    profile->prof_n_waits = ATOMIC_VAR_INIT(0);
+    profile->prof_n_pauses = ATOMIC_VAR_INIT(0);
+    profile->prof_n_faults = ATOMIC_VAR_INIT(0);
 #else
     u8_lock_mutex(&(profile->prof_lock));
     profile->prof_calls = 0;
     profile->prof_items = 0;
     profile->prof_nsecs = 0;
+    profile->prof_nsecs_user = 0;
+    profile->prof_nsecs_system = 0;
+    profile->prof_n_waits = 0;
+    profile->prof_n_pauses = 0;
+    profile->prof_n_faults = 0;
     u8_unlock_mutex(&(profile->prof_lock));
 #endif
     return KNO_TRUE;}
